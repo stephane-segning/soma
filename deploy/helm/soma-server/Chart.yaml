@@ -1,0 +1,11 @@
+apiVersion: v2
+name: soma-server
+description: Helm chart for Soma rendezvous and relay server using bjw-s app-template
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+
+dependencies:
+  - name: app-template
+    version: 3.6.0
+    repository: https://bjw-s.github.io/helm-charts

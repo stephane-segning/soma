@@ -1,0 +1,36 @@
+controllers:
+  serverd:
+    annotations: {}
+    containers:
+      app:
+        image:
+          repository: ghcr.io/example/soma-server
+          tag: "0.1.0"
+          pullPolicy: IfNotPresent
+        env: []
+        probes:
+          liveness:
+            enabled: false
+          readiness:
+            enabled: false
+        service:
+          ports:
+            http:
+              enabled: true
+              port: 8080
+
+service:
+  main:
+    controller: serverd
+    ports:
+      http:
+        enabled: true
+        port: 8080
+
+ingress:
+  main:
+    enabled: false
+
+persistence: {}
+
+resources: {}

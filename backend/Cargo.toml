@@ -1,0 +1,49 @@
+[workspace]
+members = [
+    "crates/core",
+    "crates/storage",
+    "crates/net",
+    "crates/api",
+    "crates/agent",
+    "crates/common",
+    "crates/proto-build",
+    "bins/daemon",
+    "bins/agentd",
+]
+
+resolver = "3"
+
+[workspace.dependencies]
+soma-core = { path = "crates/core" }
+soma-storage = { path = "crates/storage" }
+soma-net = { path = "crates/net" }
+soma-api = { path = "crates/api" }
+soma-agent = { path = "crates/agent" }
+soma-common = { path = "crates/common" }
+
+serde = { version = "1.0", features = ["derive"] }
+
+rand = "0.9"
+clap = { version = "4", features = ["derive", "env"] }
+
+tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }
+tracing = { version = "0", features = ["attributes", "async-await", "std"] }
+
+mimalloc = "0"
+
+[profile.prod]
+inherits = "release"
+lto = true
+opt-level = "z"
+codegen-units = 1
+incremental = false
+strip = true
+
+[workspace.package]
+version = "0.3.0"
+edition = "2024"
+license = "MIT"
+publish = false
+authors = [
+    "Stephane Segning <selastlambou@gmail.com>"
+]

@@ -1,0 +1,8 @@
+site_name: Soma
+repo_url: https://github.com/example/soma
+docs_dir: src
+
+nav:
+  - Overview: 00-overview.md
+  - Glossary: 01-glossary.md
+

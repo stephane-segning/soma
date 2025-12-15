@@ -1,0 +1,84 @@
+name: package-desktop
+description: Build and package desktop artifacts (dmg/deb/install.sh)
+
+inputs:
+  project_dir:
+    description: Path to desktop project (Electron/React)
+    required: false
+    default: desktop/app
+  artifact_dir:
+    description: Output directory for packaged artifacts
+    required: false
+    default: artifacts/desktop
+  dmg_name:
+    description: Filename for dmg artifact
+    required: false
+    default: soma-desktop.dmg
+  deb_name:
+    description: Filename for deb artifact
+    required: false
+    default: soma-desktop.deb
+  install_script:
+    description: Path to installer script to publish
+    required: false
+    default: desktop/packaging/install.sh
+  banner:
+    description: Path to banner file to include with artifacts
+    required: false
+    default: desktop/packaging/banner.txt
+
+outputs:
+  dmg_path:
+    description: Path to dmg artifact
+    value: ${{ steps.set-outputs.outputs.dmg_path }}
+  deb_path:
+    description: Path to deb artifact
+    value: ${{ steps.set-outputs.outputs.deb_path }}
+  install_script_path:
+    description: Path to installer script
+    value: ${{ steps.set-outputs.outputs.install_script_path }}
+  artifact_dir:
+    description: Directory containing all artifacts
+    value: ${{ steps.set-outputs.outputs.artifact_dir }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Ensure corepack (yarn v4) is enabled
+      shell: bash
+      run: |
+        corepack enable
+        corepack prepare yarn@stable --activate
+
+    - name: Install dependencies and build (best-effort)
+      shell: bash
+      working-directory: ${{ inputs.project_dir }}
+      run: |
+        if [ -f yarn.lock ]; then
+          yarn install --immutable
+          yarn build
+        else
+          echo "No yarn.lock found in $PWD; skipping yarn install/build."
+        fi
+
+    - name: Prepare artifacts
+      id: prep
+      shell: bash
+      run: |
+        mkdir -p "${{ inputs.artifact_dir }}"
+        # TODO: replace placeholder touches with real packaging commands (electron-builder, etc.)
+        touch "${{ inputs.artifact_dir }}/${{ inputs.dmg_name }}"
+        touch "${{ inputs.artifact_dir }}/${{ inputs.deb_name }}"
+        cp "${{ inputs.install_script }}" "${{ inputs.artifact_dir }}/"
+        if [ -f "${{ inputs.banner }}" ]; then
+          cp "${{ inputs.banner }}" "${{ inputs.artifact_dir }}/"
+        fi
+
+    - name: Set outputs
+      id: set-outputs
+      shell: bash
+      run: |
+        echo "dmg_path=${{ inputs.artifact_dir }}/${{ inputs.dmg_name }}" >> "$GITHUB_OUTPUT"
+        echo "deb_path=${{ inputs.artifact_dir }}/${{ inputs.deb_name }}" >> "$GITHUB_OUTPUT"
+        echo "install_script_path=${{ inputs.artifact_dir }}/$(basename "${{ inputs.install_script }}")" >> "$GITHUB_OUTPUT"
+        echo "artifact_dir=${{ inputs.artifact_dir }}" >> "$GITHUB_OUTPUT"

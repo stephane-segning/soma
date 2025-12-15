@@ -1,0 +1,8 @@
+[workspace]
+members = [
+    "crates/rendezvous",
+    "crates/relay",
+    "crates/api",
+    "bins/serverd",
+]
+

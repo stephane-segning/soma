@@ -1,0 +1,29 @@
+name: Release Desktop
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Package desktop artifacts
+        id: package
+        uses: ./.github/actions/package-desktop
+        with:
+          project_dir: desktop/app
+          artifact_dir: artifacts/desktop
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            ${{ steps.package.outputs.dmg_path }}
+            ${{ steps.package.outputs.deb_path }}
+            ${{ steps.package.outputs.install_script_path }}
