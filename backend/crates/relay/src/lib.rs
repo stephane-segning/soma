@@ -31,7 +31,7 @@ impl Default for RelayConfig {
             listen_addrs: vec![
                 "/ip4/0.0.0.0/tcp/4001".parse().expect("valid multiaddr"),
                 "/ip4/0.0.0.0/tcp/4003/ws".parse().expect("valid multiaddr"),
-                "/ip4/127.0.0.1/udp/4001/quic-v1".parse().expect("valid multiaddr"),
+                "/ip4/0.0.0.0/udp/4001/quic-v1".parse().expect("valid multiaddr"),
             ],
         }
     }

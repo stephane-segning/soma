@@ -80,6 +80,9 @@ where
 {
     let builder = SwarmBuilder::with_existing_identity(keypair).with_tokio();
 
+    // IMPORTANT: The `SwarmBuilder` uses a typestate API. To combine multiple transports
+    // (TCP + QUIC + DNS + WebSocket), the order matters:
+    // TCP -> QUIC -> DNS -> WebSocket -> Behaviour.
     let builder = builder
         .with_tcp(
             libp2p::tcp::Config::default().nodelay(true),
@@ -87,6 +90,10 @@ where
             yamux::Config::default,
         )
         .map_err(soma_core::Error::service)?;
+
+    let builder = builder.with_quic();
+
+    let builder = builder.with_dns().map_err(soma_core::Error::service)?;
 
     let builder = builder
         .with_websocket(

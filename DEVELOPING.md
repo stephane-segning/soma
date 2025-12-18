@@ -172,6 +172,87 @@ This repo intentionally has multiple binaries. Each has a distinct goal and depl
   - Start `desktop/app/soma` or `desktop/app/tapia` in dev mode.
   - Exercise join flows, class navigation, and basic messaging.
 
+## Networking Services (Relay + Rendezvous)
+
+Soma uses two lightweight libp2p infrastructure services to improve discovery and connectivity:
+
+- **Relay** (`soma-relayd` / `backend/crates/relay`): Circuit Relay v2 service for NAT traversal and relayed connectivity.
+- **Rendezvous** (`soma-rendezvousd` / `backend/crates/rendezvous`): Rendezvous discovery service for peer registration and discovery.
+
+### Identity Persistence (Peer ID Stability)
+
+Both services persist a libp2p keypair so that their Peer ID stays stable across restarts.
+
+- Env var: `SOMA_DATA_DIR`
+- Default paths:
+  - Relay: `./data/relay/identity.key`
+  - Rendezvous: `./data/rendezvous/identity.key`
+
+Deleting these files will cause a new identity + new Peer ID on next start.
+
+### Transports and Listen Addresses
+
+Relay and rendezvous listen on multiple transports to maximize reach across networks:
+
+- **TCP**: compatibility baseline
+- **QUIC (UDP)**: faster handshakes / often better NAT behavior, but UDP can be blocked
+- **WebSocket (WS)**: helpful on restrictive networks and for web-like environments
+
+Current default listen addrs (multiaddr form):
+
+- Relay:
+  - `/ip4/0.0.0.0/tcp/4001`
+  - `/ip4/0.0.0.0/udp/4001/quic-v1`
+  - `/ip4/0.0.0.0/tcp/4003/ws`
+- Rendezvous:
+  - `/ip4/0.0.0.0/tcp/4002`
+  - `/ip4/0.0.0.0/udp/4002/quic-v1`
+  - `/ip4/0.0.0.0/tcp/4004/ws`
+
+Note: the Axum HTTP server is used only for health/metrics and is configured separately via CLI (see below).
+
+### Swarm Builder (Typestate Order)
+
+`soma-net` provides a shared `build_swarm` helper (used by relay/rendezvous). libp2p’s `SwarmBuilder` uses a typestate API, meaning the order of calls matters when composing transports.
+
+The supported order is:
+
+`TCP -> QUIC -> DNS -> WebSocket -> Behaviour`
+
+If QUIC is not included in the transport stack, attempting to `listen_on` a `/udp/.../quic-v1` address will fail with `MultiaddrNotSupported(...)`.
+
+### Running Locally
+
+From `backend/`:
+
+- Relay:
+  - `cargo run --bin soma-relayd -- --http-addr 0.0.0.0:8081`
+- Rendezvous:
+  - `cargo run --bin soma-rendezvousd -- --http-addr 0.0.0.0:8082`
+
+### Metrics
+
+Both services expose:
+
+- `GET /healthz` → `"ok"`
+- `GET /metrics` → Prometheus text format
+
+Default HTTP endpoints:
+
+- Relay metrics: `http://127.0.0.1:8081/metrics`
+- Rendezvous metrics: `http://127.0.0.1:8082/metrics`
+
+Service-specific counters:
+
+- Relay (prefix `relay_`):
+  - `relay_reservations_total{result=...,status=...}`
+  - `relay_circuits_total{result=...,status=...}`
+  - `relay_listen_events_total`
+- Rendezvous (prefix `rendezvous_`):
+  - `rendezvous_discover_total{result=...}`
+  - `rendezvous_registrations_total{result=...}`
+  - `rendezvous_listen_events_total`
+
 ## Design and Structure Guidelines
 
 ### Backend (Rust)

@@ -8,6 +8,7 @@ nav:
   - Architecture:
       - Soma & Tapia: architecture/soma-tapia.md
       - libp2p Primer: architecture/libp2p-primer.md
+      - Infrastructure Services: architecture/infra-services.md
       - Class Membership: architecture/class-membership.md
       - Packaging & Deployment: architecture/deployment.md
   - Getting Started: getting-started/index.md

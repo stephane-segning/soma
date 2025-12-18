@@ -31,7 +31,7 @@ impl Default for RendezvousConfig {
             listen_addrs: vec![
                 "/ip4/0.0.0.0/tcp/4002".parse().expect("valid multiaddr"),
                 "/ip4/0.0.0.0/tcp/4004/ws".parse().expect("valid multiaddr"),
-                "/ip4/0.0.0.0/tcp/4004/quic-v1".parse().expect("valid multiaddr"),
+                "/ip4/0.0.0.0/udp/4002/quic-v1".parse().expect("valid multiaddr"),
             ],
         }
     }
