@@ -9,7 +9,7 @@ static GLOBAL: MiMalloc = MiMalloc;
 #[derive(Debug, Parser)]
 #[command(name = "soma-relayd", version)]
 struct Args {
-    #[arg(long, env = "SOMA_RELAY_HTTP_ADDR", default_value = "0.0.0.0:8081")]
+    #[arg(long, env = "HTTP_ADDR", default_value = "0.0.0.0:8081")]
     http_addr: SocketAddr,
 }
 
@@ -33,7 +33,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     });
 
     // Run libp2p relay logic (stubbed in crate for now).
-    let relay = tokio::spawn(async move { soma_relay::run().await });
+    let relay = tokio::spawn(async move { soma_relay::run(Default::default()).await });
 
     tokio::select! {
         res = http => res??,

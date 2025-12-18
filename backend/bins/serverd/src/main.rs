@@ -23,7 +23,7 @@ enum Command {
 
 #[derive(Debug, Parser)]
 struct RelayArgs {
-    #[arg(long, env = "SOMA_RELAY_HTTP_ADDR", default_value = "0.0.0.0:8081")]
+    #[arg(long, env = "HTTP_ADDR", default_value = "0.0.0.0:8081")]
     http_addr: SocketAddr,
 }
 
@@ -31,7 +31,7 @@ struct RelayArgs {
 struct RendezvousArgs {
     #[arg(
         long,
-        env = "SOMA_RENDEZVOUS_HTTP_ADDR",
+        env = "HTTP_ADDR",
         default_value = "0.0.0.0:8082"
     )]
     http_addr: SocketAddr,
@@ -39,7 +39,7 @@ struct RendezvousArgs {
 
 #[derive(Debug, Parser)]
 struct BffArgs {
-    #[arg(long, env = "SOMA_BFF_HTTP_ADDR", default_value = "0.0.0.0:8083")]
+    #[arg(long, env = "HTTP_ADDR", default_value = "0.0.0.0:8083")]
     http_addr: SocketAddr,
 }
 
@@ -53,11 +53,14 @@ async fn main() -> SomaResult<()> {
 
     match Args::parse().cmd {
         Command::Relay(cfg) => {
-            run_with_metrics("relay", cfg.http_addr, || async { soma_relay::run().await }).await?;
+            run_with_metrics("relay", cfg.http_addr, || async {
+                soma_relay::run(Default::default()).await
+            })
+            .await?;
         }
         Command::Rendezvous(cfg) => {
             run_with_metrics("rendezvous", cfg.http_addr, || async {
-                soma_rendezvous::run().await
+                soma_rendezvous::run(Default::default()).await
             })
             .await?;
         }

@@ -10,7 +10,7 @@ static GLOBAL: MiMalloc = MiMalloc;
 #[derive(Debug, Parser)]
 #[command(name = "soma-botd", version)]
 struct Args {
-    #[arg(long, env = "SOMA_HTTP_ADDR", default_value = "0.0.0.0:8080")]
+    #[arg(long, env = "HTTP_ADDR", default_value = "0.0.0.0:8080")]
     http_addr: SocketAddr,
 
     #[arg(long, env = "SOMA_BLOB_DIR", default_value = "./blobs")]

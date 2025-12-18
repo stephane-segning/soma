@@ -9,7 +9,7 @@ static GLOBAL: MiMalloc = MiMalloc;
 #[derive(Debug, Parser)]
 #[command(name = "soma-bffd", version)]
 struct Args {
-    #[arg(long, env = "SOMA_BFF_HTTP_ADDR", default_value = "0.0.0.0:8083")]
+    #[arg(long, env = "HTTP_ADDR", default_value = "0.0.0.0:8083")]
     http_addr: SocketAddr,
 }
 

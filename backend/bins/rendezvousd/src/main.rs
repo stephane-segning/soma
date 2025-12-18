@@ -9,7 +9,7 @@ static GLOBAL: MiMalloc = MiMalloc;
 #[derive(Debug, Parser)]
 #[command(name = "soma-rendezvousd", version)]
 struct Args {
-    #[arg(long, env = "SOMA_RENDEZVOUS_HTTP_ADDR", default_value = "0.0.0.0:8082")]
+    #[arg(long, env = "HTTP_ADDR", default_value = "0.0.0.0:8082")]
     http_addr: SocketAddr,
 }
 
@@ -31,7 +31,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         Ok::<(), Box<dyn std::error::Error + Send + Sync>>(())
     });
 
-    let rendezvous = tokio::spawn(async move { soma_rendezvous::run().await });
+    let rendezvous = tokio::spawn(async move { soma_rendezvous::run(Default::default()).await });
 
     tokio::select! {
         res = http => res??,
