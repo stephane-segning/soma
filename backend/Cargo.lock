@@ -3302,6 +3302,8 @@ dependencies = [
 name = "soma-relay"
 version = "0.1.0"
 dependencies = [
+ "futures",
+ "libp2p",
  "soma-core",
  "soma-net",
  "tokio",
@@ -3315,6 +3317,7 @@ dependencies = [
  "axum",
  "clap",
  "mimalloc",
+ "soma-core",
  "soma-metrics",
  "soma-relay",
  "tokio",
@@ -3326,6 +3329,8 @@ dependencies = [
 name = "soma-rendezvous"
 version = "0.1.0"
 dependencies = [
+ "futures",
+ "libp2p",
  "soma-core",
  "soma-net",
  "tokio",
