@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::io;
 use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
@@ -6,13 +6,15 @@ use std::time::{Duration, SystemTime};
 use async_trait::async_trait;
 use futures::{StreamExt, prelude::*};
 use libp2p::{
-    Multiaddr, PeerId, identify, mdns, ping, relay, rendezvous, request_response as reqres,
+    Multiaddr, PeerId, identify, mdns, multiaddr::Protocol, ping, relay, rendezvous,
+    request_response as reqres,
     swarm::{NetworkBehaviour, SwarmEvent, behaviour::toggle},
+    tls, yamux, SwarmBuilder,
 };
 use prost::Message;
 use prost_types::Timestamp;
 use soma_core::SomaResult;
-use soma_net::{NetIdentity, build_swarm, default_identity_path};
+use soma_net::{NetIdentity, default_identity_path};
 use soma_proto_build::classroom::v1 as classroom;
 use tokio::{sync::mpsc, task::JoinHandle};
 use tracing::{info, warn};
@@ -138,37 +140,60 @@ pub fn spawn_peer(mut config: PeerConfig) -> SomaResult<PeerHandle> {
         let identity = NetIdentity::load_or_generate(&config.identity_path)?;
         let peer_id = identity.peer_id();
 
-        let mdns_behaviour = if config.enable_mdns {
-            Some(mdns::tokio::Behaviour::new(
-                mdns::Config::default(),
-                peer_id,
-            )?)
-        } else {
-            None
-        };
+        let enable_mdns = config.enable_mdns;
+        let keypair = identity.keypair().clone();
+        let builder = SwarmBuilder::with_existing_identity(keypair.clone())
+            .with_tokio()
+            .with_tcp(
+                libp2p::tcp::Config::default().nodelay(true),
+                (tls::Config::new, libp2p::noise::Config::new),
+                yamux::Config::default,
+            )
+            .map_err(soma_core::Error::service)?
+            .with_quic()
+            .with_dns()
+            .map_err(soma_core::Error::service)?
+            .with_websocket(
+                (tls::Config::new, libp2p::noise::Config::new),
+                yamux::Config::default,
+            )
+            .await
+            .map_err(soma_core::Error::service)?
+            .with_relay_client(tls::Config::new, yamux::Config::default)
+            .map_err(soma_core::Error::service)?;
 
-        let (_relay_transport, relay_client) = relay::client::new(peer_id);
+        let mut swarm = builder
+            .with_behaviour(move |keypair, relay_client| {
+                let mdns_behaviour = if enable_mdns {
+                    Some(
+                        mdns::tokio::Behaviour::new(
+                            mdns::Config::default(),
+                            keypair.public().to_peer_id(),
+                        )
+                        .expect("mdns behaviour"),
+                    )
+                } else {
+                    None
+                };
 
-        let behaviour = AppBehaviour {
-            ping: ping::Behaviour::default(),
-            identify: identify::Behaviour::new(identify::Config::new(
-                AGENT_PROTOCOL.into(),
-                identity.keypair().public().clone(),
-            )),
-            mdns: mdns_behaviour.into(),
-            rendezvous: rendezvous::client::Behaviour::new(
-                identity
-                    .keypair()
-                    .clone()
-                    .try_into()
-                    .expect("to libp2p_identity keypair"),
-            ),
-            relay_client,
-            join: build_join_behaviour(),
-        };
-
-        let mut swarm = build_swarm(identity.keypair().clone(), behaviour).await?;
+                AppBehaviour {
+                    ping: ping::Behaviour::default(),
+                    identify: identify::Behaviour::new(identify::Config::new(
+                        AGENT_PROTOCOL.into(),
+                        keypair.public().clone(),
+                    )),
+                    mdns: mdns_behaviour.into(),
+                    rendezvous: rendezvous::client::Behaviour::new(
+                        keypair.clone().try_into().expect("to libp2p keypair"),
+                    ),
+                    relay_client,
+                    join: build_join_behaviour(),
+                }
+            })
+            .expect("build behaviour")
+            .build();
         let mut rendezvous_peers = HashSet::new();
+        let mut relay_peers = HashMap::new();
 
         for addr in config.listen_addrs.drain(..) {
             if let Err(err) = swarm.listen_on(addr.clone()) {
@@ -192,8 +217,11 @@ pub fn spawn_peer(mut config: PeerConfig) -> SomaResult<PeerHandle> {
             }
         }
 
-        // Pre-dial relay nodes and request reservations.
+        // Pre-dial relay nodes and remember their peer IDs.
         for addr in &config.relay_addrs {
+            if let Some(peer_id) = extract_peer_id(addr) {
+                relay_peers.insert(peer_id, addr.clone());
+            }
             if let Err(err) = swarm.dial(addr.clone()) {
                 warn!(?err, ?addr, "failed to dial relay node");
             }
@@ -204,6 +232,7 @@ pub fn spawn_peer(mut config: PeerConfig) -> SomaResult<PeerHandle> {
             config.rendezvous_namespace.unwrap_or_else(|| "soma".into()),
             config.relay_addrs,
             rendezvous_peers,
+            relay_peers,
             swarm,
             command_rx,
             event_tx,
@@ -287,18 +316,20 @@ async fn run_swarm(
     peer_id: PeerId,
     rendezvous_namespace: String,
     relay_addrs: Vec<Multiaddr>,
-    mut rendezvous_peers: HashSet<PeerId>,
+    rendezvous_peers: HashSet<PeerId>,
+    mut relay_peers: HashMap<PeerId, Multiaddr>,
     mut swarm: libp2p::Swarm<AppBehaviour>,
     mut command_rx: mpsc::Receiver<PeerCommand>,
     event_tx: mpsc::Sender<PeerEvent>,
 ) -> SomaResult<()> {
     for addr in relay_addrs {
         if let Some(peer_id) = extract_peer_id(&addr) {
-            // Track relay peers so we can request reservation on connect.
-            rendezvous_peers.insert(peer_id);
+            relay_peers.entry(peer_id).or_insert(addr.clone());
         }
         let _ = swarm.dial(addr.clone());
     }
+
+    let mut requested_reservations = HashSet::new();
 
     loop {
         tokio::select! {
@@ -343,6 +374,16 @@ async fn run_swarm(
                     }
                     SwarmEvent::ConnectionEstablished { peer_id: remote, .. } => {
                         let _ = event_tx.try_send(PeerEvent::ConnectionEstablished { peer: remote });
+
+                        if let Some(relay_addr) = relay_peers.get(&remote) {
+                            if requested_reservations.insert(remote) {
+                                if let Some(circuit) = relay_circuit_addr(&peer_id, relay_addr) {
+                                    if let Err(err) = swarm.listen_on(circuit.clone()) {
+                                        warn!(?err, ?circuit, "failed to request relay reservation");
+                                    }
+                                }
+                            }
+                        }
 
                         if rendezvous_peers.contains(&remote) {
                             let namespace = rendezvous::Namespace::new(rendezvous_namespace.clone())
@@ -446,6 +487,15 @@ fn extract_peer_id(addr: &Multiaddr) -> Option<PeerId> {
             _ => None,
         })
         .last()
+}
+
+fn relay_circuit_addr(local_peer: &PeerId, relay_addr: &Multiaddr) -> Option<Multiaddr> {
+    extract_peer_id(relay_addr).map(|_| {
+        let mut addr = relay_addr.clone();
+        addr.push(Protocol::P2pCircuit);
+        addr.push(Protocol::P2p((*local_peer).into()));
+        addr
+    })
 }
 
 fn build_join_behaviour() -> reqres::Behaviour<JoinCodec> {

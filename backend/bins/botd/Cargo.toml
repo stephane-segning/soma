@@ -13,6 +13,7 @@ soma-net = { workspace = true }
 soma-common = { workspace = true }
 soma-metrics = { workspace = true }
 soma-peer = { workspace = true }
+soma-proto-build = { workspace = true }
 
 clap = { workspace = true }
 tracing = { workspace = true }
@@ -27,3 +28,7 @@ prometheus-client = { workspace = true }
 prometheus-client-derive-encode = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+prost-types = { workspace = true }
+prost = { workspace = true }
+rand = { workspace = true }
+base64 = "0.22"

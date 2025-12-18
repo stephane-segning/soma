@@ -13,6 +13,7 @@ soma-net = { workspace = true }
 soma-api = { workspace = true }
 soma-common = { workspace = true }
 soma-peer = { workspace = true }
+soma-socket = { workspace = true }
 soma-proto-build = { workspace = true }
 clap = { workspace = true }
 tracing = { workspace = true }

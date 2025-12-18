@@ -6,6 +6,7 @@ use mimalloc::MiMalloc;
 use prost_types::Timestamp;
 use soma_core::SomaResult;
 use soma_net::{default_identity_path, generate_identity};
+use soma_socket::serve_grpc_unix;
 use soma_peer::{PeerCommand, PeerConfig, PeerEvent, spawn_ping_peer};
 use soma_proto_build::classroom::v1 as classroom;
 use soma_proto_build::daemon::v1 as daemon;
@@ -14,7 +15,7 @@ use tokio::{
     sync::{broadcast, mpsc, Mutex},
 };
 use tokio_stream::{wrappers::BroadcastStream, StreamExt as TokioStreamExt};
-use tonic::{transport::Server, Request, Response, Status};
+use tonic::{Request, Response, Status};
 use tracing::{info, warn};
 use tracing_subscriber::EnvFilter;
 
@@ -277,9 +278,10 @@ async fn run(config: DaemonConfig) -> SomaResult<()> {
         events: event_tx,
     });
 
-    let grpc_service = DaemonService {
+    let grpc_service = daemon::daemon_server::DaemonServer::new(DaemonService {
         state: state.clone(),
-    };
+    });
+
     let grpc_task = tokio::spawn(serve_grpc(socket_path.clone(), grpc_service));
     let peer_task = peer.task;
     let mut peer_events = peer.events;
@@ -317,23 +319,15 @@ async fn run(config: DaemonConfig) -> SomaResult<()> {
     Ok(())
 }
 
-async fn serve_grpc(socket_path: PathBuf, service: DaemonService) -> SomaResult<()> {
-    if let Some(parent) = socket_path.parent() {
-        std::fs::create_dir_all(parent)?;
-    }
-    if socket_path.exists() {
-        std::fs::remove_file(&socket_path)?;
-    }
-    let listener = tokio::net::UnixListener::bind(&socket_path)?;
-    let incoming = tokio_stream::wrappers::UnixListenerStream::new(listener);
-    Server::builder()
-        .add_service(daemon::daemon_server::DaemonServer::new(service))
-        .serve_with_incoming_shutdown(incoming, async {
+async fn serve_grpc(socket_path: PathBuf, server: daemon::daemon_server::DaemonServer<DaemonService>) -> SomaResult<()> {
+    serve_grpc_unix(
+        socket_path,
+        tonic::transport::Server::builder().add_service(server),
+        async {
             let _ = signal::ctrl_c().await;
-        })
-        .await
-        .map_err(soma_core::Error::service)?;
-    Ok(())
+        },
+    )
+    .await
 }
 
 async fn handle_peer_event(state: &Arc<DaemonState>, evt: PeerEvent) {

@@ -1,9 +1,9 @@
 use std::{future::Future, path::Path};
 
 use soma_core::SomaResult;
-use tokio::io::AsyncWriteExt;
 use tokio::net::{UnixListener, UnixStream};
 use tracing::{info, warn};
+use tonic::transport::server::Router as TonicRouter;
 
 /// Run a Unix socket server with a custom connection handler and shutdown future.
 pub async fn serve_unix_with_shutdown<F, Fut, S>(
@@ -55,23 +55,32 @@ where
     Ok(())
 }
 
-/// Convenience helper that writes a static message to each connection.
-pub async fn serve_unix_message(
+/// Serve a tonic gRPC router over a Unix Domain Socket, respecting a shutdown signal.
+pub async fn serve_grpc_unix(
     socket_path: impl AsRef<Path>,
-    message: String,
+    router: TonicRouter,
     shutdown: impl Future<Output = ()> + Send,
 ) -> SomaResult<()> {
-    serve_unix_with_shutdown(
-        socket_path,
-        move |mut stream| {
-            let message = message.clone();
-            async move {
-                if let Err(err) = stream.write_all(message.as_bytes()).await {
-                    warn!(?err, "failed to write unix socket message");
-                }
-            }
-        },
-        shutdown,
-    )
-    .await
+    let socket_path = socket_path.as_ref();
+    if let Some(parent) = socket_path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    if socket_path.exists() {
+        std::fs::remove_file(socket_path)?;
+    }
+
+    let listener = UnixListener::bind(socket_path)?;
+    let incoming = tokio_stream::wrappers::UnixListenerStream::new(listener);
+    info!(path=?socket_path, "serving gRPC over unix socket");
+
+    router
+        .serve_with_incoming_shutdown(incoming, shutdown)
+        .await
+        .map_err(soma_core::Error::service)?;
+
+    if socket_path.exists() {
+        let _ = std::fs::remove_file(socket_path);
+    }
+
+    Ok(())
 }

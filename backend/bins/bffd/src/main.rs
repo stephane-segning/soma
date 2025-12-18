@@ -65,10 +65,39 @@ async fn main() -> soma_core::SomaResult<()> {
                     PeerEvent::PingErr { error } => {
                         warn!(%error, "bff peer ping error");
                     }
+                    PeerEvent::ConnectionEstablished { peer } => {
+                        info!(%peer, "bff peer connection established");
+                    }
+                    PeerEvent::ConnectionError { peer, error } => {
+                        warn!(?peer, %error, "bff peer connection error");
+                    }
+                    PeerEvent::IdentifyReceived { peer, agent, protocols } => {
+                        info!(%peer, %agent, protocols, "bff peer identify received");
+                    }
+                    PeerEvent::MdnsDiscovered { peers } => {
+                        info!(peers, "bff peer mdns discovered");
+                    }
+                    PeerEvent::RendezvousDiscovered { registrations } => {
+                        info!(registrations, "bff peer rendezvous discovered");
+                    }
+                    PeerEvent::RelayReserved { relay } => {
+                        info!(%relay, "bff relay reservation accepted");
+                    }
+                    PeerEvent::RelayCircuitEstablished { relay } => {
+                        info!(%relay, "bff relay circuit established");
+                    }
                     PeerEvent::ListenerClosed { reason } => {
                         info!(?reason, "bff peer listener closed");
                     }
-                    _ => todo!(),
+                    PeerEvent::JoinRequestSubmitted { target, request_id } => {
+                        info!(%target, %request_id, "bff join request submitted");
+                    }
+                    PeerEvent::JoinDecision { from, decision } => {
+                        info!(%from, decision = decision.decision, "bff join decision received");
+                    }
+                    PeerEvent::JoinFailed { target, error } => {
+                        warn!(%target, %error, "bff join failed");
+                    }
                 }
             }
         });
