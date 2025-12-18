@@ -67,8 +67,8 @@ version = "0.56"
 features = [
     "tcp", "quic", "websocket", "relay", "rendezvous",
     "autonat", "noise", "tls", "cbor", "mdns", "kad",
-    "tokio", "dns", "rsa", "gossipsub", "macros", "upnp",
-    "yamux", "ping"
+    "tokio", "dns", "gossipsub", "macros", "upnp",
+    "yamux", "ping", "ecdsa"
 ]
 
 [profile.prod]

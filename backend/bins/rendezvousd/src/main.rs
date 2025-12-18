@@ -1,7 +1,8 @@
 use std::net::SocketAddr;
 
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use mimalloc::MiMalloc;
+use soma_net::{default_identity_path, generate_identity};
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
@@ -9,8 +10,21 @@ static GLOBAL: MiMalloc = MiMalloc;
 #[derive(Debug, Parser)]
 #[command(name = "soma-rendezvousd", version)]
 struct Args {
+    #[command(subcommand)]
+    cmd: Option<Command>,
+
     #[arg(long, env = "HTTP_ADDR", default_value = "0.0.0.0:8082")]
     http_addr: SocketAddr,
+}
+
+#[derive(Debug, Subcommand)]
+enum Command {
+    /// Generate the rendezvous identity and exit.
+    GenerateIdentity {
+        /// Optional path override for the identity file.
+        #[arg(long)]
+        path: Option<std::path::PathBuf>,
+    },
 }
 
 #[tokio::main]
@@ -22,7 +36,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         )
         .init();
 
-    let Args { http_addr } = Args::parse();
+    let Args { cmd, http_addr } = Args::parse();
+
+    if let Some(Command::GenerateIdentity { path }) = cmd {
+        let path = path.unwrap_or_else(|| default_identity_path("rendezvous"));
+        let id = generate_identity(&path)?;
+        println!(
+            "generated rendezvous identity at {:?}, peer_id={}",
+            path,
+            id.peer_id()
+        );
+        return Ok(());
+    }
 
     let metrics = soma_rendezvous::RendezvousMetrics::new();
 

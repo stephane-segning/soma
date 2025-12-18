@@ -1,10 +1,9 @@
 use std::{
-    env,
-    fs,
+    env, fs,
     path::{Path, PathBuf},
 };
 
-use libp2p::{identity, noise, swarm::NetworkBehaviour, tls, yamux, PeerId, Swarm, SwarmBuilder};
+use libp2p::{PeerId, Swarm, SwarmBuilder, identity, noise, swarm::NetworkBehaviour, tls, yamux};
 use soma_core::SomaResult;
 
 /// Thin wrapper around a libp2p keypair with convenience helpers for logging and persistence.
@@ -15,9 +14,9 @@ pub struct NetIdentity {
 }
 
 impl NetIdentity {
-    /// Generate a new Ed25519 identity.
+    /// Generate a new ECDSA identity.
     pub fn generate() -> Self {
-        let keypair = identity::Keypair::generate_ed25519();
+        let keypair = identity::Keypair::generate_ecdsa();
         let peer_id = keypair.public().to_peer_id();
         Self { keypair, peer_id }
     }
@@ -61,6 +60,13 @@ impl NetIdentity {
     pub fn peer_id(&self) -> PeerId {
         self.peer_id
     }
+}
+
+/// Generate a new identity and persist it to the given path, returning the identity.
+pub fn generate_identity(path: impl AsRef<Path>) -> SomaResult<NetIdentity> {
+    let id = NetIdentity::generate();
+    id.save(path)?;
+    Ok(id)
 }
 
 /// Compute a deterministic identity path for a service.

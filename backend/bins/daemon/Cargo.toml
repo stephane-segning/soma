@@ -12,3 +12,4 @@ soma-storage = { workspace = true }
 soma-net = { workspace = true }
 soma-api = { workspace = true }
 soma-common = { workspace = true }
+clap = { workspace = true }
