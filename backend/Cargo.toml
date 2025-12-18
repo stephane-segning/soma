@@ -7,8 +7,17 @@ members = [
     "crates/agent",
     "crates/common",
     "crates/proto-build",
+    "crates/metrics",
+    "crates/relay",
+    "crates/rendezvous",
+    "crates/bff",
     "bins/daemon",
+    "bins/botd",
     "bins/agentd",
+    "bins/relayd",
+    "bins/rendezvousd",
+    "bins/bffd",
+    "bins/serverd",
 ]
 
 resolver = "3"
@@ -20,16 +29,40 @@ soma-net = { path = "crates/net" }
 soma-api = { path = "crates/api" }
 soma-agent = { path = "crates/agent" }
 soma-common = { path = "crates/common" }
+soma-rendezvous = { path = "crates/rendezvous" }
+soma-relay = { path = "crates/relay" }
+soma-bff = { path = "crates/bff" }
+soma-metrics = { path = "crates/metrics" }
 
 serde = { version = "1.0", features = ["derive"] }
 
+prost = "0.14"
+tonic = { version = "0.14", features = ["transport"] }
+tonic-prost = "0.14"
+tonic-build = { version = "0.14" }
+tonic-prost-build = { version = "0.14" }
+prost-build = { version = "0.14" }
+walkdir = { version = "2.5" }
+
 rand = "0.9"
 clap = { version = "4", features = ["derive", "env"] }
+
+axum = { version = "0.8" }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal"] }
 
 tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }
 tracing = { version = "0", features = ["attributes", "async-await", "std"] }
 
 mimalloc = "0"
+
+[workspace.dependencies.libp2p]
+version = "0.56"
+features = [
+    "tcp", "quic", "websocket", "relay", "rendezvous",
+    "autonat", "noise", "tls", "cbor", "mdns", "kad",
+    "tokio", "dns", "rsa", "gossipsub", "macros", "upnp",
+    "yamux", "ping"
+]
 
 [profile.prod]
 inherits = "release"
@@ -40,7 +73,7 @@ incremental = false
 strip = true
 
 [workspace.package]
-version = "0.3.0"
+version = "0.1.0"
 edition = "2024"
 license = "MIT"
 publish = false

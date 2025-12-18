@@ -5,4 +5,11 @@ docs_dir: src
 nav:
   - Overview: 00-overview.md
   - Glossary: 01-glossary.md
-
+  - Architecture:
+      - Soma & Tapia: architecture/soma-tapia.md
+      - libp2p Primer: architecture/libp2p-primer.md
+      - Class Membership: architecture/class-membership.md
+      - Packaging & Deployment: architecture/deployment.md
+  - Getting Started: getting-started/index.md
+  - Development:
+      - Dependencies: development/dependencies.md

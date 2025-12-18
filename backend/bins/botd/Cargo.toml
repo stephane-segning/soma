@@ -1,5 +1,5 @@
 [package]
-name = "soma-daemon"
+name = "soma-botd"
 version.workspace = true
 edition.workspace = true
 publish.workspace = true
@@ -10,5 +10,13 @@ authors.workspace = true
 soma-core = { workspace = true }
 soma-storage = { workspace = true }
 soma-net = { workspace = true }
-soma-api = { workspace = true }
 soma-common = { workspace = true }
+soma-metrics = { workspace = true }
+
+clap = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+mimalloc = { workspace = true }
+
+axum = { workspace = true }
+tokio = { workspace = true }

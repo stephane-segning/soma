@@ -1,7 +1,16 @@
 {
-  "name": "soma-desktop",
+  "name": "@soma/desktop",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@9.0.0",
+  "scripts": {
+    "preinstall": "node -e \"const ua=process.env.npm_config_user_agent||''; if(!ua.includes('pnpm')){console.error('This repo uses pnpm. Please run: pnpm install'); process.exit(1)}\"",
+    "dev:soma": "pnpm --filter @soma/soma run dev",
+    "dev:tapia": "pnpm --filter @soma/tapia run dev",
+    "typecheck": "pnpm --filter @soma/soma run typecheck && pnpm --filter @soma/tapia run typecheck",
+    "lint": "pnpm --filter @soma/soma run lint && pnpm --filter @soma/tapia run lint",
+    "format": "pnpm --filter @soma/soma run format && pnpm --filter @soma/tapia run format"
+  },
   "workspaces": [
     "soma",
     "tapia"

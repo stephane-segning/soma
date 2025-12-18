@@ -1,0 +1,356 @@
+syntax = "proto3";
+
+package classroom.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+// -----------------------------------------------------------------------------
+// Core identifiers
+// -----------------------------------------------------------------------------
+
+message PeerId { string value = 1; }
+message ClassId { string value = 1; } // "class" == "space" in UI, but we name it ClassId here.
+
+// -----------------------------------------------------------------------------
+// Roles / permissions
+// -----------------------------------------------------------------------------
+
+enum ClassRole {
+  CLASS_ROLE_UNSPECIFIED = 0;
+  CLASS_ROLE_OWNER = 1;
+  CLASS_ROLE_EDITOR = 2;
+  CLASS_ROLE_VIEWER = 3;
+  CLASS_ROLE_STUDENT = 4;
+  CLASS_ROLE_BOT = 5; // read-only + serve (cache bot)
+}
+
+// Optional fine-grained permissions (keep minimal at first).
+// These can complement roles.
+enum ClassPermission {
+  CLASS_PERMISSION_UNSPECIFIED = 0;
+  CLASS_PERMISSION_CHAT = 1;
+  CLASS_PERMISSION_DOWNLOAD_BLOBS = 2;
+  CLASS_PERMISSION_PUBLISH_ANNOUNCEMENTS = 3;
+  CLASS_PERMISSION_CREATE_TOPICS = 4;
+  CLASS_PERMISSION_EDIT_DOCS = 5;
+  CLASS_PERMISSION_MANAGE_MEMBERS = 6;
+  CLASS_PERMISSION_ISSUE_MEMBERSHIPS = 7; // for issuer delegation logic
+}
+
+// -----------------------------------------------------------------------------
+// Signing strategy: CBOR canonical bytes
+// -----------------------------------------------------------------------------
+
+// When signing capabilities, you can sign canonical CBOR bytes of a "signing view"
+// of the message (e.g., same fields but without signature bytes).
+// This message lets you carry that signed payload explicitly if you want.
+message CborSigned {
+  // Canonical CBOR bytes of the signing payload.
+  bytes cbor = 1;
+
+  // PeerId of signer (owner or bot).
+  PeerId signer_peer_id = 2;
+
+  // Signature over `cbor` with signer's private key.
+  bytes signature = 3;
+
+  // Optional: signature algorithm hint, e.g. "ed25519".
+  string alg = 4;
+}
+
+// -----------------------------------------------------------------------------
+// Invite state (embedded into soma:// invite link)
+// -----------------------------------------------------------------------------
+
+message InviteState {
+  ClassId class_id = 1;
+
+  // Default role teacher will usually approve.
+  ClassRole default_role = 2;
+
+  // Optional: invites expire.
+  google.protobuf.Timestamp expires_at = 3;
+
+  // Optional: bootstraps included in invite.
+  // Put both QUIC and WSS multiaddrs; clients try what works.
+  repeated string bootstrap_multiaddrs = 4;
+
+  // Random per-invite nonce, avoids replay across links.
+  bytes invite_nonce = 5;
+
+  // Optional label for UX ("Form 4 Maths").
+  string class_label = 6;
+
+  // Signed by owner/teacher or by an already-authorized bot (rare).
+  // Sign canonical CBOR of this InviteState without the `signature` field.
+  CborSigned signed = 7;
+}
+
+// Proof that requester possesses invite secret/state.
+// You can implement this as HMAC with an invite secret OR as a signature scheme.
+// We keep it generic.
+message InviteProof {
+  InviteState state = 1;
+
+  google.protobuf.Timestamp ts = 2;
+  bytes nonce = 3;
+
+  // If HMAC-based: MAC over (peer_id || ts || nonce || hash(state_signing_view))
+  // If signature-based: signature by requester over same payload.
+  bytes proof = 4;
+
+  // "hmac-sha256" or "ed25519", etc.
+  string proof_type = 5;
+}
+
+// -----------------------------------------------------------------------------
+// Join flow (student -> teacher/bot)
+// -----------------------------------------------------------------------------
+
+message JoinRequest {
+  ClassId class_id = 1;
+  PeerId peer_id = 2;
+
+  // Human-friendly data for teacher approval UI (NOT identity).
+  string display_name = 3; // "Armand N."
+  string device_name = 4;  // "Dell Laptop"
+
+  // Optional: teacher asks for a code to disambiguate (student ID fragment).
+  string student_code = 5;
+
+  // Student can request, teacher/bot may override.
+  ClassRole requested_role = 6;
+
+  InviteProof invite_proof = 7;
+
+  google.protobuf.Timestamp created_at = 8;
+}
+
+// -----------------------------------------------------------------------------
+// Delegation: IssuerCapability (owner -> bot)
+// -----------------------------------------------------------------------------
+
+message IssuerCapability {
+  ClassId class_id = 1;
+
+  // Bot identity that is delegated issuance power.
+  PeerId issuer_peer_id = 2;
+
+  // Least privilege: bot may issue only these roles.
+  repeated ClassRole allowed_roles = 3; // typically STUDENT, VIEWER
+
+  // Optional permission set for issued memberships (defaults if empty).
+  repeated ClassPermission default_permissions = 4;
+
+  google.protobuf.Timestamp issued_at = 5;
+  google.protobuf.Timestamp expires_at = 6;
+
+  // Max expiry bot may grant to members (prevents "forever" memberships).
+  google.protobuf.Timestamp max_member_expires_at = 7;
+
+  // Optional rate limit.
+  uint32 max_issues_per_hour = 8;
+
+  // Owner/teacher that signed this delegation.
+  PeerId owner_peer_id = 9;
+
+  // Signed by owner over canonical CBOR of IssuerCapability without `signed`.
+  CborSigned signed = 10;
+}
+
+// -----------------------------------------------------------------------------
+// MembershipCapability (the real access token)
+// -----------------------------------------------------------------------------
+
+message MembershipCapability {
+  ClassId class_id = 1;
+  PeerId subject_peer_id = 2;
+
+  ClassRole role = 3;
+  repeated ClassPermission permissions = 4;
+
+  google.protobuf.Timestamp issued_at = 5;
+  google.protobuf.Timestamp expires_at = 6; // recommend set (semester end)
+
+  // Who issued this membership (owner or bot).
+  PeerId issuer_peer_id = 7;
+
+  // If issued by a bot, include issuer delegation for verifiers.
+  // If issued by owner, this can be omitted.
+  IssuerCapability issuer_cap = 8;
+
+  // Signed by issuer_peer_id over canonical CBOR of MembershipCapability without `signed`.
+  CborSigned signed = 9;
+}
+
+// -----------------------------------------------------------------------------
+// Join decision (teacher/bot -> student)
+// -----------------------------------------------------------------------------
+
+enum JoinDecisionType {
+  JOIN_DECISION_UNSPECIFIED = 0;
+  JOIN_APPROVED = 1;
+  JOIN_REJECTED = 2;
+  JOIN_BLOCKED = 3;
+}
+
+message JoinDecision {
+  string decision_id = 1;
+
+  ClassId class_id = 2;
+  PeerId subject_peer_id = 3;
+
+  JoinDecisionType decision = 4;
+  string reason = 5;
+
+  // Present if approved:
+  MembershipCapability capability = 6;
+
+  google.protobuf.Timestamp created_at = 7;
+}
+
+// -----------------------------------------------------------------------------
+// Revocation model (teacher choice: none/partial/all)
+// -----------------------------------------------------------------------------
+
+enum IssuerRevocationMode {
+  ISSUER_REVOCATION_MODE_UNSPECIFIED = 0;
+
+  // Teacher kicked bot but keeps all already-issued memberships valid until expiry.
+  ISSUER_REVOCATION_NONE = 1;
+
+  // Teacher revokes ONLY memberships issued in a recent window (e.g. last 5 days).
+  ISSUER_REVOCATION_PARTIAL_WINDOW = 2;
+
+  // Teacher revokes ALL memberships ever issued by that bot (strict).
+  ISSUER_REVOCATION_ALL = 3;
+}
+
+message IssuerRevocationPolicy {
+  IssuerRevocationMode mode = 1;
+
+  // Used when mode == PARTIAL_WINDOW.
+  // "Revoke memberships issued at or after this timestamp".
+  google.protobuf.Timestamp issued_after = 2;
+
+  // Optional: and before (rare, but enables "between" windows).
+  google.protobuf.Timestamp issued_before = 3;
+}
+
+// A revocation record signed by owner.
+// Distributed to peers (pubsub) and stored locally.
+message Revocation {
+  ClassId class_id = 1;
+
+  // Who is authorizing this revocation (owner).
+  PeerId owner_peer_id = 2;
+
+  // What is being revoked
+  oneof target {
+    // Revoke a specific member directly.
+    PeerId revoked_member_peer_id = 10;
+
+    // Revoke a specific membership token (pinpoint).
+    bytes revoked_membership_signature = 11;
+
+    // Revoke an issuer delegation (bot) + specify what happens to issued memberships.
+    RevokedIssuer revoked_issuer = 12;
+  }
+
+  google.protobuf.Timestamp revoked_at = 20;
+  string reason = 21;
+
+  // Owner signature over canonical CBOR of Revocation without `signed`.
+  CborSigned signed = 30;
+}
+
+message RevokedIssuer {
+  PeerId revoked_issuer_peer_id = 1;
+
+  // Controls what happens to memberships issued by that bot.
+  IssuerRevocationPolicy policy = 2;
+}
+
+// -----------------------------------------------------------------------------
+// Mailbox pattern (bot stores decisions for later pickup)
+// -----------------------------------------------------------------------------
+
+message MailboxItem {
+  string mailbox_id = 1;
+
+  ClassId class_id = 2;
+  PeerId recipient_peer_id = 3;
+
+  oneof payload {
+    JoinDecision join_decision = 10;
+    Revocation revocation = 11; // optional use: deliver revocations reliably
+  }
+
+  google.protobuf.Timestamp created_at = 20;
+  google.protobuf.Timestamp expires_at = 21;
+}
+
+message FetchMailboxRequest {
+  ClassId class_id = 1;
+  PeerId recipient_peer_id = 2;
+
+  string cursor = 3;
+  uint32 limit = 4;
+
+  // Prove the fetcher controls recipient_peer_id.
+  // e.g. signature over CBOR({class_id, recipient_peer_id, cursor, ts, nonce})
+  bytes requester_proof = 5;
+  string requester_proof_type = 6;
+
+  google.protobuf.Timestamp ts = 7;
+  bytes nonce = 8;
+}
+
+message FetchMailboxResponse {
+  repeated MailboxItem items = 1;
+  string next_cursor = 2;
+}
+
+// Teacher/owner (or authorized manager) writes items to mailbox.
+message PutMailboxItemRequest {
+  MailboxItem item = 1;
+
+  // Prove authority to write: owner signature or owner capability proof.
+  bytes admin_proof = 2;
+  string admin_proof_type = 3;
+}
+
+// -----------------------------------------------------------------------------
+// Local gRPC API (daemon <-> UI)
+// -----------------------------------------------------------------------------
+
+service MembershipService {
+  // Student device: create and broadcast join request (daemon handles P2P publish).
+  rpc SubmitJoinRequest(JoinRequest) returns (google.protobuf.Empty);
+
+  // Teacher UI: stream join requests as they arrive.
+  rpc SubscribeJoinRequests(ClassId) returns (stream JoinRequest);
+
+  // Teacher UI OR bot UI: approve/reject/block.
+  // Daemon tries direct delivery; if unavailable, stores to mailbox on an available bot.
+  rpc DecideJoin(JoinDecision) returns (google.protobuf.Empty);
+
+  // Student UI: stream decisions received (direct or mailbox fetched).
+  rpc SubscribeJoinDecisions(ClassId) returns (stream JoinDecision);
+
+  // Owner UI: delegate bot issuance power.
+  rpc GrantIssuer(IssuerCapability) returns (google.protobuf.Empty);
+
+  // Owner UI: publish revocation(s).
+  rpc PublishRevocation(Revocation) returns (google.protobuf.Empty);
+
+  // Anyone (UI) can subscribe to revocations for a class.
+  rpc SubscribeRevocations(ClassId) returns (stream Revocation);
+}
+
+// Bot-side mailbox service (can be exposed via P2P request/response or direct).
+service MailboxService {
+  rpc PutItem(PutMailboxItemRequest) returns (google.protobuf.Empty);
+  rpc Fetch(FetchMailboxRequest) returns (FetchMailboxResponse);
+}

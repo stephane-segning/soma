@@ -1,0 +1,9 @@
+[package]
+name = "soma-rendezvous"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
