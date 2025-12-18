@@ -1,5 +1,6 @@
 use std::{path::PathBuf, pin::Pin, str::FromStr, sync::Arc, time::SystemTime};
 
+use async_trait::async_trait;
 use clap::{Parser, Subcommand};
 use libp2p::{Multiaddr, PeerId};
 use mimalloc::MiMalloc;
@@ -8,15 +9,17 @@ use soma_core::SomaResult;
 use soma_net::{default_identity_path, generate_identity};
 use soma_socket::serve_grpc_unix;
 use soma_peer::{PeerCommand, PeerConfig, PeerEvent, spawn_ping_peer};
+use soma_peer::events::{PeerEventDispatcher, PeerEventHandler, PeerEventKind};
 use soma_proto_build::classroom::v1 as classroom;
 use soma_proto_build::daemon::v1 as daemon;
+mod handlers;
 use tokio::{
     signal,
     sync::{broadcast, mpsc, Mutex},
 };
 use tokio_stream::{wrappers::BroadcastStream, StreamExt as TokioStreamExt};
 use tonic::{Request, Response, Status};
-use tracing::{info, warn};
+use tracing::info;
 use tracing_subscriber::EnvFilter;
 
 #[global_allocator]
@@ -285,6 +288,10 @@ async fn run(config: DaemonConfig) -> SomaResult<()> {
     let grpc_task = tokio::spawn(serve_grpc(socket_path.clone(), grpc_service));
     let peer_task = peer.task;
     let mut peer_events = peer.events;
+
+    // Event handling: fan out to per-kind handlers via dispatcher.
+    let dispatcher = build_dispatcher(state.clone()).await;
+
     tokio::pin!(peer_task);
     tokio::pin!(grpc_task);
 
@@ -292,7 +299,7 @@ async fn run(config: DaemonConfig) -> SomaResult<()> {
         tokio::select! {
             evt = peer_events.recv() => {
                 if let Some(evt) = evt {
-                    handle_peer_event(&state, evt).await;
+                    dispatcher.dispatch(&state, &evt).await;
                 } else {
                     break;
                 }
@@ -330,75 +337,68 @@ async fn serve_grpc(socket_path: PathBuf, server: daemon::daemon_server::DaemonS
     .await
 }
 
-async fn handle_peer_event(state: &Arc<DaemonState>, evt: PeerEvent) {
-    match evt {
-        PeerEvent::NewListenAddr { address, peer_id } => {
-            info!(%peer_id, listen_addr=%address, "daemon listening");
-            let mut addrs = state.listen_addrs.lock().await;
-            let addr = address.to_string();
-            if !addrs.contains(&addr) {
-                addrs.push(addr);
+/// Build the dispatcher and spin up per-handler workers for backpressure isolation.
+async fn build_dispatcher(state: Arc<DaemonState>) -> PeerEventDispatcher<DaemonState> {
+    use handlers::{JoinEventsHandler, LoggingHandler};
+    use tokio::sync::mpsc;
+
+    const QUEUE_CAPACITY: usize = 64;
+
+    // Helper to wrap a handler with its own queue/worker.
+    fn wrap_with_worker(
+        state: Arc<DaemonState>,
+        handler: Arc<dyn PeerEventHandler<DaemonState>>,
+    ) -> (Arc<HandlerQueue>, tokio::task::JoinHandle<()>) {
+        let (tx, mut rx) = mpsc::channel::<PeerEvent>(QUEUE_CAPACITY);
+        let worker_handler = handler.clone();
+        let worker_state = state.clone();
+        let join = tokio::spawn(async move {
+            while let Some(evt) = rx.recv().await {
+                let handler = worker_handler.clone();
+                handler.handle(&worker_state, &evt).await;
             }
+        });
+        (Arc::new(HandlerQueue { handler, tx }), join)
+    }
+
+    #[derive(Clone)]
+    struct HandlerQueue {
+        handler: Arc<dyn PeerEventHandler<DaemonState>>,
+        tx: tokio::sync::mpsc::Sender<PeerEvent>,
+    }
+
+    #[async_trait]
+    impl PeerEventHandler<DaemonState> for HandlerQueue {
+        fn interests(&self) -> &'static [PeerEventKind] {
+            self.handler.interests()
         }
-        PeerEvent::PingOk { rtt } => {
-            info!(?rtt, "daemon ping ok");
-        }
-        PeerEvent::PingErr { error } => {
-            warn!(%error, "daemon ping error");
-        }
-        PeerEvent::ConnectionEstablished { peer } => {
-            info!(%peer, "daemon connected");
-        }
-        PeerEvent::ConnectionError { peer, error } => {
-            warn!(?peer, %error, "daemon connection error");
-        }
-        PeerEvent::IdentifyReceived { peer, agent, protocols } => {
-            info!(%peer, %agent, protocols, "daemon identify received");
-        }
-        PeerEvent::MdnsDiscovered { peers } => {
-            info!(peers, "daemon mdns discovered peers");
-        }
-        PeerEvent::RendezvousDiscovered { registrations } => {
-            info!(registrations, "daemon rendezvous discovered");
-        }
-        PeerEvent::RelayReserved { relay } => {
-            info!(%relay, "daemon relay reservation accepted");
-        }
-        PeerEvent::RelayCircuitEstablished { relay } => {
-            info!(%relay, "daemon relay circuit established");
-        }
-        PeerEvent::JoinRequestSubmitted { target, request_id } => {
-            state.publish(daemon::DaemonEvent {
-                event: Some(daemon::daemon_event::Event::JoinSubmitted(
-                    daemon::JoinSubmitEvent {
-                        request_id,
-                        target_peer_id: target.to_string(),
-                    },
-                )),
-            }).await;
-        }
-        PeerEvent::JoinDecision { from, decision } => {
-            state.publish(daemon::DaemonEvent {
-                event: Some(daemon::daemon_event::Event::JoinDecision(
-                    daemon::JoinDecisionEvent {
-                        from_peer_id: from.to_string(),
-                        decision: Some(decision),
-                    },
-                )),
-            }).await;
-        }
-        PeerEvent::JoinFailed { target, error } => {
-            state.publish(daemon::DaemonEvent {
-                event: Some(daemon::daemon_event::Event::JoinFailed(
-                    daemon::JoinFailedEvent {
-                        target_peer_id: target.to_string(),
-                        error,
-                    },
-                )),
-            }).await;
-        }
-        PeerEvent::ListenerClosed { reason } => {
-            info!(?reason, "daemon listener closed");
+
+        async fn handle(&self, _ctx: &DaemonState, event: &PeerEvent) {
+            // Best-effort enqueue; drop if full to avoid blocking the peer loop.
+            let _ = self.tx.try_send(event.clone());
         }
     }
+
+    let mut worker_tasks = Vec::new();
+    let mut handlers: Vec<Arc<dyn PeerEventHandler<DaemonState>>> = Vec::new();
+
+    let handlers_to_wrap: Vec<Arc<dyn PeerEventHandler<DaemonState>>> = vec![
+        Arc::new(LoggingHandler),
+        Arc::new(JoinEventsHandler),
+    ];
+
+    for handler in handlers_to_wrap {
+        let (queued, worker) = wrap_with_worker(state.clone(), handler);
+        worker_tasks.push(worker);
+        handlers.push(queued);
+    }
+
+    // Run worker tasks in the background.
+    tokio::spawn(async move {
+        for task in worker_tasks {
+            let _ = task.await;
+        }
+    });
+
+    PeerEventDispatcher::new(handlers)
 }

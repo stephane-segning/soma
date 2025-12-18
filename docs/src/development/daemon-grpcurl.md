@@ -126,8 +126,7 @@ Expected:
 
 Current behaviour:
 
-- The peer join protocol default is to reject inbound join requests with `JOIN_REJECTED` and reason `not an issuer`.
-  (This will change once `soma-botd` implements issuer/approval logic.)
+- The join protocol is implemented over libp2p request/response. If `soma-botd` is running, it will auto-approve by default and return a `MembershipCapability` (unsigned placeholder) in the `JoinDecision`. If no issuer/bot responds, you will see a rejected decision from the default handler.
 
 ## Troubleshooting
 

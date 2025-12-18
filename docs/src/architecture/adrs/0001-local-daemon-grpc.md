@@ -17,3 +17,7 @@ Use a **local daemon** communicating with the UI via **gRPC over Unix Domain Soc
 + Easy to reason about
 − Requires IPC support in Electron
 
+## Implementation status
+
+- The daemon now serves its tonic-generated `daemon.v1` API over a Unix Domain Socket via a shared helper (`soma-socket::serve_grpc_unix`).
+- gRPC clients should use `unix://<abs-path>` style addresses (see `docs/src/development/daemon-grpcurl.md` for examples).

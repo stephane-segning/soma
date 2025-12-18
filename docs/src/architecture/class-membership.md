@@ -39,4 +39,11 @@ Classes are secure collaboration spaces. Access is governed by explicit capabili
 
 Revocation can be implemented by expiring capabilities, publishing revocation events, or rotating class secrets. Regardless of the specifics, membership is always tied to the requesting peer’s ID, leveraging libp2p’s secure identity layer.[^security]
 
+### Current implementation snapshot
+
+- Transport: libp2p request/response protocol `/soma/join/1` (see `soma-peer`).
+- Daemon: exposes Join via gRPC over Unix socket (`Daemon/JoinClass`), then sends a JoinRequest over libp2p and streams decisions over `Daemon/StreamEvents`.
+- Bot control plane: `soma-botd` exposes `/v1/join` (HTTP) and issues a MembershipCapability (unsigned placeholder) by default. Policy can be added in that handler.
+- Peer event pipeline: join decisions and failures are surfaced as `PeerEvent` and dispatched via the shared event dispatcher (see `docs/src/development/peer-events.md`).
+
 [^security]: https://docs.libp2p.io/concepts/security/security-considerations/

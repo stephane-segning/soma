@@ -19,6 +19,8 @@ use soma_proto_build::classroom::v1 as classroom;
 use tokio::{sync::mpsc, task::JoinHandle};
 use tracing::{info, warn};
 
+pub mod events;
+
 const JOIN_PROTOCOL: &str = "/soma/join/1";
 const MAX_JOIN_MESSAGE_BYTES: usize = 16 * 1024;
 const AGENT_PROTOCOL: &str = "/soma/0.1.0";
@@ -68,7 +70,7 @@ pub enum PeerCommand {
 }
 
 /// Events emitted by the peer runtime for logging/metrics.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum PeerEvent {
     NewListenAddr {
         address: Multiaddr,
