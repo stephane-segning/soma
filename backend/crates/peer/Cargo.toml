@@ -17,3 +17,4 @@ tracing = { workspace = true }
 prost = { workspace = true }
 prost-types = { workspace = true }
 async-trait = { workspace = true }
+derive_builder = { workspace = true }

@@ -66,6 +66,26 @@ impl PeerEventHandler<crate::DaemonState> for LoggingHandler {
     }
 }
 
+/// Tracks listen addresses for status reporting.
+pub struct ListenAddrHandler;
+
+#[async_trait]
+impl PeerEventHandler<crate::DaemonState> for ListenAddrHandler {
+    fn interests(&self) -> &'static [PeerEventKind] {
+        &[PeerEventKind::NewListenAddr]
+    }
+
+    async fn handle(&self, ctx: &DaemonState, event: &PeerEvent) {
+        if let PeerEvent::NewListenAddr { address, .. } = event {
+            let mut addrs = ctx.listen_addrs.lock().await;
+            let addr = address.to_string();
+            if !addrs.contains(&addr) {
+                addrs.push(addr);
+            }
+        }
+    }
+}
+
 /// Publishes join-related events to daemon subscribers.
 pub struct JoinEventsHandler;
 

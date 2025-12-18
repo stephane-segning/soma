@@ -1,213 +1,26 @@
-use std::{path::PathBuf, pin::Pin, str::FromStr, sync::Arc, time::SystemTime};
-
-use async_trait::async_trait;
-use clap::{Parser, Subcommand};
-use libp2p::{Multiaddr, PeerId};
+use clap::Parser;
 use mimalloc::MiMalloc;
-use prost_types::Timestamp;
 use soma_core::SomaResult;
 use soma_net::{default_identity_path, generate_identity};
-use soma_socket::serve_grpc_unix;
-use soma_peer::{PeerCommand, PeerConfig, PeerEvent, spawn_ping_peer};
-use soma_peer::events::{PeerEventDispatcher, PeerEventHandler, PeerEventKind};
-use soma_proto_build::classroom::v1 as classroom;
+use soma_peer::{PeerCommand, PeerConfig, spawn_ping_peer};
 use soma_proto_build::daemon::v1 as daemon;
-mod handlers;
-use tokio::{
-    signal,
-    sync::{broadcast, mpsc, Mutex},
-};
-use tokio_stream::{wrappers::BroadcastStream, StreamExt as TokioStreamExt};
-use tonic::{Request, Response, Status};
+use tokio::{signal, sync::{broadcast, Mutex}};
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 
+use std::sync::Arc;
+
+mod config;
+mod dispatch;
+mod grpc;
+mod handlers;
+
+use config::{Args, Command, DaemonConfig};
+use dispatch::build_dispatcher;
+use grpc::{DaemonService, DaemonState, serve_grpc};
+
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
-
-#[derive(Debug, Parser)]
-#[command(name = "soma-daemon", version)]
-struct Args {
-    #[command(subcommand)]
-    cmd: Option<Command>,
-
-    /// Unix socket path for desktop IPC.
-    #[arg(long, env = "SOMA_DAEMON_SOCKET", default_value = "./soma-daemon.sock")]
-    socket_path: PathBuf,
-
-    /// Blob storage directory used by the daemon.
-    #[arg(long, env = "SOMA_BLOB_DIR", default_value = "./blobs")]
-    blob_dir: PathBuf,
-
-    /// Listen multiaddrs for libp2p.
-    #[arg(
-        long,
-        env = "SOMA_LISTEN_ADDRS",
-        value_delimiter = ',',
-        default_values_t = default_listen_addrs()
-    )]
-    listen_addrs: Vec<Multiaddr>,
-
-    /// Optional bootstrap peers to dial on startup.
-    #[arg(long, env = "SOMA_BOOTSTRAP_ADDRS", value_delimiter = ',')]
-    bootstrap_addrs: Vec<Multiaddr>,
-
-    /// Rendezvous nodes to register/discover against.
-    #[arg(long, env = "SOMA_RDV_ADDRS", value_delimiter = ',')]
-    rendezvous_addrs: Vec<Multiaddr>,
-
-    /// Relay nodes to reserve slots against.
-    #[arg(long, env = "SOMA_RELAY_ADDRS", value_delimiter = ',')]
-    relay_addrs: Vec<Multiaddr>,
-
-    /// Disable local mDNS discovery.
-    #[arg(long, env = "SOMA_DISABLE_MDNS", default_value_t = false)]
-    disable_mdns: bool,
-}
-
-#[derive(Debug, Subcommand)]
-enum Command {
-    /// Generate the daemon identity and exit.
-    GenerateIdentity {
-        /// Optional path override for the identity file.
-        #[arg(long)]
-        path: Option<std::path::PathBuf>,
-    },
-}
-
-/// Daemon runtime configuration.
-#[derive(Debug, Clone)]
-struct DaemonConfig {
-    socket_path: PathBuf,
-    blob_dir: PathBuf,
-    identity_path: PathBuf,
-    listen_addrs: Vec<Multiaddr>,
-    bootstrap_addrs: Vec<Multiaddr>,
-    rendezvous_addrs: Vec<Multiaddr>,
-    relay_addrs: Vec<Multiaddr>,
-    enable_mdns: bool,
-}
-
-impl DaemonConfig {
-    fn from_args(args: &Args) -> Self {
-        Self {
-            socket_path: args.socket_path.clone(),
-            blob_dir: args.blob_dir.clone(),
-            identity_path: default_identity_path("daemon"),
-            listen_addrs: args.listen_addrs.clone(),
-            bootstrap_addrs: args.bootstrap_addrs.clone(),
-            rendezvous_addrs: args.rendezvous_addrs.clone(),
-            relay_addrs: args.relay_addrs.clone(),
-            enable_mdns: !args.disable_mdns,
-        }
-    }
-}
-
-#[derive(Debug)]
-struct DaemonState {
-    peer_id: PeerId,
-    peer_commands: mpsc::Sender<PeerCommand>,
-    listen_addrs: Mutex<Vec<String>>,
-    events: broadcast::Sender<daemon::DaemonEvent>,
-}
-
-impl DaemonState {
-    async fn publish(&self, event: daemon::DaemonEvent) {
-        let _ = self.events.send(event);
-    }
-}
-
-#[derive(Clone)]
-struct DaemonService {
-    state: Arc<DaemonState>,
-}
-
-#[tonic::async_trait]
-impl daemon::daemon_server::Daemon for DaemonService {
-    type StreamEventsStream =
-        Pin<Box<dyn futures::Stream<Item = Result<daemon::DaemonEvent, Status>> + Send + 'static>>;
-
-    async fn status(
-        &self,
-        _request: Request<daemon::StatusRequest>,
-    ) -> Result<Response<daemon::StatusResponse>, Status> {
-        let addrs = self.state.listen_addrs.lock().await.clone();
-        Ok(Response::new(daemon::StatusResponse {
-            peer_id: self.state.peer_id.to_string(),
-            listen_addrs: addrs,
-        }))
-    }
-
-    async fn join_class(
-        &self,
-        request: Request<daemon::JoinClassRequest>,
-    ) -> Result<Response<daemon::JoinClassResponse>, Status> {
-        let payload = request.into_inner();
-        let target_peer_id = PeerId::from_str(&payload.target_peer_id)
-            .map_err(|_| Status::invalid_argument("invalid target peer id"))?;
-
-        let mut addrs = Vec::new();
-        for addr in payload.target_multiaddrs {
-            let parsed: Multiaddr = addr
-                .parse()
-                .map_err(|_| Status::invalid_argument("invalid multiaddr in target_multiaddrs"))?;
-            addrs.push(parsed);
-        }
-        if addrs.is_empty() {
-            return Err(Status::invalid_argument("target_multiaddrs required"));
-        }
-
-        let request_id = format!("{:016x}", rand::random::<u64>());
-        let join_request = classroom::JoinRequest {
-            class_id: Some(classroom::ClassId {
-                value: payload.class_id,
-            }),
-            peer_id: Some(classroom::PeerId {
-                value: self.state.peer_id.to_string(),
-            }),
-            display_name: payload.display_name,
-            device_name: payload.device_name,
-            student_code: String::new(),
-            requested_role: classroom::ClassRole::Student as i32,
-            invite_proof: None,
-            created_at: Some(Timestamp::from(SystemTime::now())),
-        };
-
-        self.state
-            .peer_commands
-            .send(PeerCommand::SendJoinRequest {
-                target: target_peer_id,
-                addrs,
-                request_id: request_id.clone(),
-                request: join_request,
-            })
-            .await
-            .map_err(|_| Status::internal("peer task is not running"))?;
-
-        self.state
-            .publish(daemon::DaemonEvent {
-                event: Some(daemon::daemon_event::Event::JoinSubmitted(
-                    daemon::JoinSubmitEvent {
-                        request_id: request_id.clone(),
-                        target_peer_id: target_peer_id.to_string(),
-                    },
-                )),
-            })
-            .await;
-
-        Ok(Response::new(daemon::JoinClassResponse { request_id }))
-    }
-
-    async fn stream_events(
-        &self,
-        _request: Request<daemon::StreamEventsRequest>,
-    ) -> Result<Response<Self::StreamEventsStream>, Status> {
-        let stream = BroadcastStream::new(self.state.events.subscribe())
-            .filter_map(|msg: Result<daemon::DaemonEvent, _>| msg.ok())
-            .map(Ok);
-        Ok(Response::new(Box::pin(stream)))
-    }
-}
 
 #[tokio::main]
 async fn main() -> SomaResult<()> {
@@ -232,20 +45,6 @@ async fn main() -> SomaResult<()> {
     run(config).await
 }
 
-fn default_listen_addrs() -> Vec<Multiaddr> {
-    vec![
-        "/ip4/0.0.0.0/tcp/14007"
-            .parse()
-            .expect("valid tcp multiaddr"),
-        "/ip4/0.0.0.0/udp/14207/quic-v1"
-            .parse()
-            .expect("valid quic multiaddr"),
-        "/ip4/0.0.0.0/tcp/14107/ws"
-            .parse()
-            .expect("valid websocket multiaddr"),
-    ]
-}
-
 async fn run(config: DaemonConfig) -> SomaResult<()> {
     let DaemonConfig {
         socket_path,
@@ -260,15 +59,16 @@ async fn run(config: DaemonConfig) -> SomaResult<()> {
 
     std::fs::create_dir_all(&blob_dir)?;
 
-    let peer_config = PeerConfig {
-        identity_path,
-        listen_addrs,
-        bootstrap_addrs,
-        rendezvous_nodes: rendezvous_addrs,
-        relay_addrs,
-        rendezvous_namespace: None,
-        enable_mdns,
-    };
+    let peer_config = PeerConfig::builder()
+        .identity_path(identity_path)
+        .listen_addrs(listen_addrs)
+        .bootstrap_addrs(bootstrap_addrs)
+        .rendezvous_nodes(rendezvous_addrs)
+        .relay_addrs(relay_addrs)
+        .enable_mdns(enable_mdns)
+        .build()
+        .expect("peer config");
+
     let peer = spawn_ping_peer(peer_config)?;
     let peer_id = peer.peer_id;
     info!(%peer_id, ?socket_path, ?blob_dir, "soma-daemon starting");
@@ -324,81 +124,4 @@ async fn run(config: DaemonConfig) -> SomaResult<()> {
     }
 
     Ok(())
-}
-
-async fn serve_grpc(socket_path: PathBuf, server: daemon::daemon_server::DaemonServer<DaemonService>) -> SomaResult<()> {
-    serve_grpc_unix(
-        socket_path,
-        tonic::transport::Server::builder().add_service(server),
-        async {
-            let _ = signal::ctrl_c().await;
-        },
-    )
-    .await
-}
-
-/// Build the dispatcher and spin up per-handler workers for backpressure isolation.
-async fn build_dispatcher(state: Arc<DaemonState>) -> PeerEventDispatcher<DaemonState> {
-    use handlers::{JoinEventsHandler, LoggingHandler};
-    use tokio::sync::mpsc;
-
-    const QUEUE_CAPACITY: usize = 64;
-
-    // Helper to wrap a handler with its own queue/worker.
-    fn wrap_with_worker(
-        state: Arc<DaemonState>,
-        handler: Arc<dyn PeerEventHandler<DaemonState>>,
-    ) -> (Arc<HandlerQueue>, tokio::task::JoinHandle<()>) {
-        let (tx, mut rx) = mpsc::channel::<PeerEvent>(QUEUE_CAPACITY);
-        let worker_handler = handler.clone();
-        let worker_state = state.clone();
-        let join = tokio::spawn(async move {
-            while let Some(evt) = rx.recv().await {
-                let handler = worker_handler.clone();
-                handler.handle(&worker_state, &evt).await;
-            }
-        });
-        (Arc::new(HandlerQueue { handler, tx }), join)
-    }
-
-    #[derive(Clone)]
-    struct HandlerQueue {
-        handler: Arc<dyn PeerEventHandler<DaemonState>>,
-        tx: tokio::sync::mpsc::Sender<PeerEvent>,
-    }
-
-    #[async_trait]
-    impl PeerEventHandler<DaemonState> for HandlerQueue {
-        fn interests(&self) -> &'static [PeerEventKind] {
-            self.handler.interests()
-        }
-
-        async fn handle(&self, _ctx: &DaemonState, event: &PeerEvent) {
-            // Best-effort enqueue; drop if full to avoid blocking the peer loop.
-            let _ = self.tx.try_send(event.clone());
-        }
-    }
-
-    let mut worker_tasks = Vec::new();
-    let mut handlers: Vec<Arc<dyn PeerEventHandler<DaemonState>>> = Vec::new();
-
-    let handlers_to_wrap: Vec<Arc<dyn PeerEventHandler<DaemonState>>> = vec![
-        Arc::new(LoggingHandler),
-        Arc::new(JoinEventsHandler),
-    ];
-
-    for handler in handlers_to_wrap {
-        let (queued, worker) = wrap_with_worker(state.clone(), handler);
-        worker_tasks.push(worker);
-        handlers.push(queued);
-    }
-
-    // Run worker tasks in the background.
-    tokio::spawn(async move {
-        for task in worker_tasks {
-            let _ = task.await;
-        }
-    });
-
-    PeerEventDispatcher::new(handlers)
 }

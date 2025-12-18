@@ -1,9 +1,5 @@
-use std::collections::{HashMap, HashSet};
-use std::io;
-use std::path::PathBuf;
-use std::time::{Duration, SystemTime};
-
 use async_trait::async_trait;
+pub use config::{PeerConfig, PeerConfigBuilder};
 use futures::{StreamExt, prelude::*};
 use libp2p::{
     Multiaddr, PeerId, identify, mdns, multiaddr::Protocol, ping, relay, rendezvous,
@@ -14,46 +10,20 @@ use libp2p::{
 use prost::Message;
 use prost_types::Timestamp;
 use soma_core::SomaResult;
-use soma_net::{NetIdentity, default_identity_path};
+use soma_net::NetIdentity;
 use soma_proto_build::classroom::v1 as classroom;
 use tokio::{sync::mpsc, task::JoinHandle};
 use tracing::{info, warn};
+use std::collections::{HashMap, HashSet};
+use std::io;
+use std::time::{Duration, SystemTime};
 
 pub mod events;
+mod config;
 
 const JOIN_PROTOCOL: &str = "/soma/join/1";
 const MAX_JOIN_MESSAGE_BYTES: usize = 16 * 1024;
 const AGENT_PROTOCOL: &str = "/soma/0.1.0";
-
-/// Common peer configuration shared by daemon/bot/bff peers.
-#[derive(Debug, Clone)]
-pub struct PeerConfig {
-    pub identity_path: PathBuf,
-    pub listen_addrs: Vec<Multiaddr>,
-    pub bootstrap_addrs: Vec<Multiaddr>,
-    pub rendezvous_nodes: Vec<Multiaddr>,
-    pub relay_addrs: Vec<Multiaddr>,
-    pub rendezvous_namespace: Option<String>,
-    pub enable_mdns: bool,
-}
-
-impl PeerConfig {
-    pub fn new(identity_path: PathBuf) -> Self {
-        Self {
-            identity_path,
-            listen_addrs: Vec::new(),
-            bootstrap_addrs: Vec::new(),
-            rendezvous_nodes: Vec::new(),
-            relay_addrs: Vec::new(),
-            rendezvous_namespace: Some("soma".to_string()),
-            enable_mdns: true,
-        }
-    }
-
-    pub fn with_identity(service: &str) -> Self {
-        Self::new(default_identity_path(service))
-    }
-}
 
 /// Commands sent to the peer runtime.
 #[derive(Debug)]
