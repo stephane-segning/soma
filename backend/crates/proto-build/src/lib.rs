@@ -1,3 +1,3 @@
-mod grpc;
+pub mod grpc;
 
-pub use grpc::classroom::*;
+pub use grpc::{classroom, daemon};

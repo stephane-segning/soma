@@ -259,6 +259,9 @@ async fn run(config: BotConfig, metrics: BotMetrics) -> SomaResult<()> {
                         PeerEvent::ListenerClosed { reason } => {
                             warn!(?reason, "bot listener closed");
                         }
+                        PeerEvent::JoinRequestSubmitted { .. } => {}
+                        PeerEvent::JoinDecision { .. } => {}
+                        PeerEvent::JoinFailed { .. } => {}
                     }
                 } else {
                     break;

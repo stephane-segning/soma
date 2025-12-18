@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package daemon.v1;
+
+import "google/protobuf/empty.proto";
+import "classroom/v1/membership.proto";
+
+// Status for the local daemon (IPC over Unix domain socket).
+message StatusRequest {}
+
+message StatusResponse {
+  string peer_id = 1;
+  repeated string listen_addrs = 2;
+}
+
+message JoinClassRequest {
+  // Target class the user wants to join.
+  string class_id = 1;
+
+  // Human-friendly metadata for reviewers/bots.
+  string display_name = 2;
+  string device_name = 3;
+
+  // Target onboarding peer (bot/admin) to send the join request to.
+  string target_peer_id = 4;
+
+  // Multiaddrs to dial for that onboarding peer (bootstrap/relay aware).
+  repeated string target_multiaddrs = 5;
+}
+
+message JoinClassResponse {
+  string request_id = 1;
+}
+
+message StreamEventsRequest {}
+
+message JoinDecisionEvent {
+  string from_peer_id = 1;
+  classroom.v1.JoinDecision decision = 2;
+}
+
+message JoinSubmitEvent {
+  string request_id = 1;
+  string target_peer_id = 2;
+}
+
+message JoinFailedEvent {
+  string target_peer_id = 1;
+  string error = 2;
+}
+
+message DaemonEvent {
+  oneof event {
+    JoinDecisionEvent join_decision = 1;
+    JoinSubmitEvent join_submitted = 2;
+    JoinFailedEvent join_failed = 3;
+  }
+}
+
+service Daemon {
+  rpc Status(StatusRequest) returns (StatusResponse);
+  rpc JoinClass(JoinClassRequest) returns (JoinClassResponse);
+  rpc StreamEvents(StreamEventsRequest) returns (stream DaemonEvent);
+}

@@ -1,13 +1,20 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, pin::Pin, str::FromStr, sync::Arc, time::SystemTime};
 
 use clap::{Parser, Subcommand};
-use libp2p::Multiaddr;
+use libp2p::{Multiaddr, PeerId};
 use mimalloc::MiMalloc;
+use prost_types::Timestamp;
 use soma_core::SomaResult;
 use soma_net::{default_identity_path, generate_identity};
 use soma_peer::{PeerCommand, PeerConfig, PeerEvent, spawn_ping_peer};
-use soma_socket::serve_unix_message;
-use tokio::signal;
+use soma_proto_build::classroom::v1 as classroom;
+use soma_proto_build::daemon::v1 as daemon;
+use tokio::{
+    signal,
+    sync::{broadcast, mpsc, Mutex},
+};
+use tokio_stream::{wrappers::BroadcastStream, StreamExt as TokioStreamExt};
+use tonic::{transport::Server, Request, Response, Status};
 use tracing::{info, warn};
 use tracing_subscriber::EnvFilter;
 
@@ -92,6 +99,112 @@ impl DaemonConfig {
     }
 }
 
+#[derive(Debug)]
+struct DaemonState {
+    peer_id: PeerId,
+    peer_commands: mpsc::Sender<PeerCommand>,
+    listen_addrs: Mutex<Vec<String>>,
+    events: broadcast::Sender<daemon::DaemonEvent>,
+}
+
+impl DaemonState {
+    async fn publish(&self, event: daemon::DaemonEvent) {
+        let _ = self.events.send(event);
+    }
+}
+
+#[derive(Clone)]
+struct DaemonService {
+    state: Arc<DaemonState>,
+}
+
+#[tonic::async_trait]
+impl daemon::daemon_server::Daemon for DaemonService {
+    type StreamEventsStream =
+        Pin<Box<dyn futures::Stream<Item = Result<daemon::DaemonEvent, Status>> + Send + 'static>>;
+
+    async fn status(
+        &self,
+        _request: Request<daemon::StatusRequest>,
+    ) -> Result<Response<daemon::StatusResponse>, Status> {
+        let addrs = self.state.listen_addrs.lock().await.clone();
+        Ok(Response::new(daemon::StatusResponse {
+            peer_id: self.state.peer_id.to_string(),
+            listen_addrs: addrs,
+        }))
+    }
+
+    async fn join_class(
+        &self,
+        request: Request<daemon::JoinClassRequest>,
+    ) -> Result<Response<daemon::JoinClassResponse>, Status> {
+        let payload = request.into_inner();
+        let target_peer_id = PeerId::from_str(&payload.target_peer_id)
+            .map_err(|_| Status::invalid_argument("invalid target peer id"))?;
+
+        let mut addrs = Vec::new();
+        for addr in payload.target_multiaddrs {
+            let parsed: Multiaddr = addr
+                .parse()
+                .map_err(|_| Status::invalid_argument("invalid multiaddr in target_multiaddrs"))?;
+            addrs.push(parsed);
+        }
+        if addrs.is_empty() {
+            return Err(Status::invalid_argument("target_multiaddrs required"));
+        }
+
+        let request_id = format!("{:016x}", rand::random::<u64>());
+        let join_request = classroom::JoinRequest {
+            class_id: Some(classroom::ClassId {
+                value: payload.class_id,
+            }),
+            peer_id: Some(classroom::PeerId {
+                value: self.state.peer_id.to_string(),
+            }),
+            display_name: payload.display_name,
+            device_name: payload.device_name,
+            student_code: String::new(),
+            requested_role: classroom::ClassRole::Student as i32,
+            invite_proof: None,
+            created_at: Some(Timestamp::from(SystemTime::now())),
+        };
+
+        self.state
+            .peer_commands
+            .send(PeerCommand::SendJoinRequest {
+                target: target_peer_id,
+                addrs,
+                request_id: request_id.clone(),
+                request: join_request,
+            })
+            .await
+            .map_err(|_| Status::internal("peer task is not running"))?;
+
+        self.state
+            .publish(daemon::DaemonEvent {
+                event: Some(daemon::daemon_event::Event::JoinSubmitted(
+                    daemon::JoinSubmitEvent {
+                        request_id: request_id.clone(),
+                        target_peer_id: target_peer_id.to_string(),
+                    },
+                )),
+            })
+            .await;
+
+        Ok(Response::new(daemon::JoinClassResponse { request_id }))
+    }
+
+    async fn stream_events(
+        &self,
+        _request: Request<daemon::StreamEventsRequest>,
+    ) -> Result<Response<Self::StreamEventsStream>, Status> {
+        let stream = BroadcastStream::new(self.state.events.subscribe())
+            .filter_map(|msg: Result<daemon::DaemonEvent, _>| msg.ok())
+            .map(Ok);
+        Ok(Response::new(Box::pin(stream)))
+    }
+}
+
 #[tokio::main]
 async fn main() -> SomaResult<()> {
     tracing_subscriber::fmt()
@@ -156,54 +269,28 @@ async fn run(config: DaemonConfig) -> SomaResult<()> {
     let peer_id = peer.peer_id;
     info!(%peer_id, ?socket_path, ?blob_dir, "soma-daemon starting");
 
-    let socket_msg = format!("soma-daemon alive peer_id={peer_id}\n");
-    let socket_task = tokio::spawn(serve_unix_message(socket_path.clone(), socket_msg, async {
-        let _ = signal::ctrl_c().await;
-    }));
+    let (event_tx, _) = broadcast::channel(64);
+    let state = Arc::new(DaemonState {
+        peer_id,
+        peer_commands: peer.commands.clone(),
+        listen_addrs: Mutex::new(Vec::new()),
+        events: event_tx,
+    });
+
+    let grpc_service = DaemonService {
+        state: state.clone(),
+    };
+    let grpc_task = tokio::spawn(serve_grpc(socket_path.clone(), grpc_service));
     let peer_task = peer.task;
     let mut peer_events = peer.events;
     tokio::pin!(peer_task);
-    tokio::pin!(socket_task);
+    tokio::pin!(grpc_task);
 
     loop {
         tokio::select! {
             evt = peer_events.recv() => {
                 if let Some(evt) = evt {
-                    match evt {
-                        PeerEvent::NewListenAddr { address, peer_id } => {
-                            info!(%peer_id, listen_addr=%address, "daemon listening");
-                        }
-                        PeerEvent::PingOk { rtt } => {
-                            info!(?rtt, "daemon ping ok");
-                        }
-                        PeerEvent::PingErr { error } => {
-                            warn!(%error, "daemon ping error");
-                        }
-                        PeerEvent::ConnectionEstablished { peer } => {
-                            info!(%peer, "daemon connected");
-                        }
-                        PeerEvent::ConnectionError { peer, error } => {
-                            warn!(?peer, %error, "daemon connection error");
-                        }
-                        PeerEvent::IdentifyReceived { peer, agent, protocols } => {
-                            info!(%peer, %agent, protocols, "daemon identify received");
-                        }
-                        PeerEvent::MdnsDiscovered { peers } => {
-                            info!(peers, "daemon mdns discovered peers");
-                        }
-                        PeerEvent::RendezvousDiscovered { registrations } => {
-                            info!(registrations, "daemon rendezvous discovered");
-                        }
-                        PeerEvent::RelayReserved { relay } => {
-                            info!(%relay, "daemon relay reservation accepted");
-                        }
-                        PeerEvent::RelayCircuitEstablished { relay } => {
-                            info!(%relay, "daemon relay circuit established");
-                        }
-                        PeerEvent::ListenerClosed { reason } => {
-                            info!(?reason, "daemon listener closed");
-                        }
-                    }
+                    handle_peer_event(&state, evt).await;
                 } else {
                     break;
                 }
@@ -212,7 +299,7 @@ async fn run(config: DaemonConfig) -> SomaResult<()> {
                 res??;
                 break;
             }
-            res = &mut socket_task => {
+            res = &mut grpc_task => {
                 res??;
                 break;
             }
@@ -223,5 +310,101 @@ async fn run(config: DaemonConfig) -> SomaResult<()> {
         }
     }
 
+    if socket_path.exists() {
+        let _ = std::fs::remove_file(socket_path);
+    }
+
     Ok(())
+}
+
+async fn serve_grpc(socket_path: PathBuf, service: DaemonService) -> SomaResult<()> {
+    if let Some(parent) = socket_path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    if socket_path.exists() {
+        std::fs::remove_file(&socket_path)?;
+    }
+    let listener = tokio::net::UnixListener::bind(&socket_path)?;
+    let incoming = tokio_stream::wrappers::UnixListenerStream::new(listener);
+    Server::builder()
+        .add_service(daemon::daemon_server::DaemonServer::new(service))
+        .serve_with_incoming_shutdown(incoming, async {
+            let _ = signal::ctrl_c().await;
+        })
+        .await
+        .map_err(soma_core::Error::service)?;
+    Ok(())
+}
+
+async fn handle_peer_event(state: &Arc<DaemonState>, evt: PeerEvent) {
+    match evt {
+        PeerEvent::NewListenAddr { address, peer_id } => {
+            info!(%peer_id, listen_addr=%address, "daemon listening");
+            let mut addrs = state.listen_addrs.lock().await;
+            let addr = address.to_string();
+            if !addrs.contains(&addr) {
+                addrs.push(addr);
+            }
+        }
+        PeerEvent::PingOk { rtt } => {
+            info!(?rtt, "daemon ping ok");
+        }
+        PeerEvent::PingErr { error } => {
+            warn!(%error, "daemon ping error");
+        }
+        PeerEvent::ConnectionEstablished { peer } => {
+            info!(%peer, "daemon connected");
+        }
+        PeerEvent::ConnectionError { peer, error } => {
+            warn!(?peer, %error, "daemon connection error");
+        }
+        PeerEvent::IdentifyReceived { peer, agent, protocols } => {
+            info!(%peer, %agent, protocols, "daemon identify received");
+        }
+        PeerEvent::MdnsDiscovered { peers } => {
+            info!(peers, "daemon mdns discovered peers");
+        }
+        PeerEvent::RendezvousDiscovered { registrations } => {
+            info!(registrations, "daemon rendezvous discovered");
+        }
+        PeerEvent::RelayReserved { relay } => {
+            info!(%relay, "daemon relay reservation accepted");
+        }
+        PeerEvent::RelayCircuitEstablished { relay } => {
+            info!(%relay, "daemon relay circuit established");
+        }
+        PeerEvent::JoinRequestSubmitted { target, request_id } => {
+            state.publish(daemon::DaemonEvent {
+                event: Some(daemon::daemon_event::Event::JoinSubmitted(
+                    daemon::JoinSubmitEvent {
+                        request_id,
+                        target_peer_id: target.to_string(),
+                    },
+                )),
+            }).await;
+        }
+        PeerEvent::JoinDecision { from, decision } => {
+            state.publish(daemon::DaemonEvent {
+                event: Some(daemon::daemon_event::Event::JoinDecision(
+                    daemon::JoinDecisionEvent {
+                        from_peer_id: from.to_string(),
+                        decision: Some(decision),
+                    },
+                )),
+            }).await;
+        }
+        PeerEvent::JoinFailed { target, error } => {
+            state.publish(daemon::DaemonEvent {
+                event: Some(daemon::daemon_event::Event::JoinFailed(
+                    daemon::JoinFailedEvent {
+                        target_peer_id: target.to_string(),
+                        error,
+                    },
+                )),
+            }).await;
+        }
+        PeerEvent::ListenerClosed { reason } => {
+            info!(?reason, "daemon listener closed");
+        }
+    }
 }

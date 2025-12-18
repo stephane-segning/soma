@@ -3439,16 +3439,21 @@ name = "soma-daemon"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "futures",
  "libp2p",
  "mimalloc",
+ "prost-types",
+ "rand 0.9.2",
  "soma-api",
  "soma-common",
  "soma-core",
  "soma-net",
  "soma-peer",
- "soma-socket",
+ "soma-proto-build",
  "soma-storage",
  "tokio",
+ "tokio-stream",
+ "tonic",
  "tracing",
  "tracing-subscriber",
 ]
@@ -3478,10 +3483,14 @@ dependencies = [
 name = "soma-peer"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "futures",
  "libp2p",
+ "prost",
+ "prost-types",
  "soma-core",
  "soma-net",
+ "soma-proto-build",
  "tokio",
  "tracing",
 ]
@@ -3848,6 +3857,7 @@ dependencies = [
  "futures-core",
  "pin-project-lite",
  "tokio",
+ "tokio-util",
 ]
 
 [[package]]
