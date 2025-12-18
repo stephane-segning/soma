@@ -67,8 +67,8 @@ async fn main() -> soma_core::SomaResult<()> {
                     }
                     PeerEvent::ListenerClosed { reason } => {
                         info!(?reason, "bff peer listener closed");
-                    },
-                    _ => todo!()
+                    }
+                    _ => todo!(),
                 }
             }
         });

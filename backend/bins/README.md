@@ -14,3 +14,9 @@ This folder contains Rust binary crates for local and server-side “agent” pr
 - **`soma-rendezvousd`** (`bins/rendezvousd`): libp2p Rendezvous discovery service; Axum + metrics.
 - **`soma-bffd`** (`bins/bffd`): LLM BFF service (no libp2p); Axum + metrics.
 - **`soma-serverd`** (`bins/serverd`): convenience wrapper with subcommands to run relay/rendezvous/bff.
+
+## Peer connectivity
+
+Peers like `soma-daemon` and `soma-botd` support optional discovery and connectivity helpers (mDNS, rendezvous, relay client).
+
+See `docs/src/architecture/peer-connectivity.md`.

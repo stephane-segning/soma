@@ -52,6 +52,10 @@ struct Args {
     #[arg(long, env = "SOMA_RDV_ADDRS", value_delimiter = ',')]
     rendezvous_addrs: Vec<Multiaddr>,
 
+    /// Relay nodes to reserve slots against.
+    #[arg(long, env = "SOMA_RELAY_ADDRS", value_delimiter = ',')]
+    relay_addrs: Vec<Multiaddr>,
+
     /// Disable mdns discovery (default on).
     #[arg(long, env = "SOMA_DISABLE_MDNS", default_value_t = false)]
     disable_mdns: bool,
@@ -102,6 +106,7 @@ struct BotConfig {
     listen_addrs: Vec<Multiaddr>,
     bootstrap_addrs: Vec<Multiaddr>,
     rendezvous_addrs: Vec<Multiaddr>,
+    relay_addrs: Vec<Multiaddr>,
     enable_mdns: bool,
 }
 
@@ -114,6 +119,7 @@ impl BotConfig {
             listen_addrs: args.listen_addrs.clone(),
             bootstrap_addrs: args.bootstrap_addrs.clone(),
             rendezvous_addrs: args.rendezvous_addrs.clone(),
+            relay_addrs: args.relay_addrs.clone(),
             enable_mdns: !args.disable_mdns,
         }
     }
@@ -185,6 +191,7 @@ async fn run(config: BotConfig, metrics: BotMetrics) -> SomaResult<()> {
         listen_addrs: config.listen_addrs.clone(),
         bootstrap_addrs: config.bootstrap_addrs.clone(),
         rendezvous_nodes: config.rendezvous_addrs.clone(),
+        relay_addrs: config.relay_addrs.clone(),
         rendezvous_namespace: None,
         enable_mdns: config.enable_mdns,
     };
@@ -242,6 +249,12 @@ async fn run(config: BotConfig, metrics: BotMetrics) -> SomaResult<()> {
                         }
                         PeerEvent::RendezvousDiscovered { registrations } => {
                             info!(registrations, "bot rendezvous discovered");
+                        }
+                        PeerEvent::RelayReserved { relay } => {
+                            info!(%relay, "bot relay reservation accepted");
+                        }
+                        PeerEvent::RelayCircuitEstablished { relay } => {
+                            info!(%relay, "bot relay circuit established");
                         }
                         PeerEvent::ListenerClosed { reason } => {
                             warn!(?reason, "bot listener closed");

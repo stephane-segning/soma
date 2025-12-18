@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use futures::StreamExt;
 use libp2p::{
-    Multiaddr, PeerId, identify, mdns, ping, rendezvous,
+    Multiaddr, PeerId, identify, mdns, ping, relay, rendezvous,
     swarm::{NetworkBehaviour, SwarmEvent, behaviour::toggle},
 };
 use soma_core::SomaResult;
@@ -19,6 +19,7 @@ pub struct PeerConfig {
     pub listen_addrs: Vec<Multiaddr>,
     pub bootstrap_addrs: Vec<Multiaddr>,
     pub rendezvous_nodes: Vec<Multiaddr>,
+    pub relay_addrs: Vec<Multiaddr>,
     pub rendezvous_namespace: Option<String>,
     pub enable_mdns: bool,
 }
@@ -30,6 +31,7 @@ impl PeerConfig {
             listen_addrs: Vec::new(),
             bootstrap_addrs: Vec::new(),
             rendezvous_nodes: Vec::new(),
+            relay_addrs: Vec::new(),
             rendezvous_namespace: Some("soma".to_string()),
             enable_mdns: true,
         }
@@ -82,6 +84,12 @@ pub enum PeerEvent {
     RendezvousDiscovered {
         registrations: usize,
     },
+    RelayReserved {
+        relay: PeerId,
+    },
+    RelayCircuitEstablished {
+        relay: PeerId,
+    },
 }
 
 /// Handle to a running peer.
@@ -112,6 +120,8 @@ pub fn spawn_peer(mut config: PeerConfig) -> SomaResult<PeerHandle> {
             None
         };
 
+        let (_relay_transport, relay_client) = relay::client::new(peer_id);
+
         let behaviour = AppBehaviour {
             ping: ping::Behaviour::default(),
             identify: identify::Behaviour::new(identify::Config::new(
@@ -126,6 +136,7 @@ pub fn spawn_peer(mut config: PeerConfig) -> SomaResult<PeerHandle> {
                     .try_into()
                     .expect("to libp2p_identity keypair"),
             ),
+            relay_client,
         };
 
         let mut swarm = build_swarm(identity.keypair().clone(), behaviour).await?;
@@ -156,6 +167,7 @@ pub fn spawn_peer(mut config: PeerConfig) -> SomaResult<PeerHandle> {
         run_swarm(
             peer_id,
             config.rendezvous_namespace.unwrap_or_else(|| "soma".into()),
+            config.relay_addrs,
             rendezvous_peers,
             swarm,
             command_rx,
@@ -186,6 +198,7 @@ struct AppBehaviour {
     identify: identify::Behaviour,
     mdns: toggle::Toggle<mdns::tokio::Behaviour>,
     rendezvous: rendezvous::client::Behaviour,
+    relay_client: relay::client::Behaviour,
 }
 
 #[derive(Debug)]
@@ -194,6 +207,7 @@ enum AppEvent {
     Identify(identify::Event),
     Mdns(mdns::Event),
     Rendezvous(rendezvous::client::Event),
+    Relay(relay::client::Event),
 }
 
 impl From<ping::Event> for AppEvent {
@@ -220,14 +234,29 @@ impl From<rendezvous::client::Event> for AppEvent {
     }
 }
 
+impl From<relay::client::Event> for AppEvent {
+    fn from(event: relay::client::Event) -> Self {
+        AppEvent::Relay(event)
+    }
+}
+
 async fn run_swarm(
     peer_id: PeerId,
     rendezvous_namespace: String,
-    rendezvous_peers: HashSet<PeerId>,
+    relay_addrs: Vec<Multiaddr>,
+    mut rendezvous_peers: HashSet<PeerId>,
     mut swarm: libp2p::Swarm<AppBehaviour>,
     mut command_rx: mpsc::Receiver<PeerCommand>,
     event_tx: mpsc::Sender<PeerEvent>,
 ) -> SomaResult<()> {
+    for addr in relay_addrs {
+        if let Some(peer_id) = extract_peer_id(&addr) {
+            // Track relay peers so we can request reservation on connect.
+            rendezvous_peers.insert(peer_id);
+        }
+        let _ = swarm.dial(addr.clone());
+    }
+
     loop {
         tokio::select! {
             Some(cmd) = command_rx.recv() => {
@@ -290,6 +319,13 @@ async fn run_swarm(
                             }
                         }
                     }
+                    SwarmEvent::Behaviour(AppEvent::Relay(relay::client::Event::ReservationReqAccepted { relay_peer_id, .. })) => {
+                        let _ = event_tx.try_send(PeerEvent::RelayReserved { relay: relay_peer_id });
+                    }
+                    SwarmEvent::Behaviour(AppEvent::Relay(relay::client::Event::OutboundCircuitEstablished { relay_peer_id, .. })) => {
+                        let _ = event_tx.try_send(PeerEvent::RelayCircuitEstablished { relay: relay_peer_id });
+                    }
+                    SwarmEvent::Behaviour(AppEvent::Relay(_)) => {}
                     SwarmEvent::Behaviour(AppEvent::Identify(identify::Event::Received { peer_id, info, .. })) => {
                         let agent = info.agent_version;
                         let _ = event_tx.try_send(PeerEvent::IdentifyReceived { peer: peer_id, agent, protocols: info.protocols.len() });

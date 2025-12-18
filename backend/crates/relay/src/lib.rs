@@ -30,7 +30,9 @@ impl Default for RelayConfig {
             identity_path: default_identity_path("relay"),
             listen_addrs: vec![
                 "/ip4/0.0.0.0/tcp/14003".parse().expect("valid multiaddr"),
-                "/ip4/0.0.0.0/tcp/14103/ws".parse().expect("valid multiaddr"),
+                "/ip4/0.0.0.0/tcp/14103/ws"
+                    .parse()
+                    .expect("valid multiaddr"),
                 "/ip4/0.0.0.0/udp/14203/quic-v1"
                     .parse()
                     .expect("valid multiaddr"),

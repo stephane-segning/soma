@@ -32,6 +32,8 @@ Soma builds on libp2p for networking. This primer highlights the concepts you wi
 - On local networks developers can enable mDNS, letting daemons auto-discover each other without any infrastructure.
 - You will see code paths for both discovery mechanisms—pay attention to configuration files or CLI flags when debugging peers that fail to connect.
 
+For Soma-specific wiring and CLI flags, see `docs/src/architecture/peer-connectivity.md`.
+
 [^security]: https://docs.libp2p.io/concepts/security/security-considerations/
 [^pubsub]: https://docs.libp2p.io/concepts/publish-subscribe/gossipsub/
 [^relay]: https://docs.libp2p.io/concepts/nat/circuit-relay/

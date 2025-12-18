@@ -1,0 +1,165 @@
+# Peer Connectivity (Daemon + Bot)
+
+This doc describes how Soma peers (like `soma-daemon` and `soma-botd`) discover each other and establish connectivity using libp2p.
+
+The implementation lives in the shared peer runtime: `backend/crates/peer` (`soma-peer`).
+
+## Goals
+
+- Work on LAN without any infrastructure (developer-friendly).
+- Work across NAT / different networks with minimal configuration (production-friendly).
+- Prefer direct connections, but fall back to relayed connections when necessary.
+
+## Mechanisms (in order of “what to try first”)
+
+### 1) Direct dialing (preferred)
+
+Peers always try to establish **direct connections** using the multiaddrs they learn from discovery (mDNS or rendezvous). Direct connections have the lowest latency and cost.
+
+### 2) Identify (connection metadata)
+
+Peers run the libp2p **Identify** protocol to exchange:
+
+- supported protocol IDs,
+- agent/version strings,
+- observed addresses.
+
+In Soma this is used primarily to improve debug visibility and to help other behaviours infer which addresses are usable.
+
+### 3) mDNS (local network discovery)
+
+When enabled, peers use libp2p mDNS to discover other peers on the same LAN and dial them automatically.
+
+- Enabled by default in `soma-peer` and can be disabled via `--disable-mdns`.
+- Useful for dev and for “same Wi‑Fi” connectivity.
+
+### 4) Rendezvous (internet discovery)
+
+Peers can dial one or more rendezvous servers and use the rendezvous **client** protocol to:
+
+- register in a namespace,
+- discover other registered peers,
+- dial discovered peers.
+
+Rendezvous is for discovery, not NAT traversal. It helps peers find each other when they are not on the same LAN.
+
+### 5) Relay client (NAT traversal fallback)
+
+Peers can dial one or more relay nodes and use the **relay client** behaviour.
+
+Common pattern:
+
+- peers proactively connect to configured relays,
+- when needed, traffic can be routed through a relay (encrypted end-to-end by libp2p),
+- direct connections are still preferred whenever available.
+
+Note: dialing a relay node without running the relay client behaviour does not provide relayed reachability. Soma peers include the relay client behaviour as part of `soma-peer`.
+
+## Sequence Diagrams
+
+### Peer startup (mDNS + rendezvous + relay configured)
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant Peer as Soma Peer (daemon/bot)
+  participant MDNS as mDNS (LAN)
+  participant RDV as Rendezvous Server
+  participant Relay as Relay Node
+  participant Other as Another Peer
+
+  Peer->>Peer: Start libp2p swarm (transports + behaviours)
+  Peer->>Peer: Listen on TCP/QUIC/WS
+  Peer->>Peer: Identify enabled (metadata exchange)
+
+  alt mDNS enabled
+    Peer->>MDNS: Query / announce _p2p._udp.local
+    MDNS-->>Peer: Discovered peers + addrs
+    Peer->>Other: Dial discovered addrs (direct)
+  end
+
+  opt rendezvous configured
+    Peer->>RDV: Dial rendezvous multiaddr
+    RDV-->>Peer: Connection established
+    Peer->>RDV: Register(namespace, external addrs)
+    Peer->>RDV: Discover(namespace)
+    RDV-->>Peer: Registrations (peers + addrs)
+    Peer->>Other: Dial discovered addrs (direct)
+  end
+
+  opt relay configured
+    Peer->>Relay: Dial relay multiaddr
+    Relay-->>Peer: Connection established
+    Peer->>Relay: Relay client active (reservation / relayed reachability)
+  end
+```
+
+### Direct-first dialing with relay fallback (conceptual)
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant A as Peer A
+  participant B as Peer B
+  participant RDV as Rendezvous Server
+  participant Relay as Relay Node
+
+  A->>RDV: Discover(namespace)
+  RDV-->>A: B's addresses (direct + maybe relayed)
+  A->>B: Dial direct address
+  alt direct succeeds
+    B-->>A: Connection established (direct)
+    A->>B: Identify + app protocols
+  else direct fails
+    A->>Relay: Dial relay (if not already connected)
+    A->>B: Dial relayed address via relay
+    B-->>A: Connection established (relayed)
+    A->>B: Identify + app protocols
+  end
+```
+
+## CLI / Environment Configuration
+
+The peer-facing binaries accept the following optional connectivity configuration.
+
+### `soma-daemon` (`backend/bins/daemon`)
+
+- `--listen-addrs` / `SOMA_LISTEN_ADDRS` (comma-delimited)
+- `--bootstrap-addrs` / `SOMA_BOOTSTRAP_ADDRS` (comma-delimited)
+- `--rendezvous-addrs` / `SOMA_RDV_ADDRS` (comma-delimited)
+- `--relay-addrs` / `SOMA_RELAY_ADDRS` (comma-delimited)
+- `--disable-mdns` / `SOMA_DISABLE_MDNS`
+
+### `soma-botd` (`backend/bins/botd`)
+
+- `--listen-addrs` / `SOMA_LISTEN_ADDRS` (comma-delimited)
+- `--bootstrap-addrs` / `SOMA_BOOTSTRAP_ADDRS` (comma-delimited)
+- `--rendezvous-addrs` / `SOMA_RDV_ADDRS` (comma-delimited)
+- `--relay-addrs` / `SOMA_RELAY_ADDRS` (comma-delimited)
+- `--disable-mdns` / `SOMA_DISABLE_MDNS`
+
+## Local Development Recipes
+
+### Start infra
+
+From `backend/`:
+
+- Relay: `cargo run -p soma-relayd -- --http-addr 0.0.0.0:8081`
+- Rendezvous: `cargo run -p soma-rendezvousd -- --http-addr 0.0.0.0:8082`
+
+Copy their logged listen multiaddrs (including `/p2p/<peerid>`).
+
+### Start a daemon and point it at infra
+
+From `backend/`:
+
+`cargo run -p soma-daemon -- --rendezvous-addrs "<RDV_MULTIADDR>" --relay-addrs "<RELAY_MULTIADDR>"`
+
+### Observe behaviour
+
+In logs you should see:
+
+- connection establishment / errors,
+- identify events,
+- rendezvous discoveries,
+- relay reservation acceptance / relayed circuits (when used).

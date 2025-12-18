@@ -10,6 +10,8 @@ The relay service runs the libp2p **Circuit Relay v2** server behaviour. Peers t
 
 The rendezvous service runs the libp2p **Rendezvous server** behaviour. Peers register under namespaces and query for other registered peers to bootstrap connectivity.
 
+For how peers consume relay/rendezvous (and the relevant CLI flags), see `docs/src/architecture/peer-connectivity.md`.
+
 ## Identity Persistence
 
 Both services persist a libp2p keypair so their Peer ID remains stable across restarts.

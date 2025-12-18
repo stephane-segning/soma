@@ -262,6 +262,10 @@ Service-specific counters:
   - `rendezvous_registrations_total{result=...}`
   - `rendezvous_listen_events_total`
 
+## Peer Connectivity (Daemon + Bot)
+
+For how peers (`soma-daemon`, `soma-botd`) use mDNS, rendezvous, and relay client behaviour (and the relevant CLI flags), see `docs/src/architecture/peer-connectivity.md`.
+
 ## Design and Structure Guidelines
 
 ### Backend (Rust)
