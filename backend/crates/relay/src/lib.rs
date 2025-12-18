@@ -7,7 +7,10 @@ use libp2p::{
     swarm::{NetworkBehaviour, SwarmEvent},
     Multiaddr,
 };
+use prometheus_client::metrics::{counter::Counter, family::Family};
+use prometheus_client_derive_encode::EncodeLabelSet;
 use soma_core::SomaResult;
+use soma_metrics::{router_with_registry, SharedRegistry};
 use soma_net::{build_swarm, default_identity_path, NetIdentity};
 use tokio::signal;
 use tracing::{error, info, warn};
@@ -26,11 +29,65 @@ impl Default for RelayConfig {
         Self {
             identity_path: default_identity_path("relay"),
             listen_addrs: vec![
-                "/ip4/0.0.0.0/udp/4001/quic-v1"
-                    .parse()
-                    .expect("valid multiaddr"),
+                "/ip4/0.0.0.0/tcp/4001".parse().expect("valid multiaddr"),
+                "/ip4/0.0.0.0/tcp/4003/ws".parse().expect("valid multiaddr"),
+                "/ip4/127.0.0.1/udp/4001/quic-v1".parse().expect("valid multiaddr"),
             ],
         }
+    }
+}
+
+#[derive(Clone, Debug, EncodeLabelSet, Hash, PartialEq, Eq)]
+struct ReservationLabels {
+    result: &'static str,
+    status: Option<String>,
+}
+
+#[derive(Clone, Debug, EncodeLabelSet, Hash, PartialEq, Eq)]
+struct CircuitLabels {
+    result: &'static str,
+    status: Option<String>,
+}
+
+#[derive(Clone)]
+pub struct RelayMetrics {
+    registry: SharedRegistry,
+    reservations: Family<ReservationLabels, Counter>,
+    circuits: Family<CircuitLabels, Counter>,
+    listeners: Family<(), Counter>,
+}
+
+impl RelayMetrics {
+    pub fn new() -> Self {
+        let mut registry = prometheus_client::registry::Registry::with_prefix("relay");
+
+        let reservations = Family::<ReservationLabels, Counter>::default();
+        registry.register(
+            "reservations_total",
+            "Relay reservation requests by result",
+            reservations.clone(),
+        );
+
+        let circuits = Family::<CircuitLabels, Counter>::default();
+        registry.register(
+            "circuits_total",
+            "Relay circuit requests by result",
+            circuits.clone(),
+        );
+
+        let listeners = Family::<(), Counter>::default();
+        registry.register("listen_events_total", "Relay listen events", listeners.clone());
+
+        Self {
+            registry: std::sync::Arc::new(registry),
+            reservations,
+            circuits,
+            listeners,
+        }
+    }
+
+    pub fn registry(&self) -> SharedRegistry {
+        self.registry.clone()
     }
 }
 
@@ -41,7 +98,7 @@ struct RelayBehaviour {
 }
 
 /// Entry point for the relay service logic.
-pub async fn run(config: RelayConfig) -> SomaResult<()> {
+pub async fn run(config: RelayConfig, metrics: RelayMetrics) -> SomaResult<()> {
     let RelayConfig {
         identity_path,
         listen_addrs,
@@ -54,7 +111,7 @@ pub async fn run(config: RelayConfig) -> SomaResult<()> {
         relay: relay::Behaviour::new(peer_id, Default::default()),
     };
 
-    let mut swarm = build_swarm(identity.keypair().clone(), behaviour)?;
+    let mut swarm = build_swarm(identity.keypair().clone(), behaviour).await?;
 
     for addr in listen_addrs {
         if let Err(err) = swarm.listen_on(addr) {
@@ -73,6 +130,7 @@ pub async fn run(config: RelayConfig) -> SomaResult<()> {
             event = swarm.select_next_some() => {
                 match event {
                     SwarmEvent::NewListenAddr { address, .. } => {
+                        metrics.listeners.get_or_create(&()).inc();
                         let p2p = address.clone().with(Protocol::P2p(peer_id.into()));
                         info!(listen_addr=%address, p2p=%p2p, "relay listening");
                     }
@@ -80,18 +138,23 @@ pub async fn run(config: RelayConfig) -> SomaResult<()> {
                         warn!(?reason, "relay listener closed");
                     }
                     SwarmEvent::Behaviour(relay::Event::ReservationReqAccepted { src_peer_id, .. }) => {
+                        metrics.reservations.get_or_create(&ReservationLabels { result: "accepted", status: None }).inc();
                         info!(%src_peer_id, "relay reservation accepted");
                     }
                     SwarmEvent::Behaviour(relay::Event::ReservationReqDenied { src_peer_id, status }) => {
+                        metrics.reservations.get_or_create(&ReservationLabels { result: "denied", status: Some(format!("{status:?}")) }).inc();
                         warn!(%src_peer_id, ?status, "relay reservation denied");
                     }
                     SwarmEvent::Behaviour(relay::Event::ReservationTimedOut { src_peer_id, .. }) => {
+                        metrics.reservations.get_or_create(&ReservationLabels { result: "timed_out", status: None }).inc();
                         warn!(%src_peer_id, "relay reservation timed out");
                     }
                     SwarmEvent::Behaviour(relay::Event::CircuitReqAccepted { src_peer_id, .. }) => {
+                        metrics.circuits.get_or_create(&CircuitLabels { result: "accepted", status: None }).inc();
                         info!(%src_peer_id, "relay circuit accepted");
                     }
                     SwarmEvent::Behaviour(relay::Event::CircuitReqDenied { src_peer_id, dst_peer_id, status }) => {
+                        metrics.circuits.get_or_create(&CircuitLabels { result: "denied", status: Some(format!("{status:?}")) }).inc();
                         warn!(%src_peer_id, %dst_peer_id, ?status, "relay circuit denied");
                     }
                     _ => {}
@@ -101,4 +164,9 @@ pub async fn run(config: RelayConfig) -> SomaResult<()> {
     }
 
     Ok(())
+}
+
+/// Build a metrics router for the relay service.
+pub fn metrics_router(metrics: &RelayMetrics) -> axum::Router {
+    router_with_registry(metrics.registry())
 }

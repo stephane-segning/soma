@@ -59,6 +59,8 @@ tracing = { version = "0", features = ["attributes", "async-await", "std"] }
 
 mimalloc = "0"
 futures = "0.3"
+prometheus-client = "0.22"
+prometheus-client-derive-encode = "0.4"
 
 [workspace.dependencies.libp2p]
 version = "0.56"

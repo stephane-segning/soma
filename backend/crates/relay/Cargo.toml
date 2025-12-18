@@ -9,7 +9,11 @@ authors.workspace = true
 [dependencies]
 soma-core = { workspace = true }
 soma-net = { workspace = true }
+soma-metrics = { workspace = true }
 tracing = { workspace = true }
 tokio = { workspace = true }
 libp2p = { workspace = true }
 futures = { workspace = true }
+prometheus-client = { workspace = true }
+axum = { workspace = true }
+prometheus-client-derive-encode = { workspace = true }

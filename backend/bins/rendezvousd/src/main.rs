@@ -24,14 +24,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let Args { http_addr } = Args::parse();
 
-    let http = tokio::spawn(async move {
-        let listener = tokio::net::TcpListener::bind(http_addr).await?;
-        let router = soma_metrics::router("rendezvous");
-        axum::serve(listener, router).await?;
-        Ok::<(), Box<dyn std::error::Error + Send + Sync>>(())
-    });
+    let metrics = soma_rendezvous::RendezvousMetrics::new();
 
-    let rendezvous = tokio::spawn(async move { soma_rendezvous::run(Default::default()).await });
+    let http = {
+        let metrics = metrics.clone();
+        tokio::spawn(async move {
+            let listener = tokio::net::TcpListener::bind(http_addr).await?;
+            let router = soma_rendezvous::metrics_router(&metrics);
+            axum::serve(listener, router).await?;
+            Ok::<(), Box<dyn std::error::Error + Send + Sync>>(())
+        })
+    };
+
+    let rendezvous = tokio::spawn(async move {
+        soma_rendezvous::run(Default::default(), metrics).await
+    });
 
     tokio::select! {
         res = http => res??,

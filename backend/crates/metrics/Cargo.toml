@@ -8,4 +8,6 @@ authors.workspace = true
 
 [dependencies]
 axum = { workspace = true }
+prometheus-client = { workspace = true }
+prometheus-client-derive-encode = { workspace = true }
 tracing = { workspace = true }

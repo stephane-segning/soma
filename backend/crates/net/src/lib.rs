@@ -4,7 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use libp2p::{identity, swarm::NetworkBehaviour, PeerId, Swarm, SwarmBuilder};
+use libp2p::{identity, noise, swarm::NetworkBehaviour, tls, yamux, PeerId, Swarm, SwarmBuilder};
 use soma_core::SomaResult;
 
 /// Thin wrapper around a libp2p keypair with convenience helpers for logging and persistence.
@@ -74,13 +74,29 @@ pub fn default_identity_path(service_name: &str) -> PathBuf {
 }
 
 /// Build a tokio-backed libp2p swarm for the provided behaviour.
-pub fn build_swarm<B>(keypair: identity::Keypair, behaviour: B) -> SomaResult<Swarm<B>>
+pub async fn build_swarm<B>(keypair: identity::Keypair, behaviour: B) -> SomaResult<Swarm<B>>
 where
     B: NetworkBehaviour,
 {
-    let builder = SwarmBuilder::with_existing_identity(keypair)
-        .with_tokio()
-        .with_quic()
+    let builder = SwarmBuilder::with_existing_identity(keypair).with_tokio();
+
+    let builder = builder
+        .with_tcp(
+            libp2p::tcp::Config::default().nodelay(true),
+            (tls::Config::new, noise::Config::new),
+            yamux::Config::default,
+        )
+        .map_err(soma_core::Error::service)?;
+
+    let builder = builder
+        .with_websocket(
+            (tls::Config::new, noise::Config::new),
+            yamux::Config::default,
+        )
+        .await
+        .map_err(soma_core::Error::service)?;
+
+    let builder = builder
         .with_behaviour(|_| behaviour)
         .map_err(soma_core::Error::service)?;
 

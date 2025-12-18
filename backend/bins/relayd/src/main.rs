@@ -25,15 +25,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let Args { http_addr } = Args::parse();
 
     // Start metrics/health server.
-    let http = tokio::spawn(async move {
-        let listener = tokio::net::TcpListener::bind(http_addr).await?;
-        let router = soma_metrics::router("relay");
-        axum::serve(listener, router).await?;
-        Ok::<(), Box<dyn std::error::Error + Send + Sync>>(())
-    });
+    let metrics = soma_relay::RelayMetrics::new();
 
-    // Run libp2p relay logic (stubbed in crate for now).
-    let relay = tokio::spawn(async move { soma_relay::run(Default::default()).await });
+    let http = {
+        let metrics = metrics.clone();
+        tokio::spawn(async move {
+            let listener = tokio::net::TcpListener::bind(http_addr).await?;
+            let router = soma_relay::metrics_router(&metrics);
+            axum::serve(listener, router).await?;
+            Ok::<(), Box<dyn std::error::Error + Send + Sync>>(())
+        })
+    };
+
+    let relay = tokio::spawn(async move { soma_relay::run(Default::default(), metrics).await });
 
     tokio::select! {
         res = http => res??,
