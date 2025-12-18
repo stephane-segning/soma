@@ -1,3 +1,3 @@
-pub fn main() {
-    print!("Miaou")
-}
+pub mod error;
+
+pub use error::{Error, SomaResult};

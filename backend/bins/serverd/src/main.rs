@@ -1,7 +1,8 @@
-use std::net::SocketAddr;
+use std::{future::Future, net::SocketAddr};
 
 use clap::{Parser, Subcommand};
 use mimalloc::MiMalloc;
+use soma_core::{Error, SomaResult};
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
@@ -43,7 +44,7 @@ struct BffArgs {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+async fn main() -> SomaResult<()> {
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()),
@@ -52,44 +53,47 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     match Args::parse().cmd {
         Command::Relay(cfg) => {
-            let http = tokio::spawn(async move {
-                let listener = tokio::net::TcpListener::bind(cfg.http_addr).await?;
-                let router = soma_metrics::router("relay");
-                axum::serve(listener, router).await?;
-                Ok::<(), Box<dyn std::error::Error + Send + Sync>>(())
-            });
-
-            let relay = tokio::spawn(async move { soma_relay::run().await });
-
-            tokio::select! {
-                res = http => res??,
-                res = relay => res??,
-                _ = tokio::signal::ctrl_c() => {
-                    tracing::info!("shutdown requested");
-                }
-            }
+            run_with_metrics("relay", cfg.http_addr, || async { soma_relay::run().await }).await?;
         }
         Command::Rendezvous(cfg) => {
-            let http = tokio::spawn(async move {
-                let listener = tokio::net::TcpListener::bind(cfg.http_addr).await?;
-                let router = soma_metrics::router("rendezvous");
-                axum::serve(listener, router).await?;
-                Ok::<(), Box<dyn std::error::Error + Send + Sync>>(())
-            });
-
-            let rendezvous = tokio::spawn(async move { soma_rendezvous::run().await });
-
-            tokio::select! {
-                res = http => res??,
-                res = rendezvous => res??,
-                _ = tokio::signal::ctrl_c() => {
-                    tracing::info!("shutdown requested");
-                }
-            }
+            run_with_metrics("rendezvous", cfg.http_addr, || async {
+                soma_rendezvous::run().await
+            })
+            .await?;
         }
         Command::Bff(cfg) => {
-            let app = soma_bff::app().nest_service("/metrics", soma_metrics::router("bff"));
-            soma_bff::run(cfg.http_addr, app).await
+            let app = soma_bff::app().merge(soma_metrics::router("bff"));
+            soma_bff::run(cfg.http_addr, app).await?;
         }
     }
+    Ok(())
+}
+
+async fn run_with_metrics<F, Fut>(
+    service: &'static str,
+    http_addr: SocketAddr,
+    service_fn: F,
+) -> SomaResult<()>
+where
+    F: FnOnce() -> Fut + Send + 'static,
+    Fut: Future<Output = SomaResult<()>> + Send + 'static,
+{
+    let http = tokio::spawn(async move {
+        let listener = tokio::net::TcpListener::bind(http_addr).await?;
+        let router = soma_metrics::router(service);
+        axum::serve(listener, router).await.map_err(Error::http)?;
+        Ok::<(), Error>(())
+    });
+
+    let svc = tokio::spawn(async move { service_fn().await });
+
+    tokio::select! {
+        res = http => res??,
+        res = svc => res??,
+        _ = tokio::signal::ctrl_c() => {
+            tracing::info!("shutdown requested");
+        }
+    }
+
+    Ok(())
 }

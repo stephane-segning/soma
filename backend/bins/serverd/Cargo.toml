@@ -7,6 +7,7 @@ license.workspace = true
 authors.workspace = true
 
 [dependencies]
+soma-core = { workspace = true }
 soma-rendezvous = { workspace = true }
 soma-relay = { workspace = true }
 soma-bff = { workspace = true }
