@@ -29,9 +29,9 @@ impl Default for RendezvousConfig {
         Self {
             identity_path: default_identity_path("rendezvous"),
             listen_addrs: vec![
-                "/ip4/0.0.0.0/tcp/4002".parse().expect("valid multiaddr"),
+                "/ip4/0.0.0.0/tcp/4004".parse().expect("valid multiaddr"),
                 "/ip4/0.0.0.0/tcp/4004/ws".parse().expect("valid multiaddr"),
-                "/ip4/0.0.0.0/udp/4002/quic-v1".parse().expect("valid multiaddr"),
+                "/ip4/0.0.0.0/udp/4004/quic-v1".parse().expect("valid multiaddr"),
             ],
         }
     }
@@ -97,6 +97,20 @@ struct RendezvousBehaviour {
 
 /// Entry point for the rendezvous service logic.
 pub async fn run(config: RendezvousConfig, metrics: RendezvousMetrics) -> SomaResult<()> {
+    run_with_shutdown(config, metrics, async {
+        signal::ctrl_c().await.ok();
+    })
+    .await
+}
+
+pub async fn run_with_shutdown<F>(
+    config: RendezvousConfig,
+    metrics: RendezvousMetrics,
+    shutdown: F,
+) -> SomaResult<()>
+where
+    F: std::future::Future<Output = ()> + Send,
+{
     let RendezvousConfig {
         identity_path,
         listen_addrs,
@@ -119,9 +133,10 @@ pub async fn run(config: RendezvousConfig, metrics: RendezvousMetrics) -> SomaRe
 
     info!(%peer_id, "rendezvous service started");
 
+    let mut shutdown = std::pin::pin!(shutdown);
     loop {
         tokio::select! {
-            _ = signal::ctrl_c() => {
+            _ = &mut shutdown => {
                 warn!("rendezvous shutdown requested");
                 break;
             }

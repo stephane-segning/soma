@@ -1,4 +1,4 @@
-use std::{future::Future, net::SocketAddr};
+use std::{net::SocketAddr};
 
 use clap::{Parser, Subcommand};
 use mimalloc::MiMalloc;

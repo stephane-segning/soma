@@ -17,3 +17,6 @@ futures = { workspace = true }
 prometheus-client = { workspace = true }
 axum = { workspace = true }
 prometheus-client-derive-encode = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }

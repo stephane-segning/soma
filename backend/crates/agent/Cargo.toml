@@ -7,4 +7,7 @@ license.workspace = true
 authors.workspace = true
 
 [dependencies]
+soma-net = { workspace = true }
 
+[dev-dependencies]
+tempfile = { workspace = true }

@@ -3325,6 +3325,10 @@ dependencies = [
 [[package]]
 name = "soma-agent"
 version = "0.1.0"
+dependencies = [
+ "soma-net",
+ "tempfile",
+]
 
 [[package]]
 name = "soma-agentd"
@@ -3337,6 +3341,10 @@ dependencies = [
 [[package]]
 name = "soma-api"
 version = "0.1.0"
+dependencies = [
+ "soma-net",
+ "tempfile",
+]
 
 [[package]]
 name = "soma-bff"
@@ -3451,6 +3459,7 @@ dependencies = [
  "soma-core",
  "soma-metrics",
  "soma-net",
+ "tempfile",
  "tokio",
  "tracing",
 ]
@@ -3481,6 +3490,7 @@ dependencies = [
  "soma-core",
  "soma-metrics",
  "soma-net",
+ "tempfile",
  "tokio",
  "tracing",
 ]

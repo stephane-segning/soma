@@ -147,6 +147,14 @@ This repo intentionally has multiple binaries. Each has a distinct goal and depl
   cargo test
   ```
 
+- Run smoke tests that bind local sockets (relay/rendezvous metrics):
+
+  ```bash
+  cd backend
+  cargo test -p soma-relay --test smoke -- --ignored
+  cargo test -p soma-rendezvous --test smoke -- --ignored
+  ```
+
 - Add tests alongside the code they exercise (same crate, nearby module).
 - Keep tests deterministic; avoid relying on external network or timing unless absolutely necessary.
 
@@ -187,6 +195,7 @@ Both services persist a libp2p keypair so that their Peer ID stays stable across
 - Default paths:
   - Relay: `./data/relay/identity.key`
   - Rendezvous: `./data/rendezvous/identity.key`
+- Key algorithm: ECDSA (for all services using libp2p identities)
 
 Deleting these files will cause a new identity + new Peer ID on next start.
 
