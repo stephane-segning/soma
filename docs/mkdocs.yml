@@ -15,3 +15,4 @@ nav:
   - Development:
       - Dependencies: development/dependencies.md
       - Agentd IPC: development/agentd-ipc.md
+      - Daemon Testing (grpcurl): development/daemon-grpcurl.md
