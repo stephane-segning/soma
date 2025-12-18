@@ -214,8 +214,8 @@ Current default listen addrs (multiaddr form):
   - `/ip4/0.0.0.0/udp/4001/quic-v1`
   - `/ip4/0.0.0.0/tcp/4003/ws`
 - Rendezvous:
-  - `/ip4/0.0.0.0/tcp/4002`
-  - `/ip4/0.0.0.0/udp/4002/quic-v1`
+  - `/ip4/0.0.0.0/tcp/4004`
+  - `/ip4/0.0.0.0/udp/4004/quic-v1`
   - `/ip4/0.0.0.0/tcp/4004/ws`
 
 Note: the Axum HTTP server is used only for health/metrics and is configured separately via CLI (see below).

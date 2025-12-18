@@ -7,3 +7,5 @@ dist/
 out
 build
 .idea
+
+.sock

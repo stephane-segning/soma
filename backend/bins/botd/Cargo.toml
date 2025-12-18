@@ -12,6 +12,7 @@ soma-storage = { workspace = true }
 soma-net = { workspace = true }
 soma-common = { workspace = true }
 soma-metrics = { workspace = true }
+soma-peer = { workspace = true }
 
 clap = { workspace = true }
 tracing = { workspace = true }
@@ -20,3 +21,9 @@ mimalloc = { workspace = true }
 
 axum = { workspace = true }
 tokio = { workspace = true }
+libp2p = { workspace = true }
+futures = { workspace = true }
+prometheus-client = { workspace = true }
+prometheus-client-derive-encode = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }

@@ -2,16 +2,16 @@ use std::path::PathBuf;
 
 use futures::StreamExt;
 use libp2p::{
+    Multiaddr,
     multiaddr::Protocol,
     rendezvous::server,
     swarm::{NetworkBehaviour, SwarmEvent},
-    Multiaddr,
 };
 use prometheus_client::metrics::{counter::Counter, family::Family};
 use prometheus_client_derive_encode::EncodeLabelSet;
 use soma_core::SomaResult;
-use soma_metrics::{router_with_registry, SharedRegistry};
-use soma_net::{build_swarm, default_identity_path, NetIdentity};
+use soma_metrics::{SharedRegistry, router_with_registry};
+use soma_net::{NetIdentity, build_swarm, default_identity_path};
 use tokio::signal;
 use tracing::{error, info, warn};
 
@@ -29,9 +29,11 @@ impl Default for RendezvousConfig {
         Self {
             identity_path: default_identity_path("rendezvous"),
             listen_addrs: vec![
-                "/ip4/0.0.0.0/tcp/4004".parse().expect("valid multiaddr"),
-                "/ip4/0.0.0.0/tcp/4004/ws".parse().expect("valid multiaddr"),
-                "/ip4/0.0.0.0/udp/4004/quic-v1".parse().expect("valid multiaddr"),
+                "/ip4/0.0.0.0/tcp/14004".parse().expect("valid multiaddr"),
+                "/ip4/0.0.0.0/tcp/14104/ws".parse().expect("valid multiaddr"),
+                "/ip4/0.0.0.0/udp/4204/quic-v1"
+                    .parse()
+                    .expect("valid multiaddr"),
             ],
         }
     }
@@ -74,7 +76,11 @@ impl RendezvousMetrics {
         );
 
         let listeners = Family::<(), Counter>::default();
-        registry.register("listen_events_total", "Rendezvous listen events", listeners.clone());
+        registry.register(
+            "listen_events_total",
+            "Rendezvous listen events",
+            listeners.clone(),
+        );
 
         Self {
             registry: std::sync::Arc::new(registry),

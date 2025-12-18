@@ -31,8 +31,7 @@ enum Command {
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     tracing_subscriber::fmt()
         .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "info".into()),
+            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()),
         )
         .init();
 
@@ -41,7 +40,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     if let Some(Command::GenerateIdentity { path }) = cmd {
         let path = path.unwrap_or_else(|| default_identity_path("relay"));
         let id = generate_identity(&path)?;
-        println!("generated relay identity at {:?}, peer_id={}", path, id.peer_id());
+        println!(
+            "generated relay identity at {:?}, peer_id={}",
+            path,
+            id.peer_id()
+        );
         return Ok(());
     }
 

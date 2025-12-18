@@ -2,7 +2,7 @@
 mod tests {
     use std::fs;
 
-    use soma_net::{default_identity_path, generate_identity, NetIdentity};
+    use soma_net::{NetIdentity, default_identity_path, generate_identity};
 
     #[test]
     fn identity_roundtrip_generate_and_load() {

@@ -2,16 +2,16 @@ use std::path::PathBuf;
 
 use futures::StreamExt;
 use libp2p::{
+    Multiaddr,
     multiaddr::Protocol,
     relay,
     swarm::{NetworkBehaviour, SwarmEvent},
-    Multiaddr,
 };
 use prometheus_client::metrics::{counter::Counter, family::Family};
 use prometheus_client_derive_encode::EncodeLabelSet;
 use soma_core::SomaResult;
-use soma_metrics::{router_with_registry, SharedRegistry};
-use soma_net::{build_swarm, default_identity_path, NetIdentity};
+use soma_metrics::{SharedRegistry, router_with_registry};
+use soma_net::{NetIdentity, build_swarm, default_identity_path};
 use tokio::signal;
 use tracing::{error, info, warn};
 
@@ -29,9 +29,11 @@ impl Default for RelayConfig {
         Self {
             identity_path: default_identity_path("relay"),
             listen_addrs: vec![
-                "/ip4/0.0.0.0/tcp/4003".parse().expect("valid multiaddr"),
-                "/ip4/0.0.0.0/tcp/4003/ws".parse().expect("valid multiaddr"),
-                "/ip4/0.0.0.0/udp/4003/quic-v1".parse().expect("valid multiaddr"),
+                "/ip4/0.0.0.0/tcp/14003".parse().expect("valid multiaddr"),
+                "/ip4/0.0.0.0/tcp/14103/ws".parse().expect("valid multiaddr"),
+                "/ip4/0.0.0.0/udp/14203/quic-v1"
+                    .parse()
+                    .expect("valid multiaddr"),
             ],
         }
     }
@@ -76,7 +78,11 @@ impl RelayMetrics {
         );
 
         let listeners = Family::<(), Counter>::default();
-        registry.register("listen_events_total", "Relay listen events", listeners.clone());
+        registry.register(
+            "listen_events_total",
+            "Relay listen events",
+            listeners.clone(),
+        );
 
         Self {
             registry: std::sync::Arc::new(registry),
@@ -105,7 +111,11 @@ pub async fn run(config: RelayConfig, metrics: RelayMetrics) -> SomaResult<()> {
     .await
 }
 
-pub async fn run_with_shutdown<F>(config: RelayConfig, metrics: RelayMetrics, shutdown: F) -> SomaResult<()>
+pub async fn run_with_shutdown<F>(
+    config: RelayConfig,
+    metrics: RelayMetrics,
+    shutdown: F,
+) -> SomaResult<()>
 where
     F: std::future::Future<Output = ()> + Send,
 {

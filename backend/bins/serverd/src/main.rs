@@ -1,4 +1,4 @@
-use std::{net::SocketAddr};
+use std::net::SocketAddr;
 
 use clap::{Parser, Subcommand};
 use mimalloc::MiMalloc;
@@ -29,11 +29,7 @@ struct RelayArgs {
 
 #[derive(Debug, Parser)]
 struct RendezvousArgs {
-    #[arg(
-        long,
-        env = "HTTP_ADDR",
-        default_value = "0.0.0.0:8082"
-    )]
+    #[arg(long, env = "HTTP_ADDR", default_value = "0.0.0.0:8082")]
     http_addr: SocketAddr,
 }
 
@@ -64,7 +60,8 @@ async fn main() -> SomaResult<()> {
                 })
             };
 
-            let svc = tokio::spawn(async move { soma_relay::run(Default::default(), metrics).await });
+            let svc =
+                tokio::spawn(async move { soma_relay::run(Default::default(), metrics).await });
 
             tokio::select! {
                 res = http => res??,
@@ -87,7 +84,9 @@ async fn main() -> SomaResult<()> {
             };
 
             let svc =
-                tokio::spawn(async move { soma_rendezvous::run(Default::default(), metrics).await });
+                tokio::spawn(
+                    async move { soma_rendezvous::run(Default::default(), metrics).await },
+                );
 
             tokio::select! {
                 res = http => res??,

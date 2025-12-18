@@ -11,6 +11,8 @@ members = [
     "crates/relay",
     "crates/rendezvous",
     "crates/bff",
+    "crates/peer",
+    "crates/socket",
     "bins/daemon",
     "bins/botd",
     "bins/agentd",
@@ -32,9 +34,12 @@ soma-common = { path = "crates/common" }
 soma-rendezvous = { path = "crates/rendezvous" }
 soma-relay = { path = "crates/relay" }
 soma-bff = { path = "crates/bff" }
+soma-peer = { path = "crates/peer" }
+soma-socket = { path = "crates/socket" }
 soma-metrics = { path = "crates/metrics" }
 
 serde = { version = "1.0", features = ["derive"] }
+serde_json = "1"
 
 prost = "0.14"
 tonic = { version = "0.14", features = ["transport"] }
@@ -69,7 +74,7 @@ features = [
     "tcp", "quic", "websocket", "relay", "rendezvous",
     "autonat", "noise", "tls", "cbor", "mdns", "kad",
     "tokio", "dns", "gossipsub", "macros", "upnp",
-    "yamux", "ping", "ecdsa"
+    "yamux", "ping", "ecdsa", "identify"
 ]
 
 [profile.prod]

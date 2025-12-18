@@ -1605,6 +1605,7 @@ dependencies = [
  "libp2p-core",
  "libp2p-dns",
  "libp2p-gossipsub",
+ "libp2p-identify",
  "libp2p-identity",
  "libp2p-kad",
  "libp2p-mdns",
@@ -1746,6 +1747,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "libp2p-identify"
+version = "0.47.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8ab792a8b68fdef443a62155b01970c81c3aadab5e659621b063ef252a8e65e8"
+dependencies = [
+ "asynchronous-codec",
+ "either",
+ "futures",
+ "futures-bounded",
+ "futures-timer",
+ "libp2p-core",
+ "libp2p-identity",
+ "libp2p-swarm",
+ "quick-protobuf",
+ "quick-protobuf-codec",
+ "smallvec",
+ "thiserror 2.0.17",
+ "tracing",
+]
+
+[[package]]
 name = "libp2p-identity"
 version = "0.2.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1820,6 +1842,7 @@ dependencies = [
  "futures",
  "libp2p-core",
  "libp2p-gossipsub",
+ "libp2p-identify",
  "libp2p-identity",
  "libp2p-kad",
  "libp2p-ping",
@@ -3351,6 +3374,7 @@ name = "soma-bff"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "serde",
  "soma-core",
  "tokio",
  "tracing",
@@ -3362,10 +3386,12 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "clap",
+ "libp2p",
  "mimalloc",
  "soma-bff",
  "soma-core",
  "soma-metrics",
+ "soma-peer",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -3377,11 +3403,18 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "clap",
+ "futures",
+ "libp2p",
  "mimalloc",
+ "prometheus-client 0.22.3",
+ "prometheus-client-derive-encode",
+ "serde",
+ "serde_json",
  "soma-common",
  "soma-core",
  "soma-metrics",
  "soma-net",
+ "soma-peer",
  "soma-storage",
  "tokio",
  "tracing",
@@ -3406,11 +3439,18 @@ name = "soma-daemon"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "libp2p",
+ "mimalloc",
  "soma-api",
  "soma-common",
  "soma-core",
  "soma-net",
+ "soma-peer",
+ "soma-socket",
  "soma-storage",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -3430,6 +3470,18 @@ dependencies = [
  "futures",
  "libp2p",
  "soma-core",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "soma-peer"
+version = "0.1.0"
+dependencies = [
+ "futures",
+ "libp2p",
+ "soma-core",
+ "soma-net",
  "tokio",
  "tracing",
 ]
@@ -3524,6 +3576,15 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "soma-socket"
+version = "0.1.0"
+dependencies = [
+ "soma-core",
+ "tokio",
+ "tracing",
 ]
 
 [[package]]
