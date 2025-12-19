@@ -7,13 +7,13 @@ use soma_core::SomaResult;
 use soma_peer::PeerCommand;
 use soma_proto_build::spaceroom;
 use soma_proto_build::daemon;
-use sqlx::Row;
 use tokio::sync::{Mutex, broadcast, mpsc};
 use tokio_stream::{StreamExt as TokioStreamExt, wrappers::BroadcastStream};
 use tonic::{Request, Response, Status};
 use tracing::warn;
 
 use soma_socket::serve_grpc_unix;
+use soma_storage::{RepositoryFactory, membership::MembershipRepository};
 /// Daemon shared state (peer id, command channel, listeners, event bus).
 #[derive(Debug)]
 pub struct DaemonState {
@@ -21,8 +21,7 @@ pub struct DaemonState {
     pub peer_commands: mpsc::Sender<PeerCommand>,
     pub listen_addrs: Mutex<Vec<String>>,
     pub events: broadcast::Sender<daemon::DaemonEvent>,
-    #[allow(dead_code)]
-    pub db: sqlx::SqlitePool,
+    pub repos: RepositoryFactory,
 }
 
 impl DaemonState {
@@ -127,17 +126,16 @@ impl daemon::daemon_server::Daemon for DaemonService {
         request: Request<daemon::RevokeSpaceRequest>,
     ) -> Result<Response<daemon::RevokeSpaceResponse>, Status> {
         let payload = request.into_inner();
-        let rows =
-            sqlx::query("DELETE FROM space_memberships WHERE space_id = ? AND subject_peer_id = ?")
-                .bind(payload.space_id)
-                .bind(payload.subject_peer_id)
-                .execute(&self.state.db)
-                .await
-                .map_err(|err| {
-                    warn!(%err, "revoke_space failed");
-                    Status::internal("failed to revoke space membership")
-                })?
-                .rows_affected();
+        let rows = self
+            .state
+            .repos
+            .membership()
+            .delete_membership(&payload.space_id, &payload.subject_peer_id)
+            .await
+            .map_err(|err| {
+                warn!(%err, "revoke_space failed");
+                Status::internal("failed to revoke space membership")
+            })?;
 
         Ok(Response::new(daemon::RevokeSpaceResponse {
             accepted: rows > 0,
@@ -149,30 +147,23 @@ impl daemon::daemon_server::Daemon for DaemonService {
         request: Request<daemon::ListSpaceMembersRequest>,
     ) -> Result<Response<daemon::ListSpaceMembersResponse>, Status> {
         let payload = request.into_inner();
-        let rows = sqlx::query(
-            r#"
-            SELECT subject_peer_id, role, expires_at
-            FROM space_memberships
-            WHERE space_id = ?
-            ORDER BY subject_peer_id
-            "#,
-        )
-        .bind(payload.space_id)
-        .fetch_all(&self.state.db)
-        .await
-        .map_err(|err| {
-            warn!(%err, "list_space_members failed");
-            Status::internal("failed to list space members")
-        })?;
+        let rows = self
+            .state
+            .repos
+            .membership()
+            .list_memberships(&payload.space_id)
+            .await
+            .map_err(|err| {
+                warn!(%err, "list_space_members failed");
+                Status::internal("failed to list space members")
+            })?;
 
         let members = rows
             .into_iter()
-            .map(|r| daemon::SpaceMember {
-                peer_id: r
-                    .try_get::<String, _>("subject_peer_id")
-                    .unwrap_or_default(),
-                role: r.try_get::<String, _>("role").unwrap_or_default(),
-                expires_at: r.try_get::<i64, _>("expires_at").unwrap_or_default(),
+            .map(|m| daemon::SpaceMember {
+                peer_id: m.subject_peer_id,
+                role: m.role,
+                expires_at: m.expires_at.unwrap_or_default(),
             })
             .collect();
 

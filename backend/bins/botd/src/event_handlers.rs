@@ -5,7 +5,7 @@ use soma_peer::{
     PeerEvent,
     events::{PeerEventHandler, PeerEventKind},
 };
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 
 use crate::metrics::{BotMetrics, EventLabels, JoinDecisionLabels, PingLabels};
 
@@ -180,39 +180,41 @@ impl PeerEventHandler<BotMetrics> for LoggingHandler {
     async fn handle(&self, _metrics: &BotMetrics, evt: &PeerEvent) {
         match evt {
             PeerEvent::NewListenAddr { address, peer_id } => {
-                log_listen(peer_id, address);
+                info!(%peer_id, listen_addr=%address, "bot listening");
             }
             PeerEvent::PingOk { rtt } => {
-                log_ping_ok(rtt);
+                debug!(?rtt, "ping success");
             }
             PeerEvent::PingErr { error } => {
-                log_ping_err(error);
+                warn!(%error, "ping error");
             }
             PeerEvent::ConnectionEstablished { peer } => {
-                log_connection_established(peer);
+                info!(%peer, "bot connection established");
             }
             PeerEvent::ConnectionError { peer, error } => {
-                log_connection_error(peer, error);
+                warn!(?peer, %error, "bot connection error");
             }
             PeerEvent::IdentifyReceived {
                 peer,
                 agent,
                 protocols,
-            } => log_identify(peer, agent, *protocols),
+            } => {
+                info!(%peer, %agent, protocols, "bot identify received");
+            },
             PeerEvent::MdnsDiscovered { peers } => {
-                log_mdns(peers);
+                info!(peers, "bot mdns discovered peers");
             }
             PeerEvent::RendezvousDiscovered { registrations } => {
-                log_rendezvous(registrations);
+                info!(registrations, "bot rendezvous discovered");
             }
             PeerEvent::RelayReserved { relay } => {
-                log_relay_reserved(relay);
+                info!(%relay, "bot relay reservation accepted");
             }
             PeerEvent::RelayCircuitEstablished { relay } => {
-                log_relay_circuit(relay);
+                info!(%relay, "bot relay circuit established");
             }
             PeerEvent::ListenerClosed { reason } => {
-                log_listener_closed(reason);
+                warn!(?reason, "bot listener closed");
             }
             _ => {}
         }
@@ -230,48 +232,4 @@ fn record_event(metrics: &BotMetrics, label: EventKindLabel) {
 
 fn record_ping(metrics: &BotMetrics, outcome: &'static str) {
     metrics.pings.get_or_create(&PingLabels { outcome }).inc();
-}
-
-fn log_listen(peer_id: &libp2p::PeerId, address: &libp2p::Multiaddr) {
-    info!(%peer_id, listen_addr=%address, "bot listening");
-}
-
-fn log_ping_ok(rtt: &std::time::Duration) {
-    info!(?rtt, "ping success");
-}
-
-fn log_ping_err(error: &str) {
-    warn!(%error, "ping error");
-}
-
-fn log_connection_established(peer: &libp2p::PeerId) {
-    info!(%peer, "bot connection established");
-}
-
-fn log_connection_error(peer: &Option<libp2p::PeerId>, error: &str) {
-    warn!(?peer, %error, "bot connection error");
-}
-
-fn log_identify(peer: &libp2p::PeerId, agent: &str, protocols: usize) {
-    info!(%peer, %agent, protocols, "bot identify received");
-}
-
-fn log_mdns(peers: &usize) {
-    info!(peers, "bot mdns discovered peers");
-}
-
-fn log_rendezvous(registrations: &usize) {
-    info!(registrations, "bot rendezvous discovered");
-}
-
-fn log_relay_reserved(relay: &libp2p::PeerId) {
-    info!(%relay, "bot relay reservation accepted");
-}
-
-fn log_relay_circuit(relay: &libp2p::PeerId) {
-    info!(%relay, "bot relay circuit established");
-}
-
-fn log_listener_closed(reason: &String) {
-    warn!(?reason, "bot listener closed");
 }

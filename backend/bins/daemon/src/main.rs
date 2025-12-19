@@ -63,10 +63,12 @@ async fn run(config: DaemonConfig) -> SomaResult<()> {
 
     std::fs::create_dir_all(&blob_dir)?;
     static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
-    info!(db_path = %db_path.display(), scheme = "sqlite", "configuring database");
-    let db = soma_core::db::DbFactory::sqlite(db_path.to_string_lossy().as_ref(), &MIGRATOR)
-        .build_sqlite()
+    let db_url = soma_core::db::normalize_sqlite_url(db_path.to_string_lossy().as_ref());
+    info!(%db_url, scheme = "sqlite", "configuring database");
+    let db_pool: sqlx::AnyPool = soma_core::db::DbFactory::any(db_url, &MIGRATOR)
+        .build_any()
         .await?;
+    let repos = soma_storage::RepositoryFactory::new(db_pool.clone());
 
     let peer_config = PeerConfig::builder()
         .identity_path(identity_path)
@@ -88,7 +90,7 @@ async fn run(config: DaemonConfig) -> SomaResult<()> {
         peer_commands: peer.commands.clone(),
         listen_addrs: Mutex::new(Vec::new()),
         events: event_tx,
-        db,
+        repos,
     });
 
     let grpc_service = daemon::daemon_server::DaemonServer::new(DaemonService {

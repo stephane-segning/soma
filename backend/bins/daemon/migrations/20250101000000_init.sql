@@ -37,6 +37,22 @@ CREATE TABLE IF NOT EXISTS issuer_capabilities (
     PRIMARY KEY (space_id, delegate_peer_id)
 );
 
+CREATE TABLE IF NOT EXISTS mailbox (
+    id TEXT PRIMARY KEY,
+    kind TEXT NOT NULL,
+    space_id TEXT,
+    subject_peer_id TEXT,
+    status TEXT NOT NULL,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    available_at INTEGER NOT NULL,
+    lease_until INTEGER,
+    leased_by TEXT,
+    payload BLOB,
+    created_at INTEGER NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_memberships_space ON space_memberships(space_id);
 CREATE INDEX IF NOT EXISTS idx_decisions_space ON join_decisions(space_id);
 CREATE INDEX IF NOT EXISTS idx_issuer_caps_space ON issuer_capabilities(space_id);
+CREATE INDEX IF NOT EXISTS idx_mailbox_due ON mailbox(status, available_at);
+CREATE INDEX IF NOT EXISTS idx_mailbox_space ON mailbox(space_id);

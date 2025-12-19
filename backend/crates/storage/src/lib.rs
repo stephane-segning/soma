@@ -4,6 +4,35 @@ use std::{
 };
 
 use soma_core::SomaResult;
+use sqlx_utils::types::Pool;
+
+pub mod issuer;
+pub mod mailbox;
+pub mod membership;
+
+/// Factory to build repository instances backed by a shared `AnyPool`.
+#[derive(Clone, Debug)]
+pub struct RepositoryFactory {
+    pool: Pool,
+}
+
+impl RepositoryFactory {
+    pub fn new(pool: Pool) -> Self {
+        Self { pool }
+    }
+
+    pub fn membership(&self) -> membership::SqlMembershipRepository {
+        membership::SqlMembershipRepository::new(self.pool.clone())
+    }
+
+    pub fn issuer(&self) -> issuer::SqlIssuerRepository {
+        issuer::SqlIssuerRepository::new(self.pool.clone())
+    }
+
+    pub fn mailbox(&self) -> mailbox::SqlMailboxRepository {
+        mailbox::SqlMailboxRepository::new(self.pool.clone())
+    }
+}
 
 /// Basic filesystem-backed storage used by daemons and bots.
 ///

@@ -4,7 +4,7 @@ use clap::Parser;
 use libp2p::Multiaddr;
 use mimalloc::MiMalloc;
 use soma_peer::{PeerConfig, PeerEvent, spawn_ping_peer};
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
@@ -60,7 +60,7 @@ async fn main() -> soma_core::SomaResult<()> {
                         info!(%peer_id, listen_addr=%address, "bff peer listening");
                     }
                     PeerEvent::PingOk { rtt } => {
-                        info!(?rtt, "bff peer ping ok");
+                        debug!(?rtt, "bff peer ping ok");
                     }
                     PeerEvent::PingErr { error } => {
                         warn!(%error, "bff peer ping error");

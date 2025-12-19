@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use soma_peer::PeerEvent;
 use soma_peer::events::{PeerEventHandler, PeerEventKind};
-use tracing::{info, warn};
+use tracing::{info, warn, debug, trace};
 
 use crate::DaemonState;
 
@@ -41,7 +41,7 @@ impl PeerEventHandler<crate::DaemonState> for LoggingHandler {
                 warn!(?peer, %error, "daemon connection error");
             }
             PeerEvent::PingOk { rtt } => {
-                info!(?rtt, "daemon ping ok");
+                debug!(?rtt, "daemon ping ok");
             }
             PeerEvent::PingErr { error } => {
                 warn!(%error, "daemon ping error");
@@ -51,19 +51,19 @@ impl PeerEventHandler<crate::DaemonState> for LoggingHandler {
                 agent,
                 protocols,
             } => {
-                info!(%peer, %agent, protocols, "daemon identify received");
+                debug!(%peer, %agent, protocols, "daemon identify received");
             }
             PeerEvent::MdnsDiscovered { peers } => {
-                info!(peers, "daemon mdns discovered peers");
+                debug!(peers, "daemon mdns discovered peers");
             }
             PeerEvent::RendezvousDiscovered { registrations } => {
-                info!(registrations, "daemon rendezvous discovered");
+                debug!(registrations, "daemon rendezvous discovered");
             }
             PeerEvent::RelayReserved { relay } => {
-                info!(%relay, "daemon relay reservation accepted");
+                debug!(%relay, "daemon relay reservation accepted");
             }
             PeerEvent::RelayCircuitEstablished { relay } => {
-                info!(%relay, "daemon relay circuit established");
+                debug!(%relay, "daemon relay circuit established");
             }
             _ => {}
         }
