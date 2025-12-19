@@ -3,8 +3,10 @@ use mimalloc::MiMalloc;
 use soma_core::SomaResult;
 use soma_net::{default_identity_path, generate_identity};
 use soma_peer::{PeerCommand, PeerConfig, PeerEvent, spawn_ping_peer};
+use soma_peer::events::{PeerEventDispatcher, PeerEventHandler, handler_with_queue, PeerEventKind};
 use tracing::{info, warn};
 use tracing_subscriber::EnvFilter;
+use async_trait::async_trait;
 
 use config::{Args, BotConfig, Command};
 use metrics::{BotMetrics, PingLabels};
@@ -78,6 +80,10 @@ async fn run(config: BotConfig, metrics: BotMetrics) -> SomaResult<()> {
     });
     let peer_task = peer.task;
     let mut peer_events = peer.events;
+
+    // Event handling dispatcher with per-handler queues.
+    let dispatcher = build_dispatcher(metrics.clone());
+
     tokio::pin!(peer_task);
     tokio::pin!(http_handle);
 
@@ -85,7 +91,7 @@ async fn run(config: BotConfig, metrics: BotMetrics) -> SomaResult<()> {
         tokio::select! {
             evt = peer_events.recv() => {
                 if let Some(evt) = evt {
-                    handle_peer_event(&metrics, evt).await;
+                    dispatcher.dispatch(&metrics, &evt).await;
                 } else {
                     break;
                 }
@@ -109,46 +115,90 @@ async fn run(config: BotConfig, metrics: BotMetrics) -> SomaResult<()> {
     Ok(())
 }
 
-async fn handle_peer_event(metrics: &BotMetrics, evt: PeerEvent) {
-    match evt {
-        PeerEvent::NewListenAddr { address, peer_id } => {
-            metrics.listeners.get_or_create(&()).inc();
-            info!(%peer_id, listen_addr=%address, "bot listening");
+fn build_dispatcher(metrics: BotMetrics) -> PeerEventDispatcher<BotMetrics> {
+    const QUEUE_CAPACITY: usize = 64;
+
+    let handlers: Vec<std::sync::Arc<dyn PeerEventHandler<BotMetrics>>> = vec![
+        std::sync::Arc::new(LoggingHandler),
+    ];
+
+    let mut wrapped = Vec::new();
+    let mut tasks = Vec::new();
+    let shared = std::sync::Arc::new(metrics);
+    for handler in handlers {
+        let (queued, task) = handler_with_queue(shared.clone(), handler, QUEUE_CAPACITY);
+        wrapped.push(queued);
+        tasks.push(task);
+    }
+
+    tokio::spawn(async move {
+        for t in tasks {
+            let _ = t.await;
         }
-        PeerEvent::PingOk { rtt } => {
-            metrics.pings.get_or_create(&PingLabels { outcome: "ok" }).inc();
-            info!(?rtt, "ping success");
+    });
+
+    PeerEventDispatcher::new(wrapped)
+}
+
+struct LoggingHandler;
+
+#[async_trait]
+impl PeerEventHandler<BotMetrics> for LoggingHandler {
+    fn interests(&self) -> &'static [PeerEventKind] {
+        &[
+            PeerEventKind::NewListenAddr,
+            PeerEventKind::PingOk,
+            PeerEventKind::PingErr,
+            PeerEventKind::ConnectionEstablished,
+            PeerEventKind::ConnectionError,
+            PeerEventKind::IdentifyReceived,
+            PeerEventKind::MdnsDiscovered,
+            PeerEventKind::RendezvousDiscovered,
+            PeerEventKind::RelayReserved,
+            PeerEventKind::RelayCircuitEstablished,
+            PeerEventKind::ListenerClosed,
+        ]
+    }
+
+    async fn handle(&self, metrics: &BotMetrics, evt: &PeerEvent) {
+        match evt {
+            PeerEvent::NewListenAddr { address, peer_id } => {
+                metrics.listeners.get_or_create(&()).inc();
+                info!(%peer_id, listen_addr=%address, "bot listening");
+            }
+            PeerEvent::PingOk { rtt } => {
+                metrics.pings.get_or_create(&PingLabels { outcome: "ok" }).inc();
+                info!(?rtt, "ping success");
+            }
+            PeerEvent::PingErr { error } => {
+                metrics.pings.get_or_create(&PingLabels { outcome: "error" }).inc();
+                warn!(%error, "ping error");
+            }
+            PeerEvent::ConnectionEstablished { peer } => {
+                info!(%peer, "bot connection established");
+            }
+            PeerEvent::ConnectionError { peer, error } => {
+                warn!(?peer, %error, "bot connection error");
+            }
+            PeerEvent::IdentifyReceived { peer, agent, protocols } => {
+                info!(%peer, %agent, protocols, "bot identify received");
+            }
+            PeerEvent::MdnsDiscovered { peers } => {
+                info!(peers, "bot mdns discovered peers");
+            }
+            PeerEvent::RendezvousDiscovered { registrations } => {
+                info!(registrations, "bot rendezvous discovered");
+            }
+            PeerEvent::RelayReserved { relay } => {
+                info!(%relay, "bot relay reservation accepted");
+            }
+            PeerEvent::RelayCircuitEstablished { relay } => {
+                info!(%relay, "bot relay circuit established");
+            }
+            PeerEvent::ListenerClosed { reason } => {
+                warn!(?reason, "bot listener closed");
+            }
+            _ => {}
         }
-        PeerEvent::PingErr { error } => {
-            metrics.pings.get_or_create(&PingLabels { outcome: "error" }).inc();
-            warn!(%error, "ping error");
-        }
-        PeerEvent::ConnectionEstablished { peer } => {
-            info!(%peer, "bot connection established");
-        }
-        PeerEvent::ConnectionError { peer, error } => {
-            warn!(?peer, %error, "bot connection error");
-        }
-        PeerEvent::IdentifyReceived { peer, agent, protocols } => {
-            info!(%peer, %agent, protocols, "bot identify received");
-        }
-        PeerEvent::MdnsDiscovered { peers } => {
-            info!(peers, "bot mdns discovered peers");
-        }
-        PeerEvent::RendezvousDiscovered { registrations } => {
-            info!(registrations, "bot rendezvous discovered");
-        }
-        PeerEvent::RelayReserved { relay } => {
-            info!(%relay, "bot relay reservation accepted");
-        }
-        PeerEvent::RelayCircuitEstablished { relay } => {
-            info!(%relay, "bot relay circuit established");
-        }
-        PeerEvent::ListenerClosed { reason } => {
-            warn!(?reason, "bot listener closed");
-        }
-        PeerEvent::JoinRequestSubmitted { .. } => {}
-        PeerEvent::JoinDecision { .. } => {}
-        PeerEvent::JoinFailed { .. } => {}
     }
 }

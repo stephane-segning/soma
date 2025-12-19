@@ -9,3 +9,4 @@ Start with the [Overview](00-overview.md) and [Glossary](01-glossary.md), then d
 - [Class Membership](architecture/class-membership.md) – capability-based security model for classes.
 - [Getting Started](getting-started/index.md) – run the daemon, Tapia UI, and bots locally.
 - [Packaging & Deployment](architecture/deployment.md) – desktop installers plus relay/rendezvous operations.
+- [Backend Refactor Notes](development/backend-refactor-notes.md) – summary of recent daemon/bot/bff integration work.

@@ -314,7 +314,7 @@ async fn run_swarm(
                     }
                     PeerCommand::SendJoinRequest { target, addrs, request_id, request } => {
                         for addr in addrs {
-                            swarm.behaviour_mut().join.add_address(&target, addr.clone());
+                            swarm.add_peer_address(target, addr.clone());
                             let _ = swarm.dial(addr.clone());
                         }
                         swarm.behaviour_mut().join.send_request(&target, request);

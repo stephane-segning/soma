@@ -19,7 +19,17 @@ In `soma-daemon`, each handler is wrapped in its own `mpsc` queue/worker:
 - `try_send` is used to avoid blocking the peer loop; full queues drop events (log/metrics can be added per handler).
 - Workers run in background tasks and call `handler.handle(...)` sequentially per handler.
 
-See `backend/bins/daemon/src/main.rs` and `backend/bins/daemon/src/handlers.rs`.
+This is implemented with a shared helper:
+
+- `soma-peer::events::handler_with_queue(...)` (wrap + worker)
+
+See `backend/bins/daemon/src/dispatch.rs` and `backend/crates/peer/src/events.rs`.
+
+## Which bins use the dispatcher today
+
+- `soma-daemon`: uses `PeerEventDispatcher` + `handler_with_queue` (per-handler queue isolation) and routes into focused handlers in `backend/bins/daemon/src/handlers.rs`.
+- `soma-botd`: uses `PeerEventDispatcher` + `handler_with_queue` for peer event logging/metrics; HTTP control plane is separate.
+- `soma-bffd`: still uses a direct `match PeerEvent` loop (acceptable for now since the event set is fully handled, but can be migrated for consistency).
 
 ## Adding a new handler
 
