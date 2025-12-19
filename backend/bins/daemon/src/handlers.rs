@@ -41,7 +41,7 @@ impl PeerEventHandler<crate::DaemonState> for LoggingHandler {
                 warn!(?peer, %error, "daemon connection error");
             }
             PeerEvent::PingOk { rtt } => {
-                debug!(?rtt, "daemon ping ok");
+                info!(?rtt, "daemon ping ok");
             }
             PeerEvent::PingErr { error } => {
                 warn!(%error, "daemon ping error");
@@ -51,19 +51,19 @@ impl PeerEventHandler<crate::DaemonState> for LoggingHandler {
                 agent,
                 protocols,
             } => {
-                debug!(%peer, %agent, protocols, "daemon identify received");
+                info!(%peer, %agent, protocols, "daemon identify received");
             }
             PeerEvent::MdnsDiscovered { peers } => {
-                debug!(peers, "daemon mdns discovered peers");
+                info!(peers, "daemon mdns discovered peers");
             }
             PeerEvent::RendezvousDiscovered { registrations } => {
-                debug!(registrations, "daemon rendezvous discovered");
+                info!(registrations, "daemon rendezvous discovered");
             }
             PeerEvent::RelayReserved { relay } => {
-                debug!(%relay, "daemon relay reservation accepted");
+                info!(%relay, "daemon relay reservation accepted");
             }
             PeerEvent::RelayCircuitEstablished { relay } => {
-                debug!(%relay, "daemon relay circuit established");
+                info!(%relay, "daemon relay circuit established");
             }
             _ => {}
         }

@@ -183,7 +183,7 @@ impl PeerEventHandler<BotMetrics> for LoggingHandler {
                 info!(%peer_id, listen_addr=%address, "bot listening");
             }
             PeerEvent::PingOk { rtt } => {
-                debug!(?rtt, "ping success");
+                info!(?rtt, "ping success");
             }
             PeerEvent::PingErr { error } => {
                 warn!(%error, "ping error");

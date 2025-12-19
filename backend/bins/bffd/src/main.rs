@@ -60,7 +60,7 @@ async fn main() -> soma_core::SomaResult<()> {
                         info!(%peer_id, listen_addr=%address, "bff peer listening");
                     }
                     PeerEvent::PingOk { rtt } => {
-                        debug!(?rtt, "bff peer ping ok");
+                        info!(?rtt, "bff peer ping ok");
                     }
                     PeerEvent::PingErr { error } => {
                         warn!(%error, "bff peer ping error");
