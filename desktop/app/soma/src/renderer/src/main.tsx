@@ -1,4 +1,4 @@
-import './assets/main.css'
+import './assets/main.scss'
 import './lib/i18n'
 
 import { StrictMode } from 'react'

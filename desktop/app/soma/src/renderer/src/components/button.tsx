@@ -3,9 +3,10 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { useTranslation } from "react-i18next";
 import { cn } from "../lib/cn";
+import {Button as HuiButton} from '@headlessui/react'
 
 const buttonStyles = cva(
-	"btn no-animation normal-case disabled:opacity-60 disabled:cursor-not-allowed",
+	"btn",
 	{
 		variants: {
 			variant: {
@@ -51,7 +52,8 @@ function Button({
 			: t("components.button.ariaLabel", "Button action"));
 
 	return (
-		<motion.button
+		<HuiButton
+      as={motion.button}
 			type="button"
 			aria-label={ariaLabel}
 			aria-busy={isLoading}
@@ -64,7 +66,7 @@ function Button({
 				<span>{children}</span>
 				{trailingIcon}
 			</span>
-		</motion.button>
+		</HuiButton>
 	);
 }
 

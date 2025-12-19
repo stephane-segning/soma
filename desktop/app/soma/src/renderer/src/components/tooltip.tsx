@@ -11,6 +11,7 @@ import {
 } from "@floating-ui/react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "../lib/cn";
+import { useMemo, useState } from "react";
 
 type TooltipProps = {
 	label: ReactNode;
@@ -28,9 +29,14 @@ function Tooltip({
 	className,
 }: TooltipProps): React.JSX.Element {
 	const { t } = useTranslation("common");
+	const [internalOpen, setInternalOpen] = useState(false);
+	const isControlled = useMemo(() => onOpenChange !== undefined || open !== undefined, [onOpenChange, open]);
+	const effectiveOpen = isControlled ? open : internalOpen;
+	const handleOpenChange = onOpenChange ?? setInternalOpen;
+
 	const { refs, floatingStyles, context } = useFloating({
-		open,
-		onOpenChange,
+		open: effectiveOpen,
+		onOpenChange: handleOpenChange,
 		middleware: [offset(8), shift({ padding: 8 })],
 		placement: "top",
 	});
@@ -49,7 +55,7 @@ function Tooltip({
 			</span>
 			<FloatingPortal>
 				<AnimatePresence>
-					{open ? (
+					{effectiveOpen ? (
 						<motion.div
 							ref={refs.setFloating}
 							style={floatingStyles}
