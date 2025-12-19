@@ -46,6 +46,11 @@ pub trait MembershipRepository: Send + Sync {
     ) -> SomaResult<Option<SpaceMembership>>;
     async fn list_memberships(&self, space_id: &str) -> SomaResult<Vec<SpaceMembership>>;
     async fn record_join_decision(&self, decision: &JoinDecision) -> SomaResult<()>;
+    async fn latest_join_decision(
+        &self,
+        space_id: &str,
+        subject_peer_id: &str,
+    ) -> SomaResult<Option<JoinDecision>>;
 }
 
 #[derive(Clone, Debug)]
@@ -192,6 +197,29 @@ impl MembershipRepository for SqlMembershipRepository {
 
         Ok(())
     }
+
+    async fn latest_join_decision(
+        &self,
+        space_id: &str,
+        subject_peer_id: &str,
+    ) -> SomaResult<Option<JoinDecision>> {
+        let row = sqlx::query(
+            r#"
+            SELECT decision_id, space_id, subject_peer_id, decision, reason, created_at, capability
+            FROM join_decisions
+            WHERE space_id = $1 AND subject_peer_id = $2
+            ORDER BY created_at DESC
+            LIMIT 1
+            "#,
+        )
+        .bind(space_id)
+        .bind(subject_peer_id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(Error::service)?;
+
+        Ok(row.map(map_join_decision_row))
+    }
 }
 
 impl Repository<Space> for SqlMembershipRepository {
@@ -233,6 +261,18 @@ impl Model for JoinDecision {
 
     fn get_id(&self) -> Option<Self::Id> {
         Some(self.decision_id.clone())
+    }
+}
+
+fn map_join_decision_row(row: sqlx::any::AnyRow) -> JoinDecision {
+    JoinDecision {
+        decision_id: row.get("decision_id"),
+        space_id: row.get("space_id"),
+        subject_peer_id: row.get("subject_peer_id"),
+        decision: row.get("decision"),
+        reason: row.get("reason"),
+        created_at: row.get("created_at"),
+        capability: row.get("capability"),
     }
 }
 

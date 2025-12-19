@@ -15,6 +15,7 @@ use crate::{
     config::{Args, BotConfig, Command},
     event_handlers,
     http::{self, BotInfo},
+    join::BotJoinDecider,
     metrics::BotMetrics,
 };
 
@@ -48,7 +49,8 @@ pub async fn run(config: BotConfig, metrics: BotMetrics) -> SomaResult<()> {
 
     let db_scheme = db_scheme(&config.database_url);
     info!(scheme = %db_scheme, url = %config.database_url, "configuring database");
-    let _repos = soma_storage::bootstrap::connect_any(&config.database_url, &MIGRATOR).await?;
+    let repos = soma_storage::bootstrap::connect_any(&config.database_url, &MIGRATOR).await?;
+    let join_decider = BotJoinDecider::new(&repos);
 
     let peer_config = PeerConfig::builder()
         .identity_path(config.identity_path.clone())
@@ -57,6 +59,7 @@ pub async fn run(config: BotConfig, metrics: BotMetrics) -> SomaResult<()> {
         .rendezvous_nodes(config.rendezvous_addrs.clone())
         .relay_addrs(config.relay_addrs.clone())
         .enable_mdns(config.enable_mdns)
+        .join_decider(join_decider.clone())
         .build()
         .expect("peer config");
 
@@ -78,6 +81,7 @@ pub async fn run(config: BotConfig, metrics: BotMetrics) -> SomaResult<()> {
                 blob_dir: config.blob_dir.clone(),
             },
             metrics: metrics.clone(),
+            join_decider: join_decider.clone(),
         };
         async move {
             http::serve_http(

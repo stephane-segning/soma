@@ -21,7 +21,7 @@ use tracing::{info, warn};
 
 mod config;
 pub mod events;
-mod join;
+pub mod join;
 mod transport;
 
 const JOIN_PROTOCOL: &str = "/soma/join/1";
