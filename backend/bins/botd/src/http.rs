@@ -1,8 +1,4 @@
-use std::{
-    path::PathBuf,
-    sync::Arc,
-    time::{Duration, SystemTime},
-};
+use std::{path::PathBuf, sync::Arc, time::SystemTime};
 
 use axum::{
     Json, Router,
@@ -12,14 +8,14 @@ use axum::{
 };
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
 use prost::Message;
-use prost_types::Timestamp;
 use serde::{Deserialize, Serialize};
-use soma_proto_build::classroom::v1::{
-    ClassId, ClassRole, JoinDecision, JoinDecisionType, MembershipCapability, PeerId,
-};
-use tracing::info;
+use soma_proto_build::classroom::v1::{ClassRole, MembershipCapability};
+use tracing::error;
 
-use crate::metrics::{BotMetrics, JoinDecisionLabels};
+use crate::{
+    join::{JoinDecisionError, JoinDecisionInput, JoinDecisionOutcome, JoinDecisionService},
+    metrics::BotMetrics,
+};
 
 #[derive(Debug, Clone, Serialize)]
 pub struct BotInfo {
@@ -32,8 +28,7 @@ pub struct BotState {
     pub info: BotInfo,
     pub issuer_peer_id: String,
     pub metrics: BotMetrics,
-    #[allow(dead_code)]
-    pub db: sqlx::AnyPool,
+    pub join_service: JoinDecisionService,
 }
 
 #[derive(Debug, Deserialize)]
@@ -51,6 +46,22 @@ pub struct JoinDecisionRequest {
     pub device_name: Option<String>,
     pub student_code: Option<String>,
     pub reason: Option<String>,
+}
+
+impl From<JoinDecisionRequest> for JoinDecisionInput {
+    fn from(value: JoinDecisionRequest) -> Self {
+        JoinDecisionInput {
+            space_id: value.space_id,
+            subject_peer_id: value.subject_peer_id,
+            approve: value.approve,
+            role: value.role,
+            expires_in_secs: value.expires_in_secs,
+            display_name: value.display_name,
+            device_name: value.device_name,
+            student_code: value.student_code,
+            reason: value.reason,
+        }
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -124,126 +135,55 @@ async fn join_handler(
     State(state): State<Arc<BotState>>,
     Json(payload): Json<JoinDecisionRequest>,
 ) -> Result<Json<JoinDecisionView>, (StatusCode, Json<ErrorResponse>)> {
-    let space_id = payload.space_id.trim();
-    let subject = payload.subject_peer_id.trim();
-    if space_id.is_empty() || subject.is_empty() {
-        return Err((
-            StatusCode::BAD_REQUEST,
-            Json(ErrorResponse {
-                error: "space_id and subject_peer_id are required".into(),
-            }),
-        ));
-    }
+    let input: JoinDecisionInput = payload.into();
+    let outcome = state
+        .join_service
+        .decide(&state.issuer_peer_id, &state.metrics, input)
+        .await
+        .map_err(|err| match err {
+            JoinDecisionError::Validation(msg) => {
+                (StatusCode::BAD_REQUEST, Json(ErrorResponse { error: msg }))
+            }
+            JoinDecisionError::Persistence(err) => {
+                error!(error = %err, "failed to persist join decision");
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: "failed to persist join decision".into(),
+                    }),
+                )
+            }
+        })?;
 
-    info!(
-        %space_id,
-        %subject,
-        approve = payload.approve,
-        display_name = ?payload.display_name,
-        device_name = ?payload.device_name,
-        student_code = ?payload.student_code,
-        "join decision requested"
-    );
-
-    let issued_at = SystemTime::now();
-    let expires_at = issued_at + Duration::from_secs(payload.expires_in_secs.unwrap_or(86_400));
-    let decision_id = format!("{:016x}", rand::random::<u64>());
-
-    let role = parse_role(payload.role.as_deref());
-    let (decision_type, reason, capability) = if payload.approve {
-        let capability = MembershipCapability {
-            class_id: Some(ClassId {
-                value: space_id.to_string(),
-            }),
-            subject_peer_id: Some(PeerId {
-                value: subject.to_string(),
-            }),
-            role: role as i32,
-            permissions: vec![],
-            issued_at: Some(Timestamp::from(issued_at)),
-            expires_at: Some(Timestamp::from(expires_at)),
-            issuer_peer_id: Some(PeerId {
-                value: state.issuer_peer_id.clone(),
-            }),
-            issuer_cap: None,
-            signed: None,
-        };
-        (
-            JoinDecisionType::JoinApproved,
-            payload
-                .reason
-                .unwrap_or_else(|| "approved by soma-botd".into()),
-            Some(capability),
-        )
-    } else {
-        (
-            JoinDecisionType::JoinRejected,
-            payload
-                .reason
-                .unwrap_or_else(|| "rejected by soma-botd".into()),
-            None,
-        )
-    };
-
-    let decision = JoinDecision {
-        decision_id: decision_id.clone(),
-        class_id: Some(ClassId {
-            value: space_id.to_string(),
-        }),
-        subject_peer_id: Some(PeerId {
-            value: subject.to_string(),
-        }),
-        decision: decision_type as i32,
-        reason: reason.clone(),
-        capability,
-        created_at: Some(Timestamp::from(issued_at)),
-    };
-
-    let decision_view = JoinDecisionView {
-        decision_id,
-        decision: decision_type.as_str_name().to_string(),
-        space_id: space_id.to_string(),
-        subject_peer_id: subject.to_string(),
-        reason,
-        created_at: issued_at
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .map(|d| d.as_secs() as i64)
-            .unwrap_or_default(),
-        decision_encoded: BASE64.encode(decision.encode_to_vec()),
-        capability: decision.capability.as_ref().map(capability_to_view),
-    };
-
-    let outcome = if payload.approve {
-        "approved"
-    } else {
-        "rejected"
-    };
-    state
-        .metrics
-        .join_decisions
-        .get_or_create(&JoinDecisionLabels { outcome })
-        .inc();
-
-    if let Err(err) = persist_join(&state.db, &decision).await {
-        return Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse {
-                error: format!("failed to persist join decision: {err}"),
-            }),
-        ));
-    }
-
-    Ok(Json(decision_view))
+    Ok(Json(decision_to_view(&outcome)))
 }
 
-fn parse_role(input: Option<&str>) -> ClassRole {
-    match input.map(|s| s.to_ascii_lowercase()) {
-        Some(ref s) if s.contains("owner") => ClassRole::Owner,
-        Some(ref s) if s.contains("editor") => ClassRole::Editor,
-        Some(ref s) if s.contains("viewer") => ClassRole::Viewer,
-        Some(ref s) if s.contains("bot") => ClassRole::Bot,
-        Some(ref s) if s.contains("teacher") => ClassRole::Owner,
-        _ => ClassRole::Student,
+fn decision_to_view(outcome: &JoinDecisionOutcome) -> JoinDecisionView {
+    let created_at = outcome
+        .issued_at
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .map(|d| d.as_secs() as i64)
+        .unwrap_or_default();
+
+    JoinDecisionView {
+        decision_id: outcome.decision.decision_id.clone(),
+        decision: outcome.decision_type.as_str_name().to_string(),
+        space_id: outcome
+            .decision
+            .class_id
+            .as_ref()
+            .map(|c| c.value.clone())
+            .unwrap_or_default(),
+        subject_peer_id: outcome
+            .decision
+            .subject_peer_id
+            .as_ref()
+            .map(|p| p.value.clone())
+            .unwrap_or_default(),
+        reason: outcome.decision.reason.clone(),
+        created_at,
+        decision_encoded: BASE64.encode(outcome.decision.encode_to_vec()),
+        capability: outcome.decision.capability.as_ref().map(capability_to_view),
     }
 }
 
@@ -283,80 +223,4 @@ fn capability_to_view(capability: &MembershipCapability) -> MembershipCapability
         expires_at,
         encoded: BASE64.encode(capability.encode_to_vec()),
     }
-}
-
-async fn persist_join(db: &sqlx::AnyPool, decision: &JoinDecision) -> Result<(), sqlx::Error> {
-    let space_id = decision
-        .class_id
-        .as_ref()
-        .map(|c| c.value.as_str())
-        .unwrap_or_default();
-    let subject_peer_id = decision
-        .subject_peer_id
-        .as_ref()
-        .map(|p| p.value.as_str())
-        .unwrap_or_default();
-    let created_at = decision
-        .created_at
-        .as_ref()
-        .map(|ts| ts.seconds)
-        .unwrap_or_default();
-
-    let capability_bytes = decision.capability.as_ref().map(|cap| cap.encode_to_vec());
-    sqlx::query(
-        r#"
-        INSERT INTO join_decisions(decision_id, space_id, subject_peer_id, decision, reason, created_at, capability)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-        "#,
-    )
-    .bind(decision.decision_id.as_str())
-    .bind(space_id)
-    .bind(subject_peer_id)
-    .bind(decision.decision)
-    .bind(decision.reason.as_str())
-    .bind(created_at)
-    .bind(capability_bytes)
-    .execute(db)
-    .await?;
-
-    // If approved, upsert membership.
-    if let Some(cap) = &decision.capability {
-        let issued_at = cap
-            .issued_at
-            .as_ref()
-            .map(|ts| ts.seconds)
-            .unwrap_or_default();
-        let expires_at = cap.expires_at.as_ref().map(|ts| ts.seconds);
-        let role = cap.role;
-        let issuer_peer_id = cap
-            .issuer_peer_id
-            .as_ref()
-            .map(|p| p.value.as_str())
-            .unwrap_or_default();
-        let cap_bytes = cap.encode_to_vec();
-
-        sqlx::query(
-            r#"
-            INSERT INTO space_memberships(space_id, subject_peer_id, role, issuer_peer_id, issued_at, expires_at, capability)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(space_id, subject_peer_id) DO UPDATE SET
-                role=excluded.role,
-                issuer_peer_id=excluded.issuer_peer_id,
-                issued_at=excluded.issued_at,
-                expires_at=excluded.expires_at,
-                capability=excluded.capability
-            "#,
-        )
-        .bind(space_id)
-        .bind(subject_peer_id)
-        .bind(role)
-        .bind(issuer_peer_id)
-        .bind(issued_at)
-        .bind(expires_at)
-        .bind(cap_bytes)
-        .execute(db)
-        .await?;
-    }
-
-    Ok(())
 }

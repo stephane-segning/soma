@@ -71,7 +71,11 @@ async fn main() -> soma_core::SomaResult<()> {
                     PeerEvent::ConnectionError { peer, error } => {
                         warn!(?peer, %error, "bff peer connection error");
                     }
-                    PeerEvent::IdentifyReceived { peer, agent, protocols } => {
+                    PeerEvent::IdentifyReceived {
+                        peer,
+                        agent,
+                        protocols,
+                    } => {
                         info!(%peer, %agent, protocols, "bff peer identify received");
                     }
                     PeerEvent::MdnsDiscovered { peers } => {

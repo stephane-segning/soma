@@ -88,7 +88,11 @@ async fn chat(
     info!(user = ?payload.user, "handling chat request");
     let start = Instant::now();
 
-    match state.llm.generate(&payload.prompt, payload.user.clone()).await {
+    match state
+        .llm
+        .generate(&payload.prompt, payload.user.clone())
+        .await
+    {
         Ok(reply) => Ok(Json(ChatResponse {
             reply,
             latency_ms: millis(start.elapsed()),
@@ -139,11 +143,7 @@ impl LlmClient {
         }
     }
 
-    async fn generate(
-        &self,
-        prompt: &str,
-        user: Option<String>,
-    ) -> Result<String, LlmError> {
+    async fn generate(&self, prompt: &str, user: Option<String>) -> Result<String, LlmError> {
         let req = OllamaGenerateRequest {
             model: self.model.clone(),
             prompt: prompt.to_string(),

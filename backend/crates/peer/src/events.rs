@@ -169,13 +169,7 @@ where
         }
     });
 
-    (
-        Arc::new(HandlerQueue {
-            handler,
-            tx,
-        }),
-        join,
-    )
+    (Arc::new(HandlerQueue { handler, tx }), join)
 }
 
 #[cfg(test)]
@@ -217,7 +211,9 @@ mod tests {
 
         let dispatcher = PeerEventDispatcher::new(vec![handler_a, handler_b]);
 
-        let ping_evt = PeerEvent::PingOk { rtt: Duration::from_millis(10) };
+        let ping_evt = PeerEvent::PingOk {
+            rtt: Duration::from_millis(10),
+        };
         let join_evt = PeerEvent::JoinDecision {
             from: libp2p::PeerId::random(),
             decision: soma_proto_build::classroom::v1::JoinDecision::default(),
@@ -227,6 +223,9 @@ mod tests {
         dispatcher.dispatch(&(), &join_evt).await;
 
         assert_eq!(hits_a.lock().unwrap().as_slice(), &[PeerEventKind::PingOk]);
-        assert_eq!(hits_b.lock().unwrap().as_slice(), &[PeerEventKind::JoinDecision]);
+        assert_eq!(
+            hits_b.lock().unwrap().as_slice(),
+            &[PeerEventKind::JoinDecision]
+        );
     }
 }

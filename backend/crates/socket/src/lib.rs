@@ -2,8 +2,8 @@ use std::{future::Future, path::Path};
 
 use soma_core::SomaResult;
 use tokio::net::{UnixListener, UnixStream};
-use tracing::{info, warn};
 use tonic::transport::server::Router as TonicRouter;
+use tracing::{info, warn};
 
 /// Run a Unix socket server with a custom connection handler and shutdown future.
 pub async fn serve_unix_with_shutdown<F, Fut, S>(

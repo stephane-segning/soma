@@ -2,24 +2,25 @@ use async_trait::async_trait;
 pub use config::{PeerConfig, PeerConfigBuilder};
 use futures::{StreamExt, prelude::*};
 use libp2p::{
-    Multiaddr, PeerId, identify, mdns, multiaddr::Protocol, ping, relay, rendezvous,
-    request_response as reqres,
+    Multiaddr, PeerId, identify, identity, mdns,
+    multiaddr::Protocol,
+    ping, relay, rendezvous, request_response as reqres,
     swarm::{NetworkBehaviour, SwarmEvent, behaviour::toggle},
-    tls, yamux, SwarmBuilder,
 };
 use prost::Message;
 use prost_types::Timestamp;
 use soma_core::SomaResult;
 use soma_net::NetIdentity;
 use soma_proto_build::classroom::v1 as classroom;
-use tokio::{sync::mpsc, task::JoinHandle};
-use tracing::{info, warn};
 use std::collections::{HashMap, HashSet};
 use std::io;
 use std::time::{Duration, SystemTime};
+use tokio::{sync::mpsc, task::JoinHandle};
+use tracing::{info, warn};
 
-pub mod events;
 mod config;
+pub mod events;
+mod transport;
 
 const JOIN_PROTOCOL: &str = "/soma/join/1";
 const MAX_JOIN_MESSAGE_BYTES: usize = 16 * 1024;
@@ -114,56 +115,10 @@ pub fn spawn_peer(mut config: PeerConfig) -> SomaResult<PeerHandle> {
 
         let enable_mdns = config.enable_mdns;
         let keypair = identity.keypair().clone();
-        let builder = SwarmBuilder::with_existing_identity(keypair.clone())
-            .with_tokio()
-            .with_tcp(
-                libp2p::tcp::Config::default().nodelay(true),
-                (tls::Config::new, libp2p::noise::Config::new),
-                yamux::Config::default,
-            )
-            .map_err(soma_core::Error::service)?
-            .with_quic()
-            .with_dns()
-            .map_err(soma_core::Error::service)?
-            .with_websocket(
-                (tls::Config::new, libp2p::noise::Config::new),
-                yamux::Config::default,
-            )
-            .await
-            .map_err(soma_core::Error::service)?
-            .with_relay_client(tls::Config::new, yamux::Config::default)
-            .map_err(soma_core::Error::service)?;
-
-        let mut swarm = builder
-            .with_behaviour(move |keypair, relay_client| {
-                let mdns_behaviour = if enable_mdns {
-                    Some(
-                        mdns::tokio::Behaviour::new(
-                            mdns::Config::default(),
-                            keypair.public().to_peer_id(),
-                        )
-                        .expect("mdns behaviour"),
-                    )
-                } else {
-                    None
-                };
-
-                AppBehaviour {
-                    ping: ping::Behaviour::default(),
-                    identify: identify::Behaviour::new(identify::Config::new(
-                        AGENT_PROTOCOL.into(),
-                        keypair.public().clone(),
-                    )),
-                    mdns: mdns_behaviour.into(),
-                    rendezvous: rendezvous::client::Behaviour::new(
-                        keypair.clone().try_into().expect("to libp2p keypair"),
-                    ),
-                    relay_client,
-                    join: build_join_behaviour(),
-                }
-            })
-            .expect("build behaviour")
-            .build();
+        let mut swarm = transport::build_peer_swarm(keypair, move |keypair, relay_client| {
+            build_app_behaviour(enable_mdns, keypair, relay_client)
+        })
+        .await?;
         let mut rendezvous_peers = HashSet::new();
         let mut relay_peers = HashMap::new();
 
@@ -225,6 +180,35 @@ pub fn spawn_peer(mut config: PeerConfig) -> SomaResult<PeerHandle> {
 /// Backwards-compatible helper for callers expecting the older ping-only API.
 pub fn spawn_ping_peer(config: PeerConfig) -> SomaResult<PeerHandle> {
     spawn_peer(config)
+}
+
+fn build_app_behaviour(
+    enable_mdns: bool,
+    keypair: identity::Keypair,
+    relay_client: relay::client::Behaviour,
+) -> AppBehaviour {
+    let mdns_behaviour = if enable_mdns {
+        Some(
+            mdns::tokio::Behaviour::new(mdns::Config::default(), keypair.public().to_peer_id())
+                .expect("mdns behaviour"),
+        )
+    } else {
+        None
+    };
+
+    AppBehaviour {
+        ping: ping::Behaviour::default(),
+        identify: identify::Behaviour::new(identify::Config::new(
+            AGENT_PROTOCOL.into(),
+            keypair.public().clone(),
+        )),
+        mdns: mdns_behaviour.into(),
+        rendezvous: rendezvous::client::Behaviour::new(
+            keypair.clone().try_into().expect("to libp2p keypair"),
+        ),
+        relay_client,
+        join: build_join_behaviour(),
+    }
 }
 
 #[derive(NetworkBehaviour)]
@@ -573,7 +557,10 @@ where
     msg.encode(&mut buf)
         .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
     let len = u32::try_from(buf.len()).map_err(|_| {
-        io::Error::new(io::ErrorKind::InvalidData, "join message exceeds u32 length")
+        io::Error::new(
+            io::ErrorKind::InvalidData,
+            "join message exceeds u32 length",
+        )
     })?;
     io.write_all(&len.to_be_bytes()).await?;
     io.write_all(&buf).await
@@ -614,7 +601,10 @@ mod tests {
             .await
             .expect("write");
         buf.set_position(0);
-        let decoded = codec.read_request(&proto, &mut buf).await.expect("read back join request");
+        let decoded = codec
+            .read_request(&proto, &mut buf)
+            .await
+            .expect("read back join request");
         assert_eq!(decoded.class_id.unwrap().value, "class-123");
         assert_eq!(decoded.peer_id.unwrap().value, "peer-abc");
     }

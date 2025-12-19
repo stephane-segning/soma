@@ -43,7 +43,9 @@ impl<'m> DbFactory<'m> {
 
     pub async fn build_any(self) -> SomaResult<sqlx::AnyPool> {
         if !matches!(self.kind, DbKind::Any) {
-            return Err(Error::service("DbFactory::build_any called on sqlite factory"));
+            return Err(Error::service(
+                "DbFactory::build_any called on sqlite factory",
+            ));
         }
         install_any_drivers();
         prepare_sqlite_path(&self.url)?;
@@ -59,7 +61,9 @@ impl<'m> DbFactory<'m> {
 
     pub async fn build_sqlite(self) -> SomaResult<sqlx::SqlitePool> {
         if !matches!(self.kind, DbKind::Sqlite) {
-            return Err(Error::service("DbFactory::build_sqlite called on non-sqlite factory"));
+            return Err(Error::service(
+                "DbFactory::build_sqlite called on non-sqlite factory",
+            ));
         }
         prepare_sqlite_path(&self.url)?;
         let pool = sqlx::sqlite::SqlitePoolOptions::new()

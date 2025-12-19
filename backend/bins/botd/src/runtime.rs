@@ -15,6 +15,7 @@ use crate::{
     config::{Args, BotConfig, Command},
     event_handlers,
     http::{self, BotInfo},
+    join::{JoinDecisionRepository, JoinDecisionService},
     metrics::BotMetrics,
 };
 
@@ -50,6 +51,7 @@ pub async fn run(config: BotConfig, metrics: BotMetrics) -> SomaResult<()> {
     let db: sqlx::AnyPool = soma_core::db::DbFactory::any(&config.database_url, &MIGRATOR)
         .build_any()
         .await?;
+    let join_service = JoinDecisionService::new(JoinDecisionRepository::new(db.clone()));
 
     let peer_config = PeerConfig::builder()
         .identity_path(config.identity_path.clone())
@@ -78,7 +80,7 @@ pub async fn run(config: BotConfig, metrics: BotMetrics) -> SomaResult<()> {
             },
             issuer_peer_id: peer_id.to_string(),
             metrics: metrics.clone(),
-            db: db.clone(),
+            join_service,
         };
         async move { http::serve_http(config.http_addr, state).await }
     });
