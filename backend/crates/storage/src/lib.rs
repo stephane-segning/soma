@@ -6,10 +6,10 @@ use std::{
 use soma_core::SomaResult;
 use sqlx_utils::types::Pool;
 
+pub mod bootstrap;
 pub mod issuer;
 pub mod mailbox;
 pub mod membership;
-pub mod bootstrap;
 
 /// Factory to build repository instances backed by a shared `AnyPool`.
 #[derive(Clone, Debug)]

@@ -44,8 +44,7 @@ pub async fn run(config: BotConfig, metrics: BotMetrics) -> SomaResult<()> {
     std::fs::create_dir_all(&config.blob_dir)?;
 
     // DB: allow postgres or sqlite URL, default to sqlite file path.
-    static MIGRATOR: sqlx::migrate::Migrator =
-        sqlx::migrate!("../../crates/storage/migrations");
+    static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("../../crates/storage/migrations");
 
     let db_scheme = db_scheme(&config.database_url);
     info!(scheme = %db_scheme, url = %config.database_url, "configuring database");
@@ -66,6 +65,7 @@ pub async fn run(config: BotConfig, metrics: BotMetrics) -> SomaResult<()> {
 
     info!(
         %peer_id,
+        mode = ?config.mode,
         http_addr = %config.http_addr,
         blob_dir = %config.blob_dir.display(),
         "starting soma-botd"
@@ -79,7 +79,15 @@ pub async fn run(config: BotConfig, metrics: BotMetrics) -> SomaResult<()> {
             },
             metrics: metrics.clone(),
         };
-        async move { http::serve_http(config.http_addr, state).await }
+        async move {
+            http::serve_http(
+                config.http_addr,
+                config.mode,
+                config.admin_token.clone(),
+                state,
+            )
+            .await
+        }
     });
     let peer_task = peer.task;
     let mut peer_events = peer.events;

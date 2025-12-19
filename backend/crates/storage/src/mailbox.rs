@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use soma_core::{Error, SomaResult};
 use sqlx_utils::{
-    traits::{repository::Repository, Model},
+    traits::{Model, repository::Repository},
     types::Pool,
 };
 

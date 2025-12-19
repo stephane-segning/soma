@@ -71,7 +71,27 @@ Specific services (all now live under `backend/`):
     - Metrics: `backend/bins/botd/src/event_handlers.rs` (`MetricsHandler`, handles **all** `PeerEventKind`s)
     - Logging: `backend/bins/botd/src/event_handlers.rs` (`LoggingHandler`, selected events only)
 - Prometheus metrics definitions/registration: `backend/bins/botd/src/metrics.rs`
-- Storage: SQLx AnyPool (Postgres or SQLite) initialized via `soma-storage::bootstrap::connect_any(..)`. Config via `--database-url` / `SOMA_DATABASE_URL` (defaults to `./botd.db` SQLite). Migrations embedded from `backend/bins/botd/migrations` and run at startup (`sqlx::migrate!` in `runtime.rs`); startup fails if migration fails.
+- Storage: SQLx AnyPool (Postgres or SQLite) via `soma_core::db::DbFactory`. Config via `--database-url` / `SOMA_DATABASE_URL` (defaults to `./botd.db` SQLite). Migrations embedded from `backend/bins/botd/migrations` and run at startup (`sqlx::migrate!` in `runtime.rs`); startup fails if migration fails.
+
+#### Operating modes (bot vs server-daemon)
+
+`soma-botd` is a peer first. Its HTTP surface depends on an operating mode:
+
+- `bot` mode (default): read-only HTTP endpoints only (`/info`, `/healthz`, `/metrics`). No business APIs (`/v1/*`) at all.
+- `server-daemon` mode: exposes a daemon-like control plane over HTTP for admin operations (join decisions, revocation, roster, issuer delegation, mailbox, …). This mode must be authenticated/authorized.
+
+Rule of thumb: keep business logic in `soma-peer` and treat Axum/gRPC surfaces as controllers that call into peer services/deciders.
+
+Mode responsibilities (high-level):
+
+- `bot` mode:
+    - Runs a peer (`soma-peer`) + event handlers (metrics/logging).
+    - Exposes read-only HTTP only.
+    - Can be configured with an automated join decider, but has no public write surface.
+- `server-daemon` mode:
+    - Runs the same peer + storage, but additionally exposes admin/business HTTP APIs.
+    - Business endpoints must be gated by mode and protected with authn/authz.
+    - Controllers must delegate to `soma-peer` + repositories (no direct business logic in Axum handlers).
 
 When adding new peer events or instrumentation, prefer:
 
@@ -82,7 +102,7 @@ When adding new peer events or instrumentation, prefer:
     - Entry point: `backend/bins/daemon/src/main.rs`
     - Runtime loop + wiring: same pattern as botd but gRPC over Unix socket (`backend/bins/daemon/src/grpc.rs`)
     - Event dispatcher: `backend/bins/daemon/src/dispatch.rs`
-- Storage: SQLx AnyPool over SQLite initialized via `soma-storage::bootstrap::connect_any(..)` (config `--db-path` / `SOMA_DAEMON_DB`, defaults to `./daemon.db`). Migrations embedded from `backend/bins/daemon/migrations` and run at startup (`sqlx::migrate!` in `main.rs`); startup fails if migration fails.
+- Storage: SQLx AnyPool over SQLite via `soma_core::db::DbFactory` (config `--db-path` / `SOMA_DAEMON_DB`, defaults to `./daemon.db`). Migrations embedded from `backend/bins/daemon/migrations` and run at startup (`sqlx::migrate!` in `main.rs`); startup fails if migration fails.
 
 ### Business Logic & API Checklist
 
@@ -90,19 +110,21 @@ Use this list to track domain flows and where the API lives. Mark items off as y
 
 - [x] Space join request & decision
     - Daemon gRPC: `Daemon/JoinSpace(space_id, display_name, device_name, target_peer_id, target_multiaddrs)` (Unix socket, proto `proto/daemon/v1/daemon.proto`)
-    - Bot HTTP: `POST /v1/join` (`space_id`, `subject_peer_id`, optional approval context) issues `JoinDecision` + `MembershipCapability`
+    - Join protocol: handled in `soma-peer` via a pluggable join decider (default: reject-all). Controllers (daemon/bot) supply a decider and/or admin actions.
+    - Bot mode (`soma-botd --mode bot`): HTTP is strictly read-only (`/info`, `/healthz`, `/metrics`). No business APIs (no `/v1/*`), including join, revoke, roster, issuer, mailbox, etc.
+    - Server-daemon mode (`soma-botd --mode server-daemon`): may expose business APIs over HTTP, and must be authenticated/authorized. `/v1/join` is an admin controller to *decide* an existing join flow (not “force-join” by minting arbitrary memberships).
 - [ ] Space membership revocation/leave
-    - Bot HTTP: `POST /v1/space/revoke` (botd) to revoke capabilities by `space_id` and `subject_peer_id`; daemon gRPC: `Daemon/RevokeSpace` to request or consume a revocation and drop local capability
+    - Server-daemon HTTP (mode-gated): `POST /v1/space/revoke` (botd) to revoke capabilities by `space_id` and `subject_peer_id`; daemon gRPC: `Daemon/RevokeSpace` to request or consume a revocation and drop local capability
 - [ ] Space roster/query
-    - Bot HTTP: `GET /v1/space/members` (botd) to list current members with roles/expiry; daemon gRPC: `Daemon/ListSpaceMembers` to fetch + cache
+    - Server-daemon HTTP (mode-gated): `GET /v1/space/members` (botd) to list current members with roles/expiry; daemon gRPC: `Daemon/ListSpaceMembers` to fetch + cache
 - [ ] Issuer delegation management (bots acting on behalf of owners)
-    - Bot HTTP: `POST /v1/space/issuer-capability` (botd) to rotate/issue issuer delegation for a bot; daemon gRPC: `Daemon/IssueIssuerCapability` to accept and persist
+    - Server-daemon HTTP (mode-gated): `POST /v1/space/issuer-capability` (botd) to rotate/issue issuer delegation for a bot; daemon gRPC: `Daemon/IssueIssuerCapability` to accept and persist
 - [ ] Space discovery/onboarding UX helpers
     - Daemon gRPC: `Daemon/DiscoverSpaces` to surface available spaces via rendezvous/relay metadata for UIs
 
 ### Storage schema (SQLx-backed)
 
-Both botd (Postgres or SQLite via `DATABASE_URL`) and daemon (SQLite file) embed the same migrations (`backend/bins/botd/migrations`, `backend/bins/daemon/migrations`). ER diagram (entities → PKs):
+Botd (Postgres or SQLite via `DATABASE_URL`) and daemon (SQLite file) embed the same migrations (`backend/bins/botd/migrations`, `backend/bins/daemon/migrations`). ER diagram (entities → PKs):
 
 - `spaces(space_id)` – optional display_name, created_at
 - `space_memberships(space_id, subject_peer_id)` – role, issuer_peer_id, issued_at, expires_at, capability blob
@@ -110,16 +132,12 @@ Both botd (Postgres or SQLite via `DATABASE_URL`) and daemon (SQLite file) embed
 - `issuer_capabilities(space_id, delegate_peer_id)` – issuer_peer_id, issued_at, expires_at, capability blob
 - `mailbox(id)` – kind, space_id?, subject_peer_id?, status (queued|leased|done|dead), attempts, available_at, lease_until?, leased_by?, payload blob, created_at
 
-Migrations are shared at `backend/crates/storage/migrations` and run automatically at startup in both binaries (`sqlx::migrate!()`).
+Migrations live alongside each binary today; goal is to consolidate shared migrations under `backend/crates/storage/` once repositories land.
 
-### Persistence & repositories (SQLx utils)
+### Persistence
 
-- All SQLx queries live in `backend/crates/storage/` (no raw queries in binaries). Modules:
-    - `membership.rs` – spaces, space_memberships, join_decisions
-    - `issuer.rs` – issuer_capabilities
-    - `mailbox.rs` – mailbox queue (structured cols + opaque payload blob)
-- Repository pattern: traits + `Sql*Repository` impls, sharing an `sqlx_utils::types::Pool` through `RepositoryFactory`.
-- Bootstrap helpers: `soma-storage::bootstrap::{connect_any, connect_sqlite}` return a `RepositoryFactory` (and optional repo bundle) after running migrations with the provided `Migrator`. Binaries should use these helpers to stay controller-only (MVC) and avoid wiring SQLx directly.
+- Use `soma_core::db::DbFactory` to build pools and run migrators.
+- Keep SQLx queries out of controllers; add repository modules per aggregate (planned under `backend/crates/storage`: memberships, issuers, mailbox).
 
 ### Design patterns in use (and how to apply them here)
 
@@ -129,7 +147,7 @@ Migrations are shared at `backend/crates/storage/migrations` and run automatical
 - **Chain of Responsibility**: The dispatcher plus multiple handlers form a chain; each handler can choose to act or ignore. To extend behavior, add another handler instead of bloating existing ones.
 - **Strategy**: Logging vs metrics handlers represent interchangeable strategies for reacting to events. Follow this pattern when adding new behaviors (e.g., persistence strategy for events).
 - **Composite**: Per-kind handler lists in `PeerEventDispatcher` compose multiple behaviors as a single dispatcher. Group related handlers when you need combined behaviors.
-- **Facade (bot control plane)**: HTTP surface in `backend/bins/botd/src/http.rs` shields callers from internal peer/event details; keep it thin and delegate to handlers/services.
+- **Facade (control planes)**: HTTP/gRPC surfaces are controllers only; business logic lives in `soma-peer` + repositories. In `bot` mode, botd HTTP stays read-only; in `server-daemon` mode, write endpoints must be authenticated.
 - **Singletons (where needed)**: Global allocator (`GLOBAL`), static migrators (`static MIGRATOR` per binary). Avoid new global state unless initialization must happen once.
 - **MVC**: Treat Axum handlers as controllers (`http.rs`), DB + peer/service layers as model (state + persistence), and response serializers/views as the view. Keep controllers thin and push business logic into model/service helpers.
 - **Repository**: Formalize DB access by wrapping SQLx queries per aggregate (memberships, join_decisions, issuer_capabilities) in dedicated modules to keep handlers/controllers thin.

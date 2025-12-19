@@ -2,7 +2,7 @@ use soma_core::SomaResult;
 use sqlx::migrate::Migrator;
 use sqlx_utils::types::Pool;
 
-use crate::{RepositoryFactory, membership, issuer, mailbox};
+use crate::{RepositoryFactory, issuer, mailbox, membership};
 
 /// Build an AnyPool (Postgres/SQLite) and return a repository factory.
 pub async fn connect_any(
@@ -28,7 +28,12 @@ pub async fn connect_sqlite(
 pub async fn connect_any_with_repos(
     database_url: &str,
     migrator: &'static Migrator,
-) -> SomaResult<(Pool, membership::SqlMembershipRepository, issuer::SqlIssuerRepository, mailbox::SqlMailboxRepository)> {
+) -> SomaResult<(
+    Pool,
+    membership::SqlMembershipRepository,
+    issuer::SqlIssuerRepository,
+    mailbox::SqlMailboxRepository,
+)> {
     let factory = connect_any(database_url, migrator).await?;
     let pool = factory.pool();
     Ok((
@@ -43,7 +48,12 @@ pub async fn connect_any_with_repos(
 pub async fn connect_sqlite_with_repos(
     db_path: &str,
     migrator: &'static Migrator,
-) -> SomaResult<(Pool, membership::SqlMembershipRepository, issuer::SqlIssuerRepository, mailbox::SqlMailboxRepository)> {
+) -> SomaResult<(
+    Pool,
+    membership::SqlMembershipRepository,
+    issuer::SqlIssuerRepository,
+    mailbox::SqlMailboxRepository,
+)> {
     let factory = connect_sqlite(db_path, migrator).await?;
     let pool = factory.pool();
     Ok((

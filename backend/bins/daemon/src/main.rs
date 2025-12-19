@@ -62,8 +62,7 @@ async fn run(config: DaemonConfig) -> SomaResult<()> {
     } = config;
 
     std::fs::create_dir_all(&blob_dir)?;
-    static MIGRATOR: sqlx::migrate::Migrator =
-        sqlx::migrate!("../../crates/storage/migrations");
+    static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("../../crates/storage/migrations");
     let db_url = soma_core::db::normalize_sqlite_url(db_path.to_string_lossy().as_ref());
     info!(%db_url, scheme = "sqlite", "configuring database");
     let repos = soma_storage::bootstrap::connect_any(&db_url, &MIGRATOR).await?;

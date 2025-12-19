@@ -200,7 +200,7 @@ impl PeerEventHandler<BotMetrics> for LoggingHandler {
                 protocols,
             } => {
                 info!(%peer, %agent, protocols, "bot identify received");
-            },
+            }
             PeerEvent::MdnsDiscovered { peers } => {
                 info!(peers, "bot mdns discovered peers");
             }

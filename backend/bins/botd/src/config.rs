@@ -1,4 +1,4 @@
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 use libp2p::Multiaddr;
 use std::{net::SocketAddr, path::PathBuf};
 
@@ -43,6 +43,14 @@ pub struct Args {
     /// Disable mdns discovery (default on).
     #[arg(long, env = "SOMA_DISABLE_MDNS", default_value_t = false)]
     pub disable_mdns: bool,
+
+    /// Operating mode: bot (read-only HTTP) or server-daemon (admin control plane).
+    #[arg(long, env = "SOMA_MODE", default_value = "bot", value_enum)]
+    pub mode: Mode,
+
+    /// Optional bearer token required for admin APIs (server-daemon mode).
+    #[arg(long, env = "SOMA_ADMIN_TOKEN")]
+    pub admin_token: Option<String>,
 }
 
 #[derive(Debug, Subcommand)]
@@ -66,6 +74,8 @@ pub struct BotConfig {
     pub rendezvous_addrs: Vec<Multiaddr>,
     pub relay_addrs: Vec<Multiaddr>,
     pub enable_mdns: bool,
+    pub mode: Mode,
+    pub admin_token: Option<String>,
 }
 
 impl BotConfig {
@@ -84,6 +94,8 @@ impl BotConfig {
             rendezvous_addrs: args.rendezvous_addrs.clone(),
             relay_addrs: args.relay_addrs.clone(),
             enable_mdns: !args.disable_mdns,
+            mode: args.mode,
+            admin_token: args.admin_token.clone(),
         }
     }
 }
@@ -92,6 +104,12 @@ impl From<&Args> for BotConfig {
     fn from(args: &Args) -> Self {
         BotConfig::from_args(args)
     }
+}
+
+#[derive(Clone, Copy, Debug, ValueEnum, PartialEq, Eq)]
+pub enum Mode {
+    Bot,
+    ServerDaemon,
 }
 
 pub fn default_listen_addrs() -> Vec<Multiaddr> {

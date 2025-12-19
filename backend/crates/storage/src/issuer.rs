@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use soma_core::{Error, SomaResult};
 use sqlx_utils::{
-    traits::{repository::Repository, Model},
+    traits::{Model, repository::Repository},
     types::Pool,
 };
 
@@ -18,8 +18,11 @@ pub struct IssuerCapability {
 #[async_trait]
 pub trait IssuerRepository: Send + Sync {
     async fn upsert(&self, cap: &IssuerCapability) -> SomaResult<()>;
-    async fn get(&self, space_id: &str, delegate_peer_id: &str)
-        -> SomaResult<Option<IssuerCapability>>;
+    async fn get(
+        &self,
+        space_id: &str,
+        delegate_peer_id: &str,
+    ) -> SomaResult<Option<IssuerCapability>>;
     async fn delete(&self, space_id: &str, delegate_peer_id: &str) -> SomaResult<u64>;
 }
 

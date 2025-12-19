@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use soma_core::{Error, SomaResult};
 use sqlx_utils::{
-    traits::{repository::Repository, Model},
+    traits::{Model, repository::Repository},
     types::Pool,
 };
 
@@ -109,11 +109,7 @@ impl MembershipRepository for SqlMembershipRepository {
         Ok(())
     }
 
-    async fn delete_membership(
-        &self,
-        space_id: &str,
-        subject_peer_id: &str,
-    ) -> SomaResult<u64> {
+    async fn delete_membership(&self, space_id: &str, subject_peer_id: &str) -> SomaResult<u64> {
         let res = sqlx::query(
             r#"
             DELETE FROM space_memberships
