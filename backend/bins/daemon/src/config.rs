@@ -83,6 +83,12 @@ impl DaemonConfig {
     }
 }
 
+impl From<&Args> for DaemonConfig {
+    fn from(args: &Args) -> Self {
+        DaemonConfig::from_args(args)
+    }
+}
+
 pub fn default_listen_addrs() -> Vec<Multiaddr> {
     vec![
         "/ip4/0.0.0.0/tcp/14007"

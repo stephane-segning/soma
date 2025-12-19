@@ -31,5 +31,5 @@ serde_json = { workspace = true }
 prost-types = { workspace = true }
 prost = { workspace = true }
 rand = { workspace = true }
-base64 = "0.22"
+base64 = { workspace = true }
 async-trait = { workspace = true }

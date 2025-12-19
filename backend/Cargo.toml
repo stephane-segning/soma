@@ -71,6 +71,7 @@ futures = "0.3"
 prometheus-client = "0.22"
 prometheus-client-derive-encode = "0.4"
 tempfile = "3"
+base64 = "0.22"
 
 [workspace.dependencies.libp2p]
 version = "0.56"

@@ -15,9 +15,15 @@ pub struct JoinDecisionLabels {
     pub outcome: &'static str,
 }
 
+#[derive(Clone, Debug, EncodeLabelSet, Hash, PartialEq, Eq)]
+pub struct EventLabels {
+    pub kind: &'static str,
+}
+
 #[derive(Clone)]
 pub struct BotMetrics {
     pub registry: SharedRegistry,
+    pub events: Family<EventLabels, Counter>,
     pub listeners: Family<(), Counter>,
     pub pings: Family<PingLabels, Counter>,
     pub join_decisions: Family<JoinDecisionLabels, Counter>,
@@ -26,6 +32,9 @@ pub struct BotMetrics {
 impl BotMetrics {
     pub fn new() -> Self {
         let mut registry = Registry::with_prefix("soma_bot");
+
+        let events = Family::<EventLabels, Counter>::default();
+        registry.register("peer_events_total", "Peer events by kind", events.clone());
 
         let listeners = Family::<(), Counter>::default();
         registry.register(
@@ -46,6 +55,7 @@ impl BotMetrics {
 
         Self {
             registry: std::sync::Arc::new(registry),
+            events,
             listeners,
             pings,
             join_decisions,

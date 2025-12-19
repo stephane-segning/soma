@@ -1,4 +1,8 @@
-use std::{sync::Arc, time::{Duration, SystemTime}, path::PathBuf};
+use std::{
+    path::PathBuf,
+    sync::Arc,
+    time::{Duration, SystemTime},
+};
 
 use axum::{
     Json, Router,
@@ -6,7 +10,7 @@ use axum::{
     http::StatusCode,
     routing::{get, post},
 };
-use base64::{engine::general_purpose::STANDARD as BASE64, Engine as _};
+use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
 use prost::Message;
 use prost_types::Timestamp;
 use serde::{Deserialize, Serialize};
@@ -79,7 +83,10 @@ fn default_approve() -> bool {
     true
 }
 
-pub async fn serve_http(http_addr: std::net::SocketAddr, state: BotState) -> soma_core::SomaResult<()> {
+pub async fn serve_http(
+    http_addr: std::net::SocketAddr,
+    state: BotState,
+) -> soma_core::SomaResult<()> {
     let shared = Arc::new(state);
 
     let registry = shared.metrics.registry.clone();
@@ -204,7 +211,11 @@ async fn join_handler(
         capability: decision.capability.as_ref().map(capability_to_view),
     };
 
-    let outcome = if payload.approve { "approved" } else { "rejected" };
+    let outcome = if payload.approve {
+        "approved"
+    } else {
+        "rejected"
+    };
     state
         .metrics
         .join_decisions
