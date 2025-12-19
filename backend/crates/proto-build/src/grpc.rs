@@ -1,6 +1,6 @@
-pub mod classroom {
+pub mod spaceroom {
     pub mod v1 {
-        tonic::include_proto!("classroom.v1");
+        tonic::include_proto!("spaceroom.v1");
     }
 }
 

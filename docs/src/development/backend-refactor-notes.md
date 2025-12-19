@@ -21,7 +21,7 @@ Testing recipe: `docs/src/development/daemon-grpcurl.md`.
 
 ## 2) Join flow: first libp2p application protocol
 
-- Proto: `proto/classroom/v1/membership.proto`
+- Proto: `proto/spaceroom/v1/membership.proto`
 - Protocol id: `/soma/join/1`
 - Implementation: `backend/crates/peer/src/lib.rs`
 

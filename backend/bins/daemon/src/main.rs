@@ -3,7 +3,7 @@ use mimalloc::MiMalloc;
 use soma_core::SomaResult;
 use soma_net::{default_identity_path, generate_identity};
 use soma_peer::{PeerCommand, PeerConfig, spawn_ping_peer};
-use soma_proto_build::daemon::v1 as daemon;
+use soma_proto_build::daemon;
 use tokio::{
     signal,
     sync::{Mutex, broadcast},

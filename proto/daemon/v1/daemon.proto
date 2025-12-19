@@ -3,7 +3,7 @@ syntax = "proto3";
 package daemon.v1;
 
 import "google/protobuf/empty.proto";
-import "classroom/v1/membership.proto";
+import "spaceroom/v1/membership.proto";
 
 // Status for the local daemon (IPC over Unix domain socket).
 message StatusRequest {}
@@ -82,7 +82,7 @@ message StreamEventsRequest {}
 
 message JoinDecisionEvent {
   string from_peer_id = 1;
-  classroom.v1.JoinDecision decision = 2;
+  spaceroom.v1.JoinDecision decision = 2;
 }
 
 message JoinSubmitEvent {

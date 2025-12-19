@@ -11,7 +11,7 @@ It combines:
 - a typing companion app (Tapia)
 
 Soma is designed to work:
-- fully offline on a classroom LAN
+- fully offline on a spaceroom (like a classroom) LAN
 - partially online (mixed local + remote)
 - across the internet when available
 without requiring a browser or cloud accounts.

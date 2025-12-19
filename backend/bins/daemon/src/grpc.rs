@@ -5,8 +5,8 @@ use libp2p::PeerId;
 use prost_types::Timestamp;
 use soma_core::SomaResult;
 use soma_peer::PeerCommand;
-use soma_proto_build::classroom::v1 as classroom;
-use soma_proto_build::daemon::v1 as daemon;
+use soma_proto_build::spaceroom;
+use soma_proto_build::daemon;
 use sqlx::Row;
 use tokio::sync::{Mutex, broadcast, mpsc};
 use tokio_stream::{StreamExt as TokioStreamExt, wrappers::BroadcastStream};
@@ -72,17 +72,17 @@ impl daemon::daemon_server::Daemon for DaemonService {
         }
 
         let request_id = format!("{:016x}", rand::random::<u64>());
-        let join_request = classroom::JoinRequest {
-            class_id: Some(classroom::ClassId {
+        let join_request = spaceroom::JoinRequest {
+            space_id: Some(spaceroom::SpaceId {
                 value: payload.space_id,
             }),
-            peer_id: Some(classroom::PeerId {
+            peer_id: Some(spaceroom::PeerId {
                 value: self.state.peer_id.to_string(),
             }),
             display_name: payload.display_name,
             device_name: payload.device_name,
             student_code: String::new(),
-            requested_role: classroom::ClassRole::Student as i32,
+            requested_role: spaceroom::SpaceRole::Student as i32,
             invite_proof: None,
             created_at: Some(Timestamp::from(SystemTime::now())),
         };

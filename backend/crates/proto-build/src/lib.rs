@@ -1,3 +1,3 @@
 pub mod grpc;
 
-pub use grpc::{classroom, daemon};
+pub use grpc::{daemon::v1 as daemon, spaceroom::v1 as spaceroom};

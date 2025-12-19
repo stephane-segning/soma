@@ -74,9 +74,9 @@ impl JoinDecisionOutcome {
     }
 }
 
-impl From<soma_proto_build::classroom::v1::JoinDecisionType> for JoinDecisionOutcome {
-    fn from(value: soma_proto_build::classroom::v1::JoinDecisionType) -> Self {
-        use soma_proto_build::classroom::v1::JoinDecisionType::*;
+impl From<soma_proto_build::spaceroom::JoinDecisionType> for JoinDecisionOutcome {
+    fn from(value: soma_proto_build::spaceroom::JoinDecisionType) -> Self {
+        use soma_proto_build::spaceroom::JoinDecisionType::*;
 
         match value {
             JoinApproved => JoinDecisionOutcome::Approved,
@@ -142,7 +142,7 @@ impl PeerEventHandler<BotMetrics> for MetricsHandler {
             PeerEvent::JoinDecision { decision, .. } => {
                 record_event(metrics, EventKindLabel::JoinDecision);
                 let outcome =
-                    soma_proto_build::classroom::v1::JoinDecisionType::try_from(decision.decision)
+                    soma_proto_build::spaceroom::JoinDecisionType::try_from(decision.decision)
                         .map(JoinDecisionOutcome::from)
                         .unwrap_or(JoinDecisionOutcome::Unspecified);
                 metrics

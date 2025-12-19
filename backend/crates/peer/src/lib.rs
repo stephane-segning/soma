@@ -11,7 +11,7 @@ use libp2p::{
 use prost::Message;
 use soma_core::SomaResult;
 use soma_net::NetIdentity;
-use soma_proto_build::classroom::v1 as classroom;
+use soma_proto_build::spaceroom;
 use std::collections::{HashMap, HashSet};
 use std::io;
 use std::sync::Arc;
@@ -37,7 +37,7 @@ pub enum PeerCommand {
         target: PeerId,
         addrs: Vec<Multiaddr>,
         request_id: String,
-        request: classroom::JoinRequest,
+        request: spaceroom::JoinRequest,
     },
     Shutdown,
 }
@@ -88,7 +88,7 @@ pub enum PeerEvent {
     },
     JoinDecision {
         from: PeerId,
-        decision: classroom::JoinDecision,
+        decision: spaceroom::JoinDecision,
     },
     JoinFailed {
         target: PeerId,
@@ -233,7 +233,7 @@ enum AppEvent {
     Mdns(mdns::Event),
     Rendezvous(rendezvous::client::Event),
     Relay(relay::client::Event),
-    Join(reqres::Event<classroom::JoinRequest, classroom::JoinDecision>),
+    Join(reqres::Event<spaceroom::JoinRequest, spaceroom::JoinDecision>),
 }
 
 impl From<ping::Event> for AppEvent {
@@ -266,8 +266,8 @@ impl From<relay::client::Event> for AppEvent {
     }
 }
 
-impl From<reqres::Event<classroom::JoinRequest, classroom::JoinDecision>> for AppEvent {
-    fn from(event: reqres::Event<classroom::JoinRequest, classroom::JoinDecision>) -> Self {
+impl From<reqres::Event<spaceroom::JoinRequest, spaceroom::JoinDecision>> for AppEvent {
+    fn from(event: reqres::Event<spaceroom::JoinRequest, spaceroom::JoinDecision>) -> Self {
         AppEvent::Join(event)
     }
 }
@@ -472,8 +472,8 @@ struct JoinCodec;
 #[async_trait]
 impl reqres::Codec for JoinCodec {
     type Protocol = String;
-    type Request = classroom::JoinRequest;
-    type Response = classroom::JoinDecision;
+    type Request = spaceroom::JoinRequest;
+    type Response = spaceroom::JoinDecision;
 
     async fn read_request<T>(
         &mut self,
@@ -565,18 +565,18 @@ mod tests {
     use futures::io::Cursor;
     use libp2p::request_response::Codec;
 
-    fn sample_request() -> classroom::JoinRequest {
-        classroom::JoinRequest {
-            class_id: Some(classroom::ClassId {
-                value: "class-123".into(),
+    fn sample_request() -> spaceroom::JoinRequest {
+        spaceroom::JoinRequest {
+            space_id: Some(spaceroom::SpaceId {
+                value: "space-123".into(),
             }),
-            peer_id: Some(classroom::PeerId {
+            peer_id: Some(spaceroom::PeerId {
                 value: "peer-abc".into(),
             }),
             display_name: "User".into(),
             device_name: "Device".into(),
             student_code: String::new(),
-            requested_role: classroom::ClassRole::Student as i32,
+            requested_role: spaceroom::SpaceRole::Student as i32,
             invite_proof: None,
             created_at: None,
         }
@@ -598,7 +598,7 @@ mod tests {
             .read_request(&proto, &mut buf)
             .await
             .expect("read back join request");
-        assert_eq!(decoded.class_id.unwrap().value, "class-123");
+        assert_eq!(decoded.space_id.unwrap().value, "space-123");
         assert_eq!(decoded.peer_id.unwrap().value, "peer-abc");
     }
 
@@ -628,9 +628,9 @@ mod tests {
         let decision = reject_join(&req, peer);
         assert_eq!(
             decision.decision,
-            classroom::JoinDecisionType::JoinRejected as i32
+            spaceroom::JoinDecisionType::JoinRejected as i32
         );
-        assert_eq!(decision.class_id.unwrap().value, "class-123");
+        assert_eq!(decision.space_id.unwrap().value, "space-123");
         assert_eq!(decision.subject_peer_id.unwrap().value, "peer-abc");
         assert_eq!(decision.reason, "not an issuer");
     }
