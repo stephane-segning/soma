@@ -71,11 +71,18 @@ Specific services (all now live under `backend/`):
   - Metrics: `backend/bins/botd/src/event_handlers.rs` (`MetricsHandler`, handles **all** `PeerEventKind`s)
   - Logging: `backend/bins/botd/src/event_handlers.rs` (`LoggingHandler`, selected events only)
 - Prometheus metrics definitions/registration: `backend/bins/botd/src/metrics.rs`
+- Storage: SQLx AnyPool (Postgres or SQLite) via shared helpers in `soma-core` (feature `db`). Config via `--database-url` / `SOMA_DATABASE_URL` (defaults to `./botd.db` SQLite). Migrations embedded from `backend/bins/botd/migrations` and run at startup (`sqlx::migrate!` in `runtime.rs`); startup fails if migration fails.
 
 When adding new peer events or instrumentation, prefer:
 
 - Updating `soma-peer` event definitions (`backend/crates/peer/src/lib.rs`, `backend/crates/peer/src/events.rs`)
 - Adding a matching metrics/logging branch in `backend/bins/botd/src/event_handlers.rs`
+
+- `soma-daemon`:
+  - Entry point: `backend/bins/daemon/src/main.rs`
+  - Runtime loop + wiring: same pattern as botd but gRPC over Unix socket (`backend/bins/daemon/src/grpc.rs`)
+  - Event dispatcher: `backend/bins/daemon/src/dispatch.rs`
+  - Storage: SQLx SqlitePool via shared helpers in `soma-core` (feature `db`). Config via `--db-path` / `SOMA_DAEMON_DB` (defaults to `./daemon.db`). Migrations embedded from `backend/bins/daemon/migrations` and run at startup (`sqlx::migrate!` in `main.rs`); startup fails if migration fails.
 
 ### Business Logic & API Checklist
 
@@ -92,6 +99,17 @@ Use this list to track domain flows and where the API lives. Mark items off as y
   - Bot HTTP: `POST /v1/space/issuer-capability` (botd) to rotate/issue issuer delegation for a bot; daemon gRPC: `Daemon/IssueIssuerCapability` to accept and persist
 - [ ] Space discovery/onboarding UX helpers
   - Daemon gRPC: `Daemon/DiscoverSpaces` to surface available spaces via rendezvous/relay metadata for UIs
+
+### Storage schema (SQLx-backed)
+
+Both botd (Postgres or SQLite via `DATABASE_URL`) and daemon (SQLite file) embed the same migrations (`backend/bins/botd/migrations`, `backend/bins/daemon/migrations`). ER diagram (entities → PKs):
+
+- `spaces(space_id)` – optional display_name, created_at
+- `space_memberships(space_id, subject_peer_id)` – role, issuer_peer_id, issued_at, expires_at, capability blob
+- `join_decisions(decision_id)` – space_id, subject_peer_id, decision enum, reason, created_at, capability blob (audit)
+- `issuer_capabilities(space_id, delegate_peer_id)` – issuer_peer_id, issued_at, expires_at, capability blob
+
+Migrations run automatically at startup in both binaries (`sqlx::migrate!()`).
 
 ### Frontends (Desktop Apps)
 

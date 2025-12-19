@@ -7,7 +7,7 @@ license.workspace = true
 authors.workspace = true
 
 [dependencies]
-soma-core = { workspace = true }
+soma-core = { workspace = true, features = ["db"] }
 soma-storage = { workspace = true }
 soma-net = { workspace = true }
 soma-api = { workspace = true }
@@ -27,3 +27,4 @@ tokio-stream = { workspace = true, features = ["sync"] }
 futures = { workspace = true }
 rand = { workspace = true }
 async-trait = { workspace = true }
+sqlx = { workspace = true, features = ["sqlite", "migrate", "runtime-tokio-rustls"] }

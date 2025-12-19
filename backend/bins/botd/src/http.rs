@@ -32,6 +32,8 @@ pub struct BotState {
     pub info: BotInfo,
     pub issuer_peer_id: String,
     pub metrics: BotMetrics,
+    #[allow(dead_code)]
+    pub db: sqlx::AnyPool,
 }
 
 #[derive(Debug, Deserialize)]

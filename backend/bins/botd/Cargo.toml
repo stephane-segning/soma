@@ -7,7 +7,7 @@ license.workspace = true
 authors.workspace = true
 
 [dependencies]
-soma-core = { workspace = true }
+soma-core = { workspace = true, features = ["db"] }
 soma-storage = { workspace = true }
 soma-net = { workspace = true }
 soma-common = { workspace = true }
@@ -33,3 +33,4 @@ prost = { workspace = true }
 rand = { workspace = true }
 base64 = { workspace = true }
 async-trait = { workspace = true }
+sqlx = { workspace = true, features = ["any", "postgres", "sqlite", "migrate", "runtime-tokio-rustls"] }

@@ -43,6 +43,11 @@ pub async fn run_from_cli() -> SomaResult<()> {
 pub async fn run(config: BotConfig, metrics: BotMetrics) -> SomaResult<()> {
     std::fs::create_dir_all(&config.blob_dir)?;
 
+    // DB: allow postgres or sqlite URL, default to sqlite file path.
+    static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
+    let db: sqlx::AnyPool =
+        soma_core::db::connect_any_and_migrate(&config.database_url, &MIGRATOR).await?;
+
     let peer_config = PeerConfig::builder()
         .identity_path(config.identity_path.clone())
         .listen_addrs(config.listen_addrs.clone())
@@ -70,6 +75,7 @@ pub async fn run(config: BotConfig, metrics: BotMetrics) -> SomaResult<()> {
             },
             issuer_peer_id: peer_id.to_string(),
             metrics: metrics.clone(),
+            db: db.clone(),
         };
         async move { http::serve_http(config.http_addr, state).await }
     });

@@ -19,6 +19,8 @@ pub struct DaemonState {
     pub peer_commands: mpsc::Sender<PeerCommand>,
     pub listen_addrs: Mutex<Vec<String>>,
     pub events: broadcast::Sender<daemon::DaemonEvent>,
+    #[allow(dead_code)]
+    pub db: sqlx::SqlitePool,
 }
 
 impl DaemonState {

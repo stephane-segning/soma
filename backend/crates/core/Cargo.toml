@@ -10,3 +10,8 @@ authors.workspace = true
 anyhow = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
+sqlx = { workspace = true, optional = true, features = ["any", "postgres", "sqlite", "migrate", "runtime-tokio-rustls"] }
+
+[features]
+db = ["sqlx"]
+default = []

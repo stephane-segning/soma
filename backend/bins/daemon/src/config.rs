@@ -19,6 +19,10 @@ pub struct Args {
     #[arg(long, env = "SOMA_BLOB_DIR", default_value = "./blobs")]
     pub blob_dir: PathBuf,
 
+    /// Path to the daemon SQLite database.
+    #[arg(long, env = "SOMA_DAEMON_DB", default_value = "./daemon.db")]
+    pub db_path: PathBuf,
+
     /// Listen multiaddrs for libp2p.
     #[arg(
         long,
@@ -60,6 +64,7 @@ pub enum Command {
 pub struct DaemonConfig {
     pub socket_path: PathBuf,
     pub blob_dir: PathBuf,
+    pub db_path: PathBuf,
     pub identity_path: PathBuf,
     pub listen_addrs: Vec<Multiaddr>,
     pub bootstrap_addrs: Vec<Multiaddr>,
@@ -73,6 +78,7 @@ impl DaemonConfig {
         Self {
             socket_path: args.socket_path.clone(),
             blob_dir: args.blob_dir.clone(),
+            db_path: args.db_path.clone(),
             identity_path: default_identity_path("daemon"),
             listen_addrs: args.listen_addrs.clone(),
             bootstrap_addrs: args.bootstrap_addrs.clone(),
