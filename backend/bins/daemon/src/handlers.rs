@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use soma_peer::PeerEvent;
 use soma_peer::events::{PeerEventHandler, PeerEventKind};
-use tracing::{info, warn, debug, trace};
+use tracing::{info, warn};
 
 use crate::DaemonState;
 

@@ -4,7 +4,7 @@ use clap::Parser;
 use libp2p::Multiaddr;
 use mimalloc::MiMalloc;
 use soma_peer::{PeerConfig, PeerEvent, spawn_ping_peer};
-use tracing::{debug, info, warn};
+use tracing::{info, warn};
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;

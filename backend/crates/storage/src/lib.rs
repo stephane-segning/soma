@@ -9,6 +9,7 @@ use sqlx_utils::types::Pool;
 pub mod issuer;
 pub mod mailbox;
 pub mod membership;
+pub mod bootstrap;
 
 /// Factory to build repository instances backed by a shared `AnyPool`.
 #[derive(Clone, Debug)]
@@ -19,6 +20,10 @@ pub struct RepositoryFactory {
 impl RepositoryFactory {
     pub fn new(pool: Pool) -> Self {
         Self { pool }
+    }
+
+    pub fn pool(&self) -> Pool {
+        self.pool.clone()
     }
 
     pub fn membership(&self) -> membership::SqlMembershipRepository {

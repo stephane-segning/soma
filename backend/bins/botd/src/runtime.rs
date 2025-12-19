@@ -44,12 +44,12 @@ pub async fn run(config: BotConfig, metrics: BotMetrics) -> SomaResult<()> {
     std::fs::create_dir_all(&config.blob_dir)?;
 
     // DB: allow postgres or sqlite URL, default to sqlite file path.
-    static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
+    static MIGRATOR: sqlx::migrate::Migrator =
+        sqlx::migrate!("../../crates/storage/migrations");
+
     let db_scheme = db_scheme(&config.database_url);
     info!(scheme = %db_scheme, url = %config.database_url, "configuring database");
-    let _db: sqlx::AnyPool = soma_core::db::DbFactory::any(&config.database_url, &MIGRATOR)
-        .build_any()
-        .await?;
+    let _repos = soma_storage::bootstrap::connect_any(&config.database_url, &MIGRATOR).await?;
 
     let peer_config = PeerConfig::builder()
         .identity_path(config.identity_path.clone())
@@ -60,6 +60,7 @@ pub async fn run(config: BotConfig, metrics: BotMetrics) -> SomaResult<()> {
         .enable_mdns(config.enable_mdns)
         .build()
         .expect("peer config");
+
     let peer = spawn_ping_peer(peer_config)?;
     let peer_id = peer.peer_id;
 

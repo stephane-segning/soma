@@ -5,7 +5,7 @@ use soma_peer::{
     PeerEvent,
     events::{PeerEventHandler, PeerEventKind},
 };
-use tracing::{debug, info, warn};
+use tracing::{info, warn};
 
 use crate::metrics::{BotMetrics, EventLabels, JoinDecisionLabels, PingLabels};
 

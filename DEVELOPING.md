@@ -71,7 +71,7 @@ Specific services (all now live under `backend/`):
   - Metrics: `backend/bins/botd/src/event_handlers.rs` (`MetricsHandler`, handles **all** `PeerEventKind`s)
   - Logging: `backend/bins/botd/src/event_handlers.rs` (`LoggingHandler`, selected events only)
 - Prometheus metrics definitions/registration: `backend/bins/botd/src/metrics.rs`
-- Storage: SQLx AnyPool (Postgres or SQLite) via shared helpers in `soma-core` (feature `db`). Config via `--database-url` / `SOMA_DATABASE_URL` (defaults to `./botd.db` SQLite). Migrations embedded from `backend/bins/botd/migrations` and run at startup (`sqlx::migrate!` in `runtime.rs`); startup fails if migration fails.
+- Storage: SQLx AnyPool (Postgres or SQLite) initialized via `soma-storage::bootstrap::connect_any(..)`. Config via `--database-url` / `SOMA_DATABASE_URL` (defaults to `./botd.db` SQLite). Migrations embedded from `backend/bins/botd/migrations` and run at startup (`sqlx::migrate!` in `runtime.rs`); startup fails if migration fails.
 
 When adding new peer events or instrumentation, prefer:
 
@@ -82,7 +82,7 @@ When adding new peer events or instrumentation, prefer:
   - Entry point: `backend/bins/daemon/src/main.rs`
   - Runtime loop + wiring: same pattern as botd but gRPC over Unix socket (`backend/bins/daemon/src/grpc.rs`)
   - Event dispatcher: `backend/bins/daemon/src/dispatch.rs`
-  - Storage: SQLx SqlitePool via shared helpers in `soma-core` (feature `db`). Config via `--db-path` / `SOMA_DAEMON_DB` (defaults to `./daemon.db`). Migrations embedded from `backend/bins/daemon/migrations` and run at startup (`sqlx::migrate!` in `main.rs`); startup fails if migration fails.
+- Storage: SQLx AnyPool over SQLite initialized via `soma-storage::bootstrap::connect_any(..)` (config `--db-path` / `SOMA_DAEMON_DB`, defaults to `./daemon.db`). Migrations embedded from `backend/bins/daemon/migrations` and run at startup (`sqlx::migrate!` in `main.rs`); startup fails if migration fails.
 
 ### Business Logic & API Checklist
 
@@ -108,8 +108,18 @@ Both botd (Postgres or SQLite via `DATABASE_URL`) and daemon (SQLite file) embed
 - `space_memberships(space_id, subject_peer_id)` – role, issuer_peer_id, issued_at, expires_at, capability blob
 - `join_decisions(decision_id)` – space_id, subject_peer_id, decision enum, reason, created_at, capability blob (audit)
 - `issuer_capabilities(space_id, delegate_peer_id)` – issuer_peer_id, issued_at, expires_at, capability blob
+- `mailbox(id)` – kind, space_id?, subject_peer_id?, status (queued|leased|done|dead), attempts, available_at, lease_until?, leased_by?, payload blob, created_at
 
-Migrations run automatically at startup in both binaries (`sqlx::migrate!()`).
+Migrations are shared at `backend/crates/storage/migrations` and run automatically at startup in both binaries (`sqlx::migrate!()`).
+
+### Persistence & repositories (SQLx utils)
+
+- All SQLx queries live in `backend/crates/storage/` (no raw queries in binaries). Modules:
+  - `membership.rs` – spaces, space_memberships, join_decisions
+  - `issuer.rs` – issuer_capabilities
+  - `mailbox.rs` – mailbox queue (structured cols + opaque payload blob)
+- Repository pattern: traits + `Sql*Repository` impls, sharing an `sqlx_utils::types::Pool` through `RepositoryFactory`.
+- Bootstrap helpers: `soma-storage::bootstrap::{connect_any, connect_sqlite}` return a `RepositoryFactory` (and optional repo bundle) after running migrations with the provided `Migrator`. Binaries should use these helpers to stay controller-only (MVC) and avoid wiring SQLx directly.
 
 ### Design patterns in use (and how to apply them here)
 
