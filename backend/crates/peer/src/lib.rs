@@ -1,3 +1,4 @@
+use crate::join::JoinDecider;
 use async_trait::async_trait;
 pub use config::{PeerConfig, PeerConfigBuilder};
 use futures::{StreamExt, prelude::*};
@@ -8,18 +9,19 @@ use libp2p::{
     swarm::{NetworkBehaviour, SwarmEvent, behaviour::toggle},
 };
 use prost::Message;
-use prost_types::Timestamp;
 use soma_core::SomaResult;
 use soma_net::NetIdentity;
 use soma_proto_build::classroom::v1 as classroom;
 use std::collections::{HashMap, HashSet};
 use std::io;
-use std::time::{Duration, SystemTime};
+use std::sync::Arc;
+use std::time::Duration;
 use tokio::{sync::mpsc, task::JoinHandle};
 use tracing::{info, warn};
 
 mod config;
 pub mod events;
+mod join;
 mod transport;
 
 const JOIN_PROTOCOL: &str = "/soma/join/1";
@@ -114,6 +116,7 @@ pub fn spawn_peer(mut config: PeerConfig) -> SomaResult<PeerHandle> {
         let peer_id = identity.peer_id();
 
         let enable_mdns = config.enable_mdns;
+        let join_decider = config.join_decider.clone();
         let keypair = identity.keypair().clone();
         let mut swarm = transport::build_peer_swarm(keypair, move |keypair, relay_client| {
             build_app_behaviour(enable_mdns, keypair, relay_client)
@@ -160,6 +163,7 @@ pub fn spawn_peer(mut config: PeerConfig) -> SomaResult<PeerHandle> {
             config.relay_addrs,
             rendezvous_peers,
             relay_peers,
+            join_decider.clone(),
             swarm,
             command_rx,
             event_tx,
@@ -274,6 +278,7 @@ async fn run_swarm(
     relay_addrs: Vec<Multiaddr>,
     rendezvous_peers: HashSet<PeerId>,
     mut relay_peers: HashMap<PeerId, Multiaddr>,
+    join_decider: Arc<dyn JoinDecider>,
     mut swarm: libp2p::Swarm<AppBehaviour>,
     mut command_rx: mpsc::Receiver<PeerCommand>,
     event_tx: mpsc::Sender<PeerEvent>,
@@ -411,9 +416,10 @@ async fn run_swarm(
                             reqres::Event::Message { peer, message, .. } => {
                                 match message {
                                     reqres::Message::Request { request, channel, .. } => {
-                                        // Default behaviour: we are not an issuer, reject politely.
-                                        let response = reject_join(&request, peer_id);
-                                        let _ = swarm.behaviour_mut().join.send_response(channel, response);
+                                        let decider = join_decider.clone();
+                                        let response = decider.decide(&request, &peer_id).await;
+                                        let _ = swarm.behaviour_mut().join.send_response(channel, response.clone());
+                                        let _ = event_tx.try_send(PeerEvent::JoinDecision { from: peer_id, decision: response });
                                     }
                                     reqres::Message::Response { response, .. } => {
                                         let _ = event_tx.try_send(PeerEvent::JoinDecision { from: peer, decision: response });
@@ -458,19 +464,6 @@ fn build_join_behaviour() -> reqres::Behaviour<JoinCodec> {
     let protocols = std::iter::once((JOIN_PROTOCOL.to_string(), reqres::ProtocolSupport::Full));
     let cfg = reqres::Config::default().with_request_timeout(Duration::from_secs(10));
     reqres::Behaviour::new(protocols, cfg)
-}
-
-fn reject_join(request: &classroom::JoinRequest, issuer: PeerId) -> classroom::JoinDecision {
-    let now = Timestamp::from(SystemTime::now());
-    classroom::JoinDecision {
-        decision_id: format!("reject-{}", issuer),
-        class_id: request.class_id.clone(),
-        subject_peer_id: request.peer_id.clone(),
-        decision: classroom::JoinDecisionType::JoinRejected as i32,
-        reason: "not an issuer".to_string(),
-        capability: None,
-        created_at: Some(now),
-    }
 }
 
 #[derive(Clone, Default)]

@@ -1,11 +1,12 @@
 use derive_builder::Builder;
 use libp2p::Multiaddr;
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 
+use crate::join::{JoinDecider, default_join_decider};
 use soma_net::default_identity_path;
 
 /// Common peer configuration shared by daemon/bot/bff peers.
-#[derive(Debug, Clone, Builder)]
+#[derive(Clone, Builder)]
 #[builder(pattern = "owned", setter(into, strip_option))]
 pub struct PeerConfig {
     #[builder(default = "default_identity_path(\"peer\")")]
@@ -22,6 +23,8 @@ pub struct PeerConfig {
     pub rendezvous_namespace: Option<String>,
     #[builder(default = "true")]
     pub enable_mdns: bool,
+    #[builder(default = "default_join_decider()")]
+    pub join_decider: Arc<dyn JoinDecider>,
 }
 
 impl PeerConfig {

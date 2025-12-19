@@ -15,7 +15,6 @@ use crate::{
     config::{Args, BotConfig, Command},
     event_handlers,
     http::{self, BotInfo},
-    join::{JoinDecisionRepository, JoinDecisionService},
     metrics::BotMetrics,
 };
 
@@ -48,10 +47,9 @@ pub async fn run(config: BotConfig, metrics: BotMetrics) -> SomaResult<()> {
     static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
     let db_scheme = db_scheme(&config.database_url);
     info!(scheme = %db_scheme, url = %config.database_url, "configuring database");
-    let db: sqlx::AnyPool = soma_core::db::DbFactory::any(&config.database_url, &MIGRATOR)
+    let _db: sqlx::AnyPool = soma_core::db::DbFactory::any(&config.database_url, &MIGRATOR)
         .build_any()
         .await?;
-    let join_service = JoinDecisionService::new(JoinDecisionRepository::new(db.clone()));
 
     let peer_config = PeerConfig::builder()
         .identity_path(config.identity_path.clone())
@@ -65,7 +63,7 @@ pub async fn run(config: BotConfig, metrics: BotMetrics) -> SomaResult<()> {
     let peer = spawn_ping_peer(peer_config)?;
     let peer_id = peer.peer_id;
 
-    tracing::info!(
+    info!(
         %peer_id,
         http_addr = %config.http_addr,
         blob_dir = %config.blob_dir.display(),
@@ -78,9 +76,7 @@ pub async fn run(config: BotConfig, metrics: BotMetrics) -> SomaResult<()> {
                 peer_id: peer_id.to_string(),
                 blob_dir: config.blob_dir.clone(),
             },
-            issuer_peer_id: peer_id.to_string(),
             metrics: metrics.clone(),
-            join_service,
         };
         async move { http::serve_http(config.http_addr, state).await }
     });
