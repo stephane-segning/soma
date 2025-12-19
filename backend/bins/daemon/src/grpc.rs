@@ -7,9 +7,11 @@ use soma_core::SomaResult;
 use soma_peer::PeerCommand;
 use soma_proto_build::classroom::v1 as classroom;
 use soma_proto_build::daemon::v1 as daemon;
+use sqlx::Row;
 use tokio::sync::{Mutex, broadcast, mpsc};
 use tokio_stream::{StreamExt as TokioStreamExt, wrappers::BroadcastStream};
 use tonic::{Request, Response, Status};
+use tracing::warn;
 
 use soma_socket::serve_grpc_unix;
 /// Daemon shared state (peer id, command channel, listeners, event bus).
@@ -122,18 +124,59 @@ impl daemon::daemon_server::Daemon for DaemonService {
 
     async fn revoke_space(
         &self,
-        _request: Request<daemon::RevokeSpaceRequest>,
+        request: Request<daemon::RevokeSpaceRequest>,
     ) -> Result<Response<daemon::RevokeSpaceResponse>, Status> {
-        Err(Status::unimplemented("RevokeSpace not yet implemented"))
+        let payload = request.into_inner();
+        let rows =
+            sqlx::query("DELETE FROM space_memberships WHERE space_id = ? AND subject_peer_id = ?")
+                .bind(payload.space_id)
+                .bind(payload.subject_peer_id)
+                .execute(&self.state.db)
+                .await
+                .map_err(|err| {
+                    warn!(%err, "revoke_space failed");
+                    Status::internal("failed to revoke space membership")
+                })?
+                .rows_affected();
+
+        Ok(Response::new(daemon::RevokeSpaceResponse {
+            accepted: rows > 0,
+        }))
     }
 
     async fn list_space_members(
         &self,
-        _request: Request<daemon::ListSpaceMembersRequest>,
+        request: Request<daemon::ListSpaceMembersRequest>,
     ) -> Result<Response<daemon::ListSpaceMembersResponse>, Status> {
-        Err(Status::unimplemented(
-            "ListSpaceMembers not yet implemented",
-        ))
+        let payload = request.into_inner();
+        let rows = sqlx::query(
+            r#"
+            SELECT subject_peer_id, role, expires_at
+            FROM space_memberships
+            WHERE space_id = ?
+            ORDER BY subject_peer_id
+            "#,
+        )
+        .bind(payload.space_id)
+        .fetch_all(&self.state.db)
+        .await
+        .map_err(|err| {
+            warn!(%err, "list_space_members failed");
+            Status::internal("failed to list space members")
+        })?;
+
+        let members = rows
+            .into_iter()
+            .map(|r| daemon::SpaceMember {
+                peer_id: r
+                    .try_get::<String, _>("subject_peer_id")
+                    .unwrap_or_default(),
+                role: r.try_get::<String, _>("role").unwrap_or_default(),
+                expires_at: r.try_get::<i64, _>("expires_at").unwrap_or_default(),
+            })
+            .collect();
+
+        Ok(Response::new(daemon::ListSpaceMembersResponse { members }))
     }
 
     async fn issue_issuer_capability(

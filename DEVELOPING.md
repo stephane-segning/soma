@@ -111,6 +111,19 @@ Both botd (Postgres or SQLite via `DATABASE_URL`) and daemon (SQLite file) embed
 
 Migrations run automatically at startup in both binaries (`sqlx::migrate!()`).
 
+### Design patterns in use (and how to apply them here)
+
+- **Facade**: `soma_core::db::DbFactory` wraps SQLx driver registration, URL normalization, and migrations behind a single builder. Reuse this facade instead of constructing pools manually.
+- **Factory Method / Builder**: `DbFactory::any/sqlite` return configured builders; use `.max_connections` and `.build_*` to tailor pools per binary.
+- **Delegation**: Event dispatchers route `PeerEvent` to handlers; add new handlers by implementing `PeerEventHandler` and registering in `build_dispatcher`.
+- **Chain of Responsibility**: The dispatcher plus multiple handlers form a chain; each handler can choose to act or ignore. To extend behavior, add another handler instead of bloating existing ones.
+- **Strategy**: Logging vs metrics handlers represent interchangeable strategies for reacting to events. Follow this pattern when adding new behaviors (e.g., persistence strategy for events).
+- **Composite**: Per-kind handler lists in `PeerEventDispatcher` compose multiple behaviors as a single dispatcher. Group related handlers when you need combined behaviors.
+- **Facade (bot control plane)**: HTTP surface in `backend/bins/botd/src/http.rs` shields callers from internal peer/event details; keep it thin and delegate to handlers/services.
+- **Singletons (where needed)**: Global allocator (`GLOBAL`), static migrators (`static MIGRATOR` per binary). Avoid new global state unless initialization must happen once.
+- **MVC**: Treat Axum handlers as controllers (`http.rs`), DB + peer/service layers as model (state + persistence), and response serializers/views as the view. Keep controllers thin and push business logic into model/service helpers.
+- **Repository**: Formalize DB access by wrapping SQLx queries per aggregate (memberships, join_decisions, issuer_capabilities) in dedicated modules to keep handlers/controllers thin.
+
 ### Frontends (Desktop Apps)
 
 Shared frontend stack (both Soma and Tapia):

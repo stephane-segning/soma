@@ -63,8 +63,10 @@ async fn run(config: DaemonConfig) -> SomaResult<()> {
 
     std::fs::create_dir_all(&blob_dir)?;
     static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
-    let db =
-        soma_core::db::connect_sqlite_and_migrate(&db_path.to_string_lossy(), &MIGRATOR).await?;
+    info!(db_path = %db_path.display(), scheme = "sqlite", "configuring database");
+    let db = soma_core::db::DbFactory::sqlite(db_path.to_string_lossy().as_ref(), &MIGRATOR)
+        .build_sqlite()
+        .await?;
 
     let peer_config = PeerConfig::builder()
         .identity_path(identity_path)

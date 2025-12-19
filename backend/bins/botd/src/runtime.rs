@@ -9,7 +9,7 @@ use soma_peer::{
     spawn_ping_peer,
 };
 use tokio::task::JoinHandle;
-use tracing::warn;
+use tracing::{info, warn};
 
 use crate::{
     config::{Args, BotConfig, Command},
@@ -45,8 +45,11 @@ pub async fn run(config: BotConfig, metrics: BotMetrics) -> SomaResult<()> {
 
     // DB: allow postgres or sqlite URL, default to sqlite file path.
     static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");
-    let db: sqlx::AnyPool =
-        soma_core::db::connect_any_and_migrate(&config.database_url, &MIGRATOR).await?;
+    let db_scheme = db_scheme(&config.database_url);
+    info!(scheme = %db_scheme, url = %config.database_url, "configuring database");
+    let db: sqlx::AnyPool = soma_core::db::DbFactory::any(&config.database_url, &MIGRATOR)
+        .build_any()
+        .await?;
 
     let peer_config = PeerConfig::builder()
         .identity_path(config.identity_path.clone())
@@ -149,4 +152,14 @@ where
     }
 
     (wrapped, tasks)
+}
+
+fn db_scheme(url: &str) -> &'static str {
+    if url.starts_with("postgres://") || url.starts_with("postgresql://") {
+        "postgres"
+    } else if url.starts_with("sqlite:") || url.ends_with(".db") {
+        "sqlite"
+    } else {
+        "unknown"
+    }
 }

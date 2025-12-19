@@ -224,6 +224,15 @@ async fn join_handler(
         .get_or_create(&JoinDecisionLabels { outcome })
         .inc();
 
+    if let Err(err) = persist_join(&state.db, &decision).await {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse {
+                error: format!("failed to persist join decision: {err}"),
+            }),
+        ));
+    }
+
     Ok(Json(decision_view))
 }
 
@@ -274,4 +283,80 @@ fn capability_to_view(capability: &MembershipCapability) -> MembershipCapability
         expires_at,
         encoded: BASE64.encode(capability.encode_to_vec()),
     }
+}
+
+async fn persist_join(db: &sqlx::AnyPool, decision: &JoinDecision) -> Result<(), sqlx::Error> {
+    let space_id = decision
+        .class_id
+        .as_ref()
+        .map(|c| c.value.as_str())
+        .unwrap_or_default();
+    let subject_peer_id = decision
+        .subject_peer_id
+        .as_ref()
+        .map(|p| p.value.as_str())
+        .unwrap_or_default();
+    let created_at = decision
+        .created_at
+        .as_ref()
+        .map(|ts| ts.seconds)
+        .unwrap_or_default();
+
+    let capability_bytes = decision.capability.as_ref().map(|cap| cap.encode_to_vec());
+    sqlx::query(
+        r#"
+        INSERT INTO join_decisions(decision_id, space_id, subject_peer_id, decision, reason, created_at, capability)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        "#,
+    )
+    .bind(decision.decision_id.as_str())
+    .bind(space_id)
+    .bind(subject_peer_id)
+    .bind(decision.decision)
+    .bind(decision.reason.as_str())
+    .bind(created_at)
+    .bind(capability_bytes)
+    .execute(db)
+    .await?;
+
+    // If approved, upsert membership.
+    if let Some(cap) = &decision.capability {
+        let issued_at = cap
+            .issued_at
+            .as_ref()
+            .map(|ts| ts.seconds)
+            .unwrap_or_default();
+        let expires_at = cap.expires_at.as_ref().map(|ts| ts.seconds);
+        let role = cap.role;
+        let issuer_peer_id = cap
+            .issuer_peer_id
+            .as_ref()
+            .map(|p| p.value.as_str())
+            .unwrap_or_default();
+        let cap_bytes = cap.encode_to_vec();
+
+        sqlx::query(
+            r#"
+            INSERT INTO space_memberships(space_id, subject_peer_id, role, issuer_peer_id, issued_at, expires_at, capability)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(space_id, subject_peer_id) DO UPDATE SET
+                role=excluded.role,
+                issuer_peer_id=excluded.issuer_peer_id,
+                issued_at=excluded.issued_at,
+                expires_at=excluded.expires_at,
+                capability=excluded.capability
+            "#,
+        )
+        .bind(space_id)
+        .bind(subject_peer_id)
+        .bind(role)
+        .bind(issuer_peer_id)
+        .bind(issued_at)
+        .bind(expires_at)
+        .bind(cap_bytes)
+        .execute(db)
+        .await?;
+    }
+
+    Ok(())
 }
