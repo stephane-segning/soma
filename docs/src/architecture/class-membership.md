@@ -30,19 +30,19 @@ Classes are secure collaboration spaces. Access is governed by explicit capabili
 
 ## Join Flow
 
-1. **JoinRequest sent** – Tapia asks the local daemon to join a class; the daemon publishes or sends a JoinRequest packet.
-2. **Request processed** – The class bot or admin agent receives the request, verifies the invite, and checks IssuerCapability permissions.
-3. **Membership granted** – A MembershipCapability is created, typically by signing a statement `Peer X is a member of Class Y` with the issuer’s key.
+1. **JoinRequest sent** – Tapia asks the local daemon to join a space; the daemon publishes or sends a JoinRequest packet.
+2. **Request processed** – The space bot or admin agent receives the request, verifies the invite, and checks IssuerCapability permissions.
+3. **Membership granted** – A MembershipCapability is created, typically by signing a statement `Peer X is a member of Space Y` with the issuer’s key.
 4. **Delivery** – The credential is sent back to the requester’s daemon, which stores it securely.
 5. **Access unlocked** – The daemon subscribes to the class pubsub topics, syncs documents, and informs Tapia that the class is now available.
 6. **Ongoing enforcement** – Peers may verify that incoming messages are signed by members or consult bot-maintained member lists to reject unauthorized traffic.
 
-Revocation can be implemented by expiring capabilities, publishing revocation events, or rotating class secrets. Regardless of the specifics, membership is always tied to the requesting peer’s ID, leveraging libp2p’s secure identity layer.[^security]
+Revocation can be implemented by expiring capabilities, publishing revocation events, or rotating space secrets. Regardless of the specifics, membership is always tied to the requesting peer’s ID, leveraging libp2p’s secure identity layer.[^security]
 
 ### Current implementation snapshot
 
 - Transport: libp2p request/response protocol `/soma/join/1` (see `soma-peer`).
-- Daemon: exposes Join via gRPC over Unix socket (`Daemon/JoinClass`), then sends a JoinRequest over libp2p and streams decisions over `Daemon/StreamEvents`.
+- Daemon: exposes Join via gRPC over Unix socket (`Daemon/JoinSpace`), then sends a JoinRequest over libp2p and streams decisions over `Daemon/StreamEvents`.
 - Bot control plane: `soma-botd` exposes `/v1/join` (HTTP) and issues a MembershipCapability (unsigned placeholder) by default. Policy can be added in that handler.
 - Peer event pipeline: join decisions and failures are surfaced as `PeerEvent` and dispatched via the shared event dispatcher (see `docs/src/development/peer-events.md`).
 

@@ -61,6 +61,38 @@ Specific services (all now live under `backend/`):
 - **Server peer/bot** (`backend/bins/botd`, `soma-botd`): a server-hosted libp2p peer/bot with an Axum control plane + metrics.
 - **LLM BFF** (`backend/bins/bffd`, `backend/crates/bff`): a backend-for-frontend for interacting with LLMs via `llama-cpp-2`; runs `mimalloc` + Axum + a small metrics server. This is the only backend that does **not** use libp2p.
 
+#### `soma-botd` internals (event handling + metrics)
+
+`soma-botd` processes libp2p events through a small dispatcher with per-handler queues:
+
+- Entry point: `backend/bins/botd/src/main.rs`
+- Runtime loop + wiring (peer spawn, HTTP spawn, dispatcher): `backend/bins/botd/src/runtime.rs`
+- Peer event handlers:
+  - Metrics: `backend/bins/botd/src/event_handlers.rs` (`MetricsHandler`, handles **all** `PeerEventKind`s)
+  - Logging: `backend/bins/botd/src/event_handlers.rs` (`LoggingHandler`, selected events only)
+- Prometheus metrics definitions/registration: `backend/bins/botd/src/metrics.rs`
+
+When adding new peer events or instrumentation, prefer:
+
+- Updating `soma-peer` event definitions (`backend/crates/peer/src/lib.rs`, `backend/crates/peer/src/events.rs`)
+- Adding a matching metrics/logging branch in `backend/bins/botd/src/event_handlers.rs`
+
+### Business Logic & API Checklist
+
+Use this list to track domain flows and where the API lives. Mark items off as you implement them end-to-end (daemon ↔ bot ↔ peer).
+
+- [x] Space join request & decision
+  - Daemon gRPC: `Daemon/JoinSpace(space_id, display_name, device_name, target_peer_id, target_multiaddrs)` (Unix socket, proto `proto/daemon/v1/daemon.proto`)
+  - Bot HTTP: `POST /v1/join` (`space_id`, `subject_peer_id`, optional approval context) issues `JoinDecision` + `MembershipCapability`
+- [ ] Space membership revocation/leave
+  - Bot HTTP: `POST /v1/space/revoke` (botd) to revoke capabilities by `space_id` and `subject_peer_id`; daemon gRPC: `Daemon/RevokeSpace` to request or consume a revocation and drop local capability
+- [ ] Space roster/query
+  - Bot HTTP: `GET /v1/space/members` (botd) to list current members with roles/expiry; daemon gRPC: `Daemon/ListSpaceMembers` to fetch + cache
+- [ ] Issuer delegation management (bots acting on behalf of owners)
+  - Bot HTTP: `POST /v1/space/issuer-capability` (botd) to rotate/issue issuer delegation for a bot; daemon gRPC: `Daemon/IssueIssuerCapability` to accept and persist
+- [ ] Space discovery/onboarding UX helpers
+  - Daemon gRPC: `Daemon/DiscoverSpaces` to surface available spaces via rendezvous/relay metadata for UIs
+
 ### Frontends (Desktop Apps)
 
 Shared frontend stack (both Soma and Tapia):

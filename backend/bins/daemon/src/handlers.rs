@@ -1,6 +1,6 @@
 use async_trait::async_trait;
-use soma_peer::events::{PeerEventHandler, PeerEventKind};
 use soma_peer::PeerEvent;
+use soma_peer::events::{PeerEventHandler, PeerEventKind};
 use tracing::{info, warn};
 
 use crate::DaemonState;
@@ -46,7 +46,11 @@ impl PeerEventHandler<crate::DaemonState> for LoggingHandler {
             PeerEvent::PingErr { error } => {
                 warn!(%error, "daemon ping error");
             }
-            PeerEvent::IdentifyReceived { peer, agent, protocols } => {
+            PeerEvent::IdentifyReceived {
+                peer,
+                agent,
+                protocols,
+            } => {
                 info!(%peer, %agent, protocols, "daemon identify received");
             }
             PeerEvent::MdnsDiscovered { peers } => {

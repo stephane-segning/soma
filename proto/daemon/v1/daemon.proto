@@ -13,9 +13,9 @@ message StatusResponse {
   repeated string listen_addrs = 2;
 }
 
-message JoinClassRequest {
-  // Target class the user wants to join.
-  string class_id = 1;
+message JoinSpaceRequest {
+  // Target space the user wants to join.
+  string space_id = 1;
 
   // Human-friendly metadata for reviewers/bots.
   string display_name = 2;
@@ -28,8 +28,54 @@ message JoinClassRequest {
   repeated string target_multiaddrs = 5;
 }
 
-message JoinClassResponse {
+message JoinSpaceResponse {
   string request_id = 1;
+}
+
+message RevokeSpaceRequest {
+  string space_id = 1;
+  string subject_peer_id = 2;
+  string reason = 3;
+}
+
+message RevokeSpaceResponse {
+  bool accepted = 1;
+}
+
+message ListSpaceMembersRequest {
+  string space_id = 1;
+}
+
+message SpaceMember {
+  string peer_id = 1;
+  string role = 2;
+  int64 expires_at = 3;
+}
+
+message ListSpaceMembersResponse {
+  repeated SpaceMember members = 1;
+}
+
+message IssueIssuerCapabilityRequest {
+  string space_id = 1;
+  string target_peer_id = 2;
+  int64 expires_at = 3;
+}
+
+message IssueIssuerCapabilityResponse {
+  bool accepted = 1;
+}
+
+message DiscoverSpacesRequest {}
+
+message DiscoveredSpace {
+  string space_id = 1;
+  string display_name = 2;
+  repeated string tags = 3;
+}
+
+message DiscoverSpacesResponse {
+  repeated DiscoveredSpace spaces = 1;
 }
 
 message StreamEventsRequest {}
@@ -59,6 +105,10 @@ message DaemonEvent {
 
 service Daemon {
   rpc Status(StatusRequest) returns (StatusResponse);
-  rpc JoinClass(JoinClassRequest) returns (JoinClassResponse);
+  rpc JoinSpace(JoinSpaceRequest) returns (JoinSpaceResponse);
   rpc StreamEvents(StreamEventsRequest) returns (stream DaemonEvent);
+  rpc RevokeSpace(RevokeSpaceRequest) returns (RevokeSpaceResponse);
+  rpc ListSpaceMembers(ListSpaceMembersRequest) returns (ListSpaceMembersResponse);
+  rpc IssueIssuerCapability(IssueIssuerCapabilityRequest) returns (IssueIssuerCapabilityResponse);
+  rpc DiscoverSpaces(DiscoverSpacesRequest) returns (DiscoverSpacesResponse);
 }

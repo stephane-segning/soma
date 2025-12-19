@@ -7,8 +7,8 @@ use soma_core::SomaResult;
 use soma_peer::PeerCommand;
 use soma_proto_build::classroom::v1 as classroom;
 use soma_proto_build::daemon::v1 as daemon;
-use tokio::sync::{broadcast, mpsc, Mutex};
-use tokio_stream::{wrappers::BroadcastStream, StreamExt as TokioStreamExt};
+use tokio::sync::{Mutex, broadcast, mpsc};
+use tokio_stream::{StreamExt as TokioStreamExt, wrappers::BroadcastStream};
 use tonic::{Request, Response, Status};
 
 use soma_socket::serve_grpc_unix;
@@ -48,10 +48,10 @@ impl daemon::daemon_server::Daemon for DaemonService {
         }))
     }
 
-    async fn join_class(
+    async fn join_space(
         &self,
-        request: Request<daemon::JoinClassRequest>,
-    ) -> Result<Response<daemon::JoinClassResponse>, Status> {
+        request: Request<daemon::JoinSpaceRequest>,
+    ) -> Result<Response<daemon::JoinSpaceResponse>, Status> {
         let payload = request.into_inner();
         let target_peer_id = PeerId::from_str(&payload.target_peer_id)
             .map_err(|_| Status::invalid_argument("invalid target peer id"))?;
@@ -70,7 +70,7 @@ impl daemon::daemon_server::Daemon for DaemonService {
         let request_id = format!("{:016x}", rand::random::<u64>());
         let join_request = classroom::JoinRequest {
             class_id: Some(classroom::ClassId {
-                value: payload.class_id,
+                value: payload.space_id,
             }),
             peer_id: Some(classroom::PeerId {
                 value: self.state.peer_id.to_string(),
@@ -105,7 +105,7 @@ impl daemon::daemon_server::Daemon for DaemonService {
             })
             .await;
 
-        Ok(Response::new(daemon::JoinClassResponse { request_id }))
+        Ok(Response::new(daemon::JoinSpaceResponse { request_id }))
     }
 
     async fn stream_events(
@@ -116,6 +116,38 @@ impl daemon::daemon_server::Daemon for DaemonService {
             .filter_map(|msg: Result<daemon::DaemonEvent, _>| msg.ok())
             .map(Ok);
         Ok(Response::new(Box::pin(stream)))
+    }
+
+    async fn revoke_space(
+        &self,
+        _request: Request<daemon::RevokeSpaceRequest>,
+    ) -> Result<Response<daemon::RevokeSpaceResponse>, Status> {
+        Err(Status::unimplemented("RevokeSpace not yet implemented"))
+    }
+
+    async fn list_space_members(
+        &self,
+        _request: Request<daemon::ListSpaceMembersRequest>,
+    ) -> Result<Response<daemon::ListSpaceMembersResponse>, Status> {
+        Err(Status::unimplemented(
+            "ListSpaceMembers not yet implemented",
+        ))
+    }
+
+    async fn issue_issuer_capability(
+        &self,
+        _request: Request<daemon::IssueIssuerCapabilityRequest>,
+    ) -> Result<Response<daemon::IssueIssuerCapabilityResponse>, Status> {
+        Err(Status::unimplemented(
+            "IssueIssuerCapability not yet implemented",
+        ))
+    }
+
+    async fn discover_spaces(
+        &self,
+        _request: Request<daemon::DiscoverSpacesRequest>,
+    ) -> Result<Response<daemon::DiscoverSpacesResponse>, Status> {
+        Err(Status::unimplemented("DiscoverSpaces not yet implemented"))
     }
 }
 

@@ -107,14 +107,14 @@ grpcurl -plaintext \
   -import-path ../proto \
   -proto ../proto/daemon/v1/daemon.proto \
   -d '{
-    "class_id": "class-123",
+    "space_id": "space-123",
     "display_name": "Alice",
     "device_name": "Test",
     "target_peer_id": "<BOT_PEER_ID>",
     "target_multiaddrs": ["<BOT_MULTIADDR_WITH_P2P>"]
   }' \
   "unix://$PWD/soma-daemon.sock" \
-  daemon.v1.Daemon/JoinClass
+  daemon.v1.Daemon/JoinSpace
 ```
 
 Expected:

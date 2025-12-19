@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use soma_peer::events::{PeerEventDispatcher, PeerEventHandler};
 
-use crate::handlers::{JoinEventsHandler, ListenAddrHandler, LoggingHandler};
 use crate::DaemonState;
+use crate::handlers::{JoinEventsHandler, ListenAddrHandler, LoggingHandler};
 
 /// Build the dispatcher and spin up per-handler workers for backpressure isolation.
 pub async fn build_dispatcher(state: Arc<DaemonState>) -> PeerEventDispatcher<DaemonState> {

@@ -27,7 +27,7 @@ Testing recipe: `docs/src/development/daemon-grpcurl.md`.
 
 Mechanics:
 
-- Daemon calls `Daemon/JoinClass` (gRPC).
+- Daemon calls `Daemon/JoinSpace` (gRPC).
 - Daemon sends a `PeerCommand::SendJoinRequest` to `soma-peer`.
 - `soma-peer` sends a libp2p request/response message (`JoinRequest` → `JoinDecision`).
 - Daemon surfaces join outcomes on `Daemon/StreamEvents`.

@@ -36,7 +36,7 @@ pub struct BotState {
 
 #[derive(Debug, Deserialize)]
 pub struct JoinDecisionRequest {
-    pub class_id: String,
+    pub space_id: String,
     pub subject_peer_id: String,
     #[serde(default = "default_approve")]
     pub approve: bool,
@@ -53,7 +53,7 @@ pub struct JoinDecisionRequest {
 
 #[derive(Debug, Serialize)]
 pub struct MembershipCapabilityView {
-    pub class_id: String,
+    pub space_id: String,
     pub subject_peer_id: String,
     pub issuer_peer_id: String,
     pub role: String,
@@ -66,7 +66,7 @@ pub struct MembershipCapabilityView {
 pub struct JoinDecisionView {
     pub decision_id: String,
     pub decision: String,
-    pub class_id: String,
+    pub space_id: String,
     pub subject_peer_id: String,
     pub reason: String,
     pub created_at: i64,
@@ -122,19 +122,19 @@ async fn join_handler(
     State(state): State<Arc<BotState>>,
     Json(payload): Json<JoinDecisionRequest>,
 ) -> Result<Json<JoinDecisionView>, (StatusCode, Json<ErrorResponse>)> {
-    let class_id = payload.class_id.trim();
+    let space_id = payload.space_id.trim();
     let subject = payload.subject_peer_id.trim();
-    if class_id.is_empty() || subject.is_empty() {
+    if space_id.is_empty() || subject.is_empty() {
         return Err((
             StatusCode::BAD_REQUEST,
             Json(ErrorResponse {
-                error: "class_id and subject_peer_id are required".into(),
+                error: "space_id and subject_peer_id are required".into(),
             }),
         ));
     }
 
     info!(
-        %class_id,
+        %space_id,
         %subject,
         approve = payload.approve,
         display_name = ?payload.display_name,
@@ -151,7 +151,7 @@ async fn join_handler(
     let (decision_type, reason, capability) = if payload.approve {
         let capability = MembershipCapability {
             class_id: Some(ClassId {
-                value: class_id.to_string(),
+                value: space_id.to_string(),
             }),
             subject_peer_id: Some(PeerId {
                 value: subject.to_string(),
@@ -186,7 +186,7 @@ async fn join_handler(
     let decision = JoinDecision {
         decision_id: decision_id.clone(),
         class_id: Some(ClassId {
-            value: class_id.to_string(),
+            value: space_id.to_string(),
         }),
         subject_peer_id: Some(PeerId {
             value: subject.to_string(),
@@ -200,7 +200,7 @@ async fn join_handler(
     let decision_view = JoinDecisionView {
         decision_id,
         decision: decision_type.as_str_name().to_string(),
-        class_id: class_id.to_string(),
+        space_id: space_id.to_string(),
         subject_peer_id: subject.to_string(),
         reason,
         created_at: issued_at
@@ -249,7 +249,7 @@ fn capability_to_view(capability: &MembershipCapability) -> MembershipCapability
         .unwrap_or_default();
 
     MembershipCapabilityView {
-        class_id: capability
+        space_id: capability
             .class_id
             .as_ref()
             .map(|c| c.value.clone())
