@@ -43,10 +43,10 @@ Revocation can be implemented by expiring capabilities, publishing revocation ev
 
 - Transport: libp2p request/response protocol `/soma/join/1` (see `soma-peer`).
 - Daemon: exposes Join via gRPC over Unix socket (`Daemon/JoinSpace`), then sends a JoinRequest over libp2p and streams decisions over `Daemon/StreamEvents`.
-- Join decisions: handled in `soma-peer` via a pluggable join decider (default: reject-all). Controllers (daemon/bot) supply the decider or admin actions.
+- Join decisions: botd now ships a real join decider that approves requests (optionally attaching an issuer capability if the bot has been delegated) and persists decisions/memberships to the shared SQLx storage.
 - Bot operating modes:
-  - `bot` mode (default): HTTP is read-only (`/info`, `/healthz`, `/metrics`); no business APIs.
-  - `server-daemon` mode: may expose admin HTTP (e.g., `/v1/join` to decide an existing join request), but endpoints must be authenticated/authorized and delegate to `soma-peer`/repositories (no force-join minting in controllers).
+  - `bot` mode (default): HTTP is read-only (`/info`, `/healthz`, `/metrics`); join decisions still flow over libp2p via the decider.
+  - `server-daemon` mode: exposes `/v1/join` (admin-token gated) to drive the same decider over HTTP for admin tooling; controllers still delegate to the decider/storage and never “force-join”.
 - Peer event pipeline: join decisions and failures are surfaced as `PeerEvent` and dispatched via the shared event dispatcher (see `docs/src/development/peer-events.md`).
 
 [^security]: https://docs.libp2p.io/concepts/security/security-considerations/

@@ -158,10 +158,14 @@ Shared frontend stack (both Soma and Tapia):
 
 - `pnpm` workspace under `desktop/app/`
 - `tailwindcss` v4 + `daisyui` v5
+- `@headlessui/react` for accessible unstyled primitives
+- `class-variance-authority` + `tailwind-merge` (see `desktop/app/soma/src/renderer/src/lib/cn.ts` for the shared `cn` helper)
 - `floating-ui`
 - `use-debounce`
 - `composed-offset-position`
 - Motion for React (`motion`, https://github.com/motiondivision/motion)
+- Routing: `react-router` core (prefer memory/hash routers for Electron; not `react-router-dom`)
+- i18n: `react-i18next` + `i18next` with `i18next-chained-backend`, `i18next-http-backend`, `i18next-resources-to-backend`, `i18next-browser-languagedetector`; shared instance at `desktop/app/soma/src/renderer/src/lib/i18n.ts`
 - Command palette + hotkeys: `react-hotkeys-hook` and `react-cmdk`
 
 Soma (`desktop/app/soma`):
@@ -170,6 +174,7 @@ Soma (`desktop/app/soma`):
 - Uses `yoopta-editor` for rich text editing.
 - Uses DaisyUI with two themes.
 - Uses TanStack Query for optimistic UI flows.
+- Main process uses InversifyJS (`inversify` + `reflect-metadata`) for DI; container lives in `desktop/app/soma/src/main/container.ts`.
 
 Tapia (`desktop/app/tapia`):
 
