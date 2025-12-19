@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package classroom.v1;
+package spaceroom.v1;
 
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/empty.proto";
@@ -10,32 +10,32 @@ import "google/protobuf/empty.proto";
 // -----------------------------------------------------------------------------
 
 message PeerId { string value = 1; }
-message ClassId { string value = 1; } // "class" == "space" in UI, but we name it ClassId here.
+message SpaceId { string value = 1; } // "space" == "space" in UI, but we name it SpaceId here.
 
 // -----------------------------------------------------------------------------
 // Roles / permissions
 // -----------------------------------------------------------------------------
 
-enum ClassRole {
-  CLASS_ROLE_UNSPECIFIED = 0;
-  CLASS_ROLE_OWNER = 1;
-  CLASS_ROLE_EDITOR = 2;
-  CLASS_ROLE_VIEWER = 3;
-  CLASS_ROLE_STUDENT = 4;
-  CLASS_ROLE_BOT = 5; // read-only + serve (cache bot)
+enum SpaceRole {
+  SPACE_ROLE_UNSPECIFIED = 0;
+  SPACE_ROLE_OWNER = 1;
+  SPACE_ROLE_EDITOR = 2;
+  SPACE_ROLE_VIEWER = 3;
+  SPACE_ROLE_STUDENT = 4;
+  SPACE_ROLE_BOT = 5; // read-only + serve (cache bot)
 }
 
 // Optional fine-grained permissions (keep minimal at first).
 // These can complement roles.
-enum ClassPermission {
-  CLASS_PERMISSION_UNSPECIFIED = 0;
-  CLASS_PERMISSION_CHAT = 1;
-  CLASS_PERMISSION_DOWNLOAD_BLOBS = 2;
-  CLASS_PERMISSION_PUBLISH_ANNOUNCEMENTS = 3;
-  CLASS_PERMISSION_CREATE_TOPICS = 4;
-  CLASS_PERMISSION_EDIT_DOCS = 5;
-  CLASS_PERMISSION_MANAGE_MEMBERS = 6;
-  CLASS_PERMISSION_ISSUE_MEMBERSHIPS = 7; // for issuer delegation logic
+enum SpacePermission {
+  SPACE_PERMISSION_UNSPECIFIED = 0;
+  SPACE_PERMISSION_CHAT = 1;
+  SPACE_PERMISSION_DOWNLOAD_BLOBS = 2;
+  SPACE_PERMISSION_PUBLISH_ANNOUNCEMENTS = 3;
+  SPACE_PERMISSION_CREATE_TOPICS = 4;
+  SPACE_PERMISSION_EDIT_DOCS = 5;
+  SPACE_PERMISSION_MANAGE_MEMBERS = 6;
+  SPACE_PERMISSION_ISSUE_MEMBERSHIPS = 7; // for issuer delegation logic
 }
 
 // -----------------------------------------------------------------------------
@@ -64,10 +64,10 @@ message CborSigned {
 // -----------------------------------------------------------------------------
 
 message InviteState {
-  ClassId class_id = 1;
+  SpaceId space_id = 1;
 
   // Default role teacher will usually approve.
-  ClassRole default_role = 2;
+  SpaceRole default_role = 2;
 
   // Optional: invites expire.
   google.protobuf.Timestamp expires_at = 3;
@@ -80,7 +80,7 @@ message InviteState {
   bytes invite_nonce = 5;
 
   // Optional label for UX ("Form 4 Maths").
-  string class_label = 6;
+  string space_label = 6;
 
   // Signed by owner/teacher or by an already-authorized bot (rare).
   // Sign canonical CBOR of this InviteState without the `signature` field.
@@ -109,7 +109,7 @@ message InviteProof {
 // -----------------------------------------------------------------------------
 
 message JoinRequest {
-  ClassId class_id = 1;
+  SpaceId space_id = 1;
   PeerId peer_id = 2;
 
   // Human-friendly data for teacher approval UI (NOT identity).
@@ -120,7 +120,7 @@ message JoinRequest {
   string student_code = 5;
 
   // Student can request, teacher/bot may override.
-  ClassRole requested_role = 6;
+  SpaceRole requested_role = 6;
 
   InviteProof invite_proof = 7;
 
@@ -132,16 +132,16 @@ message JoinRequest {
 // -----------------------------------------------------------------------------
 
 message IssuerCapability {
-  ClassId class_id = 1;
+  SpaceId space_id = 1;
 
   // Bot identity that is delegated issuance power.
   PeerId issuer_peer_id = 2;
 
   // Least privilege: bot may issue only these roles.
-  repeated ClassRole allowed_roles = 3; // typically STUDENT, VIEWER
+  repeated SpaceRole allowed_roles = 3; // typically STUDENT, VIEWER
 
   // Optional permission set for issued memberships (defaults if empty).
-  repeated ClassPermission default_permissions = 4;
+  repeated SpacePermission default_permissions = 4;
 
   google.protobuf.Timestamp issued_at = 5;
   google.protobuf.Timestamp expires_at = 6;
@@ -164,11 +164,11 @@ message IssuerCapability {
 // -----------------------------------------------------------------------------
 
 message MembershipCapability {
-  ClassId class_id = 1;
+  SpaceId space_id = 1;
   PeerId subject_peer_id = 2;
 
-  ClassRole role = 3;
-  repeated ClassPermission permissions = 4;
+  SpaceRole role = 3;
+  repeated SpacePermission permissions = 4;
 
   google.protobuf.Timestamp issued_at = 5;
   google.protobuf.Timestamp expires_at = 6; // recommend set (semester end)
@@ -198,7 +198,7 @@ enum JoinDecisionType {
 message JoinDecision {
   string decision_id = 1;
 
-  ClassId class_id = 2;
+  SpaceId space_id = 2;
   PeerId subject_peer_id = 3;
 
   JoinDecisionType decision = 4;
@@ -241,7 +241,7 @@ message IssuerRevocationPolicy {
 // A revocation record signed by owner.
 // Distributed to peers (pubsub) and stored locally.
 message Revocation {
-  ClassId class_id = 1;
+  SpaceId space_id = 1;
 
   // Who is authorizing this revocation (owner).
   PeerId owner_peer_id = 2;
@@ -279,7 +279,7 @@ message RevokedIssuer {
 message MailboxItem {
   string mailbox_id = 1;
 
-  ClassId class_id = 2;
+  SpaceId space_id = 2;
   PeerId recipient_peer_id = 3;
 
   oneof payload {
@@ -292,14 +292,14 @@ message MailboxItem {
 }
 
 message FetchMailboxRequest {
-  ClassId class_id = 1;
+  SpaceId space_id = 1;
   PeerId recipient_peer_id = 2;
 
   string cursor = 3;
   uint32 limit = 4;
 
   // Prove the fetcher controls recipient_peer_id.
-  // e.g. signature over CBOR({class_id, recipient_peer_id, cursor, ts, nonce})
+  // e.g. signature over CBOR({space_id, recipient_peer_id, cursor, ts, nonce})
   bytes requester_proof = 5;
   string requester_proof_type = 6;
 
@@ -330,14 +330,14 @@ service MembershipService {
   rpc SubmitJoinRequest(JoinRequest) returns (google.protobuf.Empty);
 
   // Teacher UI: stream join requests as they arrive.
-  rpc SubscribeJoinRequests(ClassId) returns (stream JoinRequest);
+  rpc SubscribeJoinRequests(SpaceId) returns (stream JoinRequest);
 
   // Teacher UI OR bot UI: approve/reject/block.
   // Daemon tries direct delivery; if unavailable, stores to mailbox on an available bot.
   rpc DecideJoin(JoinDecision) returns (google.protobuf.Empty);
 
   // Student UI: stream decisions received (direct or mailbox fetched).
-  rpc SubscribeJoinDecisions(ClassId) returns (stream JoinDecision);
+  rpc SubscribeJoinDecisions(SpaceId) returns (stream JoinDecision);
 
   // Owner UI: delegate bot issuance power.
   rpc GrantIssuer(IssuerCapability) returns (google.protobuf.Empty);
@@ -345,8 +345,8 @@ service MembershipService {
   // Owner UI: publish revocation(s).
   rpc PublishRevocation(Revocation) returns (google.protobuf.Empty);
 
-  // Anyone (UI) can subscribe to revocations for a class.
-  rpc SubscribeRevocations(ClassId) returns (stream Revocation);
+  // Anyone (UI) can subscribe to revocations for a space.
+  rpc SubscribeRevocations(SpaceId) returns (stream Revocation);
 }
 
 // Bot-side mailbox service (can be exposed via P2P request/response or direct).
