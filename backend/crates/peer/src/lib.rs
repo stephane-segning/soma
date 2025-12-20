@@ -53,6 +53,8 @@ pub enum PeerCommand {
     },
     /// Request to fetch a blob by CID. Results are delivered via events or handlers.
     FetchBlob {
+        target: PeerId,
+        addrs: Vec<Multiaddr>,
         cid: String,
         space_id: Option<String>,
     },
@@ -154,6 +156,7 @@ pub enum PeerEvent {
         cid: String,
         size: u64,
         found: bool,
+        stored: bool,
     },
 }
 
@@ -161,6 +164,14 @@ pub enum PeerEvent {
 #[async_trait]
 pub trait BlobProvider: Send + Sync {
     async fn get(&self, cid: &str, space_id: Option<&str>) -> Option<BlobResponse>;
+    /// Store a blob received over the network. Implementations should verify CID before writing.
+    async fn put(
+        &self,
+        expected_cid: &str,
+        space_id: Option<&str>,
+        bytes: &[u8],
+        mime: &str,
+    ) -> SomaResult<bool>;
 }
 
 /// Handle to a running peer.
@@ -410,15 +421,16 @@ async fn run_swarm(
                         outbound_join_decisions.insert(req_id, (target, delivery_id.clone()));
                         let _ = event_tx.try_send(PeerEvent::JoinDecisionDeliverySubmitted { target, delivery_id });
                     }
-                    PeerCommand::FetchBlob { cid, space_id } => {
+                    PeerCommand::FetchBlob { target, addrs, cid, space_id } => {
+                        for addr in addrs {
+                            swarm.add_peer_address(target, addr.clone());
+                            let _ = swarm.dial(addr.clone());
+                        }
                         let mut request = BlobRequest { cid, space_id: String::new() };
                         if let Some(space) = space_id {
                             request.space_id = space;
                         }
-                        let _ = swarm.behaviour_mut().blob.send_request(
-                            &peer_id, // send to self; actual peer selection not wired yet
-                            request,
-                        );
+                        let _ = swarm.behaviour_mut().blob.send_request(&target, request);
                     }
                     PeerCommand::Shutdown => {
                         info!("peer shutdown requested");
@@ -589,6 +601,7 @@ async fn run_swarm(
                                         size: 0,
                                         data: Vec::new(),
                                         found: false,
+                                        space_id: request.space_id,
                                     });
                                     let _ = swarm.behaviour_mut().blob.send_response(channel, response);
                                 } else {
@@ -598,6 +611,7 @@ async fn run_swarm(
                                         size: 0,
                                         data: Vec::new(),
                                         found: false,
+                                        space_id: request.space_id,
                                     };
                                     let _ = swarm.behaviour_mut().blob.send_response(channel, response);
                                     let _ = event_tx.try_send(PeerEvent::ConnectionError {
@@ -607,10 +621,38 @@ async fn run_swarm(
                                 }
                             }
                             reqres::Message::Response { response, .. } => {
+                                let stored = if response.found {
+                                    if let Some(provider) = blob_provider.as_ref() {
+                                        match provider
+                                            .put(
+                                                &response.cid,
+                                                (!response.space_id.is_empty())
+                                                    .then_some(response.space_id.as_str()),
+                                                &response.data,
+                                                &response.mime,
+                                            )
+                                            .await
+                                        {
+                                            Ok(written) => written,
+                                            Err(err) => {
+                                                let _ = event_tx.try_send(PeerEvent::ConnectionError {
+                                                    peer: Some(peer),
+                                                    error: format!("blob store failed: {err}"),
+                                                });
+                                                false
+                                            }
+                                        }
+                                    } else {
+                                        false
+                                    }
+                                } else {
+                                    false
+                                };
                                 let _ = event_tx.try_send(PeerEvent::BlobResponseReceived {
                                     cid: response.cid.clone(),
                                     size: response.size,
                                     found: response.found,
+                                    stored,
                                 });
                             }
                         },
@@ -710,6 +752,8 @@ pub struct BlobResponse {
     pub data: Vec<u8>,
     #[prost(bool, tag = "5")]
     pub found: bool,
+    #[prost(string, tag = "6")]
+    pub space_id: String,
 }
 
 #[async_trait]

@@ -2,6 +2,7 @@ use mimalloc::MiMalloc;
 use soma_core::SomaResult;
 use tracing_subscriber::EnvFilter;
 
+mod blob_cache;
 mod config;
 mod event_handlers;
 mod http;

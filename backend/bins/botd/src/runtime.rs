@@ -21,6 +21,8 @@ use tokio::task::JoinHandle;
 use tracing::{info, warn};
 
 use crate::{
+    blob_cache,
+    blob_cache::BlobCache,
     config::{Args, BotConfig, Command, Mode},
     event_handlers,
     http::{self, BotInfo, BotState},
@@ -51,6 +53,7 @@ pub async fn run_from_cli() -> SomaResult<()> {
 /// Run botd: spawn peer + HTTP server, then dispatch peer events until shutdown.
 pub async fn run(config: BotConfig, metrics: BotMetrics) -> SomaResult<()> {
     std::fs::create_dir_all(&config.blob_dir)?;
+    let blob_cache = BlobCache::new(config.blob_dir.clone());
 
     // DB: allow postgres or sqlite URL, default to sqlite file path.
     static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("../../crates/storage/migrations");
@@ -78,6 +81,7 @@ pub async fn run(config: BotConfig, metrics: BotMetrics) -> SomaResult<()> {
         .relay_addrs(config.relay_addrs.clone())
         .enable_mdns(config.enable_mdns)
         .join_decider(join_decider.clone())
+        .blob_provider(Some(Arc::new(blob_cache.clone())))
         .build()
         .expect("peer config");
 
@@ -102,6 +106,7 @@ pub async fn run(config: BotConfig, metrics: BotMetrics) -> SomaResult<()> {
         repos: repos.clone(),
         signer: net_identity.keypair().clone(),
         peer_commands: peer.commands.clone(),
+        blob_cache: blob_cache.clone(),
     });
 
     let http_handle = tokio::spawn({
