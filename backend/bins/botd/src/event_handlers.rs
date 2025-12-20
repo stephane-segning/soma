@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use soma_membership::{
-    apply_join_decision, decode_outgoing_join_request_payload, MAILBOX_KIND_JOIN_DECISION,
-    MAILBOX_KIND_JOIN_REQUEST,
+    MAILBOX_KIND_JOIN_DECISION, MAILBOX_KIND_JOIN_REQUEST, apply_join_decision,
+    decode_outgoing_join_request_payload,
 };
 use soma_peer::{
     PeerEvent,
@@ -15,9 +15,9 @@ use tracing::{info, warn};
 
 use crate::http::BotState;
 use crate::metrics::{BotMetrics, EventLabels, JoinDecisionLabels, PingLabels};
-use std::time::SystemTime;
-use prost::Message;
 use libp2p::Multiaddr;
+use prost::Message;
+use std::time::SystemTime;
 
 /// Handler that records metrics for every peer event.
 pub struct MetricsHandler;
@@ -52,6 +52,7 @@ enum EventKindLabel {
     JoinDecisionDeliveryAck,
     JoinDecisionDeliveryFailed,
     JoinFailed,
+    YooptaBlobAdded,
 }
 
 impl EventKindLabel {
@@ -77,6 +78,7 @@ impl EventKindLabel {
             EventKindLabel::JoinDecisionDeliveryAck => "join_decision_delivery_ack",
             EventKindLabel::JoinDecisionDeliveryFailed => "join_decision_delivery_failed",
             EventKindLabel::JoinFailed => "join_failed",
+            EventKindLabel::YooptaBlobAdded => "yoopta_blob_added",
         }
     }
 }
@@ -202,6 +204,9 @@ impl PeerEventHandler<BotState> for MetricsHandler {
             PeerEvent::JoinDecisionDeliveryFailed { .. } => {
                 record_event(metrics, EventKindLabel::JoinDecisionDeliveryFailed);
             }
+            PeerEvent::YooptaBlobAdded { .. } => {
+                record_event(metrics, EventKindLabel::YooptaBlobAdded);
+            }
             PeerEvent::JoinFailed { .. } => {
                 record_event(metrics, EventKindLabel::JoinFailed);
             }
@@ -268,10 +273,19 @@ impl PeerEventHandler<BotState> for LoggingHandler {
             PeerEvent::ListenerClosed { reason } => {
                 warn!(?reason, "bot listener closed");
             }
-            PeerEvent::JoinRequestDeliveryFailed { target, delivery_id, request_id, error } => {
+            PeerEvent::JoinRequestDeliveryFailed {
+                target,
+                delivery_id,
+                request_id,
+                error,
+            } => {
                 warn!(%target, %delivery_id, %request_id, %error, "join request delivery failed");
             }
-            PeerEvent::JoinDecisionDeliveryFailed { target, delivery_id, error } => {
+            PeerEvent::JoinDecisionDeliveryFailed {
+                target,
+                delivery_id,
+                error,
+            } => {
                 warn!(%target, %delivery_id, %error, "join decision delivery failed");
             }
             _ => {}
@@ -332,10 +346,11 @@ impl PeerEventHandler<BotState> for MailboxOutboxHandler {
             PeerEvent::JoinDecisionDeliveryAck { delivery_id, .. } => {
                 let _ = ctx.repos.mailbox().mark_done(delivery_id).await;
             }
-            PeerEvent::JoinDecisionDeliveryFailed {
-                delivery_id, ..
-            } => {
+            PeerEvent::JoinDecisionDeliveryFailed { delivery_id, .. } => {
                 requeue_or_dead(ctx, delivery_id).await;
+            }
+            PeerEvent::YooptaBlobAdded { .. } => {
+                // Mirror bots could enqueue fetch here once blob protocols are wired.
             }
             _ => {}
         }

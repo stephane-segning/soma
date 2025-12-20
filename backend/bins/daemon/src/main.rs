@@ -1,32 +1,34 @@
 use clap::Parser;
+use libp2p::Multiaddr;
 use mimalloc::MiMalloc;
+use prost::Message;
 use soma_core::SomaResult;
 use soma_membership::{JoinPolicy, build_join_decider};
 use soma_membership::{
-    decode_outgoing_join_request_payload, MAILBOX_KIND_JOIN_DECISION, MAILBOX_KIND_JOIN_REQUEST,
+    MAILBOX_KIND_JOIN_DECISION, MAILBOX_KIND_JOIN_REQUEST, decode_outgoing_join_request_payload,
 };
-use soma_net::{default_identity_path, generate_identity, NetIdentity};
-use soma_peer::{PeerCommand, PeerConfig, spawn_ping_peer, join::JoinDecider};
+use soma_net::{NetIdentity, default_identity_path, generate_identity};
+use soma_peer::{PeerCommand, PeerConfig, join::JoinDecider, spawn_ping_peer};
 use soma_proto_build::daemon;
 use soma_proto_build::spaceroom::JoinDecision;
 use soma_storage::mailbox::MailboxRepository;
+use std::time::{Duration, SystemTime};
 use tokio::{
     signal,
     sync::{Mutex, broadcast},
 };
 use tracing::info;
 use tracing_subscriber::EnvFilter;
-use std::time::{Duration, SystemTime};
-use prost::Message;
-use libp2p::Multiaddr;
 
 use std::sync::Arc;
 
+mod blob_store;
 mod config;
 mod dispatch;
 mod grpc;
 mod handlers;
 
+use blob_store::BlobStore;
 use config::{Args, Command, DaemonConfig};
 use dispatch::build_dispatcher;
 use grpc::{DaemonService, DaemonState, serve_grpc};
@@ -99,6 +101,8 @@ async fn run(config: DaemonConfig) -> SomaResult<()> {
     let peer_id = peer.peer_id;
     info!(%peer_id, ?socket_path, ?blob_dir, "soma-daemon starting");
 
+    let blob_store = BlobStore::new(blob_dir);
+
     let (event_tx, _) = broadcast::channel(64);
     let state = Arc::new(DaemonState {
         peer_id,
@@ -107,6 +111,7 @@ async fn run(config: DaemonConfig) -> SomaResult<()> {
         events: event_tx,
         repos,
         signer: net_identity.keypair().clone(),
+        blob_store,
     });
 
     let grpc_service = daemon::daemon_server::DaemonServer::new(DaemonService {

@@ -6,14 +6,14 @@ use axum::{
     http::StatusCode,
     routing::{get, post},
 };
-use base64::engine::general_purpose::STANDARD as B64;
 use base64::Engine;
+use base64::engine::general_purpose::STANDARD as B64;
 use libp2p::PeerId;
 use prost::Message;
 use serde::{Deserialize, Serialize};
 use soma_membership::{
-    create_space, decide_join_request, enqueue_outgoing_join_decision, enqueue_outgoing_join_request,
-    issue_issuer_capability_to_storage, parse_role_str,
+    create_space, decide_join_request, enqueue_outgoing_join_decision,
+    enqueue_outgoing_join_request, issue_issuer_capability_to_storage, parse_role_str,
 };
 use soma_proto_build::spaceroom::SpaceRole;
 use soma_storage::issuer::IssuerRepository;
@@ -21,10 +21,10 @@ use soma_storage::membership::MembershipRepository;
 
 use crate::{config::Mode, metrics::BotMetrics};
 use libp2p::identity::Keypair;
-use soma_storage::RepositoryFactory;
 use soma_peer::PeerCommand;
-use tokio::sync::mpsc;
+use soma_storage::RepositoryFactory;
 use soma_storage::mailbox::MailboxRepository;
+use tokio::sync::mpsc;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct BotInfo {
@@ -79,60 +79,61 @@ pub async fn serve_http(
         let token_members = admin_token.clone();
         let token_my_memberships = admin_token.clone();
 
-        app = app.route(
-            "/v1/join/request",
-            post(move |state: State<Arc<BotState>>, body| {
-                join_request_submit_handler(state, body, token_join_request.clone())
-            }),
-        )
-        .route(
-            "/v1/spaces",
-            post(move |state: State<Arc<BotState>>, body| {
-                create_space_handler(state, body, token_create_space.clone())
-            }),
-        )
-        .route(
-            "/v1/spaces",
-            get(move |state: State<Arc<BotState>>, query| {
-                list_spaces_handler(state, query, token_list_spaces.clone())
-            }),
-        )
-        .route(
-            "/v1/spaces/issuer-capability/issue",
-            post(move |state: State<Arc<BotState>>, body| {
-                issue_issuer_capability_handler(state, body, token_issue_issuer.clone())
-            }),
-        )
-        .route(
-            "/v1/spaces/issuer-capability/import",
-            post(move |state: State<Arc<BotState>>, body| {
-                import_issuer_capability_handler(state, body, token_import_issuer.clone())
-            }),
-        )
-        .route(
-            "/v1/join/requests",
-            get(move |state: State<Arc<BotState>>, query| {
-                join_requests_handler(state, query, token_requests.clone())
-            }),
-        )
-        .route(
-            "/v1/join/decide",
-            post(move |state: State<Arc<BotState>>, body| {
-                join_decide_handler(state, body, token_decide.clone())
-            }),
-        )
-        .route(
-            "/v1/space/members",
-            get(move |state: State<Arc<BotState>>, query| {
-                list_space_members_handler(state, query, token_members.clone())
-            }),
-        )
-        .route(
-            "/v1/memberships",
-            get(move |state: State<Arc<BotState>>, query| {
-                list_my_memberships_handler(state, query, token_my_memberships.clone())
-            }),
-        );
+        app = app
+            .route(
+                "/v1/join/request",
+                post(move |state: State<Arc<BotState>>, body| {
+                    join_request_submit_handler(state, body, token_join_request.clone())
+                }),
+            )
+            .route(
+                "/v1/spaces",
+                post(move |state: State<Arc<BotState>>, body| {
+                    create_space_handler(state, body, token_create_space.clone())
+                }),
+            )
+            .route(
+                "/v1/spaces",
+                get(move |state: State<Arc<BotState>>, query| {
+                    list_spaces_handler(state, query, token_list_spaces.clone())
+                }),
+            )
+            .route(
+                "/v1/spaces/issuer-capability/issue",
+                post(move |state: State<Arc<BotState>>, body| {
+                    issue_issuer_capability_handler(state, body, token_issue_issuer.clone())
+                }),
+            )
+            .route(
+                "/v1/spaces/issuer-capability/import",
+                post(move |state: State<Arc<BotState>>, body| {
+                    import_issuer_capability_handler(state, body, token_import_issuer.clone())
+                }),
+            )
+            .route(
+                "/v1/join/requests",
+                get(move |state: State<Arc<BotState>>, query| {
+                    join_requests_handler(state, query, token_requests.clone())
+                }),
+            )
+            .route(
+                "/v1/join/decide",
+                post(move |state: State<Arc<BotState>>, body| {
+                    join_decide_handler(state, body, token_decide.clone())
+                }),
+            )
+            .route(
+                "/v1/space/members",
+                get(move |state: State<Arc<BotState>>, query| {
+                    list_space_members_handler(state, query, token_members.clone())
+                }),
+            )
+            .route(
+                "/v1/memberships",
+                get(move |state: State<Arc<BotState>>, query| {
+                    list_my_memberships_handler(state, query, token_my_memberships.clone())
+                }),
+            );
     }
 
     let app = app.with_state(shared);
@@ -264,7 +265,9 @@ async fn join_request_submit_handler(
             )
         })?;
 
-    Ok(Json(serde_json::json!({ "request_id": request_id, "delivery_id": delivery_id })))
+    Ok(Json(
+        serde_json::json!({ "request_id": request_id, "delivery_id": delivery_id }),
+    ))
 }
 
 async fn record_outgoing_join_request(
@@ -727,10 +730,7 @@ async fn join_decide_handler(
         .and_then(|v| v.as_str())
         .map(|s| s.to_string());
 
-    let role_str = payload
-        .get("role")
-        .and_then(|v| v.as_str())
-        .unwrap_or("");
+    let role_str = payload.get("role").and_then(|v| v.as_str()).unwrap_or("");
     let role_override = parse_role_str(role_str);
 
     let issuer_peer_id: PeerId = state.info.peer_id.parse().map_err(|_| {
@@ -744,7 +744,9 @@ async fn join_decide_handler(
         if req.is_outgoing {
             return Err((
                 StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({"error": "cannot decide outgoing (self-initiated) join request"})),
+                Json(
+                    serde_json::json!({"error": "cannot decide outgoing (self-initiated) join request"}),
+                ),
             ));
         }
         if let Some(target) = req.target_peer_id.as_deref() {

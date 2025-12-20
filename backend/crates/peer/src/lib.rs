@@ -28,6 +28,9 @@ const JOIN_PROTOCOL: &str = "/soma/join/1";
 const JOIN_DECISION_PROTOCOL: &str = "/soma/join-decision/1";
 const MAX_JOIN_MESSAGE_BYTES: usize = 16 * 1024;
 const MAX_JOIN_DECISION_MESSAGE_BYTES: usize = 64 * 1024;
+const BLOB_PROTOCOL: &str = "/soma/blob/1";
+/// Conservative upper bound for a single in-flight blob message (including header).
+const MAX_BLOB_MESSAGE_BYTES: usize = 8 * 1024 * 1024;
 const AGENT_PROTOCOL: &str = "/soma/0.1.0";
 
 /// Commands sent to the peer runtime.
@@ -47,6 +50,11 @@ pub enum PeerCommand {
         addrs: Vec<Multiaddr>,
         delivery_id: String,
         decision: spaceroom::JoinDecision,
+    },
+    /// Request to fetch a blob by CID. Results are delivered via events or handlers.
+    FetchBlob {
+        cid: String,
+        space_id: Option<String>,
     },
     Shutdown,
 }
@@ -131,6 +139,15 @@ pub enum PeerEvent {
     JoinFailed {
         target: PeerId,
         error: String,
+    },
+    /// Emitted when a blob tied to Yoopta content is stored locally.
+    YooptaBlobAdded {
+        space_id: String,
+        doc_id: String,
+        cid: String,
+        mime: String,
+        size: u64,
+        name: Option<String>,
     },
 }
 
@@ -251,6 +268,7 @@ fn build_app_behaviour(
         relay_client,
         join: build_join_behaviour(),
         join_decision: build_join_decision_behaviour(),
+        blob: build_blob_behaviour(),
     }
 }
 
@@ -264,6 +282,7 @@ struct AppBehaviour {
     relay_client: relay::client::Behaviour,
     join: reqres::Behaviour<JoinCodec>,
     join_decision: reqres::Behaviour<JoinDecisionCodec>,
+    blob: reqres::Behaviour<BlobCodec>,
 }
 
 #[derive(Debug)]
@@ -275,6 +294,7 @@ enum AppEvent {
     Relay(relay::client::Event),
     Join(reqres::Event<spaceroom::JoinRequest, spaceroom::JoinDecision>),
     JoinDecision(reqres::Event<spaceroom::JoinDecision, JoinDecisionAck>),
+    Blob(reqres::Event<BlobRequest, BlobResponse>),
 }
 
 impl From<ping::Event> for AppEvent {
@@ -316,6 +336,12 @@ impl From<reqres::Event<spaceroom::JoinRequest, spaceroom::JoinDecision>> for Ap
 impl From<reqres::Event<spaceroom::JoinDecision, JoinDecisionAck>> for AppEvent {
     fn from(event: reqres::Event<spaceroom::JoinDecision, JoinDecisionAck>) -> Self {
         AppEvent::JoinDecision(event)
+    }
+}
+
+impl From<reqres::Event<BlobRequest, BlobResponse>> for AppEvent {
+    fn from(event: reqres::Event<BlobRequest, BlobResponse>) -> Self {
+        AppEvent::Blob(event)
     }
 }
 
@@ -525,6 +551,41 @@ async fn run_swarm(
                             reqres::Event::ResponseSent { .. } => {}
                         }
                     }
+                    SwarmEvent::Behaviour(AppEvent::Blob(evt)) => match evt {
+                        reqres::Event::Message { peer, message, .. } => match message {
+                            reqres::Message::Request { request, channel, .. } => {
+                                // Placeholder: no storage wired here yet. Respond not found.
+                                let response = BlobResponse {
+                                    cid: request.cid,
+                                    mime: String::new(),
+                                    size: 0,
+                                    data: Vec::new(),
+                                    found: false,
+                                };
+                                let _ = swarm.behaviour_mut().blob.send_response(channel, response);
+                                let _ = event_tx.try_send(PeerEvent::ConnectionError {
+                                    peer: Some(peer),
+                                    error: "blob requested but no provider attached".into(),
+                                });
+                            }
+                            reqres::Message::Response { .. } => {
+                                // No outbound blob fetch path wired yet.
+                            }
+                        },
+                        reqres::Event::OutboundFailure { peer, error, .. } => {
+                            let _ = event_tx.try_send(PeerEvent::ConnectionError {
+                                peer: Some(peer),
+                                error: format!("blob outbound failure: {error}"),
+                            });
+                        }
+                        reqres::Event::InboundFailure { peer, error, .. } => {
+                            let _ = event_tx.try_send(PeerEvent::ConnectionError {
+                                peer: Some(peer),
+                                error: format!("blob inbound failure: {error}"),
+                            });
+                        }
+                        reqres::Event::ResponseSent { .. } => {}
+                    },
                     _ => {}
                 }
             }
@@ -559,9 +620,18 @@ fn build_join_behaviour() -> reqres::Behaviour<JoinCodec> {
 }
 
 fn build_join_decision_behaviour() -> reqres::Behaviour<JoinDecisionCodec> {
-    let protocols =
-        std::iter::once((JOIN_DECISION_PROTOCOL.to_string(), reqres::ProtocolSupport::Full));
+    let protocols = std::iter::once((
+        JOIN_DECISION_PROTOCOL.to_string(),
+        reqres::ProtocolSupport::Full,
+    ));
     let cfg = reqres::Config::default().with_request_timeout(Duration::from_secs(10));
+    reqres::Behaviour::new(protocols, cfg)
+}
+
+fn build_blob_behaviour() -> reqres::Behaviour<BlobCodec> {
+    let protocols = std::iter::once((BLOB_PROTOCOL.to_string(), reqres::ProtocolSupport::Full));
+    // Blob transfers may take longer; allow a more generous timeout.
+    let cfg = reqres::Config::default().with_request_timeout(Duration::from_secs(30));
     reqres::Behaviour::new(protocols, cfg)
 }
 
@@ -571,8 +641,34 @@ struct JoinCodec;
 #[derive(Clone, Default)]
 struct JoinDecisionCodec;
 
+#[derive(Clone, Default)]
+struct BlobCodec;
+
 #[derive(Clone, PartialEq, Message)]
 struct JoinDecisionAck {}
+
+#[derive(Clone, PartialEq, Message)]
+pub struct BlobRequest {
+    #[prost(string, tag = "1")]
+    pub cid: String,
+    /// Optional logical scope (e.g. space id) for storage layout.
+    #[prost(string, tag = "2")]
+    pub space_id: String,
+}
+
+#[derive(Clone, PartialEq, Message)]
+pub struct BlobResponse {
+    #[prost(string, tag = "1")]
+    pub cid: String,
+    #[prost(string, tag = "2")]
+    pub mime: String,
+    #[prost(uint64, tag = "3")]
+    pub size: u64,
+    #[prost(bytes, tag = "4")]
+    pub data: Vec<u8>,
+    #[prost(bool, tag = "5")]
+    pub found: bool,
+}
 
 #[async_trait]
 impl reqres::Codec for JoinCodec {
@@ -653,6 +749,59 @@ impl reqres::Codec for JoinDecisionCodec {
         T: AsyncRead + Unpin + Send,
     {
         read_message_with_limit(io, MAX_JOIN_DECISION_MESSAGE_BYTES).await
+    }
+
+    async fn write_request<T>(
+        &mut self,
+        _protocol: &Self::Protocol,
+        io: &mut T,
+        req: Self::Request,
+    ) -> io::Result<()>
+    where
+        T: AsyncWrite + Unpin + Send,
+    {
+        write_message(io, req).await
+    }
+
+    async fn write_response<T>(
+        &mut self,
+        _protocol: &Self::Protocol,
+        io: &mut T,
+        res: Self::Response,
+    ) -> io::Result<()>
+    where
+        T: AsyncWrite + Unpin + Send,
+    {
+        write_message(io, res).await
+    }
+}
+
+#[async_trait]
+impl reqres::Codec for BlobCodec {
+    type Protocol = String;
+    type Request = BlobRequest;
+    type Response = BlobResponse;
+
+    async fn read_request<T>(
+        &mut self,
+        _protocol: &Self::Protocol,
+        io: &mut T,
+    ) -> io::Result<Self::Request>
+    where
+        T: AsyncRead + Unpin + Send,
+    {
+        read_message_with_limit(io, MAX_BLOB_MESSAGE_BYTES).await
+    }
+
+    async fn read_response<T>(
+        &mut self,
+        _protocol: &Self::Protocol,
+        io: &mut T,
+    ) -> io::Result<Self::Response>
+    where
+        T: AsyncRead + Unpin + Send,
+    {
+        read_message_with_limit(io, MAX_BLOB_MESSAGE_BYTES).await
     }
 
     async fn write_request<T>(
@@ -776,8 +925,12 @@ mod tests {
 
         let decision = spaceroom::JoinDecision {
             decision_id: "dec-1".into(),
-            space_id: Some(spaceroom::SpaceId { value: "space-123".into() }),
-            subject_peer_id: Some(spaceroom::PeerId { value: "peer-abc".into() }),
+            space_id: Some(spaceroom::SpaceId {
+                value: "space-123".into(),
+            }),
+            subject_peer_id: Some(spaceroom::PeerId {
+                value: "peer-abc".into(),
+            }),
             decision: spaceroom::JoinDecisionType::JoinApproved as i32,
             reason: "ok".into(),
             capability: None,

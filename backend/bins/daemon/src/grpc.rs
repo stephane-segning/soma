@@ -9,19 +9,19 @@ use soma_membership::{
     list_pending_join_requests, parse_role_str,
 };
 use soma_peer::PeerCommand;
-use soma_proto_build::{
-    daemon,
-    spaceroom,
-};
+use soma_proto_build::{daemon, spaceroom};
 use tokio::sync::{Mutex, broadcast, mpsc};
 use tokio_stream::{StreamExt as TokioStreamExt, wrappers::BroadcastStream};
 use tonic::{Request, Response, Status};
-use tracing::warn;
+use tracing::{info, warn};
 
-use soma_socket::serve_grpc_unix;
-use soma_storage::{RepositoryFactory, membership::MembershipRepository};
-use soma_storage::mailbox::MailboxRepository;
+use crate::blob_store::BlobStore;
 use libp2p::identity::Keypair;
+use soma_socket::serve_grpc_unix;
+use soma_storage::mailbox::MailboxRepository;
+use soma_storage::{RepositoryFactory, membership::MembershipRepository};
+
+const MAX_UPLOAD_BYTES: usize = 8 * 1024 * 1024;
 /// Daemon shared state (peer id, command channel, listeners, event bus).
 #[derive(Debug)]
 pub struct DaemonState {
@@ -31,6 +31,7 @@ pub struct DaemonState {
     pub events: broadcast::Sender<daemon::DaemonEvent>,
     pub repos: RepositoryFactory,
     pub signer: Keypair,
+    pub blob_store: BlobStore,
 }
 
 impl DaemonState {
@@ -202,6 +203,71 @@ impl daemon::daemon_server::Daemon for DaemonService {
         Ok(Response::new(daemon::ListSpaceMembersResponse { members }))
     }
 
+    async fn upload_blob(
+        &self,
+        request: Request<daemon::UploadBlobRequest>,
+    ) -> Result<Response<daemon::UploadBlobResponse>, Status> {
+        let payload = request.into_inner();
+        if payload.space_id.is_empty() {
+            return Err(Status::invalid_argument("space_id required"));
+        }
+        if payload.data.is_empty() {
+            return Err(Status::invalid_argument("data required"));
+        }
+        if payload.data.len() > MAX_UPLOAD_BYTES {
+            return Err(Status::invalid_argument("blob too large"));
+        }
+
+        let mime = if payload.mime.is_empty() {
+            "application/octet-stream".to_string()
+        } else {
+            payload.mime.clone()
+        };
+
+        let write_res = self
+            .state
+            .blob_store
+            .write(&payload.space_id, &payload.data)
+            .await
+            .map_err(|err| {
+                warn!(%err, "failed to persist blob");
+                Status::internal("failed to persist blob")
+            })?;
+
+        // Emit event only when tied to Yoopta content.
+        if !payload.doc_id.is_empty() {
+            self.state
+                .publish(daemon::DaemonEvent {
+                    event: Some(daemon::daemon_event::Event::YooptaBlobAdded(
+                        daemon::YooptaBlobAddedEvent {
+                            space_id: payload.space_id.clone(),
+                            doc_id: payload.doc_id.clone(),
+                            cid: write_res.cid.clone(),
+                            mime: mime.clone(),
+                            size: write_res.size as u64,
+                            name: payload.name.clone(),
+                        },
+                    )),
+                })
+                .await;
+
+            info!(
+                space_id = %payload.space_id,
+                doc_id = %payload.doc_id,
+                cid = %write_res.cid,
+                size = write_res.size,
+                "yoopta blob stored"
+            );
+        }
+
+        Ok(Response::new(daemon::UploadBlobResponse {
+            cid: write_res.cid,
+            size: write_res.size,
+            mime,
+            name: payload.name,
+        }))
+    }
+
     async fn issue_issuer_capability(
         &self,
         _request: Request<daemon::IssueIssuerCapabilityRequest>,
@@ -243,6 +309,48 @@ impl daemon::daemon_server::Daemon for DaemonService {
             .collect();
 
         Ok(Response::new(daemon::ListJoinRequestsResponse { requests }))
+    }
+
+    async fn upsert_document(
+        &self,
+        request: Request<daemon::UpsertDocumentRequest>,
+    ) -> Result<Response<daemon::UpsertDocumentResponse>, Status> {
+        let payload = request.into_inner();
+        if payload.space_id.is_empty() {
+            return Err(Status::invalid_argument("space_id required"));
+        }
+        if payload.document_id.is_empty() {
+            return Err(Status::invalid_argument("document_id required"));
+        }
+        if payload.content_json.is_empty() {
+            return Err(Status::invalid_argument("content_json required"));
+        }
+
+        let published = if payload.published { 1_i64 } else { 0_i64 };
+        sqlx::query(
+            r#"
+            INSERT INTO documents (space_id, document_id, content_json, published, updated_at_ms)
+            VALUES ($1, $2, $3, $4, $5)
+            ON CONFLICT(space_id, document_id)
+            DO UPDATE SET
+                content_json = excluded.content_json,
+                published = excluded.published,
+                updated_at_ms = excluded.updated_at_ms
+            "#,
+        )
+        .bind(payload.space_id)
+        .bind(payload.document_id)
+        .bind(payload.content_json)
+        .bind(published)
+        .bind(payload.updated_at_ms)
+        .execute(&self.state.repos.pool())
+        .await
+        .map_err(|err| {
+            warn!(%err, "upsert_document failed");
+            Status::internal("failed to upsert document")
+        })?;
+
+        Ok(Response::new(daemon::UpsertDocumentResponse { ok: true }))
     }
 
     async fn decide_join(
@@ -338,7 +446,9 @@ impl daemon::daemon_server::Daemon for DaemonService {
             })
             .collect();
 
-        Ok(Response::new(daemon::ListMyMembershipsResponse { memberships }))
+        Ok(Response::new(daemon::ListMyMembershipsResponse {
+            memberships,
+        }))
     }
 }
 

@@ -1,8 +1,10 @@
-use libp2p::identity::Keypair;
 use ciborium::ser::into_writer;
+use libp2p::identity::Keypair;
 use serde::Serialize;
 use soma_core::{Error, SomaResult};
-use soma_proto_build::spaceroom::{CborSigned, IssuerCapability, MembershipCapability, PeerId as ProtoPeerId};
+use soma_proto_build::spaceroom::{
+    CborSigned, IssuerCapability, MembershipCapability, PeerId as ProtoPeerId,
+};
 
 #[derive(Serialize)]
 struct TimestampView {

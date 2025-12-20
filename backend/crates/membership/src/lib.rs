@@ -18,7 +18,7 @@ use soma_storage::{
     mailbox::{MailboxRepository, NewMailboxEntry},
     membership::{
         JoinDecision as StoredDecision, JoinRequest as StoredJoinRequest, MembershipRepository,
-        SqlMembershipRepository, Space, SpaceMembership,
+        Space, SpaceMembership, SqlMembershipRepository,
     },
 };
 use tracing::warn;
@@ -49,7 +49,10 @@ pub fn build_join_decider(
     policy: JoinPolicy,
 ) -> Arc<dyn JoinDecider> {
     Arc::new(StorageBackedJoinDecider::new(
-        repos, signer, local_peer_id, policy,
+        repos,
+        signer,
+        local_peer_id,
+        policy,
     ))
 }
 
@@ -157,8 +160,8 @@ impl JoinDecider for StorageBackedJoinDecider {
             }
         };
 
-        let auto_allowed =
-            self.policy.allow_auto_with_delegation && issuer_cap.as_ref().map_or(false, |cap| {
+        let auto_allowed = self.policy.allow_auto_with_delegation
+            && issuer_cap.as_ref().map_or(false, |cap| {
                 issuer_cap_valid(cap, &space_id.value, &self.local_peer_id, role, now_secs)
             });
 
@@ -257,7 +260,9 @@ impl JoinDecider for StorageBackedJoinDecider {
     }
 }
 
-pub async fn list_pending_join_requests(repos: &RepositoryFactory) -> SomaResult<Vec<StoredJoinRequest>> {
+pub async fn list_pending_join_requests(
+    repos: &RepositoryFactory,
+) -> SomaResult<Vec<StoredJoinRequest>> {
     repos.membership().list_join_requests().await
 }
 
@@ -280,7 +285,9 @@ pub async fn decide_join_request(
     // target matches this issuer. This prevents a requester from self-approving while
     // offline.
     if req.is_outgoing {
-        return Err(Error::service("cannot decide outgoing (self-initiated) join request"));
+        return Err(Error::service(
+            "cannot decide outgoing (self-initiated) join request",
+        ));
     }
     if let Some(target) = req.target_peer_id.as_deref() {
         if target != issuer_peer_id.to_string() {
@@ -288,7 +295,9 @@ pub async fn decide_join_request(
         }
     }
 
-    let role_i32 = role_override.map(|r| r as i32).unwrap_or(req.requested_role);
+    let role_i32 = role_override
+        .map(|r| r as i32)
+        .unwrap_or(req.requested_role);
     let role = SpaceRole::try_from(role_i32).unwrap_or(SpaceRole::Student);
 
     let now = SystemTime::now();
@@ -639,25 +648,21 @@ pub async fn enqueue_outgoing_join_decision(
     Ok(id)
 }
 
-pub async fn apply_join_decision(repos: &RepositoryFactory, decision: &JoinDecision) -> SomaResult<()> {
+pub async fn apply_join_decision(
+    repos: &RepositoryFactory,
+    decision: &JoinDecision,
+) -> SomaResult<()> {
     let Some(space_id) = decision.space_id.as_ref().map(|s| s.value.clone()) else {
         return Err(Error::service("missing decision.space_id"));
     };
-    let Some(subject_peer_id) = decision
-        .subject_peer_id
-        .as_ref()
-        .map(|p| p.value.clone())
-    else {
+    let Some(subject_peer_id) = decision.subject_peer_id.as_ref().map(|p| p.value.clone()) else {
         return Err(Error::service("missing decision.subject_peer_id"));
     };
 
     let repo = repos.membership();
     let now_secs = epoch_seconds(SystemTime::now());
 
-    let cap_bytes = decision
-        .capability
-        .as_ref()
-        .map(|cap| cap.encode_to_vec());
+    let cap_bytes = decision.capability.as_ref().map(|cap| cap.encode_to_vec());
 
     repo.record_join_decision(&StoredDecision {
         decision_id: decision.decision_id.clone(),

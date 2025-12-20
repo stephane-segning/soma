@@ -30,3 +30,4 @@ futures = { workspace = true }
 rand = { workspace = true }
 async-trait = { workspace = true }
 sqlx = { workspace = true, features = ["sqlite", "migrate", "runtime-tokio-rustls"] }
+sha2 = { workspace = true }

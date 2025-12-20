@@ -1,14 +1,16 @@
 use async_trait::async_trait;
+use libp2p::Multiaddr;
+use prost::Message;
+use soma_membership::apply_join_decision;
+use soma_membership::{
+    MAILBOX_KIND_JOIN_DECISION, MAILBOX_KIND_JOIN_REQUEST, decode_outgoing_join_request_payload,
+};
 use soma_peer::PeerEvent;
 use soma_peer::events::{PeerEventHandler, PeerEventKind};
-use soma_membership::apply_join_decision;
-use soma_membership::{decode_outgoing_join_request_payload, MAILBOX_KIND_JOIN_DECISION, MAILBOX_KIND_JOIN_REQUEST};
 use soma_proto_build::spaceroom::JoinDecision;
 use soma_storage::mailbox::MailboxRepository;
-use tracing::{info, warn};
 use std::time::SystemTime;
-use prost::Message;
-use libp2p::Multiaddr;
+use tracing::{info, warn};
 
 use crate::DaemonState;
 

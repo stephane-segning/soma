@@ -183,7 +183,7 @@ impl MembershipRepository for SqlMembershipRepository {
         }
 
         if let Some(q) = query {
-                let q = q.trim();
+            let q = q.trim();
             if !q.is_empty() {
                 let like = format!("%{}%", q.to_lowercase());
                 where_clause(&mut qb);

@@ -28,6 +28,7 @@ pub enum PeerEventKind {
     JoinDecisionDeliveryAck,
     JoinDecisionDeliveryFailed,
     JoinFailed,
+    YooptaBlobAdded,
 }
 
 impl PeerEventKind {
@@ -53,6 +54,7 @@ impl PeerEventKind {
         PeerEventKind::JoinDecisionDeliveryAck,
         PeerEventKind::JoinDecisionDeliveryFailed,
         PeerEventKind::JoinFailed,
+        PeerEventKind::YooptaBlobAdded,
     ];
 
     /// Map a runtime event to its kind for routing.
@@ -70,14 +72,21 @@ impl PeerEventKind {
             PeerEvent::RelayReserved { .. } => PeerEventKind::RelayReserved,
             PeerEvent::RelayCircuitEstablished { .. } => PeerEventKind::RelayCircuitEstablished,
             PeerEvent::JoinRequestSubmitted { .. } => PeerEventKind::JoinRequestSubmitted,
-            PeerEvent::JoinRequestDeliverySubmitted { .. } => PeerEventKind::JoinRequestDeliverySubmitted,
+            PeerEvent::JoinRequestDeliverySubmitted { .. } => {
+                PeerEventKind::JoinRequestDeliverySubmitted
+            }
             PeerEvent::JoinRequestDeliveryAck { .. } => PeerEventKind::JoinRequestDeliveryAck,
             PeerEvent::JoinRequestDeliveryFailed { .. } => PeerEventKind::JoinRequestDeliveryFailed,
             PeerEvent::JoinDecision { .. } => PeerEventKind::JoinDecision,
-            PeerEvent::JoinDecisionDeliverySubmitted { .. } => PeerEventKind::JoinDecisionDeliverySubmitted,
+            PeerEvent::JoinDecisionDeliverySubmitted { .. } => {
+                PeerEventKind::JoinDecisionDeliverySubmitted
+            }
             PeerEvent::JoinDecisionDeliveryAck { .. } => PeerEventKind::JoinDecisionDeliveryAck,
-            PeerEvent::JoinDecisionDeliveryFailed { .. } => PeerEventKind::JoinDecisionDeliveryFailed,
+            PeerEvent::JoinDecisionDeliveryFailed { .. } => {
+                PeerEventKind::JoinDecisionDeliveryFailed
+            }
             PeerEvent::JoinFailed { .. } => PeerEventKind::JoinFailed,
+            PeerEvent::YooptaBlobAdded { .. } => PeerEventKind::YooptaBlobAdded,
         }
     }
 
@@ -104,6 +113,7 @@ impl PeerEventKind {
             PeerEventKind::JoinDecisionDeliveryAck => 17,
             PeerEventKind::JoinDecisionDeliveryFailed => 18,
             PeerEventKind::JoinFailed => 19,
+            PeerEventKind::YooptaBlobAdded => 20,
         }
     }
 }
