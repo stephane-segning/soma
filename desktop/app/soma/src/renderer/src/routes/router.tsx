@@ -6,9 +6,16 @@ const routes: RouteObject[] = [
 		path: "/",
 		lazy: () => import("./app-layout"),
 		children: [
-			{ index: true, lazy: () => import("./home") },
-			{ path: "join", lazy: () => import("./join") },
-			{ path: "spaces", lazy: () => import("./spaces") },
+			{ index: true, lazy: () => import("./root-redirect") },
+			{
+				path: "spaces",
+				lazy: () => import("./spaces-layout"),
+				children: [
+					{ index: true, lazy: () => import("./spaces") },
+					{ path: "join", lazy: () => import("./spaces-join") },
+					{ path: "landing", lazy: () => import("./spaces-landing") },
+				],
+			},
 			{
 				path: "spaces/:spaceId",
 				lazy: () => import("./space-layout"),

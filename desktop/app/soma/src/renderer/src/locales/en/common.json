@@ -9,8 +9,6 @@
   "home": {
     "title": "Home",
     "subtitle": "Join a space with an invite, or open an existing space from your list.",
-    "joinCta": "Join space",
-    "spacesCta": "View spaces",
     "recentSpaces": "Recent spaces",
     "activity": "Activity"
   },
@@ -31,8 +29,10 @@
   "spaces": {
     "title": "Spaces",
     "joinCta": "Join",
-    "emptyHint": "No spaces loaded yet.",
-    "openDemo": "Open demo space"
+    "listTitle": "Your spaces",
+    "privateBadge": "Private",
+    "privateTitle": "Private space",
+    "joinTitle": "Join a space"
   },
   "space": {
     "unknown": "Unknown space",

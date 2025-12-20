@@ -2,7 +2,12 @@ import { contextBridge } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 
 // Custom APIs for renderer
-const api = {}
+const api = {
+  getLastRoute: (): Promise<string> =>
+    electronAPI.ipcRenderer.invoke('router:get-last-route') as Promise<string>,
+  setLastRoute: (route: string): void =>
+    electronAPI.ipcRenderer.send('router:set-last-route', route)
+}
 
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise

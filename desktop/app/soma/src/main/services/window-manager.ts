@@ -4,7 +4,7 @@ import { is } from '@electron-toolkit/utils'
 import icon from '../../../resources/icon.png?asset'
 
 export class WindowManager {
-  createMainWindow(): BrowserWindow {
+  createMainWindow(options?: { initialRoute?: string }): BrowserWindow {
     const mainWindow = new BrowserWindow({
       width: 900,
       height: 670,
@@ -27,9 +27,15 @@ export class WindowManager {
     })
 
     if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-      mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
+      const baseUrl = process.env['ELECTRON_RENDERER_URL']
+      const initialRoute = options?.initialRoute
+      const url = initialRoute ? `${baseUrl}#${initialRoute}` : baseUrl
+      mainWindow.loadURL(url)
     } else {
-      mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+      const initialRoute = options?.initialRoute
+      mainWindow.loadFile(join(__dirname, '../renderer/index.html'), {
+        hash: initialRoute ?? undefined
+      })
     }
 
     return mainWindow

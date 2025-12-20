@@ -3,6 +3,7 @@ import { app, ipcMain, BrowserWindow } from 'electron'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { container } from './container'
 import { WindowManager } from './services/window-manager'
+import { readLastRoute, writeLastRoute } from './route-store'
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
@@ -21,14 +22,20 @@ app.whenReady().then(() => {
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
 
+  ipcMain.handle('router:get-last-route', () => readLastRoute())
+
+  ipcMain.on('router:set-last-route', async (_, route: string) => {
+    await writeLastRoute(route)
+  })
+
   const windowManager = container.get(WindowManager)
-  windowManager.createMainWindow()
+  windowManager.createMainWindow({ initialRoute: readLastRoute() })
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) {
-      windowManager.createMainWindow()
+      windowManager.createMainWindow({ initialRoute: readLastRoute() })
     }
   })
 })
