@@ -1,5 +1,5 @@
 import {Outlet} from "react-router";
-import {CommandPaletteShell} from "../components/command-palette";
+import {CommandPaletteShell} from "../../components/command-palette";
 import {RouterListener} from "@renderer/components/router-listener";
 
 function Component(): React.JSX.Element {

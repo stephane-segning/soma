@@ -1,4 +1,6 @@
 @use "tailwindcss/index.css";
 @use './cmdk.scss';
 
-@plugin "daisyui";
+@plugin "daisyui" {
+  themes: light --default, dark;
+}

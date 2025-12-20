@@ -7,7 +7,10 @@ function Component(): React.JSX.Element {
 		<div className="space-y-4">
 			<h1 className="text-xl font-semibold">{t("app.title", "Soma")}</h1>
 			<p className="text-base-content/70">
-				{t("home.subtitle", "Join a space with an invite, or open an existing space from your list.")}
+				{t(
+					"home.subtitle",
+					"Join a space with an invite, or open an existing space from your list.",
+				)}
 			</p>
 			<div className="card bg-base-100 border border-base-300">
 				<div className="card-body">

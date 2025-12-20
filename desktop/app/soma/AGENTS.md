@@ -72,13 +72,14 @@ Specific services (all now live under `backend/`):
     - Logging: `backend/bins/botd/src/event_handlers.rs` (`LoggingHandler`, selected events only)
 - Prometheus metrics definitions/registration: `backend/bins/botd/src/metrics.rs`
 - Storage: SQLx AnyPool (Postgres or SQLite) via `soma_core::db::DbFactory`. Config via `--database-url` / `SOMA_DATABASE_URL` (defaults to `./botd.db` SQLite). Migrations embedded from `backend/bins/botd/migrations` and run at startup (`sqlx::migrate!` in `runtime.rs`); startup fails if migration fails.
+- Join decider: auto-approves only when the bot holds a valid issuer capability for the space (role/expiry enforced) and signs the membership capability with its libp2p identity key; otherwise the join is recorded for manual approval in storage.
 
 #### Operating modes (bot vs server-daemon)
 
 `soma-botd` is a peer first. Its HTTP surface depends on an operating mode:
 
 - `bot` mode (default): read-only HTTP endpoints only (`/info`, `/healthz`, `/metrics`). No business APIs (`/v1/*`) at all.
-- `server-daemon` mode: exposes a daemon-like control plane over HTTP for admin operations (join decisions, revocation, roster, issuer delegation, mailbox, …). This mode must be authenticated/authorized.
+- `server-daemon` mode: exposes a daemon-like control plane over HTTP for admin operations (join decisions, revocation, roster, issuer delegation, mailbox, …). This mode must be authenticated/authorized. Join control surfaces: `POST /v1/join/request` (send join request over libp2p), `GET /v1/join/requests` (list pending), `POST /v1/join/decide` (approve/reject; signs capability on approve).
 
 Rule of thumb: keep business logic in `soma-peer` and treat Axum/gRPC surfaces as controllers that call into peer services/deciders.
 
@@ -104,15 +105,38 @@ When adding new peer events or instrumentation, prefer:
     - Event dispatcher: `backend/bins/daemon/src/dispatch.rs`
 - Storage: SQLx AnyPool over SQLite via `soma_core::db::DbFactory` (config `--db-path` / `SOMA_DAEMON_DB`, defaults to `./daemon.db`). Migrations embedded from `backend/bins/daemon/migrations` and run at startup (`sqlx::migrate!` in `main.rs`); startup fails if migration fails.
 
-### Business Logic & API Checklist
+### Business Logic & API Checklist for Backends
 
 Use this list to track domain flows and where the API lives. Mark items off as you implement them end-to-end (daemon ↔ bot ↔ peer).
 
 - [x] Space join request & decision
     - Daemon gRPC: `Daemon/JoinSpace(space_id, display_name, device_name, target_peer_id, target_multiaddrs)` (Unix socket, proto `proto/daemon/v1/daemon.proto`)
-    - Join protocol: handled in `soma-peer` via a pluggable join decider (default: reject-all). Controllers (daemon/bot) supply a decider and/or admin actions.
-    - Bot mode (`soma-botd --mode bot`): HTTP is strictly read-only (`/info`, `/healthz`, `/metrics`). No business APIs (no `/v1/*`), including join, revoke, roster, issuer, mailbox, etc.
-    - Server-daemon mode (`soma-botd --mode server-daemon`): may expose business APIs over HTTP, and must be authenticated/authorized. `/v1/join` is an admin controller to *decide* an existing join flow (not “force-join” by minting arbitrary memberships).
+    - Join protocol: handled in `soma-peer` via a pluggable join decider (default: reject-all). Controllers (daemon/bot) supply a decider and/or admin actions. Membership capabilities are signed with the peer’s libp2p identity key when approved.
+    - Bot mode (`soma-botd --mode bot`): auto-approves only when it holds a valid issuer capability for the space; otherwise records a pending join and rejects until manually approved elsewhere. HTTP stays read-only.
+    - Server-daemon mode (`soma-botd --mode server-daemon`): authenticated admin surface for join control (`/v1/join`, `/v1/join/requests`, `/v1/join/decide`); controllers delegate to storage + decider (no force-mint).
+    - Daemon gRPC also exposes manual approval surfaces: `Daemon/ListJoinRequests`, `Daemon/DecideJoin`.
+- [ ] Space create & ownership genesis (verifyable)
+    - Add a real “space genesis” artifact (owner-signed record) that other peers can verify; current `spaces.owner_peer_id` is DB-local metadata only.
+- [ ] Issuer capability lifecycle (secure)
+    - Verify `IssuerCapability.signed` (owner signature) and enforce expiry/allowed roles consistently before auto-approving.
+    - Expose issuer delegation issuance/rotation from both daemon gRPC and server-daemon HTTP (and keep it auditable).
+- [ ] Signature verification on join receipt
+    - Verify `MembershipCapability.signed` on the receiver (daemon) using the issuer public key from libp2p Identify.
+    - If issuer != owner, verify issuer delegation chain (owner → issuer capability → membership).
+- [ ] Canonical signing format
+    - Current signing uses CBOR encoding via `ciborium`, but canonical CBOR is not guaranteed; move to a canonical CBOR scheme before relying on signatures across versions/implementations.
+- [ ] Async manual join decision delivery (in-band)
+    - Current manual approval is effectively “out-of-band”: approver stores a pending join and requester must retry `JoinSpace` to receive the stored decision.
+    - Upgrade to an in-network “push” so manual approvals complete without a retry:
+      - Option A (recommended): add a dedicated libp2p protocol, e.g. `/soma/join-decision/1`, where approver sends a `JoinDecision` to the requester (one-way with optional ack).
+      - Option B: use the `mailbox` table as store-and-forward and add a lightweight peer delivery worker to push queued decisions when the requester is reachable.
+    - Keep the transport in `soma-peer` (new behaviour + `PeerCommand::SendJoinDecision`) and keep policy/persistence in `soma-membership` (decide + enqueue/push).
+    - Delivery semantics (recommended hybrid):
+      - On manual approval, persist the decision immediately (`join_decisions`) and attempt an in-network push to the requester via `/soma/join-decision/1`.
+      - If push fails (dial/outbound failure/timeout), enqueue an outgoing mailbox item (approver-side) and retry later.
+      - Mailbox retry policy should be per-message with backoff (`available_at` + attempts), not a single global scan loop.
+      - When connectivity is detected (connection established or fresh known multiaddrs), opportunistically drain mailbox items for that peer (rate-limited).
+      - Expire undelivered items after a TTL (e.g. 7 days) and mark them `dead` (or delete) to bound storage growth.
 - [ ] Space membership revocation/leave
     - Server-daemon HTTP (mode-gated): `POST /v1/space/revoke` (botd) to revoke capabilities by `space_id` and `subject_peer_id`; daemon gRPC: `Daemon/RevokeSpace` to request or consume a revocation and drop local capability
 - [ ] Space roster/query
@@ -129,6 +153,7 @@ Botd (Postgres or SQLite via `DATABASE_URL`) and daemon (SQLite file) embed the 
 - `spaces(space_id)` – optional display_name, created_at
 - `space_memberships(space_id, subject_peer_id)` – role, issuer_peer_id, issued_at, expires_at, capability blob
 - `join_decisions(decision_id)` – space_id, subject_peer_id, decision enum, reason, created_at, capability blob (audit)
+- `join_requests(request_id)` – pending join submissions awaiting manual approval (space_id, subject_peer_id, display_name, device_name, requested_role, created_at, payload blob)
 - `issuer_capabilities(space_id, delegate_peer_id)` – issuer_peer_id, issued_at, expires_at, capability blob
 - `mailbox(id)` – kind, space_id?, subject_peer_id?, status (queued|leased|done|dead), attempts, available_at, lease_until?, leased_by?, payload blob, created_at
 
@@ -171,7 +196,11 @@ Shared frontend stack (both Soma and Tapia):
 Soma (`desktop/app/soma`):
 
 - Uses a client to call the Soma peer/daemon over its Unix socket API.
-- Uses `yoopta-editor` for rich text editing.
+- Uses Yoopta for rich text editing (`@yoopta/editor` + `@yoopta/*` tools/plugins).
+- Renderer routes live under `desktop/app/soma/src/renderer/src/routes/`:
+  - `routes/router.tsx` defines route objects using `react-router` + `createHashRouter`.
+  - `routes/layouts/*` are shell routes that render an `<Outlet />` and shared UI.
+  - `routes/screens/*` are leaf “pages” that render screen content.
 - Uses DaisyUI with two themes.
 - Uses TanStack Query for optimistic UI flows.
 - Main process uses InversifyJS (`inversify` + `reflect-metadata`) for DI; container lives in `desktop/app/soma/src/main/container.ts`.
@@ -221,6 +250,8 @@ This repo intentionally has multiple binaries. Each has a distinct goal and depl
 
 - Use modern TypeScript with `strict` type-checking.
 - Follow the existing component organization in `desktop/app/*/src` (feature-oriented structure rather than huge generic folders).
+- Use `kebab-case` for new `.ts`/`.tsx` filenames in both renderer and main process code.
+- Prefer `@renderer/*` imports for renderer code (configured in `desktop/app/soma/tsconfig.web.json`) over deep relative paths.
 - Prefer function components with hooks over class components.
 - Use existing hooks and state containers before adding new global state mechanisms.
 - Keep side effects (I/O, daemon calls) in dedicated hooks or services, not inside presentational components.
@@ -275,6 +306,16 @@ This repo intentionally has multiple binaries. Each has a distinct goal and depl
     - Run `soma-daemon` from `backend/`.
     - Start `desktop/app/soma` or `desktop/app/tapia` in dev mode.
     - Exercise join flows, class navigation, and basic messaging.
+
+### E2E Join Smoke (current MVP)
+
+- Requester: `soma-daemon` sends join via `Daemon/JoinSpace` (libp2p join protocol).
+- Approver:
+  - `soma-botd --mode bot`: auto-approves only with issuer delegation present; otherwise records `join_requests` and rejects.
+  - `soma-botd --mode server-daemon` or `soma-daemon`: manual approval via `JoinRequests` list + `DecideJoin`.
+- Manual approval is asynchronous: requester must retry `JoinSpace` to receive the stored decision.
+- Target UX: manual approval triggers an in-network push of `JoinDecision` to the requester (no retry). See “Async manual join decision delivery (in-band)” TODO above.
+- Signatures exist, but verification on receipt is not yet enforced; treat them as provisional until verification lands.
 
 ## Networking Services (Relay + Rendezvous)
 
