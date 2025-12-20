@@ -1,4 +1,4 @@
-@use 'react-cmdk/dist/cmdk.css';
-
 @use "tailwindcss/index.css";
+@use './cmdk.scss';
+
 @plugin "daisyui";
