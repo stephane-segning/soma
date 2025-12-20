@@ -388,6 +388,19 @@ For how peers (`soma-daemon`, `soma-botd`) use mDNS, rendezvous, and relay clien
 - Main-process structure follows DRY/SOLID and applies patterns:
   - **Facade**: `SomaElectronApp` is the lifecycle facade; it orchestrates startup/shutdown and delegates to bootstrap + window controllers.
   - **Delegation**: `MainBootstrapService` owns one-time app initialization (DB/settings + IPC + shortcuts), while `MainWindowController` owns window lifecycle/state restore. Keep logic in these services instead of growing `app.ts`.
+- Renderer integration (IPC + settings):
+  - Renderer must communicate with main via the preload bridge (`src/preload/index.ts`): `window.api` (explicit RPC-like helpers) and `window.ipc` (RxJS event stream + send).
+  - Router last route:
+    - Read: `await window.api.getLastRoute()`
+    - Persist: `window.api.setLastRoute(route)` → handled in main (`router:set-last-route`) and persisted to settings + route-store file.
+  - App settings (unstructured JSON) are written from renderer → main via IPC events (handled by `AppStateSyncService` → `AppSettingsService`):
+    - Set a setting:
+      - `window.ipc.sendToMain('settings:set', { key: 'ui:theme', value: 'dark' })`
+    - Namespaced key-value (IndexedDB clone style):
+      - `window.ipc.sendToMain('settings:kv:set', { namespace: 'idb', key: 'some-key', value: { any: 'json' } })`
+      - `window.ipc.sendToMain('settings:kv:delete', { namespace: 'idb', key: 'some-key' })`
+  - Window bounds persistence is automatic in main (`AppStateSyncService` listens to `move`/`resize` and calls `AppSettingsService.setWindowBounds`).
+  - Reading arbitrary settings/KV from renderer is not implemented yet (only last route has a read API); add IPC handlers in `MainIpcController` if needed.
 - Local state:
     - UI state lives in React (components, hooks).
     - Persistent or shared state that mirrors daemon state should be derived from daemon APIs, not duplicated business logic in the UI.
