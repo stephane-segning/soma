@@ -1,5 +1,5 @@
-import { useTabsStore } from "@renderer/store/tabs";
 import { cn } from "@renderer/lib/cn";
+import { useTabsStore } from "@renderer/store/tabs";
 import { Plus, X } from "react-feather";
 
 function TabsBar(): React.JSX.Element {
@@ -11,14 +11,17 @@ function TabsBar(): React.JSX.Element {
 	const atMaxTabs = tabs.length >= 10;
 
 	return (
-		<div className="flex min-w-0 flex-1 gap-4 items-center gap-2 [-webkit-app-region:no-drag] overflow-x-auto min-w-full no-scrollbar">
-			<div className="tabs tabs-sm tabs-box gap-1 min-w-max">
+		<div className="no-scrollbar flex min-w-0 min-w-full flex-1 items-center gap-2 gap-4 overflow-x-auto">
+			<div className="tabs tabs-sm tabs-box min-w-max gap-1">
 				{tabs.map((tab) => {
 					const isActive = tab.id === activeId;
 					return (
 						<div
 							aria-selected={isActive}
-							className={cn("tab shadow-none", isActive && "tab-active")}
+							className={cn(
+								"tab shadow-none [-webkit-app-region:no-drag]",
+								isActive && "tab-active",
+							)}
 							key={tab.id}
 							onClick={() => selectTab(tab.id)}
 							onKeyDown={(e) => {
@@ -27,12 +30,10 @@ function TabsBar(): React.JSX.Element {
 							role="tab"
 							tabIndex={0}
 						>
-							<span className="min-w-0 flex-1 truncate pl-2">
-								{tab.title}
-							</span>
+							<span className="min-w-0 flex-1 truncate pl-2">{tab.title}</span>
 							<button
 								aria-label="Close tab"
-								className="btn btn-xs btn-circle ml-4 btn-soft"
+								className="btn btn-xs btn-circle btn-soft ml-4 [-webkit-app-region:no-drag]"
 								onClick={(e) => {
 									e.stopPropagation();
 									closeTab(tab.id);
@@ -47,7 +48,7 @@ function TabsBar(): React.JSX.Element {
 			</div>
 
 			<button
-				className="btn btn-soft btn-xs btn-circle btn-primary"
+				className="btn btn-soft btn-xs btn-circle btn-primary [-webkit-app-region:no-drag]"
 				disabled={atMaxTabs}
 				onClick={() => openTab()}
 				type="button"
