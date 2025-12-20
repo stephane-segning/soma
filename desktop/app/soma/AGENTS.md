@@ -381,6 +381,13 @@ For how peers (`soma-daemon`, `soma-botd`) use mDNS, rendezvous, and relay clien
 - Treat `desktop/app/soma` and `desktop/app/tapia` as separate products sharing a backend daemon.
 - Keep Electron main-process code (window management, protocol handlers, daemon bootstrap) separate from renderer React code.
 - Route all network operations through the local daemon; do not introduce direct server calls from the UI unless explicitly required.
+- Main-process DI uses Inversify with typed tokens in `src/main/tokens.ts`; resolve dependencies via the container using these symbols (see `src/main/container.ts`).
+- Main-process persistence:
+  - `DbService` wraps SQLite via `better-sqlite3` against `userData/soma.db`.
+  - `AppSettingsService` builds on DbService for app settings: window bounds, last route, and namespaced key-value storage (IndexedDB clone).
+- Main-process structure follows DRY/SOLID and applies patterns:
+  - **Facade**: `SomaElectronApp` is the lifecycle facade; it orchestrates startup/shutdown and delegates to bootstrap + window controllers.
+  - **Delegation**: `MainBootstrapService` owns one-time app initialization (DB/settings + IPC + shortcuts), while `MainWindowController` owns window lifecycle/state restore. Keep logic in these services instead of growing `app.ts`.
 - Local state:
     - UI state lives in React (components, hooks).
     - Persistent or shared state that mirrors daemon state should be derived from daemon APIs, not duplicated business logic in the UI.

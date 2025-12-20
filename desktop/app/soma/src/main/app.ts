@@ -1,22 +1,27 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
-import { electronApp, optimizer } from '@electron-toolkit/utils'
+import { app, BrowserWindow } from 'electron'
 import log from 'electron-log'
 import { inject, injectable } from 'inversify'
 import { fromEvent, merge, of, Subject, map, takeUntil, tap } from 'rxjs'
-import { readLastRoute, writeLastRoute } from './route-store'
-import { WindowManager } from './services/window-manager'
+import { TYPES } from './tokens'
+import { MainBootstrapService } from './services/main-bootstrap-service'
+import { MainWindowController } from './services/main-window-controller'
 
 type AppLifecycleEvent = 'ready' | 'activate' | 'window-all-closed'
 
 @injectable()
 export class SomaElectronApp {
   private readonly destroy$ = new Subject<void>()
-  private readonly logger = log.scope('SomaElectronApp')
+  private readonly logger = log.scope('soma-app')
+  private signalsRegistered = false
 
-  constructor(@inject(WindowManager) private readonly windowManager: WindowManager) {}
+  constructor(
+    @inject(TYPES.mainBootstrapService) private readonly bootstrap: MainBootstrapService,
+    @inject(TYPES.mainWindowController) private readonly windowController: MainWindowController
+  ) {}
 
   start(): void {
     this.configureLogging()
+    this.registerProcessSignals()
     this.observeLifecycle()
   }
 
@@ -42,10 +47,10 @@ export class SomaElectronApp {
     lifecycle$.subscribe((event) => {
       switch (event) {
         case 'ready':
-          this.handleReady()
+          void this.handleReady()
           break
         case 'activate':
-          this.handleActivate()
+          void this.handleActivate()
           break
         case 'window-all-closed':
           this.handleWindowAllClosed()
@@ -61,24 +66,16 @@ export class SomaElectronApp {
       })
   }
 
-  private handleReady(): void {
-    electronApp.setAppUserModelId('com.electron')
-
-    app.on('browser-window-created', (_, window) => {
-      optimizer.watchWindowShortcuts(window)
-    })
-
-    this.registerIpcHandlers()
-
-    const initialRoute = readLastRoute()
-    this.logger.info('Creating main window', { initialRoute })
-    this.windowManager.createMainWindow({ initialRoute })
+  private async handleReady(): Promise<void> {
+    await this.bootstrap.init()
+    await this.windowController.createOrRestore()
   }
 
-  private handleActivate(): void {
+  private async handleActivate(): Promise<void> {
     if (BrowserWindow.getAllWindows().length === 0) {
       this.logger.info('Activating without windows, creating main window')
-      this.windowManager.createMainWindow({ initialRoute: readLastRoute() })
+      await this.bootstrap.init()
+      await this.windowController.createOrRestore()
     }
   }
 
@@ -89,14 +86,17 @@ export class SomaElectronApp {
     }
   }
 
-  private registerIpcHandlers(): void {
-    ipcMain.on('ping', () => this.logger.silly('ping received'))
-
-    ipcMain.handle('router:get-last-route', () => readLastRoute())
-
-    ipcMain.on('router:set-last-route', async (_, route: string) => {
-      await writeLastRoute(route)
-      this.logger.debug(`Persisted last route: ${route}`)
-    })
+  /**
+   * Ensure we exit cleanly when the dev process is stopped (Ctrl+C).
+   */
+  private registerProcessSignals(): void {
+    if (this.signalsRegistered) return
+    this.signalsRegistered = true
+    const quit = () => {
+      this.logger.info('Received shutdown signal, quitting app')
+      app.quit()
+    }
+    process.once('SIGINT', quit)
+    process.once('SIGTERM', quit)
   }
 }

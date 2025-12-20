@@ -6,10 +6,12 @@ import icon from '../../../resources/icon.png?asset'
 
 @injectable()
 export class WindowManager {
-  createMainWindow(options?: { initialRoute?: string }): BrowserWindow {
+  createMainWindow(options?: { initialRoute?: string; bounds?: Electron.Rectangle }): BrowserWindow {
     const mainWindow = new BrowserWindow({
-      width: 900,
-      height: 670,
+      width: options?.bounds?.width ?? 900,
+      height: options?.bounds?.height ?? 670,
+      x: options?.bounds?.x,
+      y: options?.bounds?.y,
       show: false,
       autoHideMenuBar: true,
       ...(process.platform === 'linux' ? { icon } : {}),

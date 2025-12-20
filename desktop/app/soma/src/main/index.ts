@@ -1,6 +1,6 @@
 import 'reflect-metadata'
-import { container } from './container'
-import { SomaElectronApp } from './app'
+import { resolve } from './container'
+import { TYPES } from './tokens'
 
-const somaApp = container.get(SomaElectronApp)
+const somaApp = resolve(TYPES.somaElectronApp)
 somaApp.start()

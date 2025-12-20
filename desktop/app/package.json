@@ -11,6 +11,11 @@
     "lint": "pnpm --filter @soma/soma run lint && pnpm --filter @soma/tapia run lint",
     "format": "pnpm --filter @soma/soma run format && pnpm --filter @soma/tapia run format"
   },
+  "pnpm": {
+    "neverBuiltDependencies": [
+      "sqlite-electron"
+    ]
+  },
   "workspaces": [
     "soma",
     "tapia"
