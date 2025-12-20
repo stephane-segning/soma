@@ -8,6 +8,7 @@ const APP_STATE_SYNC_SERVICE = Symbol("AppStateSyncService");
 const MAIN_IPC_CONTROLLER = Symbol("MainIpcController");
 const MAIN_BOOTSTRAP_SERVICE = Symbol("MainBootstrapService");
 const MAIN_WINDOW_CONTROLLER = Symbol("MainWindowController");
+const DOCUMENTS_SERVICE = Symbol("DocumentsService");
 
 const TYPES = {
 	daemonClient: DAEMON_CLIENT,
@@ -20,6 +21,7 @@ const TYPES = {
 	mainIpcController: MAIN_IPC_CONTROLLER,
 	mainBootstrapService: MAIN_BOOTSTRAP_SERVICE,
 	mainWindowController: MAIN_WINDOW_CONTROLLER,
+	documentsService: DOCUMENTS_SERVICE,
 } as const;
 
 type Token = (typeof TYPES)[keyof typeof TYPES];

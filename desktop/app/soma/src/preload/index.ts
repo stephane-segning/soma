@@ -1,22 +1,85 @@
-import { contextBridge } from "electron";
 import { electronAPI } from "@electron-toolkit/preload";
+import { contextBridge } from "electron";
 import { fromEventPattern } from "rxjs";
 import { filter, map } from "rxjs/operators";
 
 // Custom APIs for renderer
-	const api = {
+const api = {
 	getLastRoute: (): Promise<string> =>
 		electronAPI.ipcRenderer.invoke("router:get-last-route") as Promise<string>,
-		getSetting: <T = unknown>(key: string): Promise<T | null> =>
-			electronAPI.ipcRenderer.invoke("settings:get", key) as Promise<T | null>,
-		search: (
-			query: string,
-		): Promise<Array<{ id: string; title: string; subtitle?: string }>> =>
-			electronAPI.ipcRenderer.invoke("search:query", query) as Promise<
-				Array<{ id: string; title: string; subtitle?: string }>
-			>,
-		setLastRoute: (route: string): void =>
-			electronAPI.ipcRenderer.send("router:set-last-route", route),
+	getSetting: <T = unknown>(key: string): Promise<T | null> =>
+		electronAPI.ipcRenderer.invoke("settings:get", key) as Promise<T | null>,
+	search: (
+		query: string,
+	): Promise<Array<{ id: string; title: string; subtitle?: string }>> =>
+		electronAPI.ipcRenderer.invoke("search:query", query) as Promise<
+			Array<{ id: string; title: string; subtitle?: string }>
+		>,
+	documents: {
+		upsertDraft: (input: {
+			spaceId: string;
+			documentId: string;
+			contentJson: string;
+			published: boolean;
+		}): Promise<{ ok: true }> =>
+			electronAPI.ipcRenderer.invoke(
+				"documents:upsert-draft",
+				input,
+			) as Promise<{ ok: true }>,
+		getDraft: (input: { spaceId: string; documentId: string }) =>
+			electronAPI.ipcRenderer.invoke("documents:get-draft", input) as Promise<{
+				spaceId: string;
+				documentId: string;
+				contentJson: string;
+				published: 0 | 1;
+				updatedAtMs: number;
+			} | null>,
+		queueDaemonSync: (input: {
+			spaceId: string;
+			documentId: string;
+			contentJson: string;
+			updatedAtMs: number;
+		}): Promise<{ ok: true }> =>
+			electronAPI.ipcRenderer.invoke(
+				"documents:queue-daemon-sync",
+				input,
+			) as Promise<{ ok: true }>,
+	},
+	blobs: {
+		stage: (input: { bytes: Uint8Array; mime: string; fileName?: string }) =>
+			electronAPI.ipcRenderer.invoke("blobs:stage", input) as Promise<{
+				blobId: string;
+				mime: string;
+				byteLength: number;
+				createdAtMs: number;
+				url: string;
+			}>,
+	},
+		daemon: {
+			upsertDocument: (input: {
+				spaceId: string;
+				documentId: string;
+				contentJson: string;
+				published: boolean;
+				updatedAtMs: number;
+			}): Promise<{ ok: true }> =>
+				electronAPI.ipcRenderer.invoke(
+					"daemon:upsert-document",
+					input,
+				) as Promise<{ ok: true }>,
+			syncPublishedDocument: (input: {
+				spaceId: string;
+				documentId: string;
+				contentJson: string;
+				updatedAtMs: number;
+			}): Promise<{ ok: true; uploaded: number }> =>
+				electronAPI.ipcRenderer.invoke(
+					"daemon:sync-published-document",
+					input,
+				) as Promise<{ ok: true; uploaded: number }>,
+		},
+	setLastRoute: (route: string): void =>
+		electronAPI.ipcRenderer.send("router:set-last-route", route),
 	window: {
 		minimize: (): void => electronAPI.ipcRenderer.send("window:minimize"),
 		toggleMaximize: (): void =>
@@ -55,10 +118,10 @@ if (process.contextIsolated) {
 		console.error(error);
 	}
 } else {
-	// @ts-ignore (define in dts)
+	// @ts-expect-error (define in dts)
 	window.electron = electronAPI;
-	// @ts-ignore (define in dts)
+	// @ts-expect-error (define in dts)
 	window.api = api;
-	// @ts-ignore (define in dts)
+	// @ts-expect-error (define in dts)
 	window.ipc = ipc;
 }

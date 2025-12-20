@@ -53,6 +53,69 @@ Peer/daemon backends:
 - use `yjs-rust` to reconcile collaborative content/state.
 - use SQLite on desktop; server deployments can enable PostgreSQL via Cargo features.
 
+### Blobs (content-addressed, daemon-owned)
+
+Soma treats binary assets (“blobs”: files, images, attachments, Yoopta-related assets, …) as **content-addressed objects** stored outside Yjs/Yoopta. Collaborative documents should only contain **references** to blobs.
+
+#### Roles and rules
+
+- `soma-daemon` is the **source of truth** for user-created blobs (writes allowed).
+- `soma-botd` (both `bot` and `server-daemon` modes) is **cache-only** for blobs (writes allowed only as a side-effect of *fetching* a blob from the network; never accepts user upload).
+- Blob identity is a CID computed from bytes (e.g. `sha256`), and storage is keyed by CID (content-addressed).
+
+#### Upload and persistence (daemon only)
+
+- The only supported “upload” entrypoint is local IPC to `soma-daemon` (Unix socket gRPC / daemon API).
+- `soma-daemon` persists bytes into its configured blob storage pool (space-scoped layout recommended) and records minimal metadata (size, content type, original name).
+- `soma-daemon` emits a peer event **only** when the blob is associated with Yoopta content (i.e. the upload includes Yoopta context like a document ID / node ID). Non-Yoopta blobs are stored but do not generate Yoopta-related peer events.
+
+Where to wire this:
+- Peer event definitions: `backend/crates/peer/src/lib.rs`, `backend/crates/peer/src/events.rs`
+- Daemon storage + IPC/controller: `backend/bins/daemon/`
+
+#### Network distribution (fetch + cache)
+
+- Peers retrieve blobs from each other by CID over libp2p (a simple request/response “get by CID” protocol).
+- When a Yoopta document starts referencing a blob, the writer can publish a lightweight “blob availability hint” (metadata only) so other peers know what to fetch/cache.
+- `soma-botd` participates as a peer that can:
+  - serve blobs it already has in cache
+  - fetch blobs on-demand and keep them if they’re frequently used
+  - evict according to policy (LRU/TTL + size cap)
+
+Non-goals / guardrails:
+- No HTTP upload endpoints in `soma-botd` in any mode.
+- No network “push bytes to bot” protocol; blob transfer is pull-based by CID.
+- Do **not** embed multiaddrs in Yoopta content (they are ephemeral) and do **not** assume every user has a bot; references must resolve via any reachable peer.
+
+#### Yoopta integration
+
+- Yoopta content must store blob *references* (structured objects) rather than bytes.
+- A reference should include at least: `cid`, `mime`, `size`, and optional `name` (and any renderer-specific fields).
+- Dialing happens at runtime: peers fetch by CID using `/soma/blob/1` from any reachable peer that has the blob (daemon store or bot cache).
+
+#### Space mirror bots (cache “everything referenced”)
+
+Some deployments want an always-on bot to cache the complete set of blobs referenced by a space (to improve availability/latency for other peers).
+
+- Role: a `soma-botd` instance can run as a **space mirror**:
+  - maintains a local `blob-cache-dir` (cache-only, populated via fetch)
+  - attempts to keep all referenced CIDs for configured spaces present locally
+- How the bot learns “what to cache”:
+  - **Announce-driven**: when a daemon stores a blob and writes a Yoopta reference, it publishes a lightweight “blob announce” (space_id + cid + mime + size). Mirror bots enqueue a fetch for announced CIDs.
+  - **Crawl/reconcile**: periodically scan the space’s collaborative state/docs, extract blob references, and reconcile (fetch missing; optionally evict unreferenced with TTL).
+- Fetch strategy:
+  - try any reachable peers (peerstore/Identify, rendezvous discovery, relays) until one serves the CID
+  - keep a retry queue (DB-backed, mailbox-style) for transient failures and offline sources
+- Cache policy:
+  - “mirror mode” prefers retention for referenced blobs; eviction is bounded by size/TTL and “unreferenced for N days”
+  - bots still never accept user uploads; the cache is filled only by pulling verified bytes (CID match)
+
+#### Security and limits
+
+- Always validate declared sizes/content types and enforce maximum blob sizes at ingress (daemon IPC) and at egress (network transfer).
+- Always verify bytes match the CID before persisting/serving.
+- Treat all remote blobs as untrusted: no automatic execution/rendering without appropriate sandboxing in the UI.
+
 Specific services (all now live under `backend/`):
 
 - **Relay** (`backend/bins/relayd`, `backend/crates/relay`): libp2p circuit-relay node, plus an Axum HTTP server and a small metrics server.

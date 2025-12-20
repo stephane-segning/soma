@@ -4,6 +4,7 @@ import { AppStateSyncService } from "./services/app-state-sync-service";
 import { AppSettingsService } from "./services/app-settings-service";
 import { DaemonClient } from "./services/daemon-client";
 import { DbService } from "./services/db-service";
+import { DocumentsService } from "./services/documents-service";
 import { IpcService } from "./services/ipc-service";
 import { MainBootstrapService } from "./services/main-bootstrap-service";
 import { MainIpcController } from "./services/main-ipc-controller";
@@ -20,6 +21,7 @@ container
 	.bind<AppSettingsService>(TYPES.appSettingsService)
 	.to(AppSettingsService);
 container.bind<DbService>(TYPES.dbService).to(DbService);
+container.bind<DocumentsService>(TYPES.documentsService).to(DocumentsService);
 container.bind<DaemonClient>(TYPES.daemonClient).to(DaemonClient);
 container.bind<IpcService>(TYPES.ipcService).to(IpcService);
 container
@@ -42,6 +44,7 @@ function resolve(
 	identifier: typeof TYPES.appSettingsService,
 ): AppSettingsService;
 function resolve(identifier: typeof TYPES.dbService): DbService;
+function resolve(identifier: typeof TYPES.documentsService): DocumentsService;
 function resolve(identifier: typeof TYPES.ipcService): IpcService;
 function resolve(identifier: typeof TYPES.mainIpcController): MainIpcController;
 function resolve(

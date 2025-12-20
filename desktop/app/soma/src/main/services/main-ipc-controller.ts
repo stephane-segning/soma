@@ -1,10 +1,12 @@
 import { BrowserWindow, ipcMain } from 'electron'
 import log from 'electron-log'
 import { inject, injectable } from 'inversify'
-import { TYPES } from '../tokens'
-import { AppSettingsService } from './app-settings-service'
-import { DbService } from './db-service'
 import { readLastRoute, writeLastRoute } from '../route-store'
+import { TYPES } from '../tokens'
+import type { AppSettingsService } from './app-settings-service'
+import type { DaemonClient } from './daemon-client'
+import type { DbService } from './db-service'
+import type { DocumentsService } from './documents-service'
 
 @injectable()
 export class MainIpcController {
@@ -13,7 +15,9 @@ export class MainIpcController {
 
   constructor(
     @inject(TYPES.appSettingsService) private readonly appSettings: AppSettingsService,
-    @inject(TYPES.dbService) private readonly db: DbService
+    @inject(TYPES.dbService) private readonly db: DbService,
+    @inject(TYPES.documentsService) private readonly documents: DocumentsService,
+    @inject(TYPES.daemonClient) private readonly daemon: DaemonClient
   ) {}
 
   register(): void {
@@ -78,6 +82,102 @@ export class MainIpcController {
 
       return results
     })
+
+    ipcMain.handle(
+      'documents:upsert-draft',
+      async (
+        _event,
+        input: { spaceId: string; documentId: string; contentJson: string; published: boolean }
+      ) => {
+        this.documents.upsertDraft(input)
+        return { ok: true }
+      }
+    )
+
+    ipcMain.handle(
+      'documents:get-draft',
+      async (_event, input: { spaceId: string; documentId: string }) => {
+        return this.documents.getDraft(input.spaceId, input.documentId)
+      }
+    )
+
+    ipcMain.handle(
+      'documents:queue-daemon-sync',
+      async (
+        _event,
+        input: { spaceId: string; documentId: string; contentJson: string; updatedAtMs: number }
+      ) => {
+        this.documents.queueDaemonSync(input)
+        return { ok: true }
+      }
+    )
+
+    ipcMain.handle(
+      'daemon:upsert-document',
+      async (
+        _event,
+        input: {
+          spaceId: string
+          documentId: string
+          contentJson: string
+          published: boolean
+          updatedAtMs: number
+        }
+      ) => {
+        await this.daemon.upsertDocument(input)
+        return { ok: true }
+      }
+    )
+
+    ipcMain.handle(
+      'daemon:sync-published-document',
+      async (
+        _event,
+        input: {
+          spaceId: string
+          documentId: string
+          contentJson: string
+          updatedAtMs: number
+        }
+      ) => {
+        await this.daemon.upsertDocument({
+          spaceId: input.spaceId,
+          documentId: input.documentId,
+          contentJson: input.contentJson,
+          published: true,
+          updatedAtMs: input.updatedAtMs
+        })
+
+        const blobIds = this.documents.extractLocalBlobIds(input.contentJson)
+        let uploaded = 0
+        for (const blobId of blobIds) {
+          if (this.documents.getBlobMigration(blobId)) continue
+          const blob = this.documents.readStagedBlob(blobId)
+          if (!blob) continue
+          const res = await this.daemon.uploadBlob({
+            spaceId: input.spaceId,
+            data: blob.bytes,
+            mime: blob.mime,
+            name: blob.fileName ?? blobId,
+            docId: input.documentId
+          })
+          this.documents.recordBlobMigration(input.spaceId, blobId, res.cid)
+          uploaded += 1
+        }
+
+        return { ok: true, uploaded }
+      }
+    )
+
+    ipcMain.handle(
+      'blobs:stage',
+      async (
+        _event,
+        input: { bytes: Uint8Array; mime: string; fileName?: string }
+      ) => {
+        return this.documents.stageBlob(input)
+      }
+    )
 
     ipcMain.on('window:minimize', (event) => {
       BrowserWindow.fromWebContents(event.sender)?.minimize()

@@ -127,11 +127,49 @@ message JoinFailedEvent {
   string error = 2;
 }
 
+message YooptaBlobAddedEvent {
+  string space_id = 1;
+  string doc_id = 2;
+  string cid = 3;
+  string mime = 4;
+  uint64 size = 5;
+  string name = 6;
+}
+
+message UploadBlobRequest {
+  string space_id = 1;
+  bytes data = 2;
+  string mime = 3;
+  string name = 4;
+  // Optional: associate the blob with a Yoopta document so listeners can react.
+  string doc_id = 5;
+}
+
+message UploadBlobResponse {
+  string cid = 1;
+  uint64 size = 2;
+  string mime = 3;
+  string name = 4;
+}
+
+message UpsertDocumentRequest {
+  string space_id = 1;
+  string document_id = 2;
+  string content_json = 3;
+  bool published = 4;
+  int64 updated_at_ms = 5;
+}
+
+message UpsertDocumentResponse {
+  bool ok = 1;
+}
+
 message DaemonEvent {
   oneof event {
     JoinDecisionEvent join_decision = 1;
     JoinSubmitEvent join_submitted = 2;
     JoinFailedEvent join_failed = 3;
+    YooptaBlobAddedEvent yoopta_blob_added = 4;
   }
 }
 
@@ -146,4 +184,6 @@ service Daemon {
   rpc DiscoverSpaces(DiscoverSpacesRequest) returns (DiscoverSpacesResponse);
   rpc ListJoinRequests(ListJoinRequestsRequest) returns (ListJoinRequestsResponse);
   rpc DecideJoin(DecideJoinRequest) returns (DecideJoinResponse);
+  rpc UploadBlob(UploadBlobRequest) returns (UploadBlobResponse);
+  rpc UpsertDocument(UpsertDocumentRequest) returns (UpsertDocumentResponse);
 }
