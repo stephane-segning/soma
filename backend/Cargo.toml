@@ -9,6 +9,7 @@ members = [
     "crates/membership",
     "crates/proto-build",
     "crates/metrics",
+    "crates/cache",
     "crates/relay",
     "crates/rendezvous",
     "crates/bff",
@@ -27,6 +28,7 @@ resolver = "3"
 
 [workspace.dependencies]
 soma-core = { path = "crates/core" }
+soma-cache = { path = "crates/cache" }
 soma-storage = { path = "crates/storage" }
 soma-net = { path = "crates/net" }
 soma-api = { path = "crates/api" }

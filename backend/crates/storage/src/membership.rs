@@ -45,6 +45,12 @@ pub struct JoinRequest {
     pub requested_role: i32,
     pub created_at: i64,
     pub payload: Option<Vec<u8>>,
+    pub target_peer_id: Option<String>,
+    pub status: String,
+    pub attempts: i64,
+    pub next_attempt_at: i64,
+    pub last_error: Option<String>,
+    pub is_outgoing: bool,
 }
 
 #[async_trait]
@@ -68,6 +74,10 @@ pub trait MembershipRepository: Send + Sync {
         subject_peer_id: &str,
     ) -> SomaResult<Option<SpaceMembership>>;
     async fn list_memberships(&self, space_id: &str) -> SomaResult<Vec<SpaceMembership>>;
+    async fn list_memberships_by_subject(
+        &self,
+        subject_peer_id: &str,
+    ) -> SomaResult<Vec<SpaceMembership>>;
     async fn record_join_decision(&self, decision: &JoinDecision) -> SomaResult<()>;
     async fn latest_join_decision(
         &self,
@@ -78,6 +88,13 @@ pub trait MembershipRepository: Send + Sync {
     async fn delete_join_request(&self, request_id: &str) -> SomaResult<u64>;
     async fn get_join_request(&self, request_id: &str) -> SomaResult<Option<JoinRequest>>;
     async fn list_join_requests(&self) -> SomaResult<Vec<JoinRequest>>;
+    async fn list_join_requests_filtered(
+        &self,
+        target_peer_id: Option<&str>,
+        is_outgoing: Option<bool>,
+        limit: Option<u32>,
+        offset: Option<u32>,
+    ) -> SomaResult<Vec<JoinRequest>>;
 }
 
 #[derive(Clone, Debug)]
@@ -284,6 +301,26 @@ impl MembershipRepository for SqlMembershipRepository {
         Ok(rows.into_iter().map(map_membership_row).collect())
     }
 
+    async fn list_memberships_by_subject(
+        &self,
+        subject_peer_id: &str,
+    ) -> SomaResult<Vec<SpaceMembership>> {
+        let rows = sqlx::query(
+            r#"
+            SELECT space_id, subject_peer_id, role, issuer_peer_id, issued_at, expires_at, capability
+            FROM space_memberships
+            WHERE subject_peer_id = $1
+            ORDER BY space_id
+            "#,
+        )
+        .bind(subject_peer_id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(Error::service)?;
+
+        Ok(rows.into_iter().map(map_membership_row).collect())
+    }
+
     async fn record_join_decision(&self, decision: &JoinDecision) -> SomaResult<()> {
         sqlx::query(
             r#"
@@ -341,8 +378,10 @@ impl MembershipRepository for SqlMembershipRepository {
         sqlx::query(
             r#"
             INSERT INTO join_requests (
-                request_id, space_id, subject_peer_id, display_name, device_name, requested_role, created_at, payload
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                request_id, space_id, subject_peer_id, display_name, device_name, requested_role,
+                created_at, payload, target_peer_id, status, attempts, next_attempt_at, last_error,
+                is_outgoing
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
             ON CONFLICT(request_id)
             DO UPDATE SET
                 space_id = excluded.space_id,
@@ -351,7 +390,13 @@ impl MembershipRepository for SqlMembershipRepository {
                 device_name = excluded.device_name,
                 requested_role = excluded.requested_role,
                 created_at = excluded.created_at,
-                payload = excluded.payload
+                payload = excluded.payload,
+                target_peer_id = excluded.target_peer_id,
+                status = excluded.status,
+                attempts = excluded.attempts,
+                next_attempt_at = excluded.next_attempt_at,
+                last_error = excluded.last_error,
+                is_outgoing = excluded.is_outgoing
             "#,
         )
         .bind(&req.request_id)
@@ -362,6 +407,12 @@ impl MembershipRepository for SqlMembershipRepository {
         .bind(req.requested_role)
         .bind(req.created_at)
         .bind(&req.payload)
+        .bind(&req.target_peer_id)
+        .bind(&req.status)
+        .bind(req.attempts)
+        .bind(req.next_attempt_at)
+        .bind(&req.last_error)
+        .bind(req.is_outgoing as i64)
         .execute(&self.pool)
         .await
         .map_err(Error::service)?;
@@ -387,7 +438,9 @@ impl MembershipRepository for SqlMembershipRepository {
     async fn list_join_requests(&self) -> SomaResult<Vec<JoinRequest>> {
         let rows = sqlx::query(
             r#"
-            SELECT request_id, space_id, subject_peer_id, display_name, device_name, requested_role, created_at, payload
+            SELECT request_id, space_id, subject_peer_id, display_name, device_name, requested_role,
+                   created_at, payload, target_peer_id, status, attempts, next_attempt_at, last_error,
+                   is_outgoing
             FROM join_requests
             ORDER BY created_at DESC
             "#,
@@ -399,10 +452,59 @@ impl MembershipRepository for SqlMembershipRepository {
         Ok(rows.into_iter().map(map_join_request_row).collect())
     }
 
+    async fn list_join_requests_filtered(
+        &self,
+        target_peer_id: Option<&str>,
+        is_outgoing: Option<bool>,
+        limit: Option<u32>,
+        offset: Option<u32>,
+    ) -> SomaResult<Vec<JoinRequest>> {
+        let mut qb = sqlx::QueryBuilder::new(
+            r#"
+            SELECT request_id, space_id, subject_peer_id, display_name, device_name, requested_role,
+                   created_at, payload, target_peer_id, status, attempts, next_attempt_at, last_error,
+                   is_outgoing
+            FROM join_requests
+            "#,
+        );
+
+        let mut first = true;
+        if let Some(t) = target_peer_id {
+            qb.push(" WHERE target_peer_id = ").push_bind(t);
+            first = false;
+        }
+        if let Some(flag) = is_outgoing {
+            if first {
+                qb.push(" WHERE ");
+            } else {
+                qb.push(" AND ");
+            }
+            qb.push(" is_outgoing = ").push_bind(flag as i64);
+        }
+
+        qb.push(" ORDER BY created_at DESC, request_id DESC ");
+        if let Some(lim) = limit {
+            qb.push(" LIMIT ").push_bind(lim as i64);
+        }
+        if let Some(off) = offset {
+            qb.push(" OFFSET ").push_bind(off as i64);
+        }
+
+        let rows = qb
+            .build()
+            .fetch_all(&self.pool)
+            .await
+            .map_err(Error::service)?;
+
+        Ok(rows.into_iter().map(map_join_request_row).collect())
+    }
+
     async fn get_join_request(&self, request_id: &str) -> SomaResult<Option<JoinRequest>> {
         let row = sqlx::query(
             r#"
-            SELECT request_id, space_id, subject_peer_id, display_name, device_name, requested_role, created_at, payload
+            SELECT request_id, space_id, subject_peer_id, display_name, device_name, requested_role,
+                   created_at, payload, target_peer_id, status, attempts, next_attempt_at, last_error,
+                   is_outgoing
             FROM join_requests
             WHERE request_id = $1
             "#,
@@ -501,6 +603,12 @@ fn map_join_request_row(row: sqlx::any::AnyRow) -> JoinRequest {
         requested_role: row.get("requested_role"),
         created_at: row.get("created_at"),
         payload: row.get("payload"),
+        target_peer_id: row.get("target_peer_id"),
+        status: row.get("status"),
+        attempts: row.get("attempts"),
+        next_attempt_at: row.get("next_attempt_at"),
+        last_error: row.get("last_error"),
+        is_outgoing: row.get::<i64>("is_outgoing") != 0,
     }
 }
 

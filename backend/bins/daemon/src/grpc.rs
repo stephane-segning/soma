@@ -5,7 +5,8 @@ use libp2p::PeerId;
 use prost_types::Timestamp;
 use soma_core::SomaResult;
 use soma_membership::{
-    decide_join_request, enqueue_outgoing_join_decision, list_pending_join_requests, parse_role_str,
+    decide_join_request, enqueue_outgoing_join_decision, enqueue_outgoing_join_request,
+    list_pending_join_requests, parse_role_str,
 };
 use soma_peer::PeerCommand;
 use soma_proto_build::{
@@ -19,6 +20,7 @@ use tracing::warn;
 
 use soma_socket::serve_grpc_unix;
 use soma_storage::{RepositoryFactory, membership::MembershipRepository};
+use soma_storage::mailbox::MailboxRepository;
 use libp2p::identity::Keypair;
 /// Daemon shared state (peer id, command channel, listeners, event bus).
 #[derive(Debug)]
@@ -93,11 +95,33 @@ impl daemon::daemon_server::Daemon for DaemonService {
             created_at: Some(Timestamp::from(SystemTime::now())),
         };
 
+        let delivery_id = enqueue_outgoing_join_request(
+            &self.state.repos,
+            &target_peer_id,
+            &request_id,
+            &addrs,
+            &join_request,
+        )
+        .await
+        .map_err(|_| Status::internal("failed to enqueue join request"))?;
+
+        let now_secs = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs() as i64;
+        let _ = self
+            .state
+            .repos
+            .mailbox()
+            .lease(&delivery_id, &self.state.peer_id.to_string(), now_secs + 30)
+            .await;
+
         self.state
             .peer_commands
             .send(PeerCommand::SendJoinRequest {
                 target: target_peer_id,
                 addrs,
+                delivery_id,
                 request_id: request_id.clone(),
                 request: join_request,
             })
@@ -171,6 +195,7 @@ impl daemon::daemon_server::Daemon for DaemonService {
                 peer_id: m.subject_peer_id,
                 role: m.role,
                 expires_at: m.expires_at.unwrap_or_default(),
+                space_id: m.space_id,
             })
             .collect();
 
@@ -253,6 +278,17 @@ impl daemon::daemon_server::Daemon for DaemonService {
 
         if let Ok(delivery_id) = enqueue_outgoing_join_decision(&self.state.repos, &decision).await
         {
+            let now_secs = SystemTime::now()
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs() as i64;
+            let _ = self
+                .state
+                .repos
+                .mailbox()
+                .lease(&delivery_id, &self.state.peer_id.to_string(), now_secs + 30)
+                .await;
+
             if let Some(target) = decision
                 .subject_peer_id
                 .as_ref()
@@ -274,6 +310,41 @@ impl daemon::daemon_server::Daemon for DaemonService {
         Ok(Response::new(daemon::DecideJoinResponse {
             decision: Some(decision),
         }))
+    }
+
+    async fn list_my_memberships(
+        &self,
+        request: Request<daemon::ListMyMembershipsRequest>,
+    ) -> Result<Response<daemon::ListMyMembershipsResponse>, Status> {
+        let payload = request.into_inner();
+        let peer_id = if payload.peer_id.is_empty() {
+            self.state.peer_id.to_string()
+        } else {
+            payload.peer_id
+        };
+
+        let rows = self
+            .state
+            .repos
+            .membership()
+            .list_memberships_by_subject(&peer_id)
+            .await
+            .map_err(|err| {
+                warn!(%err, "list_my_memberships failed");
+                Status::internal("failed to list memberships")
+            })?;
+
+        let memberships = rows
+            .into_iter()
+            .map(|m| daemon::SpaceMember {
+                peer_id: m.subject_peer_id,
+                role: m.role,
+                expires_at: m.expires_at.unwrap_or_default(),
+                space_id: m.space_id,
+            })
+            .collect();
+
+        Ok(Response::new(daemon::ListMyMembershipsResponse { memberships }))
     }
 }
 

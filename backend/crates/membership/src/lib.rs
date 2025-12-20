@@ -2,7 +2,7 @@ use std::sync::Arc;
 use std::time::SystemTime;
 
 use async_trait::async_trait;
-use libp2p::{PeerId, identity::Keypair};
+use libp2p::{Multiaddr, PeerId, identity::Keypair};
 use prost::Message;
 use prost_types::Timestamp;
 use soma_common::{sign_issuer_capability, sign_membership_capability};
@@ -240,6 +240,12 @@ impl JoinDecider for StorageBackedJoinDecider {
                     requested_role: request.requested_role,
                     created_at: now_secs,
                     payload: Some(request.encode_to_vec()),
+                    target_peer_id: Some(self.local_peer_id.to_string()),
+                    status: "pending".into(),
+                    attempts: 0,
+                    next_attempt_at: 0,
+                    last_error: None,
+                    is_outgoing: false,
                 })
                 .await
             {
@@ -320,6 +326,25 @@ pub async fn decide_join_request(
         },
         created_at: Some(now_ts),
     };
+
+    let _ = repo
+        .upsert_join_request(&StoredJoinRequest {
+            request_id: request_id.to_string(),
+            space_id: req.space_id.clone(),
+            subject_peer_id: req.subject_peer_id.clone(),
+            display_name: req.display_name.clone(),
+            device_name: req.device_name.clone(),
+            requested_role: req.requested_role,
+            created_at: req.created_at,
+            payload: req.payload.clone(),
+            target_peer_id: Some(issuer_peer_id.to_string()),
+            status: "decided".into(),
+            attempts: req.attempts,
+            next_attempt_at: req.next_attempt_at,
+            last_error: None,
+            is_outgoing: false,
+        })
+        .await;
 
     if approve {
         let cap_bytes = membership_cap.encode_to_vec();
@@ -458,6 +483,114 @@ pub fn role_to_str(role: SpaceRole) -> &'static str {
 }
 
 pub const MAILBOX_KIND_JOIN_DECISION: &str = "join_decision";
+pub const MAILBOX_KIND_JOIN_REQUEST: &str = "join_request";
+
+#[derive(Debug, Clone)]
+pub struct OutgoingJoinRequest {
+    pub request_id: String,
+    pub addrs: Vec<String>,
+    pub request: JoinRequest,
+}
+
+pub async fn enqueue_outgoing_join_request(
+    repos: &RepositoryFactory,
+    target_peer_id: &PeerId,
+    request_id: &str,
+    addrs: &[Multiaddr],
+    request: &JoinRequest,
+) -> SomaResult<String> {
+    let space_id = request
+        .space_id
+        .as_ref()
+        .ok_or_else(|| Error::service("missing request.space_id"))?
+        .value
+        .clone();
+
+    let now_secs = epoch_seconds(SystemTime::now());
+    let id = format!("mbx-joinreq-{}", request_id);
+    let payload = encode_outgoing_join_request_payload(request_id, addrs, request);
+
+    repos
+        .mailbox()
+        .enqueue(&NewMailboxEntry {
+            id: id.clone(),
+            kind: MAILBOX_KIND_JOIN_REQUEST.to_string(),
+            space_id: Some(space_id),
+            subject_peer_id: Some(target_peer_id.to_string()),
+            available_at: now_secs,
+            payload: Some(payload),
+            created_at: now_secs,
+        })
+        .await?;
+
+    Ok(id)
+}
+
+pub fn decode_outgoing_join_request_payload(payload: &[u8]) -> SomaResult<OutgoingJoinRequest> {
+    let mut idx = 0usize;
+
+    let addr_count = read_u32(payload, &mut idx)? as usize;
+    let mut addrs = Vec::with_capacity(addr_count);
+    for _ in 0..addr_count {
+        let bytes = read_bytes(payload, &mut idx)?;
+        let addr = String::from_utf8(bytes).map_err(|_| Error::service("invalid addr utf8"))?;
+        addrs.push(addr);
+    }
+
+    let request_id_bytes = read_bytes(payload, &mut idx)?;
+    let request_id =
+        String::from_utf8(request_id_bytes).map_err(|_| Error::service("invalid request_id"))?;
+
+    let req_bytes = read_bytes(payload, &mut idx)?;
+    let request = JoinRequest::decode(req_bytes.as_slice()).map_err(Error::service)?;
+
+    Ok(OutgoingJoinRequest {
+        request_id,
+        addrs,
+        request,
+    })
+}
+
+fn encode_outgoing_join_request_payload(
+    request_id: &str,
+    addrs: &[Multiaddr],
+    request: &JoinRequest,
+) -> Vec<u8> {
+    let mut buf = Vec::new();
+    buf.extend_from_slice(&(addrs.len() as u32).to_be_bytes());
+    for addr in addrs {
+        let s = addr.to_string();
+        buf.extend_from_slice(&(s.len() as u32).to_be_bytes());
+        buf.extend_from_slice(s.as_bytes());
+    }
+    buf.extend_from_slice(&(request_id.len() as u32).to_be_bytes());
+    buf.extend_from_slice(request_id.as_bytes());
+
+    let req_bytes = request.encode_to_vec();
+    buf.extend_from_slice(&(req_bytes.len() as u32).to_be_bytes());
+    buf.extend_from_slice(&req_bytes);
+    buf
+}
+
+fn read_u32(input: &[u8], idx: &mut usize) -> SomaResult<u32> {
+    if *idx + 4 > input.len() {
+        return Err(Error::service("invalid outbox payload (u32)"));
+    }
+    let mut b = [0u8; 4];
+    b.copy_from_slice(&input[*idx..*idx + 4]);
+    *idx += 4;
+    Ok(u32::from_be_bytes(b))
+}
+
+fn read_bytes(input: &[u8], idx: &mut usize) -> SomaResult<Vec<u8>> {
+    let len = read_u32(input, idx)? as usize;
+    if *idx + len > input.len() {
+        return Err(Error::service("invalid outbox payload (bytes)"));
+    }
+    let out = input[*idx..*idx + len].to_vec();
+    *idx += len;
+    Ok(out)
+}
 
 pub async fn enqueue_outgoing_join_decision(
     repos: &RepositoryFactory,

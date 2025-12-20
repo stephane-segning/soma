@@ -102,6 +102,7 @@ async fn main() -> soma_core::SomaResult<()> {
                     PeerEvent::JoinFailed { target, error } => {
                         warn!(%target, %error, "bff join failed");
                     }
+                    _ => {}
                 }
             }
         });

@@ -42,6 +42,13 @@ pub trait MailboxRepository: Send + Sync {
         subject_peer_id: &str,
         limit: i64,
     ) -> SomaResult<Vec<MailboxEntry>>;
+    async fn list_for_subject(
+        &self,
+        subject_peer_id: &str,
+        limit: i64,
+        offset: i64,
+    ) -> SomaResult<Vec<MailboxEntry>>;
+    async fn requeue_expired_leases(&self, now: i64) -> SomaResult<u64>;
     async fn lease(&self, id: &str, leased_by: &str, lease_until: i64) -> SomaResult<u64>;
     async fn requeue(&self, id: &str, available_at: i64) -> SomaResult<u64>;
     async fn mark_done(&self, id: &str) -> SomaResult<u64>;
@@ -146,6 +153,48 @@ impl MailboxRepository for SqlMailboxRepository {
         .map_err(Error::service)?;
 
         Ok(rows.into_iter().map(map_row).collect())
+    }
+
+    async fn list_for_subject(
+        &self,
+        subject_peer_id: &str,
+        limit: i64,
+        offset: i64,
+    ) -> SomaResult<Vec<MailboxEntry>> {
+        let rows = sqlx::query(
+            r#"
+            SELECT id, kind, space_id, subject_peer_id, status, attempts,
+                   available_at, lease_until, leased_by, payload, created_at
+            FROM mailbox
+            WHERE subject_peer_id = $1
+            ORDER BY created_at DESC, id DESC
+            LIMIT $2 OFFSET $3
+            "#,
+        )
+        .bind(subject_peer_id)
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(Error::service)?;
+
+        Ok(rows.into_iter().map(map_row).collect())
+    }
+
+    async fn requeue_expired_leases(&self, now: i64) -> SomaResult<u64> {
+        let res = sqlx::query(
+            r#"
+            UPDATE mailbox
+            SET status = 'queued', lease_until = NULL, leased_by = NULL
+            WHERE status = 'leased' AND lease_until IS NOT NULL AND lease_until <= $1
+            "#,
+        )
+        .bind(now)
+        .execute(&self.pool)
+        .await
+        .map_err(Error::service)?;
+
+        Ok(res.rows_affected())
     }
 
     async fn lease(&self, id: &str, leased_by: &str, lease_until: i64) -> SomaResult<u64> {

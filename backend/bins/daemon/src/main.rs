@@ -2,7 +2,9 @@ use clap::Parser;
 use mimalloc::MiMalloc;
 use soma_core::SomaResult;
 use soma_membership::{JoinPolicy, build_join_decider};
-use soma_membership::MAILBOX_KIND_JOIN_DECISION;
+use soma_membership::{
+    decode_outgoing_join_request_payload, MAILBOX_KIND_JOIN_DECISION, MAILBOX_KIND_JOIN_REQUEST,
+};
 use soma_net::{default_identity_path, generate_identity, NetIdentity};
 use soma_peer::{PeerCommand, PeerConfig, spawn_ping_peer, join::JoinDecider};
 use soma_proto_build::daemon;
@@ -16,6 +18,7 @@ use tracing::info;
 use tracing_subscriber::EnvFilter;
 use std::time::{Duration, SystemTime};
 use prost::Message;
+use libp2p::Multiaddr;
 
 use std::sync::Arc;
 
@@ -156,7 +159,7 @@ async fn run(config: DaemonConfig) -> SomaResult<()> {
 fn spawn_mailbox_sweeper(state: Arc<DaemonState>) {
     tokio::spawn(async move {
         loop {
-            tokio::time::sleep(Duration::from_secs(10 * 60)).await;
+            tokio::time::sleep(Duration::from_secs(5 * 60)).await;
             sweep_mailbox(state.as_ref()).await;
         }
     });
@@ -168,55 +171,110 @@ async fn sweep_mailbox(state: &DaemonState) {
         .unwrap_or_default()
         .as_secs() as i64;
 
+    let _ = state.repos.mailbox().requeue_expired_leases(now_secs).await;
+
     let entries = match state.repos.mailbox().list_due(now_secs, 50).await {
         Ok(entries) => entries,
         Err(_) => return,
     };
 
     for entry in entries {
-        if entry.kind != MAILBOX_KIND_JOIN_DECISION {
-            continue;
+        match entry.kind.as_str() {
+            MAILBOX_KIND_JOIN_DECISION => {
+                let Some(subject_peer_id) = entry.subject_peer_id.clone() else {
+                    let _ = state.repos.mailbox().mark_dead(&entry.id).await;
+                    continue;
+                };
+                let Ok(target) = subject_peer_id.parse() else {
+                    let _ = state.repos.mailbox().mark_dead(&entry.id).await;
+                    continue;
+                };
+
+                let lease_until = now_secs + 30;
+                let leased = match state
+                    .repos
+                    .mailbox()
+                    .lease(&entry.id, &state.peer_id.to_string(), lease_until)
+                    .await
+                {
+                    Ok(rows) => rows,
+                    Err(_) => continue,
+                };
+                if leased == 0 {
+                    continue;
+                }
+
+                let Some(payload) = entry.payload.clone() else {
+                    let _ = state.repos.mailbox().mark_dead(&entry.id).await;
+                    continue;
+                };
+                let Ok(decision) = JoinDecision::decode(payload.as_slice()) else {
+                    let _ = state.repos.mailbox().mark_dead(&entry.id).await;
+                    continue;
+                };
+
+                let _ = state
+                    .peer_commands
+                    .send(PeerCommand::SendJoinDecision {
+                        target,
+                        addrs: Vec::new(),
+                        delivery_id: entry.id.clone(),
+                        decision,
+                    })
+                    .await;
+            }
+            MAILBOX_KIND_JOIN_REQUEST => {
+                let Some(subject_peer_id) = entry.subject_peer_id.clone() else {
+                    let _ = state.repos.mailbox().mark_dead(&entry.id).await;
+                    continue;
+                };
+                let Ok(target) = subject_peer_id.parse() else {
+                    let _ = state.repos.mailbox().mark_dead(&entry.id).await;
+                    continue;
+                };
+
+                let lease_until = now_secs + 30;
+                let leased = match state
+                    .repos
+                    .mailbox()
+                    .lease(&entry.id, &state.peer_id.to_string(), lease_until)
+                    .await
+                {
+                    Ok(rows) => rows,
+                    Err(_) => continue,
+                };
+                if leased == 0 {
+                    continue;
+                }
+
+                let Some(payload) = entry.payload.clone() else {
+                    let _ = state.repos.mailbox().mark_dead(&entry.id).await;
+                    continue;
+                };
+                let Ok(outgoing) = decode_outgoing_join_request_payload(&payload) else {
+                    let _ = state.repos.mailbox().mark_dead(&entry.id).await;
+                    continue;
+                };
+
+                let mut addrs = Vec::new();
+                for addr in outgoing.addrs {
+                    if let Ok(parsed) = addr.parse::<Multiaddr>() {
+                        addrs.push(parsed);
+                    }
+                }
+
+                let _ = state
+                    .peer_commands
+                    .send(PeerCommand::SendJoinRequest {
+                        target,
+                        addrs,
+                        delivery_id: entry.id.clone(),
+                        request_id: outgoing.request_id,
+                        request: outgoing.request,
+                    })
+                    .await;
+            }
+            _ => {}
         }
-        let Some(subject_peer_id) = entry.subject_peer_id.clone() else {
-            let _ = state.repos.mailbox().mark_dead(&entry.id).await;
-            continue;
-        };
-        let Ok(target) = subject_peer_id.parse() else {
-            let _ = state.repos.mailbox().mark_dead(&entry.id).await;
-            continue;
-        };
-
-        let lease_until = now_secs + 30;
-        let leased = match state
-            .repos
-            .mailbox()
-            .lease(&entry.id, &state.peer_id.to_string(), lease_until)
-            .await
-        {
-            Ok(rows) => rows,
-            Err(_) => continue,
-        };
-        if leased == 0 {
-            continue;
-        }
-
-        let Some(payload) = entry.payload.clone() else {
-            let _ = state.repos.mailbox().mark_dead(&entry.id).await;
-            continue;
-        };
-        let Ok(decision) = JoinDecision::decode(payload.as_slice()) else {
-            let _ = state.repos.mailbox().mark_dead(&entry.id).await;
-            continue;
-        };
-
-        let _ = state
-            .peer_commands
-            .send(PeerCommand::SendJoinDecision {
-                target,
-                addrs: Vec::new(),
-                delivery_id: entry.id.clone(),
-                decision,
-            })
-            .await;
     }
 }

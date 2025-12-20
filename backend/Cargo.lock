@@ -3891,6 +3891,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "soma-cache"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "tokio",
+]
+
+[[package]]
 name = "soma-common"
 version = "0.1.0"
 dependencies = [

@@ -38,6 +38,7 @@ pub enum PeerCommand {
     SendJoinRequest {
         target: PeerId,
         addrs: Vec<Multiaddr>,
+        delivery_id: String,
         request_id: String,
         request: spaceroom::JoinRequest,
     },
@@ -93,6 +94,22 @@ pub enum PeerEvent {
     JoinRequestSubmitted {
         target: PeerId,
         request_id: String,
+    },
+    JoinRequestDeliverySubmitted {
+        target: PeerId,
+        delivery_id: String,
+        request_id: String,
+    },
+    JoinRequestDeliveryAck {
+        target: PeerId,
+        delivery_id: String,
+        request_id: String,
+    },
+    JoinRequestDeliveryFailed {
+        target: PeerId,
+        delivery_id: String,
+        request_id: String,
+        error: String,
     },
     JoinDecision {
         from: PeerId,
@@ -321,6 +338,7 @@ async fn run_swarm(
     }
 
     let mut requested_reservations = HashSet::new();
+    let mut outbound_join_requests: HashMap<_, (PeerId, String, String)> = HashMap::new();
     let mut outbound_join_decisions: HashMap<_, (PeerId, String)> = HashMap::new();
 
     loop {
@@ -332,13 +350,15 @@ async fn run_swarm(
                             warn!(?err, ?addr, "failed to dial requested addr");
                         }
                     }
-                    PeerCommand::SendJoinRequest { target, addrs, request_id, request } => {
+                    PeerCommand::SendJoinRequest { target, addrs, delivery_id, request_id, request } => {
                         for addr in addrs {
                             swarm.add_peer_address(target, addr.clone());
                             let _ = swarm.dial(addr.clone());
                         }
-                        swarm.behaviour_mut().join.send_request(&target, request);
-                        let _ = event_tx.try_send(PeerEvent::JoinRequestSubmitted { target, request_id });
+                        let req_id = swarm.behaviour_mut().join.send_request(&target, request);
+                        outbound_join_requests.insert(req_id, (target, delivery_id.clone(), request_id.clone()));
+                        let _ = event_tx.try_send(PeerEvent::JoinRequestSubmitted { target, request_id: request_id.clone() });
+                        let _ = event_tx.try_send(PeerEvent::JoinRequestDeliverySubmitted { target, delivery_id, request_id });
                     }
                     PeerCommand::SendJoinDecision { target, addrs, delivery_id, decision } => {
                         for addr in addrs {
@@ -461,12 +481,18 @@ async fn run_swarm(
                                         let _ = swarm.behaviour_mut().join.send_response(channel, response.clone());
                                         let _ = event_tx.try_send(PeerEvent::JoinDecision { from: peer_id, decision: response });
                                     }
-                                    reqres::Message::Response { response, .. } => {
+                                    reqres::Message::Response { request_id, response } => {
+                                        if let Some((target, delivery_id, client_request_id)) = outbound_join_requests.remove(&request_id) {
+                                            let _ = event_tx.try_send(PeerEvent::JoinRequestDeliveryAck { target, delivery_id, request_id: client_request_id });
+                                        }
                                         let _ = event_tx.try_send(PeerEvent::JoinDecision { from: peer, decision: response });
                                     }
                                 }
                             }
-                            reqres::Event::OutboundFailure { peer, error, .. } => {
+                            reqres::Event::OutboundFailure { peer, request_id, error, .. } => {
+                                if let Some((_target, delivery_id, client_request_id)) = outbound_join_requests.remove(&request_id) {
+                                    let _ = event_tx.try_send(PeerEvent::JoinRequestDeliveryFailed { target: peer, delivery_id, request_id: client_request_id, error: error.to_string() });
+                                }
                                 let _ = event_tx.try_send(PeerEvent::JoinFailed { target: peer, error: error.to_string() });
                             }
                             reqres::Event::InboundFailure { .. } => {}
