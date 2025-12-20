@@ -10,13 +10,15 @@ export class WindowManager {
 		initialRoute?: string;
 		bounds?: Electron.Rectangle;
 	}): BrowserWindow {
-		const mainWindow = new BrowserWindow({
-			width: options?.bounds?.width ?? 900,
-			height: options?.bounds?.height ?? 670,
-			x: options?.bounds?.x,
-			y: options?.bounds?.y,
-			show: false,
-			frame: false,
+			const mainWindow = new BrowserWindow({
+				width: options?.bounds?.width ?? 1280,
+				height: options?.bounds?.height ?? 720,
+				minWidth: 720,
+				minHeight: 480,
+				x: options?.bounds?.x,
+				y: options?.bounds?.y,
+				show: false,
+				frame: false,
 			autoHideMenuBar: true,
 			...(process.platform === "linux" ? { icon } : {}),
 			webPreferences: {

@@ -4,13 +4,19 @@ import { fromEventPattern } from "rxjs";
 import { filter, map } from "rxjs/operators";
 
 // Custom APIs for renderer
-const api = {
+	const api = {
 	getLastRoute: (): Promise<string> =>
 		electronAPI.ipcRenderer.invoke("router:get-last-route") as Promise<string>,
-	getSetting: <T = unknown>(key: string): Promise<T | null> =>
-		electronAPI.ipcRenderer.invoke("settings:get", key) as Promise<T | null>,
-	setLastRoute: (route: string): void =>
-		electronAPI.ipcRenderer.send("router:set-last-route", route),
+		getSetting: <T = unknown>(key: string): Promise<T | null> =>
+			electronAPI.ipcRenderer.invoke("settings:get", key) as Promise<T | null>,
+		search: (
+			query: string,
+		): Promise<Array<{ id: string; title: string; subtitle?: string }>> =>
+			electronAPI.ipcRenderer.invoke("search:query", query) as Promise<
+				Array<{ id: string; title: string; subtitle?: string }>
+			>,
+		setLastRoute: (route: string): void =>
+			electronAPI.ipcRenderer.send("router:set-last-route", route),
 	window: {
 		minimize: (): void => electronAPI.ipcRenderer.send("window:minimize"),
 		toggleMaximize: (): void =>

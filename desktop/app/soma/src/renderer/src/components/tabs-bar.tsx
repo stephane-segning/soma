@@ -1,7 +1,6 @@
 import { useTabsStore } from "@renderer/store/tabs";
 import { cn } from "@renderer/lib/cn";
 import { Plus, X } from "react-feather";
-import { motion } from "motion/react";
 
 function TabsBar(): React.JSX.Element {
 	const tabs = useTabsStore((s) => s.tabs);
@@ -12,12 +11,12 @@ function TabsBar(): React.JSX.Element {
 	const atMaxTabs = tabs.length >= 10;
 
 	return (
-		<motion.div className="flex min-w-0 flex-1 gap-4 items-center gap-2 [-webkit-app-region:no-drag] overflow-x-auto min-w-full no-scrollbar">
-			<motion.div className="tabs tabs-sm tabs-box gap-1 min-w-max">
+		<div className="flex min-w-0 flex-1 gap-4 items-center gap-2 [-webkit-app-region:no-drag] overflow-x-auto min-w-full no-scrollbar">
+			<div className="tabs tabs-sm tabs-box gap-1 min-w-max">
 				{tabs.map((tab) => {
 					const isActive = tab.id === activeId;
 					return (
-						<motion.div
+						<div
 							aria-selected={isActive}
 							className={cn("tab shadow-none", isActive && "tab-active")}
 							key={tab.id}
@@ -28,10 +27,10 @@ function TabsBar(): React.JSX.Element {
 							role="tab"
 							tabIndex={0}
 						>
-							<motion.span className="min-w-0 flex-1 truncate pl-2">
+							<span className="min-w-0 flex-1 truncate pl-2">
 								{tab.title}
-							</motion.span>
-							<motion.button
+							</span>
+							<button
 								aria-label="Close tab"
 								className="btn btn-xs btn-circle ml-4 btn-soft"
 								onClick={(e) => {
@@ -41,21 +40,21 @@ function TabsBar(): React.JSX.Element {
 								type="button"
 							>
 								<X className="size-3/4" />
-							</motion.button>
-						</motion.div>
+							</button>
+						</div>
 					);
 				})}
-			</motion.div>
+			</div>
 
-			<motion.button
+			<button
 				className="btn btn-soft btn-xs btn-circle btn-primary"
 				disabled={atMaxTabs}
 				onClick={() => openTab()}
 				type="button"
 			>
 				<Plus className="size-4" />
-			</motion.button>
-		</motion.div>
+			</button>
+		</div>
 	);
 }
 

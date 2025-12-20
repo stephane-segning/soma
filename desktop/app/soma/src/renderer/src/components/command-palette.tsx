@@ -1,19 +1,21 @@
+import { useSearchQuery } from "@renderer/queries/search";
 import { useEffect, useMemo, useState } from "react";
 import CommandPalette, {
 	filterItems,
-	JsonStructure,
+	type JsonStructure,
 	renderJsonStructure,
 	useHandleOpenCommandPalette,
 } from "react-cmdk";
+import { useNavigate } from "react-router";
 import { useUiStore } from "../store/ui";
 
-type Props = {};
-
-function CommandPaletteShell({}: Props): React.JSX.Element {
+function CommandPaletteShell(): React.JSX.Element {
 	const [selected, setSelected] = useState<number>(0);
 	const [search, setSearch] = useState<string>("");
 	const [page, setPage] = useState<"root" | "positions">("root");
 	const { isCommandPaletteOpen, toggleCommandPalette } = useUiStore();
+	const navigate = useNavigate();
+	const searchResults = useSearchQuery(search);
 
 	const handleOpenChange = (
 		next: boolean | ((open: boolean) => boolean),
@@ -43,11 +45,11 @@ function CommandPaletteShell({}: Props): React.JSX.Element {
 					{
 						id: "welcome-card",
 						children: (
-							<div className="w-full rounded-lg bg-gradient-to-br from-primary via-warning to-success p-4 border-t border-indigo-500 border-b border-indigo-500">
-								<h2 className="text-lg font-semibold leading-tight text-white">
+							<div className="w-full rounded-lg border-indigo-500 border-indigo-500 border-t border-b bg-gradient-to-br from-primary via-warning to-success p-4">
+								<h2 className="font-semibold text-lg text-white leading-tight">
 									Welcome 👋
 								</h2>
-								<p className="text-sm text-white/80 font-medium max-w-xs mt-1">
+								<p className="mt-1 max-w-xs font-medium text-sm text-white/80">
 									Quickly jump to actions or pages in Soma.
 								</p>
 							</div>
@@ -55,6 +57,39 @@ function CommandPaletteShell({}: Props): React.JSX.Element {
 						showType: false,
 						keywords: ["welcome"],
 						onClick: () => toggleCommandPalette(false),
+					},
+				],
+			},
+			{
+				heading: "Navigate",
+				id: "navigate",
+				items: [
+					{
+						children: "Spaces",
+						id: "route:spaces",
+						keywords: ["route", "spaces", "home"],
+						onClick: () => {
+							navigate("/spaces");
+							toggleCommandPalette(false);
+						},
+					},
+					{
+						children: "Join Space",
+						id: "route:join-space",
+						keywords: ["route", "spaces", "join"],
+						onClick: () => {
+							navigate("/spaces/join");
+							toggleCommandPalette(false);
+						},
+					},
+					{
+						children: "Settings",
+						id: "route:settings",
+						keywords: ["route", "settings", "preferences"],
+						onClick: () => {
+							navigate("/settings");
+							toggleCommandPalette(false);
+						},
 					},
 				],
 			},
@@ -103,50 +138,75 @@ function CommandPaletteShell({}: Props): React.JSX.Element {
 					},
 				],
 			},
+			...(search.trim().length >= 2
+				? [
+						{
+							heading: "Search",
+							id: "search",
+							items: (searchResults.data ?? []).map((result) => ({
+								children: (
+									<div className="flex flex-col">
+										<div className="truncate">{result.title}</div>
+										{result.subtitle ? (
+											<div className="truncate text-base-content/60 text-xs">
+												{result.subtitle}
+											</div>
+										) : null}
+									</div>
+								),
+								id: `search:${result.id}`,
+								keywords: [result.title, result.subtitle].filter(
+									(v): v is string => typeof v === "string",
+								),
+								onClick: () => toggleCommandPalette(false),
+							})),
+						},
+					]
+				: []),
 		],
-		[toggleCommandPalette],
+		[navigate, search, searchResults.data, toggleCommandPalette],
 	);
 
 	const rootItems = useMemo(() => filterItems(items, search), [items, search]);
 
 	return (
 		<CommandPalette
-			onChangeSelected={setSelected}
-			onChangeSearch={setSearch}
-			onChangeOpen={handleOpenChange}
-			selected={selected}
-			search={search}
-			isOpen={isCommandPaletteOpen}
-			page={page}
 			footer={
-				<div className="px-4 py-3 text-sm text-neutral-500">
+				<div className="px-4 py-3 text-neutral-500 text-sm">
 					Press{" "}
-					<kbd className="px-1 py-0.5 rounded border border-neutral-400">
+					<kbd className="rounded border border-neutral-400 px-1 py-0.5">
 						⌘K
 					</kbd>{" "}
 					to toggle
 				</div>
 			}
+			isOpen={isCommandPaletteOpen}
+			onChangeOpen={handleOpenChange}
+			onChangeSearch={setSearch}
+			onChangeSelected={setSelected}
+			page={page}
+			search={search}
+			selected={selected}
 		>
 			<CommandPalette.Page id="root" searchPrefix={["General"]}>
 				{rootItems.length ? (
 					renderJsonStructure(rootItems)
 				) : (
 					<CommandPalette.FreeSearchAction
+						closeOnSelect={false}
 						href={`https://google.com/?q=${search}`}
 						rel="noopener noreferrer"
-						closeOnSelect={false}
 						target="_blank"
 					/>
 				)}
 			</CommandPalette.Page>
 
 			<CommandPalette.Page
-				searchPrefix={["General", "Positions"]}
 				id="positions"
 				onEscape={() => {
 					setPage("root");
 				}}
+				searchPrefix={["General", "Positions"]}
 			>
 				<CommandPalette.List heading="Positions">
 					<CommandPalette.ListItem index={0}>
