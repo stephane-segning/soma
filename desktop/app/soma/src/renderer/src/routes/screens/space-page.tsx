@@ -7,7 +7,7 @@ function Component(): React.JSX.Element {
   return (
     <div className="flex">
       <YooptaEditorWithTools
-        className="flex px-8"
+        className="!w-full px-12"
         placeholder={t("space.pages.editorPlaceholder", "Start writing…")}
       />
     </div>
