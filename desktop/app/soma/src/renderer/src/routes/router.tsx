@@ -27,7 +27,11 @@ const routes: RouteObject[] = [
 					{ path: "settings", lazy: () => import("./space-settings") },
 				],
 			},
-			{ path: "settings", lazy: () => import("./settings") },
+			{
+				path: "settings",
+				lazy: () => import("./settings-layout"),
+				children: [{ index: true, lazy: () => import("./settings") }],
+			},
 			{ path: "*", lazy: () => import("./not-found") },
 		],
 	},

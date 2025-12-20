@@ -1,8 +1,10 @@
 import { BrowserWindow, shell } from 'electron'
+import { injectable } from 'inversify'
 import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
 import icon from '../../../resources/icon.png?asset'
 
+@injectable()
 export class WindowManager {
   createMainWindow(options?: { initialRoute?: string }): BrowserWindow {
     const mainWindow = new BrowserWindow({
