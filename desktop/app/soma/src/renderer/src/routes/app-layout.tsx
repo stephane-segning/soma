@@ -15,11 +15,8 @@ function Component(): React.JSX.Element {
 	}, [location.pathname, location.search]);
 
 	return (
-		<div className="min-h-dvh bg-base-200 text-base-content">
-			<main className="w-full p-2">
-				<Outlet />
-			</main>
-
+		<div className="min-h-dvh w-full bg-base-200 text-base-content">
+			<Outlet />
 			<CommandPaletteShell onSendIpc={sendPing} />
 		</div>
 	);

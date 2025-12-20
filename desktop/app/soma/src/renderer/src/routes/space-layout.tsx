@@ -6,8 +6,8 @@ function Component(): React.JSX.Element {
 	const { spaceId } = useParams();
 
 	return (
-		<div className="flex min-h-[70dvh] w-full overflow-hidden rounded-box border border-base-300 bg-base-100">
-			<aside className="w-56 border-r border-base-300 bg-base-200/40">
+		<div className="flex min-h-dvh w-full bg-base-100">
+			<aside className="w-60 border-r border-base-300 bg-base-200/40">
 				<div className="sticky top-0 border-b border-base-300 bg-base-200/60 backdrop-blur">
 					<div className="px-3 py-3">
 						<Link className="btn btn-ghost btn-sm w-full justify-start" to="/spaces">

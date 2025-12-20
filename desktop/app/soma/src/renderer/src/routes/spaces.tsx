@@ -5,38 +5,68 @@ function Component(): React.JSX.Element {
 	const { t } = useTranslation("common");
 
 	return (
-		<div className="space-y-6">
-			<div className="flex items-center justify-between">
-				<h1 className="text-2xl font-semibold">{t("spaces.title", "Spaces")}</h1>
-				<Link className="btn btn-ghost btn-sm" to="/spaces/join">
-					{t("spaces.joinCta", "Join")}
-				</Link>
+		<div className="space-y-8">
+			<div className="space-y-2">
+				<h1 className="text-4xl font-semibold">{t("spaces.title", "Spaces")}</h1>
+				<div className="flex items-center gap-3">
+					<div className="join w-full max-w-xl">
+						<span className="btn btn-ghost join-item text-base-content/60">
+							{t("spaces.filterLabel", "Filter")}
+						</span>
+						<input
+							className="input input-bordered join-item w-full"
+							placeholder={t("spaces.filterPlaceholder", "Filter spaces...")}
+						/>
+					</div>
+					<button type="button" className="btn btn-primary btn-sm">
+						{t("spaces.createCta", "Create new space")}
+					</button>
+				</div>
 			</div>
 
-			<div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-				<div className="card bg-base-100 border border-base-300">
+			<div className="space-y-3">
+				<Link
+					className="card bg-base-100 border border-base-300 shadow-sm hover:border-primary/40 transition"
+					to="/spaces/private/pages/welcome"
+				>
 					<div className="card-body">
-						<h2 className="text-sm font-semibold text-base-content/70">
-							{t("spaces.listTitle", "Your spaces")}
-						</h2>
-						<div className="space-y-2">
-							<Link className="btn btn-ghost justify-start" to="/spaces/private/pages/welcome">
-								<span className="badge badge-ghost badge-sm">
-									{t("spaces.privateBadge", "Private")}
-								</span>
-								<span className="ml-2">{t("spaces.privateTitle", "Private space")}</span>
-							</Link>
-							<div className="skeleton h-10 w-full" />
-							<div className="skeleton h-10 w-5/6" />
+						<div className="flex items-center justify-between">
+							<div className="flex items-center gap-4">
+								<div className="avatar placeholder">
+									<div className="bg-base-200 text-base-content rounded-full w-12">
+										<span>PS</span>
+									</div>
+								</div>
+								<div>
+									<div className="font-semibold">{t("spaces.privateTitle", "Private space")}</div>
+									<div className="text-sm text-base-content/60">
+										{t("spaces.privateMeta", "1 member, 12 pages")}
+									</div>
+								</div>
+							</div>
+							<span className="text-base-content/50">›</span>
 						</div>
 					</div>
-				</div>
+				</Link>
 
-				<div className="card bg-base-100 border border-base-300">
-					<div className="card-body space-y-4">
-						<h2 className="text-sm font-semibold text-base-content/70">
-							{t("spaces.joinTitle", "Join a space")}
-						</h2>
+				<div className="card bg-base-100 border border-base-300 shadow-sm">
+					<div className="card-body">
+						<div className="skeleton h-12 w-full" />
+					</div>
+				</div>
+				<div className="card bg-base-100 border border-base-300 shadow-sm">
+					<div className="card-body">
+						<div className="skeleton h-12 w-5/6" />
+					</div>
+				</div>
+			</div>
+
+			<div className="card bg-base-100 border border-base-300">
+				<div className="card-body space-y-4">
+					<h2 className="text-sm font-semibold text-base-content/70">
+						{t("spaces.joinTitle", "Join a space")}
+					</h2>
+					<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
 						<label className="form-control w-full">
 							<span className="label-text">{t("join.spaceId", "Space ID")}</span>
 							<input
@@ -51,11 +81,14 @@ function Component(): React.JSX.Element {
 								placeholder={t("join.inviteSecretPlaceholder", "secret_...")}
 							/>
 						</label>
-						<div className="card-actions justify-end">
-							<button type="button" className="btn btn-primary btn-sm">
-								{t("join.submit", "Request to join")}
-							</button>
-						</div>
+					</div>
+					<div className="card-actions justify-end">
+						<Link className="btn btn-ghost btn-sm" to="/spaces/join">
+							{t("spaces.joinMore", "Add display name")}
+						</Link>
+						<button type="button" className="btn btn-primary btn-sm">
+							{t("join.submit", "Request to join")}
+						</button>
 					</div>
 				</div>
 			</div>

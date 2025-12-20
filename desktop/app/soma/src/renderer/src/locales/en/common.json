@@ -32,7 +32,14 @@
     "listTitle": "Your spaces",
     "privateBadge": "Private",
     "privateTitle": "Private space",
-    "joinTitle": "Join a space"
+    "joinTitle": "Join a space",
+    "filterLabel": "Filter",
+    "filterPlaceholder": "Filter spaces...",
+    "createCta": "Create new space",
+    "privateMeta": "1 member, 12 pages",
+    "joinMore": "Add display name",
+    "profileName": "Sarah Doe",
+    "profileEmail": "s.doe@example.com"
   },
   "space": {
     "unknown": "Unknown space",
