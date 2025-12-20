@@ -29,6 +29,7 @@ pub enum PeerEventKind {
     JoinDecisionDeliveryFailed,
     JoinFailed,
     YooptaBlobAdded,
+    BlobResponseReceived,
 }
 
 impl PeerEventKind {
@@ -55,6 +56,7 @@ impl PeerEventKind {
         PeerEventKind::JoinDecisionDeliveryFailed,
         PeerEventKind::JoinFailed,
         PeerEventKind::YooptaBlobAdded,
+        PeerEventKind::BlobResponseReceived,
     ];
 
     /// Map a runtime event to its kind for routing.
@@ -87,6 +89,7 @@ impl PeerEventKind {
             }
             PeerEvent::JoinFailed { .. } => PeerEventKind::JoinFailed,
             PeerEvent::YooptaBlobAdded { .. } => PeerEventKind::YooptaBlobAdded,
+            PeerEvent::BlobResponseReceived { .. } => PeerEventKind::BlobResponseReceived,
         }
     }
 
@@ -114,6 +117,7 @@ impl PeerEventKind {
             PeerEventKind::JoinDecisionDeliveryFailed => 18,
             PeerEventKind::JoinFailed => 19,
             PeerEventKind::YooptaBlobAdded => 20,
+            PeerEventKind::BlobResponseReceived => 21,
         }
     }
 }

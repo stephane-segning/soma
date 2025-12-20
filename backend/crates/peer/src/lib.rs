@@ -149,6 +149,12 @@ pub enum PeerEvent {
         size: u64,
         name: Option<String>,
     },
+    /// Emitted when we receive a blob response over the network.
+    BlobResponseReceived {
+        cid: String,
+        size: u64,
+        found: bool,
+    },
 }
 
 /// Serves blob bytes for inbound `/soma/blob/1` requests.
@@ -404,6 +410,16 @@ async fn run_swarm(
                         outbound_join_decisions.insert(req_id, (target, delivery_id.clone()));
                         let _ = event_tx.try_send(PeerEvent::JoinDecisionDeliverySubmitted { target, delivery_id });
                     }
+                    PeerCommand::FetchBlob { cid, space_id } => {
+                        let mut request = BlobRequest { cid, space_id: String::new() };
+                        if let Some(space) = space_id {
+                            request.space_id = space;
+                        }
+                        let _ = swarm.behaviour_mut().blob.send_request(
+                            &peer_id, // send to self; actual peer selection not wired yet
+                            request,
+                        );
+                    }
                     PeerCommand::Shutdown => {
                         info!("peer shutdown requested");
                         break;
@@ -590,8 +606,12 @@ async fn run_swarm(
                                     });
                                 }
                             }
-                            reqres::Message::Response { .. } => {
-                                // No outbound blob fetch path wired yet.
+                            reqres::Message::Response { response, .. } => {
+                                let _ = event_tx.try_send(PeerEvent::BlobResponseReceived {
+                                    cid: response.cid.clone(),
+                                    size: response.size,
+                                    found: response.found,
+                                });
                             }
                         },
                         reqres::Event::OutboundFailure { peer, error, .. } => {

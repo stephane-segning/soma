@@ -53,6 +53,7 @@ enum EventKindLabel {
     JoinDecisionDeliveryFailed,
     JoinFailed,
     YooptaBlobAdded,
+    BlobResponseReceived,
 }
 
 impl EventKindLabel {
@@ -79,6 +80,7 @@ impl EventKindLabel {
             EventKindLabel::JoinDecisionDeliveryFailed => "join_decision_delivery_failed",
             EventKindLabel::JoinFailed => "join_failed",
             EventKindLabel::YooptaBlobAdded => "yoopta_blob_added",
+            EventKindLabel::BlobResponseReceived => "blob_response_received",
         }
     }
 }
@@ -206,6 +208,9 @@ impl PeerEventHandler<BotState> for MetricsHandler {
             }
             PeerEvent::YooptaBlobAdded { .. } => {
                 record_event(metrics, EventKindLabel::YooptaBlobAdded);
+            }
+            PeerEvent::BlobResponseReceived { .. } => {
+                record_event(metrics, EventKindLabel::BlobResponseReceived);
             }
             PeerEvent::JoinFailed { .. } => {
                 record_event(metrics, EventKindLabel::JoinFailed);
