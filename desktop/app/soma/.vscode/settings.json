@@ -1,5 +1,5 @@
 {
-    "workbench.colorTheme": "Quiet Light",
-    "editor.formatOnSave": true,
-    "editor.defaultFormatter": "biomejs.biome"
+	"workbench.colorTheme": "Quiet Light",
+	"editor.formatOnSave": true,
+	"editor.defaultFormatter": "biomejs.biome"
 }

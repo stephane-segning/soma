@@ -5,7 +5,7 @@ function Component(): React.JSX.Element {
 	const { t } = useTranslation("common");
 
 	return (
-		<div className="flex min-h-dvh w-full overflow-hidden rounded-box border border-base-300 bg-base-200/60">
+		<div className="flex h-content w-full overflow-hidden rounded-box border border-base-300 bg-base-200/60">
 			<aside className="w-64 border-r border-base-300 bg-base-200">
 				<div className="sticky top-0 border-b border-base-300 bg-base-200/80 px-4 py-4">
 					<div className="flex items-center gap-3">
@@ -15,7 +15,9 @@ function Component(): React.JSX.Element {
 							</div>
 						</div>
 						<div className="text-sm">
-							<div className="font-semibold">{t("spaces.profileName", "Sarah Doe")}</div>
+							<div className="font-semibold">
+								{t("spaces.profileName", "Sarah Doe")}
+							</div>
 							<div className="text-base-content/60">
 								{t("spaces.profileEmail", "s.doe@example.com")}
 							</div>
@@ -25,7 +27,9 @@ function Component(): React.JSX.Element {
 
 				<nav className="menu px-2 py-3">
 					<li>
-						<NavLink to="/spaces/landing">{t("spaces.title", "Spaces")}</NavLink>
+						<NavLink to="/spaces/landing">
+							{t("spaces.title", "Spaces")}
+						</NavLink>
 					</li>
 					<li>
 						<NavLink to="/settings">{t("routes.settings", "Settings")}</NavLink>

@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron'
+import { BrowserWindow, ipcMain } from 'electron'
 import log from 'electron-log'
 import { inject, injectable } from 'inversify'
 import { TYPES } from '../tokens'
@@ -27,6 +27,24 @@ export class MainIpcController {
       await this.appSettings.setLastPage(route)
       this.logger.debug(`Persisted last route: ${route}`)
     })
+
+    ipcMain.handle('settings:get', async (_event, key: string) => {
+      return this.appSettings.get(key)
+    })
+
+    ipcMain.on('window:minimize', (event) => {
+      BrowserWindow.fromWebContents(event.sender)?.minimize()
+    })
+
+    ipcMain.on('window:toggle-maximize', (event) => {
+      const window = BrowserWindow.fromWebContents(event.sender)
+      if (!window) return
+      if (window.isMaximized()) window.unmaximize()
+      else window.maximize()
+    })
+
+    ipcMain.on('window:close', (event) => {
+      BrowserWindow.fromWebContents(event.sender)?.close()
+    })
   }
 }
-

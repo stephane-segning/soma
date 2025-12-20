@@ -30,7 +30,10 @@ function Tooltip({
 }: TooltipProps): React.JSX.Element {
 	const { t } = useTranslation("common");
 	const [internalOpen, setInternalOpen] = useState(false);
-	const isControlled = useMemo(() => onOpenChange !== undefined || open !== undefined, [onOpenChange, open]);
+	const isControlled = useMemo(
+		() => onOpenChange !== undefined || open !== undefined,
+		[onOpenChange, open],
+	);
 	const effectiveOpen = isControlled ? open : internalOpen;
 	const handleOpenChange = onOpenChange ?? setInternalOpen;
 

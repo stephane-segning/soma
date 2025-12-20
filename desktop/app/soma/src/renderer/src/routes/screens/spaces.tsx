@@ -7,7 +7,9 @@ function Component(): React.JSX.Element {
 	return (
 		<div className="space-y-8">
 			<div className="space-y-2">
-				<h1 className="text-4xl font-semibold">{t("spaces.title", "Spaces")}</h1>
+				<h1 className="text-4xl font-semibold">
+					{t("spaces.title", "Spaces")}
+				</h1>
 				<div className="flex items-center gap-3">
 					<div className="join w-full max-w-xl">
 						<span className="btn btn-ghost join-item text-base-content/60">
@@ -38,7 +40,9 @@ function Component(): React.JSX.Element {
 									</div>
 								</div>
 								<div>
-									<div className="font-semibold">{t("spaces.privateTitle", "Private space")}</div>
+									<div className="font-semibold">
+										{t("spaces.privateTitle", "Private space")}
+									</div>
 									<div className="text-sm text-base-content/60">
 										{t("spaces.privateMeta", "1 member, 12 pages")}
 									</div>
@@ -68,14 +72,18 @@ function Component(): React.JSX.Element {
 					</h2>
 					<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
 						<label className="form-control w-full">
-							<span className="label-text">{t("join.spaceId", "Space ID")}</span>
+							<span className="label-text">
+								{t("join.spaceId", "Space ID")}
+							</span>
 							<input
 								className="input input-bordered w-full"
 								placeholder={t("join.spaceIdPlaceholder", "space_...")}
 							/>
 						</label>
 						<label className="form-control w-full">
-							<span className="label-text">{t("join.inviteSecret", "Invite secret")}</span>
+							<span className="label-text">
+								{t("join.inviteSecret", "Invite secret")}
+							</span>
 							<input
 								className="input input-bordered w-full"
 								placeholder={t("join.inviteSecretPlaceholder", "secret_...")}

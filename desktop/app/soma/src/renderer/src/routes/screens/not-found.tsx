@@ -6,7 +6,9 @@ function Component(): React.JSX.Element {
 
 	return (
 		<div className="flex flex-col items-center justify-center gap-4 py-16">
-			<h1 className="text-2xl font-semibold">{t("notFound.title", "Not found")}</h1>
+			<h1 className="text-2xl font-semibold">
+				{t("notFound.title", "Not found")}
+			</h1>
 			<p className="text-base-content/70">
 				{t("notFound.subtitle", "That page does not exist.")}
 			</p>
@@ -18,4 +20,3 @@ function Component(): React.JSX.Element {
 }
 
 export { Component };
-

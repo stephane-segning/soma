@@ -1,17 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import CommandPalette, {
-	JsonStructure,
 	filterItems,
+	JsonStructure,
 	renderJsonStructure,
 	useHandleOpenCommandPalette,
 } from "react-cmdk";
 import { useUiStore } from "../store/ui";
 
-type Props = {
-	onSendIpc: () => void;
-};
+type Props = {};
 
-function CommandPaletteShell({ onSendIpc }: Props): React.JSX.Element {
+function CommandPaletteShell({}: Props): React.JSX.Element {
 	const [selected, setSelected] = useState<number>(0);
 	const [search, setSearch] = useState<string>("");
 	const [page, setPage] = useState<"root" | "positions">("root");
@@ -45,7 +43,7 @@ function CommandPaletteShell({ onSendIpc }: Props): React.JSX.Element {
 					{
 						id: "welcome-card",
 						children: (
-							<div className="w-full rounded-lg bg-gradient-to-br from-indigo-900 via-indigo-800 to-indigo-400 p-4 border-t border-indigo-500 border-b border-indigo-500">
+							<div className="w-full rounded-lg bg-gradient-to-br from-primary via-warning to-success p-4 border-t border-indigo-500 border-b border-indigo-500">
 								<h2 className="text-lg font-semibold leading-tight text-white">
 									Welcome 👋
 								</h2>
@@ -69,12 +67,6 @@ function CommandPaletteShell({ onSendIpc }: Props): React.JSX.Element {
 						icon: "CogIcon",
 						id: "devtools",
 						onClick: () => window.electron.ipcRenderer.send("open-devtools"),
-					},
-					{
-						children: "Send IPC ping",
-						icon: "BoltIcon",
-						id: "ipc-ping",
-						onClick: onSendIpc,
 					},
 					{
 						children: "Positions",
@@ -112,7 +104,7 @@ function CommandPaletteShell({ onSendIpc }: Props): React.JSX.Element {
 				],
 			},
 		],
-		[onSendIpc, toggleCommandPalette],
+		[toggleCommandPalette],
 	);
 
 	const rootItems = useMemo(() => filterItems(items, search), [items, search]);

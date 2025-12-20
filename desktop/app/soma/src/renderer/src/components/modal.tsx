@@ -12,7 +12,13 @@ type ModalProps = {
 	className?: string;
 };
 
-function Modal({ open, onClose, title, children, className }: ModalProps): React.JSX.Element {
+function Modal({
+	open,
+	onClose,
+	title,
+	children,
+	className,
+}: ModalProps): React.JSX.Element {
 	const { t } = useTranslation("common");
 
 	return (
@@ -62,7 +68,10 @@ function Modal({ open, onClose, title, children, className }: ModalProps): React
 											type="button"
 											className="btn btn-ghost"
 											onClick={onClose}
-											aria-label={t("components.modal.closeLabel", "Close dialog")}
+											aria-label={t(
+												"components.modal.closeLabel",
+												"Close dialog",
+											)}
 										>
 											{t("components.modal.closeLabel", "Close dialog")}
 										</button>

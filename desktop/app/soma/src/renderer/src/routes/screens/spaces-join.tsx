@@ -17,7 +17,9 @@ function Component(): React.JSX.Element {
 
 					<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
 						<label className="form-control w-full">
-							<span className="label-text">{t("join.spaceId", "Space ID")}</span>
+							<span className="label-text">
+								{t("join.spaceId", "Space ID")}
+							</span>
 							<input
 								className="input input-bordered w-full"
 								placeholder={t("join.spaceIdPlaceholder", "space_...")}
@@ -25,7 +27,9 @@ function Component(): React.JSX.Element {
 							/>
 						</label>
 						<label className="form-control w-full">
-							<span className="label-text">{t("join.inviteSecret", "Invite secret")}</span>
+							<span className="label-text">
+								{t("join.inviteSecret", "Invite secret")}
+							</span>
 							<input
 								className="input input-bordered w-full"
 								placeholder={t("join.inviteSecretPlaceholder", "secret_...")}
@@ -33,7 +37,9 @@ function Component(): React.JSX.Element {
 							/>
 						</label>
 						<label className="form-control w-full">
-							<span className="label-text">{t("join.displayName", "Display name")}</span>
+							<span className="label-text">
+								{t("join.displayName", "Display name")}
+							</span>
 							<input
 								className="input input-bordered w-full"
 								placeholder={t("join.displayNamePlaceholder", "Your name")}
@@ -41,7 +47,9 @@ function Component(): React.JSX.Element {
 							/>
 						</label>
 						<label className="form-control w-full">
-							<span className="label-text">{t("join.deviceName", "Device name")}</span>
+							<span className="label-text">
+								{t("join.deviceName", "Device name")}
+							</span>
 							<input
 								className="input input-bordered w-full"
 								placeholder={t("join.deviceNamePlaceholder", "MacBook Pro")}
@@ -59,11 +67,12 @@ function Component(): React.JSX.Element {
 			</div>
 
 			<div className="alert alert-info">
-				<span>{t("join.note", "Join flow wiring to the daemon API comes next.")}</span>
+				<span>
+					{t("join.note", "Join flow wiring to the daemon API comes next.")}
+				</span>
 			</div>
 		</div>
 	);
 }
 
 export { Component };
-

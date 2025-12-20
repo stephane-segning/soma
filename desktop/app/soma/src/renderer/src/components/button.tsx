@@ -3,29 +3,26 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { useTranslation } from "react-i18next";
 import { cn } from "../lib/cn";
-import {Button as HuiButton} from '@headlessui/react'
+import { Button as HuiButton } from "@headlessui/react";
 
-const buttonStyles = cva(
-	"btn",
-	{
-		variants: {
-			variant: {
-				primary: "btn-primary",
-				secondary: "btn-secondary",
-				ghost: "btn-ghost",
-			},
-			size: {
-				sm: "btn-sm",
-				md: "btn-md",
-				lg: "btn-lg",
-			},
+const buttonStyles = cva("btn", {
+	variants: {
+		variant: {
+			primary: "btn-primary",
+			secondary: "btn-secondary",
+			ghost: "btn-ghost",
 		},
-		defaultVariants: {
-			variant: "primary",
-			size: "md",
+		size: {
+			sm: "btn-sm",
+			md: "btn-md",
+			lg: "btn-lg",
 		},
 	},
-);
+	defaultVariants: {
+		variant: "primary",
+		size: "md",
+	},
+});
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> &
 	VariantProps<typeof buttonStyles> & {
@@ -53,12 +50,16 @@ function Button({
 
 	return (
 		<HuiButton
-      as={motion.button}
+			as={motion.button}
 			type="button"
 			aria-label={ariaLabel}
 			aria-busy={isLoading}
 			whileTap={{ scale: 0.98 }}
-			className={cn(buttonStyles({ variant, size }), isLoading && "loading", className)}
+			className={cn(
+				buttonStyles({ variant, size }),
+				isLoading && "loading",
+				className,
+			)}
 			{...rest}
 		>
 			<span className="flex items-center gap-2">

@@ -22,4 +22,3 @@ function Component(): null {
 }
 
 export { Component, loader };
-

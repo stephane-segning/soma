@@ -5,4 +5,3 @@ function Component(): React.JSX.Element {
 }
 
 export { Component };
-
