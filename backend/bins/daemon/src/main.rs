@@ -94,6 +94,7 @@ async fn run(config: DaemonConfig) -> SomaResult<()> {
         .relay_addrs(relay_addrs)
         .enable_mdns(enable_mdns)
         .join_decider(join_decider.clone())
+        .blob_provider(Some(state.blob_store.clone()))
         .build()
         .expect("peer config");
 

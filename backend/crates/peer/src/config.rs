@@ -2,7 +2,10 @@ use derive_builder::Builder;
 use libp2p::Multiaddr;
 use std::{path::PathBuf, sync::Arc};
 
-use crate::join::{JoinDecider, default_join_decider};
+use crate::{
+    BlobProvider,
+    join::{JoinDecider, default_join_decider},
+};
 use soma_net::default_identity_path;
 
 /// Common peer configuration shared by daemon/bot/bff peers.
@@ -25,6 +28,8 @@ pub struct PeerConfig {
     pub enable_mdns: bool,
     #[builder(default = "default_join_decider()")]
     pub join_decider: Arc<dyn JoinDecider>,
+    #[builder(default)]
+    pub blob_provider: Option<Arc<dyn BlobProvider>>,
 }
 
 impl PeerConfig {

@@ -151,6 +151,12 @@ pub enum PeerEvent {
     },
 }
 
+/// Serves blob bytes for inbound `/soma/blob/1` requests.
+#[async_trait]
+pub trait BlobProvider: Send + Sync {
+    async fn get(&self, cid: &str, space_id: Option<&str>) -> Option<BlobResponse>;
+}
+
 /// Handle to a running peer.
 #[derive(Debug)]
 pub struct PeerHandle {
@@ -165,6 +171,7 @@ pub fn spawn_peer(mut config: PeerConfig) -> SomaResult<PeerHandle> {
     let (command_tx, command_rx) = mpsc::channel(16);
     let (event_tx, event_rx) = mpsc::channel(64);
     let identity_path = config.identity_path.clone();
+    let blob_provider = config.blob_provider.clone();
 
     let task = tokio::spawn(async move {
         let identity = NetIdentity::load_or_generate(&config.identity_path)?;
@@ -222,6 +229,7 @@ pub fn spawn_peer(mut config: PeerConfig) -> SomaResult<PeerHandle> {
             swarm,
             command_rx,
             event_tx,
+            blob_provider,
         )
         .await
     });
@@ -355,6 +363,7 @@ async fn run_swarm(
     mut swarm: libp2p::Swarm<AppBehaviour>,
     mut command_rx: mpsc::Receiver<PeerCommand>,
     event_tx: mpsc::Sender<PeerEvent>,
+    blob_provider: Option<Arc<dyn BlobProvider>>,
 ) -> SomaResult<()> {
     for addr in relay_addrs {
         if let Some(peer_id) = extract_peer_id(&addr) {
@@ -554,19 +563,32 @@ async fn run_swarm(
                     SwarmEvent::Behaviour(AppEvent::Blob(evt)) => match evt {
                         reqres::Event::Message { peer, message, .. } => match message {
                             reqres::Message::Request { request, channel, .. } => {
-                                // Placeholder: no storage wired here yet. Respond not found.
-                                let response = BlobResponse {
-                                    cid: request.cid,
-                                    mime: String::new(),
-                                    size: 0,
-                                    data: Vec::new(),
-                                    found: false,
-                                };
-                                let _ = swarm.behaviour_mut().blob.send_response(channel, response);
-                                let _ = event_tx.try_send(PeerEvent::ConnectionError {
-                                    peer: Some(peer),
-                                    error: "blob requested but no provider attached".into(),
-                                });
+                                if let Some(provider) = blob_provider.as_ref() {
+                                    let res = provider
+                                        .get(&request.cid, (!request.space_id.is_empty()).then_some(request.space_id.as_str()))
+                                        .await;
+                                    let response = res.unwrap_or_else(|| BlobResponse {
+                                        cid: request.cid,
+                                        mime: String::new(),
+                                        size: 0,
+                                        data: Vec::new(),
+                                        found: false,
+                                    });
+                                    let _ = swarm.behaviour_mut().blob.send_response(channel, response);
+                                } else {
+                                    let response = BlobResponse {
+                                        cid: request.cid,
+                                        mime: String::new(),
+                                        size: 0,
+                                        data: Vec::new(),
+                                        found: false,
+                                    };
+                                    let _ = swarm.behaviour_mut().blob.send_response(channel, response);
+                                    let _ = event_tx.try_send(PeerEvent::ConnectionError {
+                                        peer: Some(peer),
+                                        error: "blob requested but no provider attached".into(),
+                                    });
+                                }
                             }
                             reqres::Message::Response { .. } => {
                                 // No outbound blob fetch path wired yet.

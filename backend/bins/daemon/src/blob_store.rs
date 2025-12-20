@@ -2,6 +2,7 @@ use std::{path::PathBuf, sync::Arc};
 
 use sha2::{Digest, Sha256};
 use soma_core::SomaResult;
+use soma_peer::BlobProvider;
 use tokio::fs;
 
 /// Simple content-addressed blob store rooted at a directory.
@@ -64,5 +65,26 @@ impl BlobStore {
         } else {
             Ok(None)
         }
+    }
+}
+
+#[async_trait::async_trait]
+impl BlobProvider for BlobStore {
+    async fn get(&self, cid: &str, space_id: Option<&str>) -> Option<soma_peer::BlobResponse> {
+        let space = space_id.unwrap_or("");
+        if space.is_empty() {
+            return None;
+        }
+        let Ok(bytes_opt) = self.read(space, cid).await else {
+            return None;
+        };
+        let bytes = bytes_opt?;
+        Some(soma_peer::BlobResponse {
+            cid: cid.to_string(),
+            mime: "application/octet-stream".to_string(),
+            size: bytes.len() as u64,
+            data: bytes,
+            found: true,
+        })
     }
 }
