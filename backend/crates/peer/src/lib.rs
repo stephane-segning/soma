@@ -25,7 +25,9 @@ pub mod join;
 mod transport;
 
 const JOIN_PROTOCOL: &str = "/soma/join/1";
+const JOIN_DECISION_PROTOCOL: &str = "/soma/join-decision/1";
 const MAX_JOIN_MESSAGE_BYTES: usize = 16 * 1024;
+const MAX_JOIN_DECISION_MESSAGE_BYTES: usize = 64 * 1024;
 const AGENT_PROTOCOL: &str = "/soma/0.1.0";
 
 /// Commands sent to the peer runtime.
@@ -38,6 +40,12 @@ pub enum PeerCommand {
         addrs: Vec<Multiaddr>,
         request_id: String,
         request: spaceroom::JoinRequest,
+    },
+    SendJoinDecision {
+        target: PeerId,
+        addrs: Vec<Multiaddr>,
+        delivery_id: String,
+        decision: spaceroom::JoinDecision,
     },
     Shutdown,
 }
@@ -89,6 +97,19 @@ pub enum PeerEvent {
     JoinDecision {
         from: PeerId,
         decision: spaceroom::JoinDecision,
+    },
+    JoinDecisionDeliverySubmitted {
+        target: PeerId,
+        delivery_id: String,
+    },
+    JoinDecisionDeliveryAck {
+        target: PeerId,
+        delivery_id: String,
+    },
+    JoinDecisionDeliveryFailed {
+        target: PeerId,
+        delivery_id: String,
+        error: String,
     },
     JoinFailed {
         target: PeerId,
@@ -212,6 +233,7 @@ fn build_app_behaviour(
         ),
         relay_client,
         join: build_join_behaviour(),
+        join_decision: build_join_decision_behaviour(),
     }
 }
 
@@ -224,6 +246,7 @@ struct AppBehaviour {
     rendezvous: rendezvous::client::Behaviour,
     relay_client: relay::client::Behaviour,
     join: reqres::Behaviour<JoinCodec>,
+    join_decision: reqres::Behaviour<JoinDecisionCodec>,
 }
 
 #[derive(Debug)]
@@ -234,6 +257,7 @@ enum AppEvent {
     Rendezvous(rendezvous::client::Event),
     Relay(relay::client::Event),
     Join(reqres::Event<spaceroom::JoinRequest, spaceroom::JoinDecision>),
+    JoinDecision(reqres::Event<spaceroom::JoinDecision, JoinDecisionAck>),
 }
 
 impl From<ping::Event> for AppEvent {
@@ -272,6 +296,12 @@ impl From<reqres::Event<spaceroom::JoinRequest, spaceroom::JoinDecision>> for Ap
     }
 }
 
+impl From<reqres::Event<spaceroom::JoinDecision, JoinDecisionAck>> for AppEvent {
+    fn from(event: reqres::Event<spaceroom::JoinDecision, JoinDecisionAck>) -> Self {
+        AppEvent::JoinDecision(event)
+    }
+}
+
 async fn run_swarm(
     peer_id: PeerId,
     rendezvous_namespace: String,
@@ -291,6 +321,7 @@ async fn run_swarm(
     }
 
     let mut requested_reservations = HashSet::new();
+    let mut outbound_join_decisions: HashMap<_, (PeerId, String)> = HashMap::new();
 
     loop {
         tokio::select! {
@@ -308,6 +339,15 @@ async fn run_swarm(
                         }
                         swarm.behaviour_mut().join.send_request(&target, request);
                         let _ = event_tx.try_send(PeerEvent::JoinRequestSubmitted { target, request_id });
+                    }
+                    PeerCommand::SendJoinDecision { target, addrs, delivery_id, decision } => {
+                        for addr in addrs {
+                            swarm.add_peer_address(target, addr.clone());
+                            let _ = swarm.dial(addr.clone());
+                        }
+                        let req_id = swarm.behaviour_mut().join_decision.send_request(&target, decision);
+                        outbound_join_decisions.insert(req_id, (target, delivery_id.clone()));
+                        let _ = event_tx.try_send(PeerEvent::JoinDecisionDeliverySubmitted { target, delivery_id });
                     }
                     PeerCommand::Shutdown => {
                         info!("peer shutdown requested");
@@ -433,6 +473,32 @@ async fn run_swarm(
                             reqres::Event::ResponseSent { .. } => {}
                         }
                     }
+                    SwarmEvent::Behaviour(AppEvent::JoinDecision(evt)) => {
+                        match evt {
+                            reqres::Event::Message { peer, message, .. } => {
+                                match message {
+                                    reqres::Message::Request { request, channel, .. } => {
+                                        let _ = swarm.behaviour_mut().join_decision.send_response(channel, JoinDecisionAck {});
+                                        let _ = event_tx.try_send(PeerEvent::JoinDecision { from: peer, decision: request });
+                                    }
+                                    reqres::Message::Response { request_id, .. } => {
+                                        if let Some((target, delivery_id)) = outbound_join_decisions.remove(&request_id) {
+                                            let _ = event_tx.try_send(PeerEvent::JoinDecisionDeliveryAck { target, delivery_id });
+                                        }
+                                    }
+                                }
+                            }
+                            reqres::Event::OutboundFailure { peer, request_id, error, .. } => {
+                                if let Some((_target, delivery_id)) = outbound_join_decisions.remove(&request_id) {
+                                    let _ = event_tx.try_send(PeerEvent::JoinDecisionDeliveryFailed { target: peer, delivery_id, error: error.to_string() });
+                                } else {
+                                    let _ = event_tx.try_send(PeerEvent::JoinDecisionDeliveryFailed { target: peer, delivery_id: "unknown".into(), error: error.to_string() });
+                                }
+                            }
+                            reqres::Event::InboundFailure { .. } => {}
+                            reqres::Event::ResponseSent { .. } => {}
+                        }
+                    }
                     _ => {}
                 }
             }
@@ -466,8 +532,21 @@ fn build_join_behaviour() -> reqres::Behaviour<JoinCodec> {
     reqres::Behaviour::new(protocols, cfg)
 }
 
+fn build_join_decision_behaviour() -> reqres::Behaviour<JoinDecisionCodec> {
+    let protocols =
+        std::iter::once((JOIN_DECISION_PROTOCOL.to_string(), reqres::ProtocolSupport::Full));
+    let cfg = reqres::Config::default().with_request_timeout(Duration::from_secs(10));
+    reqres::Behaviour::new(protocols, cfg)
+}
+
 #[derive(Clone, Default)]
 struct JoinCodec;
+
+#[derive(Clone, Default)]
+struct JoinDecisionCodec;
+
+#[derive(Clone, PartialEq, Message)]
+struct JoinDecisionAck {}
 
 #[async_trait]
 impl reqres::Codec for JoinCodec {
@@ -522,7 +601,68 @@ impl reqres::Codec for JoinCodec {
     }
 }
 
+#[async_trait]
+impl reqres::Codec for JoinDecisionCodec {
+    type Protocol = String;
+    type Request = spaceroom::JoinDecision;
+    type Response = JoinDecisionAck;
+
+    async fn read_request<T>(
+        &mut self,
+        _protocol: &Self::Protocol,
+        io: &mut T,
+    ) -> io::Result<Self::Request>
+    where
+        T: AsyncRead + Unpin + Send,
+    {
+        read_message_with_limit(io, MAX_JOIN_DECISION_MESSAGE_BYTES).await
+    }
+
+    async fn read_response<T>(
+        &mut self,
+        _protocol: &Self::Protocol,
+        io: &mut T,
+    ) -> io::Result<Self::Response>
+    where
+        T: AsyncRead + Unpin + Send,
+    {
+        read_message_with_limit(io, MAX_JOIN_DECISION_MESSAGE_BYTES).await
+    }
+
+    async fn write_request<T>(
+        &mut self,
+        _protocol: &Self::Protocol,
+        io: &mut T,
+        req: Self::Request,
+    ) -> io::Result<()>
+    where
+        T: AsyncWrite + Unpin + Send,
+    {
+        write_message(io, req).await
+    }
+
+    async fn write_response<T>(
+        &mut self,
+        _protocol: &Self::Protocol,
+        io: &mut T,
+        res: Self::Response,
+    ) -> io::Result<()>
+    where
+        T: AsyncWrite + Unpin + Send,
+    {
+        write_message(io, res).await
+    }
+}
+
 async fn read_message<M, T>(io: &mut T) -> io::Result<M>
+where
+    M: Message + Default,
+    T: AsyncRead + Unpin + Send,
+{
+    read_message_with_limit(io, MAX_JOIN_MESSAGE_BYTES).await
+}
+
+async fn read_message_with_limit<M, T>(io: &mut T, limit: usize) -> io::Result<M>
 where
     M: Message + Default,
     T: AsyncRead + Unpin + Send,
@@ -530,10 +670,10 @@ where
     let mut len_buf = [0u8; 4];
     io.read_exact(&mut len_buf).await?;
     let len = u32::from_be_bytes(len_buf) as usize;
-    if len > MAX_JOIN_MESSAGE_BYTES {
+    if len > limit {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,
-            "join message too large",
+            "message too large",
         ));
     }
     let mut buf = vec![0u8; len];
@@ -600,6 +740,45 @@ mod tests {
             .expect("read back join request");
         assert_eq!(decoded.space_id.unwrap().value, "space-123");
         assert_eq!(decoded.peer_id.unwrap().value, "peer-abc");
+    }
+
+    #[tokio::test]
+    async fn join_decision_codec_roundtrip() {
+        let mut codec = JoinDecisionCodec;
+        let mut buf = Cursor::new(Vec::new());
+        let proto = JOIN_DECISION_PROTOCOL.to_string();
+
+        let decision = spaceroom::JoinDecision {
+            decision_id: "dec-1".into(),
+            space_id: Some(spaceroom::SpaceId { value: "space-123".into() }),
+            subject_peer_id: Some(spaceroom::PeerId { value: "peer-abc".into() }),
+            decision: spaceroom::JoinDecisionType::JoinApproved as i32,
+            reason: "ok".into(),
+            capability: None,
+            created_at: None,
+        };
+
+        codec
+            .write_request(&proto, &mut buf, decision.clone())
+            .await
+            .expect("write");
+        buf.set_position(0);
+        let decoded = codec
+            .read_request(&proto, &mut buf)
+            .await
+            .expect("read back join decision");
+        assert_eq!(decoded.decision_id, "dec-1");
+
+        let mut buf2 = Cursor::new(Vec::new());
+        codec
+            .write_response(&proto, &mut buf2, JoinDecisionAck {})
+            .await
+            .expect("write ack");
+        buf2.set_position(0);
+        let _ = codec
+            .read_response(&proto, &mut buf2)
+            .await
+            .expect("read ack");
     }
 
     #[tokio::test]

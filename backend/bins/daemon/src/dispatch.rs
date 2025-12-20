@@ -3,7 +3,10 @@ use std::sync::Arc;
 use soma_peer::events::{PeerEventDispatcher, PeerEventHandler};
 
 use crate::DaemonState;
-use crate::handlers::{JoinEventsHandler, ListenAddrHandler, LoggingHandler};
+use crate::handlers::{
+    JoinDecisionPersistenceHandler, JoinEventsHandler, ListenAddrHandler, LoggingHandler,
+    MailboxOutboxHandler,
+};
 
 /// Build the dispatcher and spin up per-handler workers for backpressure isolation.
 pub async fn build_dispatcher(state: Arc<DaemonState>) -> PeerEventDispatcher<DaemonState> {
@@ -13,6 +16,8 @@ pub async fn build_dispatcher(state: Arc<DaemonState>) -> PeerEventDispatcher<Da
         Arc::new(LoggingHandler),
         Arc::new(ListenAddrHandler),
         Arc::new(JoinEventsHandler),
+        Arc::new(JoinDecisionPersistenceHandler),
+        Arc::new(MailboxOutboxHandler),
     ];
 
     let mut worker_tasks = Vec::new();

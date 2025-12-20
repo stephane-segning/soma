@@ -5,7 +5,6 @@ use tracing_subscriber::EnvFilter;
 mod config;
 mod event_handlers;
 mod http;
-mod join;
 mod metrics;
 mod runtime;
 

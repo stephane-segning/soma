@@ -1,4 +1,4 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{path::PathBuf, sync::Arc, time::SystemTime};
 
 use axum::{
     Json, Router,
@@ -11,18 +11,20 @@ use base64::Engine;
 use libp2p::PeerId;
 use prost::Message;
 use serde::{Deserialize, Serialize};
-use std::time::SystemTime;
-use crate::join::{epoch_seconds, persist_membership, role_to_str};
-use soma_common::sign_membership_capability;
-use soma_proto_build::spaceroom::{JoinDecision, JoinDecisionType, MembershipCapability, SpaceId, SpaceRole};
-use soma_storage::membership::{JoinDecision as StoredDecision, MembershipRepository};
-use tracing::warn;
-use prost_types::Timestamp;
+use soma_membership::{
+    create_space, decide_join_request, enqueue_outgoing_join_decision,
+    issue_issuer_capability_to_storage, list_pending_join_requests, parse_role_str,
+};
+use soma_proto_build::spaceroom::SpaceRole;
+use soma_storage::issuer::IssuerRepository;
+use soma_storage::membership::MembershipRepository;
 
 use crate::{config::Mode, metrics::BotMetrics};
 use libp2p::identity::Keypair;
 use soma_storage::RepositoryFactory;
 use soma_peer::join::JoinDecider;
+use soma_peer::PeerCommand;
+use tokio::sync::mpsc;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct BotInfo {
@@ -33,10 +35,12 @@ pub struct BotInfo {
 #[derive(Clone)]
 pub struct BotState {
     pub info: BotInfo,
+    pub peer_id: PeerId,
     pub metrics: BotMetrics,
     pub repos: RepositoryFactory,
     pub signer: Keypair,
     pub join_decider: std::sync::Arc<dyn JoinDecider>,
+    pub peer_commands: mpsc::Sender<PeerCommand>,
 }
 
 pub async fn serve_http(
@@ -67,11 +71,48 @@ pub async fn serve_http(
 
     if mode == Mode::ServerDaemon {
         let token = admin_token.clone();
+        let token_join_request = admin_token.clone();
+        let token_create_space = admin_token.clone();
+        let token_list_spaces = admin_token.clone();
+        let token_issue_issuer = admin_token.clone();
+        let token_import_issuer = admin_token.clone();
         let token_requests = admin_token.clone();
         let token_decide = admin_token.clone();
+        let token_members = admin_token.clone();
+
         app = app.route(
             "/v1/join",
             post(move |state: State<Arc<BotState>>, body| join_handler(state, body, token.clone())),
+        )
+        .route(
+            "/v1/join/request",
+            post(move |state: State<Arc<BotState>>, body| {
+                join_request_submit_handler(state, body, token_join_request.clone())
+            }),
+        )
+        .route(
+            "/v1/spaces",
+            post(move |state: State<Arc<BotState>>, body| {
+                create_space_handler(state, body, token_create_space.clone())
+            }),
+        )
+        .route(
+            "/v1/spaces",
+            get(move |state: State<Arc<BotState>>, query| {
+                list_spaces_handler(state, query, token_list_spaces.clone())
+            }),
+        )
+        .route(
+            "/v1/spaces/issuer-capability/issue",
+            post(move |state: State<Arc<BotState>>, body| {
+                issue_issuer_capability_handler(state, body, token_issue_issuer.clone())
+            }),
+        )
+        .route(
+            "/v1/spaces/issuer-capability/import",
+            post(move |state: State<Arc<BotState>>, body| {
+                import_issuer_capability_handler(state, body, token_import_issuer.clone())
+            }),
         )
         .route(
             "/v1/join/requests",
@@ -83,6 +124,12 @@ pub async fn serve_http(
             "/v1/join/decide",
             post(move |state: State<Arc<BotState>>, body| {
                 join_decide_handler(state, body, token_decide.clone())
+            }),
+        )
+        .route(
+            "/v1/space/members",
+            get(move |state: State<Arc<BotState>>, query| {
+                list_space_members_handler(state, query, token_members.clone())
             }),
         );
     }
@@ -198,6 +245,359 @@ async fn join_handler(
 }
 
 #[derive(Deserialize)]
+struct JoinRequestSubmitPayload {
+    admin_token: Option<String>,
+    space_id: String,
+    target_peer_id: String,
+    target_multiaddrs: Vec<String>,
+    display_name: Option<String>,
+    device_name: Option<String>,
+    requested_role: Option<String>,
+}
+
+async fn join_request_submit_handler(
+    State(state): State<Arc<BotState>>,
+    payload: Json<JoinRequestSubmitPayload>,
+    admin_token: Option<String>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    authorize(&admin_token, payload.admin_token.clone())?;
+
+    let target_peer_id: PeerId = payload.target_peer_id.parse().map_err(|_| {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({"error": "invalid target_peer_id"})),
+        )
+    })?;
+
+    let mut addrs = Vec::new();
+    for addr in &payload.target_multiaddrs {
+        let parsed = addr.parse().map_err(|_| {
+            (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({"error": "invalid multiaddr in target_multiaddrs"})),
+            )
+        })?;
+        addrs.push(parsed);
+    }
+    if addrs.is_empty() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({"error": "target_multiaddrs is required"})),
+        ));
+    }
+
+    let requested_role = payload
+        .requested_role
+        .as_deref()
+        .unwrap_or("student")
+        .to_lowercase();
+    let role = parse_role_str(&requested_role).unwrap_or(SpaceRole::Student);
+
+    let request_id = format!("req-{:016x}", rand::random::<u64>());
+    let join_request = soma_proto_build::spaceroom::JoinRequest {
+        space_id: Some(soma_proto_build::spaceroom::SpaceId {
+            value: payload.space_id.clone(),
+        }),
+        peer_id: Some(soma_proto_build::spaceroom::PeerId {
+            value: state.info.peer_id.clone(),
+        }),
+        display_name: payload.display_name.clone().unwrap_or_default(),
+        device_name: payload.device_name.clone().unwrap_or_default(),
+        student_code: String::new(),
+        requested_role: role as i32,
+        invite_proof: None,
+        created_at: Some(prost_types::Timestamp::from(SystemTime::now())),
+    };
+
+    state
+        .peer_commands
+        .send(PeerCommand::SendJoinRequest {
+            target: target_peer_id,
+            addrs,
+            request_id: request_id.clone(),
+            request: join_request,
+        })
+        .await
+        .map_err(|_| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({"error": "peer task is not running"})),
+            )
+        })?;
+
+    Ok(Json(serde_json::json!({ "request_id": request_id })))
+}
+
+#[derive(Deserialize)]
+struct CreateSpacePayload {
+    admin_token: Option<String>,
+    space_id: Option<String>,
+    display_name: Option<String>,
+}
+
+async fn create_space_handler(
+    State(state): State<Arc<BotState>>,
+    payload: Json<CreateSpacePayload>,
+    admin_token: Option<String>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    authorize(&admin_token, payload.admin_token.clone())?;
+
+    let space_id = payload
+        .space_id
+        .clone()
+        .unwrap_or_else(|| format!("space-{:016x}", rand::random::<u64>()));
+
+    let owner_peer_id: PeerId = state.info.peer_id.parse().map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": "invalid bot peer_id"})),
+        )
+    })?;
+
+    create_space(
+        &state.repos,
+        &owner_peer_id,
+        &space_id,
+        payload.display_name.clone(),
+    )
+    .await
+    .map_err(|err| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": format!("failed to create space: {err}")})),
+        )
+    })?;
+
+    Ok(Json(serde_json::json!({
+        "space_id": space_id,
+        "owner_peer_id": state.info.peer_id,
+    })))
+}
+
+#[derive(Deserialize)]
+struct ListSpacesQuery {
+    admin_token: Option<String>,
+    limit: Option<u32>,
+    offset: Option<u32>,
+    owner_peer_id: Option<String>,
+    q: Option<String>,
+    created_after: Option<i64>,
+    created_before: Option<i64>,
+}
+
+async fn list_spaces_handler(
+    State(state): State<Arc<BotState>>,
+    Query(params): Query<ListSpacesQuery>,
+    admin_token: Option<String>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    authorize(&admin_token, params.admin_token.clone())?;
+
+    let limit = params.limit.unwrap_or(50).min(200).max(1);
+    let offset = params.offset.unwrap_or(0);
+
+    let spaces = state
+        .repos
+        .membership()
+        .list_spaces(
+            params.owner_peer_id.as_deref(),
+            params.q.as_deref(),
+            params.created_after,
+            params.created_before,
+            limit,
+            offset,
+        )
+        .await
+        .map_err(|err| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({"error": format!("failed to list spaces: {err}")})),
+            )
+        })?;
+
+    let next_offset = if spaces.len() as u32 == limit {
+        Some(offset + limit)
+    } else {
+        None
+    };
+
+    let spaces_json: Vec<serde_json::Value> = spaces
+        .into_iter()
+        .map(|s| {
+            serde_json::json!({
+                "space_id": s.space_id,
+                "display_name": s.display_name,
+                "owner_peer_id": s.owner_peer_id,
+                "created_at": s.created_at,
+            })
+        })
+        .collect();
+
+    Ok(Json(serde_json::json!({
+        "spaces": spaces_json,
+        "limit": limit,
+        "offset": offset,
+        "next_offset": next_offset,
+    })))
+}
+
+#[derive(Deserialize)]
+struct IssueIssuerCapPayload {
+    admin_token: Option<String>,
+    space_id: String,
+    delegate_peer_id: String,
+    allowed_roles: Option<Vec<String>>,
+    expires_at_secs: Option<i64>,
+}
+
+async fn issue_issuer_capability_handler(
+    State(state): State<Arc<BotState>>,
+    payload: Json<IssueIssuerCapPayload>,
+    admin_token: Option<String>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    authorize(&admin_token, payload.admin_token.clone())?;
+
+    let owner_peer_id: PeerId = state.info.peer_id.parse().map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": "invalid bot peer_id"})),
+        )
+    })?;
+    let delegate_peer_id: PeerId = payload.delegate_peer_id.parse().map_err(|_| {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({"error": "invalid delegate_peer_id"})),
+        )
+    })?;
+
+    let allowed_roles: Vec<SpaceRole> = payload
+        .allowed_roles
+        .clone()
+        .unwrap_or_default()
+        .into_iter()
+        .filter_map(|s| parse_role_str(&s))
+        .collect();
+
+    let issuer_cap = issue_issuer_capability_to_storage(
+        &state.repos,
+        &state.signer,
+        &owner_peer_id,
+        &payload.space_id,
+        &delegate_peer_id,
+        allowed_roles,
+        payload.expires_at_secs,
+    )
+    .await
+    .map_err(|err| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": format!("failed to issue issuer capability: {err}")})),
+        )
+    })?;
+
+    let bytes = Message::encode_to_vec(&issuer_cap);
+
+    Ok(Json(serde_json::json!({
+        "space_id": payload.space_id,
+        "delegate_peer_id": payload.delegate_peer_id,
+        "capability_b64": B64.encode(bytes),
+    })))
+}
+
+#[derive(Deserialize)]
+struct ImportIssuerCapPayload {
+    admin_token: Option<String>,
+    space_id: String,
+    delegate_peer_id: String,
+    issuer_peer_id: String,
+    expires_at_secs: Option<i64>,
+    capability_b64: String,
+}
+
+async fn import_issuer_capability_handler(
+    State(state): State<Arc<BotState>>,
+    payload: Json<ImportIssuerCapPayload>,
+    admin_token: Option<String>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    authorize(&admin_token, payload.admin_token.clone())?;
+
+    let bytes = B64.decode(payload.capability_b64.as_bytes()).map_err(|_| {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({"error": "invalid capability_b64"})),
+        )
+    })?;
+
+    let now_secs = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs() as i64;
+
+    state
+        .repos
+        .issuer()
+        .upsert(&soma_storage::issuer::IssuerCapability {
+            space_id: payload.space_id.clone(),
+            issuer_peer_id: payload.issuer_peer_id.clone(),
+            delegate_peer_id: payload.delegate_peer_id.clone(),
+            issued_at: now_secs,
+            expires_at: payload.expires_at_secs,
+            capability: Some(bytes),
+        })
+        .await
+        .map_err(|err| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({"error": format!("failed to import issuer capability: {err}")})),
+            )
+        })?;
+
+    Ok(Json(serde_json::json!({"ok": true})))
+}
+
+#[derive(Deserialize)]
+struct ListSpaceMembersQuery {
+    admin_token: Option<String>,
+    space_id: String,
+}
+
+async fn list_space_members_handler(
+    State(state): State<Arc<BotState>>,
+    Query(params): Query<ListSpaceMembersQuery>,
+    admin_token: Option<String>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    authorize(&admin_token, params.admin_token.clone())?;
+
+    let rows = state
+        .repos
+        .membership()
+        .list_memberships(&params.space_id)
+        .await
+        .map_err(|err| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({"error": format!("failed to list members: {err}")})),
+            )
+        })?;
+
+    let members: Vec<serde_json::Value> = rows
+        .into_iter()
+        .map(|m| {
+            serde_json::json!({
+                "space_id": m.space_id,
+                "subject_peer_id": m.subject_peer_id,
+                "role": m.role,
+                "issuer_peer_id": m.issuer_peer_id,
+                "issued_at": m.issued_at,
+                "expires_at": m.expires_at,
+                "capability_b64": m.capability.map(|b| B64.encode(b)),
+            })
+        })
+        .collect();
+
+    Ok(Json(serde_json::json!({ "members": members })))
+}
+
+#[derive(Deserialize)]
 struct AdminTokenParam {
     admin_token: Option<String>,
 }
@@ -224,17 +624,12 @@ async fn join_requests_handler(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     authorize(&admin_token, params.admin_token.clone())?;
 
-    let rows = state
-        .repos
-        .membership()
-        .list_join_requests()
-        .await
-        .map_err(|err| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({ "error": format!("failed to list join requests: {err}") })),
-            )
-        })?;
+    let rows = list_pending_join_requests(&state.repos).await.map_err(|err| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": format!("failed to list join requests: {err}") })),
+        )
+    })?;
 
     let requests: Vec<serde_json::Value> = rows
         .into_iter()
@@ -283,135 +678,66 @@ async fn join_decide_handler(
         .and_then(|v| v.as_str())
         .map(|s| s.eq_ignore_ascii_case("approve"))
         .unwrap_or(false);
+
     let reason = payload
         .get("reason")
         .and_then(|v| v.as_str())
-        .unwrap_or("manual decision")
-        .to_string();
-
-    let repo = state.repos.membership();
-    let req = repo
-        .get_join_request(&request_id)
-        .await
-        .map_err(|err| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": format!("failed to load join request: {err}")})),
-            )
-        })?
-        .ok_or_else(|| {
-            (
-                StatusCode::NOT_FOUND,
-                Json(serde_json::json!({"error": "request not found"})),
-            )
-        })?;
+        .map(|s| s.to_string());
 
     let role_str = payload
         .get("role")
         .and_then(|v| v.as_str())
         .unwrap_or("");
-    let requested_role = parse_role(role_str).unwrap_or_else(|| req.requested_role);
+    let role_override = parse_role_str(role_str);
 
-    let role_enum = SpaceRole::try_from(requested_role).unwrap_or(SpaceRole::Student);
-    let now_secs = epoch_seconds(SystemTime::now());
-    let now_ts = Timestamp::from(SystemTime::now());
-    let issuer_peer_id: PeerId = state
-        .info
-        .peer_id
-        .parse()
-        .map_err(|_| {
+    let issuer_peer_id: PeerId = state.info.peer_id.parse().map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": "invalid bot peer_id"})),
+        )
+    })?;
+
+    let decision = decide_join_request(
+        &state.repos,
+        &state.signer,
+        &issuer_peer_id,
+        &request_id,
+        approve,
+        role_override,
+        reason,
+    )
+    .await
+    .map_err(|err| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": format!("failed to decide join: {err}")})),
+        )
+    })?;
+
+    let delivery_id = enqueue_outgoing_join_decision(&state.repos, &decision)
+        .await
+        .map_err(|err| {
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": "invalid bot peer_id"})),
+                Json(serde_json::json!({"error": format!("failed to enqueue outgoing decision: {err}")})),
             )
         })?;
 
-    let mut membership_cap = MembershipCapability {
-        space_id: Some(SpaceId {
-            value: req.space_id.clone(),
-        }),
-        subject_peer_id: Some(soma_proto_build::spaceroom::PeerId {
-            value: req.subject_peer_id.clone(),
-        }),
-        role: role_enum as i32,
-        permissions: Vec::new(),
-        issued_at: Some(now_ts.clone()),
-        expires_at: None,
-        issuer_peer_id: Some(soma_proto_build::spaceroom::PeerId {
-            value: issuer_peer_id.to_string(),
-        }),
-        issuer_cap: None,
-        signed: None,
-    };
-
-    if approve {
-        if let Err(err) = sign_membership_capability(&mut membership_cap, &state.signer) {
-            warn!(%err, "failed to sign membership capability");
-        }
-    }
-
-    let decision = JoinDecision {
-        decision_id: format!("join-{:016x}", rand::random::<u64>()),
-        space_id: Some(SpaceId {
-            value: req.space_id.clone(),
-        }),
-        subject_peer_id: Some(soma_proto_build::spaceroom::PeerId {
-            value: req.subject_peer_id.clone(),
-        }),
-        decision: if approve {
-            JoinDecisionType::JoinApproved as i32
-        } else {
-            JoinDecisionType::JoinRejected as i32
-        },
-        reason: reason.clone(),
-        capability: if approve {
-            Some(membership_cap.clone())
-        } else {
-            None
-        },
-        created_at: Some(now_ts.clone()),
-    };
-
-    if approve {
-        let role_str = role_to_str(role_enum);
-        let cap_bytes = membership_cap.encode_to_vec();
-        persist_membership(
-            &repo,
-            &req.space_id,
-            &req.subject_peer_id,
-            &issuer_peer_id,
-            role_str,
-            now_secs,
-            cap_bytes.clone(),
-        )
-        .await;
-
-        let _ = repo
-            .record_join_decision(&StoredDecision {
-                decision_id: decision.decision_id.clone(),
-                space_id: req.space_id.clone(),
-                subject_peer_id: req.subject_peer_id.clone(),
-                decision: decision.decision,
-                reason: Some(reason.clone()),
-                created_at: now_secs,
-                capability: Some(cap_bytes),
-            })
-            .await;
-    } else {
-        let _ = repo
-            .record_join_decision(&StoredDecision {
-                decision_id: decision.decision_id.clone(),
-                space_id: req.space_id.clone(),
-                subject_peer_id: req.subject_peer_id.clone(),
-                decision: decision.decision,
-                reason: Some(reason.clone()),
-                created_at: now_secs,
-                capability: None,
+    if let Some(target) = decision
+        .subject_peer_id
+        .as_ref()
+        .and_then(|p| p.value.parse::<PeerId>().ok())
+    {
+        let _ = state
+            .peer_commands
+            .send(PeerCommand::SendJoinDecision {
+                target,
+                addrs: Vec::new(),
+                delivery_id: delivery_id.clone(),
+                decision: decision.clone(),
             })
             .await;
     }
-
-    let _ = repo.delete_join_request(&request_id).await;
 
     let capability_b64 = decision
         .capability
@@ -425,18 +751,8 @@ async fn join_decide_handler(
         "decision": decision.decision,
         "reason": decision.reason,
         "capability_b64": capability_b64,
+        "delivery_id": delivery_id,
     });
 
     Ok(Json(resp))
-}
-
-fn parse_role(role: &str) -> Option<i32> {
-    match role.to_lowercase().as_str() {
-        "owner" => Some(SpaceRole::Owner as i32),
-        "editor" => Some(SpaceRole::Editor as i32),
-        "viewer" => Some(SpaceRole::Viewer as i32),
-        "bot" => Some(SpaceRole::Bot as i32),
-        "student" => Some(SpaceRole::Student as i32),
-        _ => None,
-    }
 }

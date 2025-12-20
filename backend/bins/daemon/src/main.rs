@@ -1,15 +1,21 @@
 use clap::Parser;
 use mimalloc::MiMalloc;
 use soma_core::SomaResult;
+use soma_membership::{JoinPolicy, build_join_decider};
+use soma_membership::MAILBOX_KIND_JOIN_DECISION;
 use soma_net::{default_identity_path, generate_identity, NetIdentity};
 use soma_peer::{PeerCommand, PeerConfig, spawn_ping_peer, join::JoinDecider};
 use soma_proto_build::daemon;
+use soma_proto_build::spaceroom::JoinDecision;
+use soma_storage::mailbox::MailboxRepository;
 use tokio::{
     signal,
     sync::{Mutex, broadcast},
 };
 use tracing::info;
 use tracing_subscriber::EnvFilter;
+use std::time::{Duration, SystemTime};
+use prost::Message;
 
 use std::sync::Arc;
 
@@ -17,7 +23,6 @@ mod config;
 mod dispatch;
 mod grpc;
 mod handlers;
-mod join;
 
 use config::{Args, Command, DaemonConfig};
 use dispatch::build_dispatcher;
@@ -69,12 +74,12 @@ async fn run(config: DaemonConfig) -> SomaResult<()> {
     let repos = soma_storage::bootstrap::connect_any(&db_url, &MIGRATOR).await?;
 
     let net_identity = NetIdentity::load_or_generate(&identity_path)?;
-    let join_decider: std::sync::Arc<dyn JoinDecider> = std::sync::Arc::new(join::DaemonJoinDecider::new(
+    let join_decider: std::sync::Arc<dyn JoinDecider> = build_join_decider(
         &repos,
         net_identity.keypair().clone(),
         net_identity.peer_id(),
-        false,
-    ));
+        JoinPolicy::manual_only(),
+    );
 
     let peer_config = PeerConfig::builder()
         .identity_path(identity_path)
@@ -112,6 +117,8 @@ async fn run(config: DaemonConfig) -> SomaResult<()> {
     // Event handling: fan out to per-kind handlers via dispatcher.
     let dispatcher = build_dispatcher(state.clone()).await;
 
+    spawn_mailbox_sweeper(state.clone());
+
     tokio::pin!(peer_task);
     tokio::pin!(grpc_task);
 
@@ -144,4 +151,72 @@ async fn run(config: DaemonConfig) -> SomaResult<()> {
     }
 
     Ok(())
+}
+
+fn spawn_mailbox_sweeper(state: Arc<DaemonState>) {
+    tokio::spawn(async move {
+        loop {
+            tokio::time::sleep(Duration::from_secs(10 * 60)).await;
+            sweep_mailbox(state.as_ref()).await;
+        }
+    });
+}
+
+async fn sweep_mailbox(state: &DaemonState) {
+    let now_secs = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs() as i64;
+
+    let entries = match state.repos.mailbox().list_due(now_secs, 50).await {
+        Ok(entries) => entries,
+        Err(_) => return,
+    };
+
+    for entry in entries {
+        if entry.kind != MAILBOX_KIND_JOIN_DECISION {
+            continue;
+        }
+        let Some(subject_peer_id) = entry.subject_peer_id.clone() else {
+            let _ = state.repos.mailbox().mark_dead(&entry.id).await;
+            continue;
+        };
+        let Ok(target) = subject_peer_id.parse() else {
+            let _ = state.repos.mailbox().mark_dead(&entry.id).await;
+            continue;
+        };
+
+        let lease_until = now_secs + 30;
+        let leased = match state
+            .repos
+            .mailbox()
+            .lease(&entry.id, &state.peer_id.to_string(), lease_until)
+            .await
+        {
+            Ok(rows) => rows,
+            Err(_) => continue,
+        };
+        if leased == 0 {
+            continue;
+        }
+
+        let Some(payload) = entry.payload.clone() else {
+            let _ = state.repos.mailbox().mark_dead(&entry.id).await;
+            continue;
+        };
+        let Ok(decision) = JoinDecision::decode(payload.as_slice()) else {
+            let _ = state.repos.mailbox().mark_dead(&entry.id).await;
+            continue;
+        };
+
+        let _ = state
+            .peer_commands
+            .send(PeerCommand::SendJoinDecision {
+                target,
+                addrs: Vec::new(),
+                delivery_id: entry.id.clone(),
+                decision,
+            })
+            .await;
+    }
 }

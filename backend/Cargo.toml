@@ -6,6 +6,7 @@ members = [
     "crates/api",
     "crates/agent",
     "crates/common",
+    "crates/membership",
     "crates/proto-build",
     "crates/metrics",
     "crates/relay",
@@ -31,6 +32,7 @@ soma-net = { path = "crates/net" }
 soma-api = { path = "crates/api" }
 soma-agent = { path = "crates/agent" }
 soma-common = { path = "crates/common" }
+soma-membership = { path = "crates/membership" }
 soma-rendezvous = { path = "crates/rendezvous" }
 soma-relay = { path = "crates/relay" }
 soma-bff = { path = "crates/bff" }
@@ -74,6 +76,7 @@ tempfile = "3"
 base64 = "0.22"
 sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "macros", "any", "postgres", "sqlite", "migrate", "time", "chrono", "json"] }
 sqlx-utils = "1.1.3"
+ciborium = "0.2"
 
 [workspace.dependencies.libp2p]
 version = "0.56"

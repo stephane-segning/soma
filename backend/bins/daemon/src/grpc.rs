@@ -3,13 +3,14 @@ use std::{path::PathBuf, pin::Pin, str::FromStr, sync::Arc, time::SystemTime};
 use futures::Stream;
 use libp2p::PeerId;
 use prost_types::Timestamp;
-use prost::Message;
 use soma_core::SomaResult;
+use soma_membership::{
+    decide_join_request, enqueue_outgoing_join_decision, list_pending_join_requests, parse_role_str,
+};
 use soma_peer::PeerCommand;
 use soma_proto_build::{
     daemon,
     spaceroom,
-    spaceroom::{JoinDecision, JoinDecisionType, MembershipCapability, SpaceId},
 };
 use tokio::sync::{Mutex, broadcast, mpsc};
 use tokio_stream::{StreamExt as TokioStreamExt, wrappers::BroadcastStream};
@@ -17,10 +18,8 @@ use tonic::{Request, Response, Status};
 use tracing::warn;
 
 use soma_socket::serve_grpc_unix;
-use soma_storage::{RepositoryFactory, membership::{MembershipRepository, JoinDecision as StoredDecision}};
+use soma_storage::{RepositoryFactory, membership::MembershipRepository};
 use libp2p::identity::Keypair;
-use crate::join::{epoch_seconds, persist_membership, role_to_str};
-use soma_common::sign_membership_capability;
 /// Daemon shared state (peer id, command channel, listeners, event bus).
 #[derive(Debug)]
 pub struct DaemonState {
@@ -198,11 +197,7 @@ impl daemon::daemon_server::Daemon for DaemonService {
         &self,
         _request: Request<daemon::ListJoinRequestsRequest>,
     ) -> Result<Response<daemon::ListJoinRequestsResponse>, Status> {
-        let rows = self
-            .state
-            .repos
-            .membership()
-            .list_join_requests()
+        let rows = list_pending_join_requests(&self.state.repos)
             .await
             .map_err(|err| {
                 warn!(%err, "list_join_requests failed");
@@ -230,124 +225,51 @@ impl daemon::daemon_server::Daemon for DaemonService {
         request: Request<daemon::DecideJoinRequest>,
     ) -> Result<Response<daemon::DecideJoinResponse>, Status> {
         let payload = request.into_inner();
-        let repo = self.state.repos.membership();
-        let req = repo
-            .get_join_request(&payload.request_id)
-            .await
-            .map_err(|err| {
-                warn!(%err, "decide_join load failed");
-                Status::internal("failed to load join request")
-            })?
-            .ok_or_else(|| Status::not_found("join request not found"))?;
-
-        let approve = payload.approve;
-        let role_i32 = if payload.role.is_empty() {
-            req.requested_role
+        let role_override = if payload.role.is_empty() {
+            None
         } else {
-            match payload.role.to_lowercase().as_str() {
-                "owner" => spaceroom::SpaceRole::Owner as i32,
-                "editor" => spaceroom::SpaceRole::Editor as i32,
-                "viewer" => spaceroom::SpaceRole::Viewer as i32,
-                "bot" => spaceroom::SpaceRole::Bot as i32,
-                "student" => spaceroom::SpaceRole::Student as i32,
-                _ => spaceroom::SpaceRole::Student as i32,
-            }
+            parse_role_str(&payload.role)
         };
-        let role = spaceroom::SpaceRole::try_from(role_i32).unwrap_or(spaceroom::SpaceRole::Student);
-
-        let now_secs = epoch_seconds(SystemTime::now());
-        let now_ts = Timestamp::from(SystemTime::now());
-        let issuer_peer_id = self.state.peer_id;
-
-        let mut membership_cap = MembershipCapability {
-            space_id: Some(SpaceId {
-                value: req.space_id.clone(),
-            }),
-            subject_peer_id: Some(spaceroom::PeerId {
-                value: req.subject_peer_id.clone(),
-            }),
-            role: role as i32,
-            permissions: Vec::new(),
-            issued_at: Some(now_ts.clone()),
-            expires_at: None,
-            issuer_peer_id: Some(spaceroom::PeerId {
-                value: issuer_peer_id.to_string(),
-            }),
-            issuer_cap: None,
-            signed: None,
+        let reason = if payload.reason.is_empty() {
+            None
+        } else {
+            Some(payload.reason)
         };
 
-        if approve {
-            if let Err(err) = sign_membership_capability(&mut membership_cap, &self.state.signer) {
-                warn!(%err, "failed to sign membership capability");
+        let decision = decide_join_request(
+            &self.state.repos,
+            &self.state.signer,
+            &self.state.peer_id,
+            &payload.request_id,
+            payload.approve,
+            role_override,
+            reason,
+        )
+        .await
+        .map_err(|err| {
+            warn!(%err, "decide_join failed");
+            Status::internal("failed to decide join")
+        })?;
+
+        if let Ok(delivery_id) = enqueue_outgoing_join_decision(&self.state.repos, &decision).await
+        {
+            if let Some(target) = decision
+                .subject_peer_id
+                .as_ref()
+                .and_then(|p| p.value.parse::<PeerId>().ok())
+            {
+                let _ = self
+                    .state
+                    .peer_commands
+                    .send(PeerCommand::SendJoinDecision {
+                        target,
+                        addrs: Vec::new(),
+                        delivery_id,
+                        decision: decision.clone(),
+                    })
+                    .await;
             }
         }
-
-        let decision = JoinDecision {
-            decision_id: format!("join-{:016x}", rand::random::<u64>()),
-            space_id: Some(SpaceId {
-                value: req.space_id.clone(),
-            }),
-            subject_peer_id: Some(spaceroom::PeerId {
-                value: req.subject_peer_id.clone(),
-            }),
-            decision: if approve {
-                JoinDecisionType::JoinApproved as i32
-            } else {
-                JoinDecisionType::JoinRejected as i32
-            },
-            reason: if payload.reason.is_empty() {
-                "manual decision".into()
-            } else {
-                payload.reason
-            },
-            capability: if approve {
-                Some(membership_cap.clone())
-            } else {
-                None
-            },
-            created_at: Some(now_ts),
-        };
-
-        if approve {
-            let cap_bytes = membership_cap.encode_to_vec();
-            persist_membership(
-                &repo,
-                &req.space_id,
-                &req.subject_peer_id,
-                &issuer_peer_id,
-                role_to_str(role),
-                now_secs,
-                cap_bytes.clone(),
-            )
-            .await;
-
-            let _ = repo
-                .record_join_decision(&StoredDecision {
-                    decision_id: decision.decision_id.clone(),
-                    space_id: req.space_id.clone(),
-                    subject_peer_id: req.subject_peer_id.clone(),
-                    decision: decision.decision,
-                    reason: Some(decision.reason.clone()),
-                    created_at: now_secs,
-                    capability: Some(cap_bytes),
-                })
-                .await;
-        } else {
-            let _ = repo
-                .record_join_decision(&StoredDecision {
-                    decision_id: decision.decision_id.clone(),
-                    space_id: req.space_id.clone(),
-                    subject_peer_id: req.subject_peer_id.clone(),
-                    decision: decision.decision,
-                    reason: Some(decision.reason.clone()),
-                    created_at: now_secs,
-                    capability: None,
-                })
-                .await;
-        }
-
-        let _ = repo.delete_join_request(&payload.request_id).await;
 
         Ok(Response::new(daemon::DecideJoinResponse {
             decision: Some(decision),

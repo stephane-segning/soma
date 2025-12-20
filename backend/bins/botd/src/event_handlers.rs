@@ -1,19 +1,30 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use soma_membership::apply_join_decision;
 use soma_peer::{
     PeerEvent,
     events::{PeerEventHandler, PeerEventKind},
 };
+use soma_proto_build::spaceroom::JoinDecision;
+use soma_storage::mailbox::MailboxRepository;
 use tracing::{info, warn};
 
+use crate::http::BotState;
 use crate::metrics::{BotMetrics, EventLabels, JoinDecisionLabels, PingLabels};
+use soma_membership::MAILBOX_KIND_JOIN_DECISION;
+use std::time::SystemTime;
+use prost::Message;
 
 /// Handler that records metrics for every peer event.
 pub struct MetricsHandler;
 
 /// Handler that emits human-readable traces for notable peer events.
 pub struct LoggingHandler;
+
+/// Applies accepted join decisions to local storage (requester side).
+pub struct JoinDecisionApplyHandler;
+pub struct MailboxOutboxHandler;
 
 /// All event label names in one place to avoid stringly-typed metrics keys.
 #[derive(Clone, Copy)]
@@ -31,6 +42,9 @@ enum EventKindLabel {
     RelayCircuitEstablished,
     JoinRequestSubmitted,
     JoinDecision,
+    JoinDecisionDeliverySubmitted,
+    JoinDecisionDeliveryAck,
+    JoinDecisionDeliveryFailed,
     JoinFailed,
 }
 
@@ -50,6 +64,9 @@ impl EventKindLabel {
             EventKindLabel::RelayCircuitEstablished => "relay_circuit_established",
             EventKindLabel::JoinRequestSubmitted => "join_request_submitted",
             EventKindLabel::JoinDecision => "join_decision",
+            EventKindLabel::JoinDecisionDeliverySubmitted => "join_decision_delivery_submitted",
+            EventKindLabel::JoinDecisionDeliveryAck => "join_decision_delivery_ack",
+            EventKindLabel::JoinDecisionDeliveryFailed => "join_decision_delivery_failed",
             EventKindLabel::JoinFailed => "join_failed",
         }
     }
@@ -88,17 +105,23 @@ impl From<soma_proto_build::spaceroom::JoinDecisionType> for JoinDecisionOutcome
 }
 
 /// Build the list of peer event handlers that botd uses.
-pub fn build_handlers() -> Vec<Arc<dyn PeerEventHandler<BotMetrics>>> {
-    vec![Arc::new(MetricsHandler), Arc::new(LoggingHandler)]
+pub fn build_handlers() -> Vec<Arc<dyn PeerEventHandler<BotState>>> {
+    vec![
+        Arc::new(MetricsHandler),
+        Arc::new(LoggingHandler),
+        Arc::new(JoinDecisionApplyHandler),
+        Arc::new(MailboxOutboxHandler),
+    ]
 }
 
 #[async_trait]
-impl PeerEventHandler<BotMetrics> for MetricsHandler {
+impl PeerEventHandler<BotState> for MetricsHandler {
     fn interests(&self) -> &'static [PeerEventKind] {
         PeerEventKind::ALL
     }
 
-    async fn handle(&self, metrics: &BotMetrics, evt: &PeerEvent) {
+    async fn handle(&self, ctx: &BotState, evt: &PeerEvent) {
+        let metrics = &ctx.metrics;
         match evt {
             PeerEvent::NewListenAddr { .. } => {
                 record_event(metrics, EventKindLabel::NewListenAddr);
@@ -152,6 +175,15 @@ impl PeerEventHandler<BotMetrics> for MetricsHandler {
                     })
                     .inc();
             }
+            PeerEvent::JoinDecisionDeliverySubmitted { .. } => {
+                record_event(metrics, EventKindLabel::JoinDecisionDeliverySubmitted);
+            }
+            PeerEvent::JoinDecisionDeliveryAck { .. } => {
+                record_event(metrics, EventKindLabel::JoinDecisionDeliveryAck);
+            }
+            PeerEvent::JoinDecisionDeliveryFailed { .. } => {
+                record_event(metrics, EventKindLabel::JoinDecisionDeliveryFailed);
+            }
             PeerEvent::JoinFailed { .. } => {
                 record_event(metrics, EventKindLabel::JoinFailed);
             }
@@ -160,7 +192,7 @@ impl PeerEventHandler<BotMetrics> for MetricsHandler {
 }
 
 #[async_trait]
-impl PeerEventHandler<BotMetrics> for LoggingHandler {
+impl PeerEventHandler<BotState> for LoggingHandler {
     fn interests(&self) -> &'static [PeerEventKind] {
         &[
             PeerEventKind::NewListenAddr,
@@ -174,10 +206,11 @@ impl PeerEventHandler<BotMetrics> for LoggingHandler {
             PeerEventKind::RelayReserved,
             PeerEventKind::RelayCircuitEstablished,
             PeerEventKind::ListenerClosed,
+            PeerEventKind::JoinDecisionDeliveryFailed,
         ]
     }
 
-    async fn handle(&self, _metrics: &BotMetrics, evt: &PeerEvent) {
+    async fn handle(&self, _ctx: &BotState, evt: &PeerEvent) {
         match evt {
             PeerEvent::NewListenAddr { address, peer_id } => {
                 info!(%peer_id, listen_addr=%address, "bot listening");
@@ -216,9 +249,163 @@ impl PeerEventHandler<BotMetrics> for LoggingHandler {
             PeerEvent::ListenerClosed { reason } => {
                 warn!(?reason, "bot listener closed");
             }
+            PeerEvent::JoinDecisionDeliveryFailed { target, delivery_id, error } => {
+                warn!(%target, %delivery_id, %error, "join decision delivery failed");
+            }
             _ => {}
         }
     }
+}
+
+#[async_trait]
+impl PeerEventHandler<BotState> for JoinDecisionApplyHandler {
+    fn interests(&self) -> &'static [PeerEventKind] {
+        &[PeerEventKind::JoinDecision]
+    }
+
+    async fn handle(&self, ctx: &BotState, evt: &PeerEvent) {
+        let PeerEvent::JoinDecision { from, decision } = evt else {
+            return;
+        };
+
+        // Ignore decisions we generated locally (decider path).
+        if *from == ctx.peer_id {
+            return;
+        }
+
+        // Ignore placeholder "pending manual approval" responses.
+        if decision.decision_id.starts_with("reject-pending") {
+            return;
+        }
+
+        if let Err(err) = apply_join_decision(&ctx.repos, decision).await {
+            warn!(%err, "failed to apply join decision");
+        }
+    }
+}
+
+#[async_trait]
+impl PeerEventHandler<BotState> for MailboxOutboxHandler {
+    fn interests(&self) -> &'static [PeerEventKind] {
+        &[
+            PeerEventKind::ConnectionEstablished,
+            PeerEventKind::JoinDecisionDeliveryAck,
+            PeerEventKind::JoinDecisionDeliveryFailed,
+        ]
+    }
+
+    async fn handle(&self, ctx: &BotState, evt: &PeerEvent) {
+        match evt {
+            PeerEvent::ConnectionEstablished { peer } => {
+                deliver_due_for_peer(ctx, peer).await;
+            }
+            PeerEvent::JoinDecisionDeliveryAck { delivery_id, .. } => {
+                let _ = ctx.repos.mailbox().mark_done(delivery_id).await;
+            }
+            PeerEvent::JoinDecisionDeliveryFailed {
+                delivery_id, ..
+            } => {
+                requeue_or_dead(ctx, delivery_id).await;
+            }
+            _ => {}
+        }
+    }
+}
+
+async fn deliver_due_for_peer(ctx: &BotState, peer: &libp2p::PeerId) {
+    let now_secs = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs() as i64;
+
+    let subject = peer.to_string();
+    let entries = match ctx
+        .repos
+        .mailbox()
+        .list_due_for_subject(now_secs, &subject, 50)
+        .await
+    {
+        Ok(entries) => entries,
+        Err(err) => {
+            warn!(%err, "failed to list mailbox entries for peer");
+            return;
+        }
+    };
+
+    for entry in entries {
+        if entry.kind != MAILBOX_KIND_JOIN_DECISION {
+            continue;
+        }
+
+        let lease_until = now_secs + 30;
+        let leased = match ctx
+            .repos
+            .mailbox()
+            .lease(&entry.id, &ctx.peer_id.to_string(), lease_until)
+            .await
+        {
+            Ok(rows) => rows,
+            Err(err) => {
+                warn!(%err, mailbox_id=%entry.id, "failed to lease mailbox entry");
+                continue;
+            }
+        };
+        if leased == 0 {
+            continue;
+        }
+
+        let Some(payload) = entry.payload.clone() else {
+            let _ = ctx.repos.mailbox().mark_dead(&entry.id).await;
+            continue;
+        };
+
+        let decision = match JoinDecision::decode(payload.as_slice()) {
+            Ok(d) => d,
+            Err(err) => {
+                warn!(%err, mailbox_id=%entry.id, "failed to decode join decision payload");
+                let _ = ctx.repos.mailbox().mark_dead(&entry.id).await;
+                continue;
+            }
+        };
+
+        let _ = ctx
+            .peer_commands
+            .send(soma_peer::PeerCommand::SendJoinDecision {
+                target: *peer,
+                addrs: Vec::new(),
+                delivery_id: entry.id.clone(),
+                decision,
+            })
+            .await;
+    }
+}
+
+async fn requeue_or_dead(ctx: &BotState, mailbox_id: &str) {
+    let now_secs = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs() as i64;
+
+    let entry = match ctx.repos.mailbox().get(mailbox_id).await {
+        Ok(Some(entry)) => entry,
+        Ok(None) => return,
+        Err(err) => {
+            warn!(%err, %mailbox_id, "failed to load mailbox entry");
+            return;
+        }
+    };
+
+    // Hard TTL: 7 days.
+    if now_secs.saturating_sub(entry.created_at) > 7 * 24 * 60 * 60 {
+        let _ = ctx.repos.mailbox().mark_dead(mailbox_id).await;
+        return;
+    }
+
+    let attempts = entry.attempts.max(1) as u32;
+    let exp = attempts.saturating_sub(1).min(8);
+    let delay = (5_i64.saturating_mul(1_i64 << exp)).min(300);
+    let available_at = now_secs + delay;
+    let _ = ctx.repos.mailbox().requeue(mailbox_id, available_at).await;
 }
 
 fn record_event(metrics: &BotMetrics, label: EventKindLabel) {

@@ -1,7 +1,13 @@
 use async_trait::async_trait;
 use soma_peer::PeerEvent;
 use soma_peer::events::{PeerEventHandler, PeerEventKind};
+use soma_membership::apply_join_decision;
+use soma_membership::MAILBOX_KIND_JOIN_DECISION;
+use soma_proto_build::spaceroom::JoinDecision;
+use soma_storage::mailbox::MailboxRepository;
 use tracing::{info, warn};
+use std::time::SystemTime;
+use prost::Message;
 
 use crate::DaemonState;
 
@@ -92,6 +98,8 @@ impl PeerEventHandler<crate::DaemonState> for ListenAddrHandler {
 
 /// Publishes join-related events to daemon subscribers.
 pub struct JoinEventsHandler;
+pub struct JoinDecisionPersistenceHandler;
+pub struct MailboxOutboxHandler;
 
 #[async_trait]
 impl PeerEventHandler<crate::DaemonState> for JoinEventsHandler {
@@ -141,4 +149,151 @@ impl PeerEventHandler<crate::DaemonState> for JoinEventsHandler {
             _ => {}
         }
     }
+}
+
+#[async_trait]
+impl PeerEventHandler<crate::DaemonState> for JoinDecisionPersistenceHandler {
+    fn interests(&self) -> &'static [PeerEventKind] {
+        &[PeerEventKind::JoinDecision]
+    }
+
+    async fn handle(&self, ctx: &DaemonState, event: &PeerEvent) {
+        let PeerEvent::JoinDecision { from, decision } = event else {
+            return;
+        };
+
+        // Ignore decisions we generated locally (decider path).
+        if *from == ctx.peer_id {
+            return;
+        }
+
+        // Ignore placeholder "pending manual approval" responses.
+        if decision.decision_id.starts_with("reject-pending") {
+            return;
+        }
+
+        if let Err(err) = apply_join_decision(&ctx.repos, decision).await {
+            warn!(%err, "failed to apply join decision");
+        }
+    }
+}
+
+#[async_trait]
+impl PeerEventHandler<crate::DaemonState> for MailboxOutboxHandler {
+    fn interests(&self) -> &'static [PeerEventKind] {
+        &[
+            PeerEventKind::ConnectionEstablished,
+            PeerEventKind::JoinDecisionDeliveryAck,
+            PeerEventKind::JoinDecisionDeliveryFailed,
+        ]
+    }
+
+    async fn handle(&self, ctx: &DaemonState, event: &PeerEvent) {
+        match event {
+            PeerEvent::ConnectionEstablished { peer } => {
+                deliver_due_for_peer(ctx, peer).await;
+            }
+            PeerEvent::JoinDecisionDeliveryAck { delivery_id, .. } => {
+                let _ = ctx.repos.mailbox().mark_done(delivery_id).await;
+            }
+            PeerEvent::JoinDecisionDeliveryFailed { delivery_id, .. } => {
+                requeue_or_dead(ctx, delivery_id).await;
+            }
+            _ => {}
+        }
+    }
+}
+
+async fn deliver_due_for_peer(ctx: &DaemonState, peer: &libp2p::PeerId) {
+    let now_secs = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs() as i64;
+    let subject = peer.to_string();
+    let entries = match ctx
+        .repos
+        .mailbox()
+        .list_due_for_subject(now_secs, &subject, 50)
+        .await
+    {
+        Ok(entries) => entries,
+        Err(err) => {
+            warn!(%err, "failed to list mailbox entries for peer");
+            return;
+        }
+    };
+
+    for entry in entries {
+        if entry.kind != MAILBOX_KIND_JOIN_DECISION {
+            continue;
+        }
+        let lease_until = now_secs + 30;
+        let leased = match ctx
+            .repos
+            .mailbox()
+            .lease(&entry.id, &ctx.peer_id.to_string(), lease_until)
+            .await
+        {
+            Ok(rows) => rows,
+            Err(err) => {
+                warn!(%err, mailbox_id=%entry.id, "failed to lease mailbox entry");
+                continue;
+            }
+        };
+        if leased == 0 {
+            continue;
+        }
+
+        let Some(payload) = entry.payload.clone() else {
+            let _ = ctx.repos.mailbox().mark_dead(&entry.id).await;
+            continue;
+        };
+
+        let decision = match JoinDecision::decode(payload.as_slice()) {
+            Ok(d) => d,
+            Err(err) => {
+                warn!(%err, mailbox_id=%entry.id, "failed to decode join decision payload");
+                let _ = ctx.repos.mailbox().mark_dead(&entry.id).await;
+                continue;
+            }
+        };
+
+        let _ = ctx
+            .peer_commands
+            .send(soma_peer::PeerCommand::SendJoinDecision {
+                target: *peer,
+                addrs: Vec::new(),
+                delivery_id: entry.id.clone(),
+                decision,
+            })
+            .await;
+    }
+}
+
+async fn requeue_or_dead(ctx: &DaemonState, mailbox_id: &str) {
+    let now_secs = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs() as i64;
+
+    let entry = match ctx.repos.mailbox().get(mailbox_id).await {
+        Ok(Some(entry)) => entry,
+        Ok(None) => return,
+        Err(err) => {
+            warn!(%err, %mailbox_id, "failed to load mailbox entry");
+            return;
+        }
+    };
+
+    if now_secs.saturating_sub(entry.created_at) > 7 * 24 * 60 * 60 {
+        let _ = ctx.repos.mailbox().mark_dead(mailbox_id).await;
+        return;
+    }
+
+    let attempts = entry.attempts.max(1) as u32;
+    let exp = attempts.saturating_sub(1).min(8);
+    // Desktop retry cadence: slower.
+    let delay = (60_i64.saturating_mul(1_i64 << exp)).min(4 * 60 * 60);
+    let available_at = now_secs + delay;
+    let _ = ctx.repos.mailbox().requeue(mailbox_id, available_at).await;
 }

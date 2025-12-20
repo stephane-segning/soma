@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use clap::Parser;
 use soma_core::SomaResult;
+use soma_membership::{JoinPolicy, build_join_decider};
 use soma_net::{default_identity_path, generate_identity, NetIdentity};
 use soma_peer::{
     PeerCommand, PeerConfig,
@@ -10,12 +11,16 @@ use soma_peer::{
 };
 use tokio::task::JoinHandle;
 use tracing::{info, warn};
+use std::time::{Duration, SystemTime};
+use soma_membership::MAILBOX_KIND_JOIN_DECISION;
+use soma_proto_build::spaceroom::JoinDecision;
+use soma_storage::mailbox::MailboxRepository;
+use prost::Message;
 
 use crate::{
     config::{Args, BotConfig, Command, Mode},
     event_handlers,
-    http::{self, BotInfo},
-    join::BotJoinDecider,
+    http::{self, BotInfo, BotState},
     metrics::BotMetrics,
 };
 
@@ -51,11 +56,15 @@ pub async fn run(config: BotConfig, metrics: BotMetrics) -> SomaResult<()> {
     info!(scheme = %db_scheme, url = %config.database_url, "configuring database");
     let repos = soma_storage::bootstrap::connect_any(&config.database_url, &MIGRATOR).await?;
     let net_identity = NetIdentity::load_or_generate(&config.identity_path)?;
-    let join_decider = BotJoinDecider::new(
+    let join_decider = build_join_decider(
         &repos,
         net_identity.keypair().clone(),
         net_identity.peer_id(),
-        matches!(config.mode, Mode::Bot),
+        if matches!(config.mode, Mode::Bot) {
+            JoinPolicy::bot_auto()
+        } else {
+            JoinPolicy::manual_only()
+        },
     );
 
     let peer_config = PeerConfig::builder()
@@ -80,17 +89,21 @@ pub async fn run(config: BotConfig, metrics: BotMetrics) -> SomaResult<()> {
         "starting soma-botd"
     );
 
+    let state = Arc::new(BotState {
+        info: BotInfo {
+            peer_id: peer_id.to_string(),
+            blob_dir: config.blob_dir.clone(),
+        },
+        peer_id,
+        metrics: metrics.clone(),
+        repos: repos.clone(),
+        signer: net_identity.keypair().clone(),
+        join_decider: join_decider.clone(),
+        peer_commands: peer.commands.clone(),
+    });
+
     let http_handle = tokio::spawn({
-        let state = http::BotState {
-            info: BotInfo {
-                peer_id: peer_id.to_string(),
-                blob_dir: config.blob_dir.clone(),
-            },
-            metrics: metrics.clone(),
-            repos: repos.clone(),
-            signer: net_identity.keypair().clone(),
-            join_decider: join_decider.clone(),
-        };
+        let state = (*state).clone();
         async move {
             http::serve_http(
                 config.http_addr,
@@ -104,7 +117,8 @@ pub async fn run(config: BotConfig, metrics: BotMetrics) -> SomaResult<()> {
     let peer_task = peer.task;
     let mut peer_events = peer.events;
 
-    let dispatcher = build_dispatcher(metrics.clone());
+    let dispatcher = build_dispatcher(state.clone());
+    spawn_mailbox_sweeper(state.clone());
 
     tokio::pin!(peer_task);
     tokio::pin!(http_handle);
@@ -113,7 +127,7 @@ pub async fn run(config: BotConfig, metrics: BotMetrics) -> SomaResult<()> {
         tokio::select! {
             evt = peer_events.recv() => {
                 if let Some(evt) = evt {
-                    dispatcher.dispatch(&metrics, &evt).await;
+                    dispatcher.dispatch(state.as_ref(), &evt).await;
                 } else {
                     break;
                 }
@@ -137,12 +151,83 @@ pub async fn run(config: BotConfig, metrics: BotMetrics) -> SomaResult<()> {
     Ok(())
 }
 
-fn build_dispatcher(metrics: BotMetrics) -> PeerEventDispatcher<BotMetrics> {
+fn spawn_mailbox_sweeper(state: Arc<BotState>) {
+    tokio::spawn(async move {
+        loop {
+            tokio::time::sleep(Duration::from_secs(30)).await;
+            sweep_mailbox(state.as_ref()).await;
+        }
+    });
+}
+
+async fn sweep_mailbox(state: &BotState) {
+    let now_secs = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs() as i64;
+
+    let entries = match state.repos.mailbox().list_due(now_secs, 50).await {
+        Ok(entries) => entries,
+        Err(err) => {
+            warn!(%err, "mailbox sweep failed to list entries");
+            return;
+        }
+    };
+
+    for entry in entries {
+        if entry.kind != MAILBOX_KIND_JOIN_DECISION {
+            continue;
+        }
+
+        let Some(subject_peer_id) = entry.subject_peer_id.clone() else {
+            let _ = state.repos.mailbox().mark_dead(&entry.id).await;
+            continue;
+        };
+        let Ok(target) = subject_peer_id.parse() else {
+            let _ = state.repos.mailbox().mark_dead(&entry.id).await;
+            continue;
+        };
+
+        let lease_until = now_secs + 30;
+        let leased = match state
+            .repos
+            .mailbox()
+            .lease(&entry.id, &state.peer_id.to_string(), lease_until)
+            .await
+        {
+            Ok(rows) => rows,
+            Err(_) => continue,
+        };
+        if leased == 0 {
+            continue;
+        }
+
+        let Some(payload) = entry.payload.clone() else {
+            let _ = state.repos.mailbox().mark_dead(&entry.id).await;
+            continue;
+        };
+        let Ok(decision) = JoinDecision::decode(payload.as_slice()) else {
+            let _ = state.repos.mailbox().mark_dead(&entry.id).await;
+            continue;
+        };
+
+        let _ = state
+            .peer_commands
+            .send(PeerCommand::SendJoinDecision {
+                target,
+                addrs: Vec::new(),
+                delivery_id: entry.id.clone(),
+                decision,
+            })
+            .await;
+    }
+}
+
+fn build_dispatcher(state: Arc<BotState>) -> PeerEventDispatcher<BotState> {
     const QUEUE_CAPACITY: usize = 64;
 
     let handlers = event_handlers::build_handlers();
-    let shared = Arc::new(metrics);
-    let (queued_handlers, tasks) = wrap_with_queues(shared.clone(), handlers, QUEUE_CAPACITY);
+    let (queued_handlers, tasks) = wrap_with_queues(state.clone(), handlers, QUEUE_CAPACITY);
 
     tokio::spawn(async move {
         for task in tasks {

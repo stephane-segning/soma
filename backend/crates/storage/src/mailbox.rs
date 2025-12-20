@@ -34,8 +34,16 @@ pub struct NewMailboxEntry {
 #[async_trait]
 pub trait MailboxRepository: Send + Sync {
     async fn enqueue(&self, entry: &NewMailboxEntry) -> SomaResult<()>;
+    async fn get(&self, id: &str) -> SomaResult<Option<MailboxEntry>>;
     async fn list_due(&self, now: i64, limit: i64) -> SomaResult<Vec<MailboxEntry>>;
+    async fn list_due_for_subject(
+        &self,
+        now: i64,
+        subject_peer_id: &str,
+        limit: i64,
+    ) -> SomaResult<Vec<MailboxEntry>>;
     async fn lease(&self, id: &str, leased_by: &str, lease_until: i64) -> SomaResult<u64>;
+    async fn requeue(&self, id: &str, available_at: i64) -> SomaResult<u64>;
     async fn mark_done(&self, id: &str) -> SomaResult<u64>;
     async fn mark_dead(&self, id: &str) -> SomaResult<u64>;
 }
@@ -77,6 +85,23 @@ impl MailboxRepository for SqlMailboxRepository {
         Ok(())
     }
 
+    async fn get(&self, id: &str) -> SomaResult<Option<MailboxEntry>> {
+        let row = sqlx::query(
+            r#"
+            SELECT id, kind, space_id, subject_peer_id, status, attempts,
+                   available_at, lease_until, leased_by, payload, created_at
+            FROM mailbox
+            WHERE id = $1
+            "#,
+        )
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(Error::service)?;
+
+        Ok(row.map(map_row))
+    }
+
     async fn list_due(&self, now: i64, limit: i64) -> SomaResult<Vec<MailboxEntry>> {
         let rows = sqlx::query(
             r#"
@@ -97,6 +122,32 @@ impl MailboxRepository for SqlMailboxRepository {
         Ok(rows.into_iter().map(map_row).collect())
     }
 
+    async fn list_due_for_subject(
+        &self,
+        now: i64,
+        subject_peer_id: &str,
+        limit: i64,
+    ) -> SomaResult<Vec<MailboxEntry>> {
+        let rows = sqlx::query(
+            r#"
+            SELECT id, kind, space_id, subject_peer_id, status, attempts,
+                   available_at, lease_until, leased_by, payload, created_at
+            FROM mailbox
+            WHERE status = 'queued' AND available_at <= $1 AND subject_peer_id = $2
+            ORDER BY available_at ASC, id ASC
+            LIMIT $3
+            "#,
+        )
+        .bind(now)
+        .bind(subject_peer_id)
+        .bind(limit)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(Error::service)?;
+
+        Ok(rows.into_iter().map(map_row).collect())
+    }
+
     async fn lease(&self, id: &str, leased_by: &str, lease_until: i64) -> SomaResult<u64> {
         let res = sqlx::query(
             r#"
@@ -108,6 +159,23 @@ impl MailboxRepository for SqlMailboxRepository {
         .bind(id)
         .bind(leased_by)
         .bind(lease_until)
+        .execute(&self.pool)
+        .await
+        .map_err(Error::service)?;
+
+        Ok(res.rows_affected())
+    }
+
+    async fn requeue(&self, id: &str, available_at: i64) -> SomaResult<u64> {
+        let res = sqlx::query(
+            r#"
+            UPDATE mailbox
+            SET status = 'queued', available_at = $2, lease_until = NULL, leased_by = NULL
+            WHERE id = $1
+            "#,
+        )
+        .bind(id)
+        .bind(available_at)
         .execute(&self.pool)
         .await
         .map_err(Error::service)?;

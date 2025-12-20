@@ -15,6 +15,7 @@ soma-common = { workspace = true }
 soma-peer = { workspace = true }
 soma-socket = { workspace = true }
 soma-proto-build = { workspace = true }
+soma-membership = { workspace = true }
 clap = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }

@@ -21,6 +21,9 @@ pub enum PeerEventKind {
     RelayCircuitEstablished,
     JoinRequestSubmitted,
     JoinDecision,
+    JoinDecisionDeliverySubmitted,
+    JoinDecisionDeliveryAck,
+    JoinDecisionDeliveryFailed,
     JoinFailed,
 }
 
@@ -40,6 +43,9 @@ impl PeerEventKind {
         PeerEventKind::RelayCircuitEstablished,
         PeerEventKind::JoinRequestSubmitted,
         PeerEventKind::JoinDecision,
+        PeerEventKind::JoinDecisionDeliverySubmitted,
+        PeerEventKind::JoinDecisionDeliveryAck,
+        PeerEventKind::JoinDecisionDeliveryFailed,
         PeerEventKind::JoinFailed,
     ];
 
@@ -59,6 +65,9 @@ impl PeerEventKind {
             PeerEvent::RelayCircuitEstablished { .. } => PeerEventKind::RelayCircuitEstablished,
             PeerEvent::JoinRequestSubmitted { .. } => PeerEventKind::JoinRequestSubmitted,
             PeerEvent::JoinDecision { .. } => PeerEventKind::JoinDecision,
+            PeerEvent::JoinDecisionDeliverySubmitted { .. } => PeerEventKind::JoinDecisionDeliverySubmitted,
+            PeerEvent::JoinDecisionDeliveryAck { .. } => PeerEventKind::JoinDecisionDeliveryAck,
+            PeerEvent::JoinDecisionDeliveryFailed { .. } => PeerEventKind::JoinDecisionDeliveryFailed,
             PeerEvent::JoinFailed { .. } => PeerEventKind::JoinFailed,
         }
     }
@@ -79,7 +88,10 @@ impl PeerEventKind {
             PeerEventKind::RelayCircuitEstablished => 10,
             PeerEventKind::JoinRequestSubmitted => 11,
             PeerEventKind::JoinDecision => 12,
-            PeerEventKind::JoinFailed => 13,
+            PeerEventKind::JoinDecisionDeliverySubmitted => 13,
+            PeerEventKind::JoinDecisionDeliveryAck => 14,
+            PeerEventKind::JoinDecisionDeliveryFailed => 15,
+            PeerEventKind::JoinFailed => 16,
         }
     }
 }

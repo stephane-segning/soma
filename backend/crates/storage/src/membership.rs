@@ -9,6 +9,7 @@ use sqlx_utils::{
 pub struct Space {
     pub space_id: String,
     pub display_name: Option<String>,
+    pub owner_peer_id: Option<String>,
     pub created_at: i64,
 }
 
@@ -49,6 +50,16 @@ pub struct JoinRequest {
 #[async_trait]
 pub trait MembershipRepository: Send + Sync {
     async fn upsert_space(&self, space: &Space) -> SomaResult<()>;
+    async fn get_space(&self, space_id: &str) -> SomaResult<Option<Space>>;
+    async fn list_spaces(
+        &self,
+        owner_peer_id: Option<&str>,
+        query: Option<&str>,
+        created_after: Option<i64>,
+        created_before: Option<i64>,
+        limit: u32,
+        offset: u32,
+    ) -> SomaResult<Vec<Space>>;
     async fn upsert_membership(&self, membership: &SpaceMembership) -> SomaResult<()>;
     async fn delete_membership(&self, space_id: &str, subject_peer_id: &str) -> SomaResult<u64>;
     async fn get_membership(
@@ -85,20 +96,109 @@ impl MembershipRepository for SqlMembershipRepository {
     async fn upsert_space(&self, space: &Space) -> SomaResult<()> {
         sqlx::query(
             r#"
-            INSERT INTO spaces (space_id, display_name, created_at)
-            VALUES ($1, $2, $3)
+            INSERT INTO spaces (space_id, display_name, owner_peer_id, created_at)
+            VALUES ($1, $2, $3, $4)
             ON CONFLICT(space_id)
-            DO UPDATE SET display_name = excluded.display_name, created_at = excluded.created_at
+            DO UPDATE SET
+                display_name = COALESCE(excluded.display_name, spaces.display_name),
+                owner_peer_id = COALESCE(spaces.owner_peer_id, excluded.owner_peer_id),
+                created_at = spaces.created_at
             "#,
         )
         .bind(&space.space_id)
         .bind(&space.display_name)
+        .bind(&space.owner_peer_id)
         .bind(space.created_at)
         .execute(&self.pool)
         .await
         .map_err(Error::service)?;
 
         Ok(())
+    }
+
+    async fn get_space(&self, space_id: &str) -> SomaResult<Option<Space>> {
+        let row = sqlx::query(
+            r#"
+            SELECT space_id, display_name, owner_peer_id, created_at
+            FROM spaces
+            WHERE space_id = $1
+            "#,
+        )
+        .bind(space_id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(Error::service)?;
+
+        Ok(row.map(map_space_row))
+    }
+
+    async fn list_spaces(
+        &self,
+        owner_peer_id: Option<&str>,
+        query: Option<&str>,
+        created_after: Option<i64>,
+        created_before: Option<i64>,
+        limit: u32,
+        offset: u32,
+    ) -> SomaResult<Vec<Space>> {
+        use sqlx::QueryBuilder;
+
+        let mut qb = QueryBuilder::<sqlx::Any>::new(
+            r#"
+            SELECT space_id, display_name, owner_peer_id, created_at
+            FROM spaces
+            "#,
+        );
+
+        let mut has_where = false;
+        let mut where_clause = |qb: &mut QueryBuilder<sqlx::Any>| {
+            if !has_where {
+                qb.push(" WHERE ");
+                has_where = true;
+            } else {
+                qb.push(" AND ");
+            }
+        };
+
+        if let Some(owner_peer_id) = owner_peer_id {
+            where_clause(&mut qb);
+            qb.push("owner_peer_id = ").push_bind(owner_peer_id);
+        }
+
+        if let Some(q) = query {
+                let q = q.trim();
+            if !q.is_empty() {
+                let like = format!("%{}%", q.to_lowercase());
+                where_clause(&mut qb);
+                qb.push("(LOWER(space_id) LIKE ")
+                    .push_bind(like.clone())
+                    .push(" OR LOWER(COALESCE(display_name, '')) LIKE ")
+                    .push_bind(like)
+                    .push(")");
+            }
+        }
+
+        if let Some(created_after) = created_after {
+            where_clause(&mut qb);
+            qb.push("created_at >= ").push_bind(created_after);
+        }
+
+        if let Some(created_before) = created_before {
+            where_clause(&mut qb);
+            qb.push("created_at <= ").push_bind(created_before);
+        }
+
+        qb.push(" ORDER BY created_at DESC ");
+        qb.push(" LIMIT ").push_bind(limit as i64);
+        qb.push(" OFFSET ").push_bind(offset as i64);
+
+        let rows = qb
+            .build()
+            .fetch_all(&self.pool)
+            .await
+            .map_err(Error::service)?;
+
+        Ok(rows.into_iter().map(map_space_row).collect())
     }
 
     async fn upsert_membership(&self, membership: &SpaceMembership) -> SomaResult<()> {
@@ -339,6 +439,15 @@ impl Model for Space {
 
     fn get_id(&self) -> Option<Self::Id> {
         Some(self.space_id.clone())
+    }
+}
+
+fn map_space_row(row: sqlx::any::AnyRow) -> Space {
+    Space {
+        space_id: row.get("space_id"),
+        display_name: row.get("display_name"),
+        owner_peer_id: row.get("owner_peer_id"),
+        created_at: row.get("created_at"),
     }
 }
 

@@ -1,5 +1,5 @@
 [package]
-name = "soma-common"
+name = "soma-membership"
 version.workspace = true
 edition.workspace = true
 publish.workspace = true
@@ -8,9 +8,14 @@ authors.workspace = true
 
 [dependencies]
 soma-core = { workspace = true }
+soma-common = { workspace = true }
+soma-peer = { workspace = true }
 soma-proto-build = { workspace = true }
+soma-storage = { workspace = true }
+
+async-trait = { workspace = true }
 libp2p = { workspace = true }
-serde = { workspace = true }
-serde_json = { workspace = true }
+prost = { workspace = true }
 prost-types = { workspace = true }
-ciborium = { workspace = true }
+rand = { workspace = true }
+tracing = { workspace = true }
