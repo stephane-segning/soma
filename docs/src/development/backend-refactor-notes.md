@@ -55,7 +55,7 @@ Peers now:
 HTTP endpoints:
 
 - `GET /info` → bot peer id + blob dir
-- `POST /v1/join` → approve/reject and issue a `MembershipCapability` (currently unsigned placeholder)
+- `POST /v1/join/request` → send a join request over libp2p (e2e path)
 - `GET /healthz`, `GET /metrics`
 
 ## 5) BFF skeleton removal

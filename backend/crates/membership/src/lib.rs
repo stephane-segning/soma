@@ -276,6 +276,18 @@ pub async fn decide_join_request(
         .await?
         .ok_or_else(|| Error::service("join request not found"))?;
 
+    // Safety guard: do not allow deciding our own outgoing requests, and ensure the
+    // target matches this issuer. This prevents a requester from self-approving while
+    // offline.
+    if req.is_outgoing {
+        return Err(Error::service("cannot decide outgoing (self-initiated) join request"));
+    }
+    if let Some(target) = req.target_peer_id.as_deref() {
+        if target != issuer_peer_id.to_string() {
+            return Err(Error::service("join request not addressed to this peer"));
+        }
+    }
+
     let role_i32 = role_override.map(|r| r as i32).unwrap_or(req.requested_role);
     let role = SpaceRole::try_from(role_i32).unwrap_or(SpaceRole::Student);
 

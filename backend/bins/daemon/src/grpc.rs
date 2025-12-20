@@ -314,15 +314,9 @@ impl daemon::daemon_server::Daemon for DaemonService {
 
     async fn list_my_memberships(
         &self,
-        request: Request<daemon::ListMyMembershipsRequest>,
+        _request: Request<()>,
     ) -> Result<Response<daemon::ListMyMembershipsResponse>, Status> {
-        let payload = request.into_inner();
-        let peer_id = if payload.peer_id.is_empty() {
-            self.state.peer_id.to_string()
-        } else {
-            payload.peer_id
-        };
-
+        let peer_id = self.state.peer_id.to_string();
         let rows = self
             .state
             .repos

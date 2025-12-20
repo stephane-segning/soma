@@ -740,6 +740,23 @@ async fn join_decide_handler(
         )
     })?;
 
+    if let Ok(Some(req)) = state.repos.membership().get_join_request(&request_id).await {
+        if req.is_outgoing {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({"error": "cannot decide outgoing (self-initiated) join request"})),
+            ));
+        }
+        if let Some(target) = req.target_peer_id.as_deref() {
+            if target != issuer_peer_id.to_string() {
+                return Err((
+                    StatusCode::BAD_REQUEST,
+                    Json(serde_json::json!({"error": "join request not addressed to this peer"})),
+                ));
+            }
+        }
+    }
+
     let decision = decide_join_request(
         &state.repos,
         &state.signer,
