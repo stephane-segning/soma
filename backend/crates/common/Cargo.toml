@@ -7,4 +7,9 @@ license.workspace = true
 authors.workspace = true
 
 [dependencies]
-
+soma-core = { workspace = true }
+soma-proto-build = { workspace = true }
+libp2p = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+prost-types = { workspace = true }

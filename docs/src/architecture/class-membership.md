@@ -47,6 +47,7 @@ Revocation can be implemented by expiring capabilities, publishing revocation ev
 - Bot operating modes:
   - `bot` mode (default): HTTP is read-only (`/info`, `/healthz`, `/metrics`); join decisions still flow over libp2p via the decider.
   - `server-daemon` mode: exposes `/v1/join` (admin-token gated) to drive the same decider over HTTP for admin tooling; controllers still delegate to the decider/storage and never “force-join”.
+- Auto-approval rules: botd auto-approves only when it holds a valid issuer capability for the target space; otherwise join requests are recorded for manual approval. Manual approval surfaces now exist in both soma-daemon (gRPC) and server-daemon HTTP.
 - Peer event pipeline: join decisions and failures are surfaced as `PeerEvent` and dispatched via the shared event dispatcher (see `docs/src/development/peer-events.md`).
 
 [^security]: https://docs.libp2p.io/concepts/security/security-considerations/

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use clap::Parser;
 use soma_core::SomaResult;
-use soma_net::{default_identity_path, generate_identity};
+use soma_net::{default_identity_path, generate_identity, NetIdentity};
 use soma_peer::{
     PeerCommand, PeerConfig,
     events::{PeerEventDispatcher, PeerEventHandler, handler_with_queue},
@@ -12,7 +12,7 @@ use tokio::task::JoinHandle;
 use tracing::{info, warn};
 
 use crate::{
-    config::{Args, BotConfig, Command},
+    config::{Args, BotConfig, Command, Mode},
     event_handlers,
     http::{self, BotInfo},
     join::BotJoinDecider,
@@ -50,7 +50,13 @@ pub async fn run(config: BotConfig, metrics: BotMetrics) -> SomaResult<()> {
     let db_scheme = db_scheme(&config.database_url);
     info!(scheme = %db_scheme, url = %config.database_url, "configuring database");
     let repos = soma_storage::bootstrap::connect_any(&config.database_url, &MIGRATOR).await?;
-    let join_decider = BotJoinDecider::new(&repos);
+    let net_identity = NetIdentity::load_or_generate(&config.identity_path)?;
+    let join_decider = BotJoinDecider::new(
+        &repos,
+        net_identity.keypair().clone(),
+        net_identity.peer_id(),
+        matches!(config.mode, Mode::Bot),
+    );
 
     let peer_config = PeerConfig::builder()
         .identity_path(config.identity_path.clone())
@@ -81,6 +87,8 @@ pub async fn run(config: BotConfig, metrics: BotMetrics) -> SomaResult<()> {
                 blob_dir: config.blob_dir.clone(),
             },
             metrics: metrics.clone(),
+            repos: repos.clone(),
+            signer: net_identity.keypair().clone(),
             join_decider: join_decider.clone(),
         };
         async move {

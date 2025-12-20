@@ -78,6 +78,33 @@ message DiscoverSpacesResponse {
   repeated DiscoveredSpace spaces = 1;
 }
 
+message JoinRequest {
+  string request_id = 1;
+  string space_id = 2;
+  string subject_peer_id = 3;
+  string display_name = 4;
+  string device_name = 5;
+  int32 requested_role = 6;
+  int64 created_at = 7;
+}
+
+message ListJoinRequestsRequest {}
+
+message ListJoinRequestsResponse {
+  repeated JoinRequest requests = 1;
+}
+
+message DecideJoinRequest {
+  string request_id = 1;
+  bool approve = 2;
+  string role = 3;
+  string reason = 4;
+}
+
+message DecideJoinResponse {
+  spaceroom.v1.JoinDecision decision = 1;
+}
+
 message StreamEventsRequest {}
 
 message JoinDecisionEvent {
@@ -111,4 +138,6 @@ service Daemon {
   rpc ListSpaceMembers(ListSpaceMembersRequest) returns (ListSpaceMembersResponse);
   rpc IssueIssuerCapability(IssueIssuerCapabilityRequest) returns (IssueIssuerCapabilityResponse);
   rpc DiscoverSpaces(DiscoverSpacesRequest) returns (DiscoverSpacesResponse);
+  rpc ListJoinRequests(ListJoinRequestsRequest) returns (ListJoinRequestsResponse);
+  rpc DecideJoin(DecideJoinRequest) returns (DecideJoinResponse);
 }

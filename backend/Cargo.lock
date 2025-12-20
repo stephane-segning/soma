@@ -3854,6 +3854,14 @@ dependencies = [
 [[package]]
 name = "soma-common"
 version = "0.1.0"
+dependencies = [
+ "libp2p",
+ "prost-types",
+ "serde",
+ "serde_json",
+ "soma-core",
+ "soma-proto-build",
+]
 
 [[package]]
 name = "soma-core"
@@ -3874,6 +3882,7 @@ dependencies = [
  "futures",
  "libp2p",
  "mimalloc",
+ "prost",
  "prost-types",
  "rand 0.9.2",
  "soma-api",

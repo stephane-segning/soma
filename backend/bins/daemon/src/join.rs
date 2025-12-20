@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::SystemTime};
+use std::time::SystemTime;
 
 use async_trait::async_trait;
 use libp2p::{PeerId, identity::Keypair};
@@ -10,17 +10,17 @@ use soma_proto_build::spaceroom::{
     JoinDecision, JoinDecisionType, JoinRequest, MembershipCapability, SpaceId, SpaceRole,
 };
 use soma_storage::{
-    RepositoryFactory,
     issuer::{IssuerRepository, SqlIssuerRepository},
     membership::{
-        JoinDecision as StoredDecision, MembershipRepository, SqlMembershipRepository, Space,
-        SpaceMembership, JoinRequest as StoredJoinRequest,
+        JoinDecision as StoredDecision, JoinRequest as StoredJoinRequest, MembershipRepository,
+        SqlMembershipRepository, Space, SpaceMembership,
     },
+    RepositoryFactory,
 };
 use tracing::warn;
 
-#[derive(Clone)]
-pub struct BotJoinDecider {
+#[derive(Clone, Debug)]
+pub struct DaemonJoinDecider {
     membership_repo: SqlMembershipRepository,
     issuer_repo: SqlIssuerRepository,
     signer: Keypair,
@@ -28,25 +28,25 @@ pub struct BotJoinDecider {
     allow_auto_with_delegation: bool,
 }
 
-impl BotJoinDecider {
+impl DaemonJoinDecider {
     pub fn new(
         repos: &RepositoryFactory,
         signer: Keypair,
         issuer_peer_id: PeerId,
         allow_auto_with_delegation: bool,
-    ) -> Arc<dyn JoinDecider> {
-        Arc::new(Self {
+    ) -> Self {
+        Self {
             membership_repo: repos.membership(),
             issuer_repo: repos.issuer(),
             signer,
             issuer_peer_id,
             allow_auto_with_delegation,
-        })
+        }
     }
 }
 
 #[async_trait]
-impl JoinDecider for BotJoinDecider {
+impl JoinDecider for DaemonJoinDecider {
     async fn decide(&self, request: &JoinRequest, issuer: &PeerId) -> JoinDecision {
         let Some(space_id) = request.space_id.clone() else {
             return reject("missing space_id", request);
@@ -60,7 +60,6 @@ impl JoinDecider for BotJoinDecider {
         let now_ts = Timestamp::from(now);
         let now_secs = epoch_seconds(now);
 
-        // If a previous decision exists, reuse it (idempotent behaviour for re-tries).
         if let Ok(Some(stored)) = self
             .membership_repo
             .latest_join_decision(&space_id.value, &subject_peer_id.value)
@@ -194,7 +193,6 @@ impl JoinDecider for BotJoinDecider {
 
             decision
         } else {
-            // Persist pending request for manual approval.
             let request_id = format!("req-{:016x}", rand::random::<u64>());
             if let Err(err) = self
                 .membership_repo
@@ -213,7 +211,7 @@ impl JoinDecider for BotJoinDecider {
                 warn!(%err, %request_id, "failed to persist join request");
             }
 
-            reject("requires issuer delegation or manual approval", request)
+            reject("pending manual approval", request)
         }
     }
 }
@@ -252,37 +250,6 @@ pub(crate) fn epoch_seconds(now: SystemTime) -> i64 {
         .as_secs() as i64
 }
 
-fn issuer_cap_valid(
-    cap: &soma_proto_build::spaceroom::IssuerCapability,
-    space_id: &str,
-    bot_peer_id: &PeerId,
-    requested_role: SpaceRole,
-    now_secs: i64,
-) -> bool {
-    let space_ok = cap
-        .space_id
-        .as_ref()
-        .map(|s| s.value.as_str() == space_id)
-        .unwrap_or(false);
-    let issuer_ok = cap
-        .issuer_peer_id
-        .as_ref()
-        .map(|p| p.value.as_str() == bot_peer_id.to_string())
-        .unwrap_or(false);
-    let not_expired = cap
-        .expires_at
-        .as_ref()
-        .map(|ts| ts.seconds > now_secs)
-        .unwrap_or(true);
-    let role_ok = cap.allowed_roles.is_empty()
-        || cap
-            .allowed_roles
-            .iter()
-            .any(|r| *r == requested_role as i32);
-
-    space_ok && issuer_ok && not_expired && role_ok
-}
-
 pub(crate) async fn persist_membership(
     repo: &SqlMembershipRepository,
     space_id: &str,
@@ -317,4 +284,35 @@ pub(crate) async fn persist_membership(
     {
         warn!(%err, "failed to upsert membership while processing join");
     }
+}
+
+fn issuer_cap_valid(
+    cap: &soma_proto_build::spaceroom::IssuerCapability,
+    space_id: &str,
+    issuer_peer_id: &PeerId,
+    requested_role: SpaceRole,
+    now_secs: i64,
+) -> bool {
+    let space_ok = cap
+        .space_id
+        .as_ref()
+        .map(|s| s.value.as_str() == space_id)
+        .unwrap_or(false);
+    let issuer_ok = cap
+        .issuer_peer_id
+        .as_ref()
+        .map(|p| p.value.as_str() == issuer_peer_id.to_string())
+        .unwrap_or(false);
+    let not_expired = cap
+        .expires_at
+        .as_ref()
+        .map(|ts| ts.seconds > now_secs)
+        .unwrap_or(true);
+    let role_ok = cap.allowed_roles.is_empty()
+        || cap
+            .allowed_roles
+            .iter()
+            .any(|r| *r == requested_role as i32);
+
+    space_ok && issuer_ok && not_expired && role_ok
 }

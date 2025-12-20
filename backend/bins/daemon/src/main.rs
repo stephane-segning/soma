@@ -1,8 +1,8 @@
 use clap::Parser;
 use mimalloc::MiMalloc;
 use soma_core::SomaResult;
-use soma_net::{default_identity_path, generate_identity};
-use soma_peer::{PeerCommand, PeerConfig, spawn_ping_peer};
+use soma_net::{default_identity_path, generate_identity, NetIdentity};
+use soma_peer::{PeerCommand, PeerConfig, spawn_ping_peer, join::JoinDecider};
 use soma_proto_build::daemon;
 use tokio::{
     signal,
@@ -17,6 +17,7 @@ mod config;
 mod dispatch;
 mod grpc;
 mod handlers;
+mod join;
 
 use config::{Args, Command, DaemonConfig};
 use dispatch::build_dispatcher;
@@ -67,6 +68,14 @@ async fn run(config: DaemonConfig) -> SomaResult<()> {
     info!(%db_url, scheme = "sqlite", "configuring database");
     let repos = soma_storage::bootstrap::connect_any(&db_url, &MIGRATOR).await?;
 
+    let net_identity = NetIdentity::load_or_generate(&identity_path)?;
+    let join_decider: std::sync::Arc<dyn JoinDecider> = std::sync::Arc::new(join::DaemonJoinDecider::new(
+        &repos,
+        net_identity.keypair().clone(),
+        net_identity.peer_id(),
+        false,
+    ));
+
     let peer_config = PeerConfig::builder()
         .identity_path(identity_path)
         .listen_addrs(listen_addrs)
@@ -74,6 +83,7 @@ async fn run(config: DaemonConfig) -> SomaResult<()> {
         .rendezvous_nodes(rendezvous_addrs)
         .relay_addrs(relay_addrs)
         .enable_mdns(enable_mdns)
+        .join_decider(join_decider.clone())
         .build()
         .expect("peer config");
 
@@ -88,6 +98,7 @@ async fn run(config: DaemonConfig) -> SomaResult<()> {
         listen_addrs: Mutex::new(Vec::new()),
         events: event_tx,
         repos,
+        signer: net_identity.keypair().clone(),
     });
 
     let grpc_service = daemon::daemon_server::DaemonServer::new(DaemonService {
