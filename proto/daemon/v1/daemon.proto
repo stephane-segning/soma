@@ -50,10 +50,15 @@ message SpaceMember {
   string peer_id = 1;
   string role = 2;
   int64 expires_at = 3;
+  string space_id = 4;
 }
 
 message ListSpaceMembersResponse {
   repeated SpaceMember members = 1;
+}
+
+message ListMyMembershipsResponse {
+  repeated SpaceMember memberships = 1;
 }
 
 message IssueIssuerCapabilityRequest {
@@ -136,6 +141,7 @@ service Daemon {
   rpc StreamEvents(StreamEventsRequest) returns (stream DaemonEvent);
   rpc RevokeSpace(RevokeSpaceRequest) returns (RevokeSpaceResponse);
   rpc ListSpaceMembers(ListSpaceMembersRequest) returns (ListSpaceMembersResponse);
+  rpc ListMyMemberships(google.protobuf.Empty) returns (ListMyMembershipsResponse);
   rpc IssueIssuerCapability(IssueIssuerCapabilityRequest) returns (IssueIssuerCapabilityResponse);
   rpc DiscoverSpaces(DiscoverSpacesRequest) returns (DiscoverSpacesResponse);
   rpc ListJoinRequests(ListJoinRequestsRequest) returns (ListJoinRequestsResponse);

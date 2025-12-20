@@ -79,7 +79,7 @@ Specific services (all now live under `backend/`):
 `soma-botd` is a peer first. Its HTTP surface depends on an operating mode:
 
 - `bot` mode (default): read-only HTTP endpoints only (`/info`, `/healthz`, `/metrics`). No business APIs (`/v1/*`) at all.
-- `server-daemon` mode: exposes a daemon-like control plane over HTTP for admin operations (join decisions, revocation, roster, issuer delegation, mailbox, …). This mode must be authenticated/authorized. Join control surfaces: `POST /v1/join` (drive decider), `GET /v1/join/requests` (list pending), `POST /v1/join/decide` (approve/reject; signs capability on approve).
+- `server-daemon` mode: exposes a daemon-like control plane over HTTP for admin operations (join decisions, revocation, roster, issuer delegation, mailbox, …). This mode must be authenticated/authorized. Join control surfaces: `POST /v1/join/request` (send join request over libp2p), `GET /v1/join/requests` (list pending), `POST /v1/join/decide` (approve/reject; signs capability on approve).
 
 Rule of thumb: keep business logic in `soma-peer` and treat Axum/gRPC surfaces as controllers that call into peer services/deciders.
 
@@ -105,7 +105,7 @@ When adding new peer events or instrumentation, prefer:
     - Event dispatcher: `backend/bins/daemon/src/dispatch.rs`
 - Storage: SQLx AnyPool over SQLite via `soma_core::db::DbFactory` (config `--db-path` / `SOMA_DAEMON_DB`, defaults to `./daemon.db`). Migrations embedded from `backend/bins/daemon/migrations` and run at startup (`sqlx::migrate!` in `main.rs`); startup fails if migration fails.
 
-### Business Logic & API Checklist
+### Business Logic & API Checklist for Backends
 
 Use this list to track domain flows and where the API lives. Mark items off as you implement them end-to-end (daemon ↔ bot ↔ peer).
 
@@ -113,8 +113,8 @@ Use this list to track domain flows and where the API lives. Mark items off as y
     - Daemon gRPC: `Daemon/JoinSpace(space_id, display_name, device_name, target_peer_id, target_multiaddrs)` (Unix socket, proto `proto/daemon/v1/daemon.proto`)
     - Join protocol: handled in `soma-peer` via a pluggable join decider (default: reject-all). Controllers (daemon/bot) supply a decider and/or admin actions. Membership capabilities are signed with the peer’s libp2p identity key when approved.
     - Bot mode (`soma-botd --mode bot`): auto-approves only when it holds a valid issuer capability for the space; otherwise records a pending join and rejects until manually approved elsewhere. HTTP stays read-only.
-    - Server-daemon mode (`soma-botd --mode server-daemon`): authenticated admin surface for join control (`/v1/join`, `/v1/join/requests`, `/v1/join/decide`); controllers delegate to storage + decider (no force-mint).
-    - Daemon gRPC also exposes manual approval surfaces: `Daemon/ListJoinRequests`, `Daemon/DecideJoin`.
+    - Server-daemon mode (`soma-botd --mode server-daemon`): authenticated admin surface for join control (`POST /v1/join/request`, `GET /v1/join/requests`, `POST /v1/join/decide`); controllers delegate to storage + decider (no force-mint).
+    - Daemon gRPC also exposes manual approval surfaces: `Daemon/ListJoinRequests`, `Daemon/DecideJoin` and membership queries via `Daemon/ListMyMemberships`.
 - [ ] Space create & ownership genesis (verifyable)
     - Add a real “space genesis” artifact (owner-signed record) that other peers can verify; current `spaces.owner_peer_id` is DB-local metadata only.
 - [ ] Issuer capability lifecycle (secure)
@@ -125,18 +125,11 @@ Use this list to track domain flows and where the API lives. Mark items off as y
     - If issuer != owner, verify issuer delegation chain (owner → issuer capability → membership).
 - [ ] Canonical signing format
     - Current signing uses CBOR encoding via `ciborium`, but canonical CBOR is not guaranteed; move to a canonical CBOR scheme before relying on signatures across versions/implementations.
-- [ ] Async manual join decision delivery (in-band)
-    - Current manual approval is effectively “out-of-band”: approver stores a pending join and requester must retry `JoinSpace` to receive the stored decision.
-    - Upgrade to an in-network “push” so manual approvals complete without a retry:
-      - Option A (recommended): add a dedicated libp2p protocol, e.g. `/soma/join-decision/1`, where approver sends a `JoinDecision` to the requester (one-way with optional ack).
-      - Option B: use the `mailbox` table as store-and-forward and add a lightweight peer delivery worker to push queued decisions when the requester is reachable.
-    - Keep the transport in `soma-peer` (new behaviour + `PeerCommand::SendJoinDecision`) and keep policy/persistence in `soma-membership` (decide + enqueue/push).
-    - Delivery semantics (recommended hybrid):
-      - On manual approval, persist the decision immediately (`join_decisions`) and attempt an in-network push to the requester via `/soma/join-decision/1`.
-      - If push fails (dial/outbound failure/timeout), enqueue an outgoing mailbox item (approver-side) and retry later.
-      - Mailbox retry policy should be per-message with backoff (`available_at` + attempts), not a single global scan loop.
-      - When connectivity is detected (connection established or fresh known multiaddrs), opportunistically drain mailbox items for that peer (rate-limited).
-      - Expire undelivered items after a TTL (e.g. 7 days) and mark them `dead` (or delete) to bound storage growth.
+- [x] Async manual join decision delivery (in-band)
+    - Manual approvals complete via an in-network push: `/soma/join-decision/1` (libp2p request/response) sends a `JoinDecision` to the requester; requester persists membership/decision on receipt.
+    - If the requester is offline, the approver enqueues the outgoing decision in `mailbox` and retries later (TTL bounded; retries with backoff).
+- [ ] Multi-target join submission (recommended)
+    - Requesters should try multiple candidate deciders (owner first, then delegated bots) until one responds; this avoids a hard dependency on any single online peer.
 - [ ] Space membership revocation/leave
     - Server-daemon HTTP (mode-gated): `POST /v1/space/revoke` (botd) to revoke capabilities by `space_id` and `subject_peer_id`; daemon gRPC: `Daemon/RevokeSpace` to request or consume a revocation and drop local capability
 - [ ] Space roster/query
@@ -153,7 +146,9 @@ Botd (Postgres or SQLite via `DATABASE_URL`) and daemon (SQLite file) embed the 
 - `spaces(space_id)` – optional display_name, created_at
 - `space_memberships(space_id, subject_peer_id)` – role, issuer_peer_id, issued_at, expires_at, capability blob
 - `join_decisions(decision_id)` – space_id, subject_peer_id, decision enum, reason, created_at, capability blob (audit)
-- `join_requests(request_id)` – pending join submissions awaiting manual approval (space_id, subject_peer_id, display_name, device_name, requested_role, created_at, payload blob)
+- `join_requests(request_id)` – join request tracking for both incoming manual approvals and outgoing submissions:
+  - Incoming (approver-side): `is_outgoing=0`, `target_peer_id=<this_peer>`, `status=pending` (used by `ListJoinRequests`/`/v1/join/requests`).
+  - Outgoing (requester-side): `is_outgoing=1`, `target_peer_id=<chosen_decider>`, `status/attempts/next_attempt_at/last_error` for local UI status.
 - `issuer_capabilities(space_id, delegate_peer_id)` – issuer_peer_id, issued_at, expires_at, capability blob
 - `mailbox(id)` – kind, space_id?, subject_peer_id?, status (queued|leased|done|dead), attempts, available_at, lease_until?, leased_by?, payload blob, created_at
 
@@ -307,8 +302,78 @@ This repo intentionally has multiple binaries. Each has a distinct goal and depl
 - Approver:
   - `soma-botd --mode bot`: auto-approves only with issuer delegation present; otherwise records `join_requests` and rejects.
   - `soma-botd --mode server-daemon` or `soma-daemon`: manual approval via `JoinRequests` list + `DecideJoin`.
-- Manual approval is asynchronous: requester must retry `JoinSpace` to receive the stored decision.
-- Target UX: manual approval triggers an in-network push of `JoinDecision` to the requester (no retry). See “Async manual join decision delivery (in-band)” TODO above.
+- Manual approval is asynchronous but does not require a requester retry: approver pushes `JoinDecision` in-network and falls back to mailbox if requester is offline.
+
+### Join Flows (Mermaid)
+
+The join MVP has two distinct planes:
+- **Transport**: `soma-peer` (libp2p request/response protocols).
+- **Policy + persistence**: `soma-membership` + SQLx repositories (`join_requests`, `join_decisions`, `space_memberships`, `mailbox`).
+
+#### 1) Single-target join (owner online)
+```mermaid
+sequenceDiagram
+  autonumber
+  participant R as Requester (bot/daemon)
+  participant P as soma-peer (Requester)
+  participant O as Owner/Decider (bot/daemon)
+  participant S as Storage (Decider DB)
+
+  R->>P: SendJoinRequest(space_id, requested_role, request_id)
+  P->>O: /soma/join/1 JoinRequest
+  O->>S: upsert join_requests (is_outgoing=0, status=pending)
+  O-->>P: JoinDecision (pending manual approval OR approved)
+  Note over O,P: Placeholder “pending” may be returned immediately
+  O->>O: Manual approve (UI/admin)
+  O->>S: record join_decisions + upsert space_memberships
+  O->>P: /soma/join-decision/1 JoinDecision (approved + signed capability)
+  P->>R: PeerEvent::JoinDecision
+  R->>R: ApplyJoinDecision -> persist membership
+```
+
+#### 2) Multi-target retry (owner offline, delegated bot online)
+```mermaid
+sequenceDiagram
+  autonumber
+  participant R as Requester
+  participant P as soma-peer (Requester)
+  participant O as Owner (offline)
+  participant B as Delegated Bot (online)
+  participant SB as Storage (Bot DB)
+
+  Note over R: Candidate deciders: [Owner, Bot1, Bot2...]
+  R->>P: attempt 1 -> target=Owner
+  P-->>R: outbound failure (dial/timeout)
+  R->>R: update join_requests (is_outgoing=1, attempts++, next_attempt_at)
+  R->>P: attempt 2 -> target=Delegated Bot
+  P->>B: /soma/join/1 JoinRequest
+  B->>B: validate issuer delegation (IssuerCapability) + policy
+  B->>SB: record join_decisions + upsert space_memberships
+  B->>P: /soma/join-decision/1 JoinDecision (approved + signed)
+  P->>R: PeerEvent::JoinDecision
+  R->>R: ApplyJoinDecision -> persist membership
+```
+
+#### 3) Decision delivery with mailbox fallback (requester offline)
+```mermaid
+sequenceDiagram
+  autonumber
+  participant D as Decider (bot/daemon)
+  participant SD as Storage (Decider DB)
+  participant PD as soma-peer (Decider)
+  participant R as Requester (offline)
+
+  D->>SD: record join_decisions + upsert space_memberships
+  D->>PD: SendJoinDecision(target=Requester)
+  PD-->>D: outbound failure / timeout
+  D->>SD: mailbox.enqueue(kind=join_decision, status=queued)
+  Note over D: periodic sweep + on-connect drain retries delivery
+  R-->>D: later comes online (ConnectionEstablished)
+  D->>SD: mailbox.list_due_for_subject(Requester) + lease
+  D->>PD: SendJoinDecision(delivery_id)
+  PD-->>D: ack (request/response)
+  D->>SD: mailbox.mark_done(delivery_id)
+```
 - Signatures exist, but verification on receipt is not yet enforced; treat them as provisional until verification lands.
 
 ## Networking Services (Relay + Rendezvous)
@@ -416,6 +481,26 @@ For how peers (`soma-daemon`, `soma-botd`) use mDNS, rendezvous, and relay clien
 - Treat `desktop/app/soma` and `desktop/app/tapia` as separate products sharing a backend daemon.
 - Keep Electron main-process code (window management, protocol handlers, daemon bootstrap) separate from renderer React code.
 - Route all network operations through the local daemon; do not introduce direct server calls from the UI unless explicitly required.
+- Main-process DI uses Inversify with typed tokens in `src/main/tokens.ts`; resolve dependencies via the container using these symbols (see `src/main/container.ts`).
+- Main-process persistence:
+  - `DbService` wraps SQLite via `better-sqlite3` against `userData/soma.db`.
+  - `AppSettingsService` builds on DbService for app settings: window bounds, last route, and namespaced key-value storage (IndexedDB clone).
+- Main-process structure follows DRY/SOLID and applies patterns:
+  - **Facade**: `SomaElectronApp` is the lifecycle facade; it orchestrates startup/shutdown and delegates to bootstrap + window controllers.
+  - **Delegation**: `MainBootstrapService` owns one-time app initialization (DB/settings + IPC + shortcuts), while `MainWindowController` owns window lifecycle/state restore. Keep logic in these services instead of growing `app.ts`.
+- Renderer integration (IPC + settings):
+  - Renderer must communicate with main via the preload bridge (`src/preload/index.ts`): `window.api` (explicit RPC-like helpers) and `window.ipc` (RxJS event stream + send).
+  - Router last route:
+    - Read: `await window.api.getLastRoute()`
+    - Persist: `window.api.setLastRoute(route)` → handled in main (`router:set-last-route`) and persisted to settings + route-store file.
+  - App settings (unstructured JSON) are written from renderer → main via IPC events (handled by `AppStateSyncService` → `AppSettingsService`):
+    - Set a setting:
+      - `window.ipc.sendToMain('settings:set', { key: 'ui:theme', value: 'dark' })`
+    - Namespaced key-value (IndexedDB clone style):
+      - `window.ipc.sendToMain('settings:kv:set', { namespace: 'idb', key: 'some-key', value: { any: 'json' } })`
+      - `window.ipc.sendToMain('settings:kv:delete', { namespace: 'idb', key: 'some-key' })`
+  - Window bounds persistence is automatic in main (`AppStateSyncService` listens to `move`/`resize` and calls `AppSettingsService.setWindowBounds`).
+  - Reading arbitrary settings/KV from renderer is not implemented yet (only last route has a read API); add IPC handlers in `MainIpcController` if needed.
 - Local state:
     - UI state lives in React (components, hooks).
     - Persistent or shared state that mirrors daemon state should be derived from daemon APIs, not duplicated business logic in the UI.
