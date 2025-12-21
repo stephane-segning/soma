@@ -62,7 +62,7 @@ runs:
         CSC_IDENTITY_AUTO_DISCOVERY: "false"
       run: |
         set -euo pipefail
-        PKG="@soma/${{ inputs.app }}"
+        PKG="${{ inputs.app }}"
         ARCH="${{ inputs.arch }}"
         if [ -z "$ARCH" ]; then
           case "$(uname -m)" in

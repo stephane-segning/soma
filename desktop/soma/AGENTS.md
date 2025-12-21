@@ -218,7 +218,7 @@ This repo intentionally has multiple binaries. Each has a distinct goal and depl
 
 ### Desktop vs Server (rule of thumb)
 
-- **Desktop**: `soma-daemon`, `soma-agentd`, `@soma/soma` (UI), `@soma/tapia` (UI) — **no Axum**.
+- **Desktop**: `soma-daemon`, `soma-agentd`, `soma` (UI), `tapia` (UI) — **no Axum**.
 - **Server**: `soma-botd`, `soma-relayd`, `soma-rendezvousd`, `soma-bffd`, `soma-serverd` — **Axum + metrics**.
 
 ### Desktop / Peer Backends (`backend/`)
@@ -291,11 +291,11 @@ This repo intentionally has multiple binaries. Each has a distinct goal and depl
   ```bash
   cd desktop
   pnpm install
-  pnpm --filter @soma/soma run typecheck
-  pnpm --filter @soma/soma run lint
+  pnpm --filter soma run typecheck
+  pnpm --filter soma run lint
   ```
 
-  and similarly for `desktop/tapia` (use `--filter @soma/tapia`).
+  and similarly for `desktop/tapia` (use `--filter tapia`).
 
 - Keep unit tests small and focused; integration tests should run against local daemons where feasible.
 

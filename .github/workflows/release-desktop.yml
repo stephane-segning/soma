@@ -113,7 +113,11 @@ jobs:
           VERSION="${{ needs.prepare.outputs.version }}"
 
           ARTIFACTS="${{ steps.package.outputs.artifact_paths }}"
-          mapfile -t FILES <<< "$ARTIFACTS"
+          FILES=()
+          while IFS= read -r line; do
+            [ -n "$line" ] || continue
+            FILES+=("$line")
+          done <<< "$ARTIFACTS"
           RENAMED=()
           for f in "${FILES[@]}"; do
             [ -n "$f" ] || continue
