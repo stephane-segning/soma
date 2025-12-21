@@ -121,6 +121,11 @@ jobs:
           RENAMED=()
           for f in "${FILES[@]}"; do
             [ -n "$f" ] || continue
+            if [ ! -f "$f" ]; then
+              echo "WARN: artifact path not found: $f"
+              ls -la "$(dirname "$f")"
+              continue
+            fi
             ext="${f##*.}"
             base="soma-desktop-${VERSION}-${{ matrix.os }}-${{ matrix.arch }}.${ext}"
             out="${OUT_DIR}/${base}"
