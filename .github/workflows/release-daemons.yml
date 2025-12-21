@@ -86,7 +86,7 @@ jobs:
             target: x86_64-unknown-linux-gnu
           - os: linux
             arch: arm64
-            runs_on: ubuntu-latest
+            runs_on: ubuntu-24.04-arm
             target: aarch64-unknown-linux-gnu
           - os: macos
             arch: amd64

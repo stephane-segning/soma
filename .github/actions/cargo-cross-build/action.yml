@@ -69,10 +69,13 @@ runs:
           export CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++
           export AR_aarch64_unknown_linux_gnu=aarch64-linux-gnu-ar
           export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
-          export CFLAGS_aarch64_unknown_linux_gnu="--sysroot=/usr/aarch64-linux-gnu"
-          export CXXFLAGS_aarch64_unknown_linux_gnu="--sysroot=/usr/aarch64-linux-gnu"
-          export C_INCLUDE_PATH="/usr/aarch64-linux-gnu/include:${C_INCLUDE_PATH:-}"
-          export LIBRARY_PATH="/usr/aarch64-linux-gnu/lib:${LIBRARY_PATH:-}"
+          # Only add cross sysroot hints when host != target (i.e., x86 host).
+          if [[ "$(uname -m)" != "aarch64" && "$(uname -m)" != "arm64" ]]; then
+            export CFLAGS_aarch64_unknown_linux_gnu="--sysroot=/usr/aarch64-linux-gnu"
+            export CXXFLAGS_aarch64_unknown_linux_gnu="--sysroot=/usr/aarch64-linux-gnu"
+            export C_INCLUDE_PATH="/usr/aarch64-linux-gnu/include:${C_INCLUDE_PATH:-}"
+            export LIBRARY_PATH="/usr/aarch64-linux-gnu/lib:${LIBRARY_PATH:-}"
+          fi
         fi
         if [ "${{ runner.os }}" = "Linux" ]; then
           export PROTOC=/usr/bin/protoc
