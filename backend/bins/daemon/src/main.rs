@@ -73,6 +73,8 @@ async fn run(config: DaemonConfig) -> SomaResult<()> {
     } = config;
 
     std::fs::create_dir_all(&blob_dir)?;
+    let blob_store = BlobStore::new(blob_dir.clone());
+    let blob_provider: Arc<dyn soma_peer::BlobProvider> = Arc::new(blob_store.clone());
     static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("../../crates/storage/migrations");
     let db_url = soma_core::db::normalize_sqlite_url(db_path.to_string_lossy().as_ref());
     info!(%db_url, scheme = "sqlite", "configuring database");
@@ -94,15 +96,13 @@ async fn run(config: DaemonConfig) -> SomaResult<()> {
         .relay_addrs(relay_addrs)
         .enable_mdns(enable_mdns)
         .join_decider(join_decider.clone())
-        .blob_provider(Some(state.blob_store.clone()))
+        .blob_provider(blob_provider)
         .build()
         .expect("peer config");
 
     let peer = spawn_ping_peer(peer_config)?;
     let peer_id = peer.peer_id;
     info!(%peer_id, ?socket_path, ?blob_dir, "soma-daemon starting");
-
-    let blob_store = BlobStore::new(blob_dir);
 
     let (event_tx, _) = broadcast::channel(64);
     let state = Arc::new(DaemonState {

@@ -30,7 +30,6 @@ pub enum PeerEventKind {
     JoinFailed,
     YooptaBlobAdded,
     BlobResponseReceived,
-    BlobResponseReceived,
 }
 
 impl PeerEventKind {
@@ -57,7 +56,6 @@ impl PeerEventKind {
         PeerEventKind::JoinDecisionDeliveryFailed,
         PeerEventKind::JoinFailed,
         PeerEventKind::YooptaBlobAdded,
-        PeerEventKind::BlobResponseReceived,
         PeerEventKind::BlobResponseReceived,
     ];
 
@@ -92,7 +90,6 @@ impl PeerEventKind {
             PeerEvent::JoinFailed { .. } => PeerEventKind::JoinFailed,
             PeerEvent::YooptaBlobAdded { .. } => PeerEventKind::YooptaBlobAdded,
             PeerEvent::BlobResponseReceived { .. } => PeerEventKind::BlobResponseReceived,
-            PeerEvent::BlobResponseReceived { .. } => PeerEventKind::BlobResponseReceived,
         }
     }
 
@@ -120,7 +117,6 @@ impl PeerEventKind {
             PeerEventKind::JoinDecisionDeliveryFailed => 18,
             PeerEventKind::JoinFailed => 19,
             PeerEventKind::YooptaBlobAdded => 20,
-            PeerEventKind::BlobResponseReceived => 21,
             PeerEventKind::BlobResponseReceived => 21,
         }
     }

@@ -1,0 +1,130 @@
+name: Build backend Docker images
+
+on:
+  push:
+    branches:
+      - "**"
+    tags:
+      - "v*"
+    paths:
+      - ".github/workflows/docker-backend.yml"
+      - ".github/actions/docker-build-backend/**"
+      - "backend/**"
+      - "proto/**"
+      - "Dockerfile"
+      - "compose.yml"
+      - ".dockerignore"
+      - "trivy.yaml"
+  pull_request:
+    paths:
+      - ".github/workflows/docker-backend.yml"
+      - ".github/actions/docker-build-backend/**"
+      - "backend/**"
+      - "proto/**"
+      - "Dockerfile"
+      - "compose.yml"
+      - ".dockerignore"
+      - "trivy.yaml"
+  schedule:
+    - cron: "0 3 * * *"
+
+env:
+  CARGO_TERM_COLOR: always
+  REGISTRY: ghcr.io
+  # Will be lowercased in-job for GHCR compatibility.
+  IMAGE_NAME: ${{ github.repository_owner }}/soma-backend
+
+jobs:
+  build-daemon:
+    name: Build soma-daemon (${{ matrix.os }} / ${{ matrix.arch }})
+    runs-on: ${{ matrix.runs_on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu
+            arch: amd64
+            runs_on: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: ubuntu
+            arch: arm64
+            runs_on: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+          - os: macos
+            arch: amd64
+            runs_on: macos-15-intel
+            target: x86_64-apple-darwin
+          - os: macos
+            arch: arm64
+            runs_on: macos-latest
+            target: aarch64-apple-darwin
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Build soma-daemon
+        uses: ./.github/actions/cargo-cross-build
+        with:
+          working_directory: backend
+          target: ${{ matrix.target }}
+          args: --locked --profile prod -p soma-daemon
+
+  build:
+    name: Docker build for ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    needs: build-daemon
+    strategy:
+      fail-fast: false
+      matrix:
+        name:
+          - botd
+          - relayd
+          - rendezvousd
+          - bffd
+          - serverd
+        include:
+          - name: botd
+            suffix: "-botd"
+            docker_target: "botd"
+          - name: relayd
+            suffix: "-relayd"
+            docker_target: "relayd"
+          - name: rendezvousd
+            suffix: "-rendezvousd"
+            docker_target: "rendezvousd"
+          - name: bffd
+            suffix: "-bffd"
+            docker_target: "bffd"
+          - name: serverd
+            suffix: "-serverd"
+            docker_target: "serverd"
+
+    permissions:
+      packages: write
+      contents: read
+      id-token: write # Required for signed provenance when pushing
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - id: lowercase
+        name: Lowercase image name
+        uses: AsZc/change-string-case-action@v6
+        with:
+          string: ${{ env.IMAGE_NAME }}
+
+      - name: Build (and optionally push) ${{ matrix.name }}
+        uses: ./.github/actions/docker-build-backend
+        with:
+          registry: ${{ env.REGISTRY }}
+          image_name: ${{ steps.lowercase.outputs.lowercase }}
+          suffix: ${{ matrix.suffix }}
+          target: ${{ matrix.docker_target }}
+          push: ${{ github.event_name != 'pull_request' }}

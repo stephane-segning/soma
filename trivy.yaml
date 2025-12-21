@@ -1,0 +1,10 @@
+format: table
+timeout: 5m
+
+# Keep CI focused on actionable findings.
+severity:
+  - CRITICAL
+  - HIGH
+
+# For vulnerability scans.
+ignore-unfixed: true
