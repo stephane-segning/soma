@@ -88,61 +88,61 @@ importers:
         version: 5.1.2(vite@7.3.0(@types/node@22.19.3)(jiti@2.6.1)(lightningcss@1.30.2)(sass-embedded@1.97.1)(sass@1.97.1)(terser@5.44.1))
       '@yoopta/accordion':
         specifier: ^4.9.9
-        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@yoopta/action-menu-list':
         specifier: ^4.9.9
-        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@yoopta/blockquote':
         specifier: ^4.9.9
-        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@yoopta/callout':
         specifier: ^4.9.9
-        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@yoopta/code':
         specifier: ^4.9.9
-        version: 4.9.9(@babel/runtime@7.28.4)(@codemirror/autocomplete@6.20.0)(@codemirror/commands@6.10.1)(@codemirror/language@6.11.3)(@codemirror/lint@6.9.2)(@codemirror/search@6.5.11)(@codemirror/state@6.5.2)(@codemirror/view@6.39.4)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+        version: 4.9.9(@babel/runtime@7.28.4)(@codemirror/autocomplete@6.20.0)(@codemirror/commands@6.10.1)(@codemirror/language@6.11.3)(@codemirror/lint@6.9.2)(@codemirror/search@6.5.11)(@codemirror/state@6.5.2)(@codemirror/view@6.39.4)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@yoopta/divider':
         specifier: ^4.9.9
-        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@yoopta/editor':
         specifier: ^4.9.9
-        version: 4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0)
+        version: 4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0)
       '@yoopta/embed':
         specifier: ^4.9.9
-        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@yoopta/file':
         specifier: ^4.9.9
-        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@yoopta/headings':
         specifier: ^4.9.9
-        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@yoopta/image':
         specifier: ^4.9.9
-        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@yoopta/link':
         specifier: ^4.9.9
-        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@yoopta/link-tool':
         specifier: ^4.9.9
-        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@yoopta/lists':
         specifier: ^4.9.9
-        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@yoopta/marks':
         specifier: ^4.9.9
-        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@yoopta/paragraph':
         specifier: ^4.9.9
-        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@yoopta/table':
         specifier: ^4.9.9
-        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@yoopta/toolbar':
         specifier: ^4.9.9
-        version: 4.9.9(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+        version: 4.9.9(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@yoopta/video':
         specifier: ^4.9.9
-        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -219,8 +219,8 @@ importers:
         specifier: ^0.120.0
         version: 0.120.0
       slate-react:
-        specifier: ^0.102.0
-        version: 0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0)
+        specifier: ^0.120.0
+        version: 0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0)
       tailwind-merge:
         specifier: ^3.4.0
         version: 3.4.0
@@ -1901,9 +1901,6 @@ packages:
   '@types/http-cache-semantics@4.0.4':
     resolution: {integrity: sha512-1m0bIFVc7eJWyve9S0RnuRgcQqF/Xd5QsUZAZeQFr1Q3/p9JWoQQEqmVy+DPTNpGXwhgIetAoYF8JSc33q29QA==}
 
-  '@types/is-hotkey@0.1.10':
-    resolution: {integrity: sha512-RvC8KMw5BCac1NvRRyaHgMMEtBaZ6wh0pyPTBu7izn4Sj/AX9Y4aXU5c7rX8PnM/knsuUpC1IeoBkANtxBypsQ==}
-
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
 
@@ -1912,9 +1909,6 @@ packages:
 
   '@types/keyv@3.1.4':
     resolution: {integrity: sha512-BQ5aZNSCpj7D6K2ksrRCTmKRLEpnPvWDiLPfoGyhZ++8YtiK9d/3DBKPJgry359X/P1PfruyYwvnvwFjuEiEIg==}
-
-  '@types/lodash@4.17.21':
-    resolution: {integrity: sha512-FOvQ0YPD5NOfPgMzJihoT+Za5pdkDJWcbpuj1DjaKZIr/gxodQjY/uWEFlTNqW2ugXHUiL8lRQgw63dzKHZdeQ==}
 
   '@types/ms@2.1.0':
     resolution: {integrity: sha512-GsCCIZDE/p3i96vtEqx+7dBUGXrc7zeSK3wwPHIaRThS+9OhWIXRqzs4d6k1SVU8g91DrNRWxWUGhp5KXQb2VA==}
@@ -4268,12 +4262,18 @@ packages:
     resolution: {integrity: sha512-a2B9Y0KlNXl9u/vsW6sTIu9vGEpfKu2wRV6l1H3XEas/0gUIzGzBoP/IouTcUQbm9JWZLH3COxyn03TYlFax6w==}
     engines: {node: '>=10'}
 
-  slate-react@0.102.0:
-    resolution: {integrity: sha512-SAcFsK5qaOxXjm0hr/t2pvIxfRv6HJGzmWkG58TdH4LdJCsgKS1n6hQOakHPlRVCwPgwvngB6R+t3pPjv8MqwA==}
+  slate-dom@0.119.0:
+    resolution: {integrity: sha512-foc8a2NkE+1SldDIYaoqjhVKupt8RSuvHI868rfYOcypD4we5TT7qunjRKJ852EIRh/Ql8sSTepXgXKOUJnt1w==}
+    peerDependencies:
+      slate: '>=0.99.0'
+
+  slate-react@0.120.0:
+    resolution: {integrity: sha512-CMEJzozriddBjVmbxNvc2erCkXUuEkgdXIdM+jEMvxWMb51z0zhIVzgoxbGprVpzwBXY8Kv7aZOUDVMomzWH/g==}
     peerDependencies:
       react: '>=18.2.0'
       react-dom: '>=18.2.0'
-      slate: '>=0.99.0'
+      slate: '>=0.114.0'
+      slate-dom: '>=0.119.0'
 
   slate@0.120.0:
     resolution: {integrity: sha512-CXK/DADGgMZb4z9RTtXylzIDOxvmNJEF9bXV2bAGkLWhQ3rm7GORY9q0H/W41YJvAGZsLbH7nnrhMYr550hWDQ==}
@@ -6248,8 +6248,6 @@ snapshots:
 
   '@types/http-cache-semantics@4.0.4': {}
 
-  '@types/is-hotkey@0.1.10': {}
-
   '@types/json-schema@7.0.15': {}
 
   '@types/jsonfile@6.1.4':
@@ -6259,8 +6257,6 @@ snapshots:
   '@types/keyv@3.1.4':
     dependencies:
       '@types/node': 22.19.3
-
-  '@types/lodash@4.17.21': {}
 
   '@types/ms@2.1.0': {}
 
@@ -6504,34 +6500,34 @@ snapshots:
 
   '@xmldom/xmldom@0.8.11': {}
 
-  '@yoopta/accordion@4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+  '@yoopta/accordion@4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
     dependencies:
-      '@yoopta/editor': 4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0)
+      '@yoopta/editor': 4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0)
       lucide-react: 0.378.0(react@19.2.3)
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
 
-  '@yoopta/action-menu-list@4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+  '@yoopta/action-menu-list@4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
     dependencies:
       '@floating-ui/react': 0.26.28(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@radix-ui/react-icons': 1.3.2(react@19.2.3)
-      '@yoopta/editor': 4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0)
+      '@yoopta/editor': 4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0)
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
 
-  '@yoopta/blockquote@4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+  '@yoopta/blockquote@4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
     dependencies:
-      '@yoopta/editor': 4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0)
+      '@yoopta/editor': 4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0)
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
 
-  '@yoopta/callout@4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+  '@yoopta/callout@4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
     dependencies:
-      '@yoopta/editor': 4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0)
+      '@yoopta/editor': 4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0)
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
 
-  '@yoopta/code@4.9.9(@babel/runtime@7.28.4)(@codemirror/autocomplete@6.20.0)(@codemirror/commands@6.10.1)(@codemirror/language@6.11.3)(@codemirror/lint@6.9.2)(@codemirror/search@6.5.11)(@codemirror/state@6.5.2)(@codemirror/view@6.39.4)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+  '@yoopta/code@4.9.9(@babel/runtime@7.28.4)(@codemirror/autocomplete@6.20.0)(@codemirror/commands@6.10.1)(@codemirror/language@6.11.3)(@codemirror/lint@6.9.2)(@codemirror/search@6.5.11)(@codemirror/state@6.5.2)(@codemirror/view@6.39.4)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
     dependencies:
       '@codemirror/lang-angular': 0.1.4
       '@codemirror/lang-cpp': 6.0.3
@@ -6562,7 +6558,7 @@ snapshots:
       '@uiw/codemirror-theme-sublime': 4.25.4(@codemirror/language@6.11.3)(@codemirror/state@6.5.2)(@codemirror/view@6.39.4)
       '@uiw/codemirror-theme-vscode': 4.25.4(@codemirror/language@6.11.3)(@codemirror/state@6.5.2)(@codemirror/view@6.39.4)
       '@uiw/react-codemirror': 4.25.4(@babel/runtime@7.28.4)(@codemirror/autocomplete@6.20.0)(@codemirror/language@6.11.3)(@codemirror/lint@6.9.2)(@codemirror/search@6.5.11)(@codemirror/state@6.5.2)(@codemirror/theme-one-dark@6.1.3)(@codemirror/view@6.39.4)(codemirror@6.0.2)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-      '@yoopta/editor': 4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0)
+      '@yoopta/editor': 4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0)
       codemirror: 6.0.2
       copy-to-clipboard: 3.3.3
       react: 19.2.3
@@ -6579,13 +6575,13 @@ snapshots:
       - '@types/react'
       - '@types/react-dom'
 
-  '@yoopta/divider@4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+  '@yoopta/divider@4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
     dependencies:
-      '@yoopta/editor': 4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0)
+      '@yoopta/editor': 4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0)
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
 
-  '@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0)':
+  '@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0)':
     dependencies:
       '@dnd-kit/core': 6.3.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@dnd-kit/sortable': 8.0.0(@dnd-kit/core@6.3.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
@@ -6599,85 +6595,85 @@ snapshots:
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
       slate: 0.120.0
-      slate-react: 0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0)
+      slate-react: 0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0)
       validator: 13.15.26
 
-  '@yoopta/embed@4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+  '@yoopta/embed@4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
     dependencies:
       '@floating-ui/react': 0.26.28(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@radix-ui/react-icons': 1.3.2(react@19.2.3)
-      '@yoopta/editor': 4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0)
+      '@yoopta/editor': 4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0)
       re-resizable: 6.11.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
 
-  '@yoopta/file@4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+  '@yoopta/file@4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
     dependencies:
       '@floating-ui/react': 0.26.28(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@radix-ui/react-icons': 1.3.2(react@19.2.3)
-      '@yoopta/editor': 4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0)
+      '@yoopta/editor': 4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0)
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
 
-  '@yoopta/headings@4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+  '@yoopta/headings@4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
     dependencies:
-      '@yoopta/editor': 4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0)
+      '@yoopta/editor': 4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0)
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
 
-  '@yoopta/image@4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+  '@yoopta/image@4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
     dependencies:
       '@floating-ui/react': 0.26.28(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@radix-ui/react-icons': 1.3.2(react@19.2.3)
-      '@yoopta/editor': 4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0)
+      '@yoopta/editor': 4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0)
       re-resizable: 6.11.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
 
-  '@yoopta/link-tool@4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+  '@yoopta/link-tool@4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
     dependencies:
-      '@yoopta/editor': 4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0)
+      '@yoopta/editor': 4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0)
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
 
-  '@yoopta/link@4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+  '@yoopta/link@4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
     dependencies:
-      '@yoopta/editor': 4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0)
+      '@yoopta/editor': 4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0)
       lucide-react: 0.379.0(react@19.2.3)
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
 
-  '@yoopta/lists@4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+  '@yoopta/lists@4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
     dependencies:
-      '@yoopta/editor': 4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0)
+      '@yoopta/editor': 4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0)
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
 
-  '@yoopta/marks@4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+  '@yoopta/marks@4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
     dependencies:
-      '@yoopta/editor': 4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0)
+      '@yoopta/editor': 4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0)
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
 
-  '@yoopta/paragraph@4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+  '@yoopta/paragraph@4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
     dependencies:
-      '@yoopta/editor': 4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0)
+      '@yoopta/editor': 4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0)
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
 
-  '@yoopta/table@4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+  '@yoopta/table@4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
     dependencies:
-      '@yoopta/editor': 4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0)
+      '@yoopta/editor': 4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0)
       lucide-react: 0.436.0(react@19.2.3)
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
 
-  '@yoopta/toolbar@4.9.9(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+  '@yoopta/toolbar@4.9.9(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
     dependencies:
       '@floating-ui/react': 0.26.28(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@radix-ui/react-icons': 1.3.2(react@19.2.3)
       '@radix-ui/react-toolbar': 1.1.11(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-      '@yoopta/editor': 4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0)
+      '@yoopta/editor': 4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0)
       lodash.throttle: 4.1.1
       lucide-react: 0.469.0(react@19.2.3)
       react: 19.2.3
@@ -6688,11 +6684,11 @@ snapshots:
       - '@types/react'
       - '@types/react-dom'
 
-  '@yoopta/video@4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+  '@yoopta/video@4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
     dependencies:
       '@floating-ui/react': 0.26.28(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@radix-ui/react-icons': 1.3.2(react@19.2.3)
-      '@yoopta/editor': 4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0))(slate@0.120.0)
+      '@yoopta/editor': 4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0)
       re-resizable: 6.11.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
@@ -8893,19 +8889,28 @@ snapshots:
     dependencies:
       semver: 7.7.3
 
-  slate-react@0.102.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate@0.120.0):
+  slate-dom@0.119.0(slate@0.120.0):
     dependencies:
       '@juggle/resize-observer': 3.4.0
-      '@types/is-hotkey': 0.1.10
-      '@types/lodash': 4.17.21
       direction: 1.0.4
       is-hotkey: 0.2.0
       is-plain-object: 5.0.0
+      lodash: 4.17.21
+      scroll-into-view-if-needed: 3.1.0
+      slate: 0.120.0
+      tiny-invariant: 1.3.1
+
+  slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0):
+    dependencies:
+      '@juggle/resize-observer': 3.4.0
+      direction: 1.0.4
+      is-hotkey: 0.2.0
       lodash: 4.17.21
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
       scroll-into-view-if-needed: 3.1.0
       slate: 0.120.0
+      slate-dom: 0.119.0(slate@0.120.0)
       tiny-invariant: 1.3.1
 
   slate@0.120.0: {}

@@ -92,7 +92,7 @@
 		"sass": "^1.97.1",
 		"sass-embedded": "^1.97.1",
 		"slate": "^0.120.0",
-		"slate-react": "^0.102.0",
+		"slate-react": "^0.120.0",
 		"tailwind-merge": "^3.4.0",
 		"tailwindcss": "^4.1.18",
 		"typescript": "^5.9.3",
