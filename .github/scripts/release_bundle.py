@@ -127,8 +127,8 @@ def main() -> int:
 
     def resolve_assets() -> tuple[dict, dict, str]:
         for arch in arch_aliases(platform_arch):
-            pat_daemon = rf"soma-daemon-{re.escape(daemons_version)}-{platform_os}-{arch}\\.tar\\.gz"
-            pat_agent = rf"soma-agentd-{re.escape(daemons_version)}-{platform_os}-{arch}\\.tar\\.gz"
+            pat_daemon = rf"soma-daemon-{re.escape(daemons_version)}-{platform_os}-{arch}\.tar\.gz"
+            pat_agent = rf"soma-agentd-{re.escape(daemons_version)}-{platform_os}-{arch}\.tar\.gz"
             try:
                 return find_asset(rel_daemons, pat_daemon), find_asset(rel_daemons, pat_agent), arch
             except Exception:
@@ -164,15 +164,17 @@ def main() -> int:
 
     # Resolve desktop artifact name for this OS/arch (best-effort: .deb/.dmg/.zip/.AppImage).
     desktop_asset = None
-    for ext in ("deb", "dmg", "zip", "AppImage"):
+    for ext in ("deb", "dmg", "zip", "AppImage", "rpm", "pkg"):
         try:
             desktop_asset = find_asset(
                 rel_desktop,
-                rf"soma-desktop-{re.escape(desktop_version)}-{platform_os}-{platform_arch}\\.{re.escape(ext)}",
+                rf"soma-desktop-{re.escape(desktop_version)}-{platform_os}-{platform_arch}\.{re.escape(ext)}",
             )
             break
         except Exception:
             continue
+    if desktop_asset is None:
+        log(f"[warn] no desktop artifact found for {platform_os}-{platform_arch} ({desktop_version}); continuing without bundling desktop binary")
 
     docker_images = os.environ.get("DOCKER_IMAGES", "").strip()
 
