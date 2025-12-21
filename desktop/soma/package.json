@@ -71,7 +71,7 @@
 		"composed-offset-position": "^0.0.6",
 		"cssnano": "^7.1.2",
 		"daisyui": "^5.5.14",
-		"electron": "39.2.6",
+		"electron": "39.2.7",
 		"electron-builder": "^26.0.12",
 		"electron-vite": "^5.0.0",
 		"i18next": "^25.7.3",
