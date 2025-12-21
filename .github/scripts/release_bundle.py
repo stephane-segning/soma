@@ -83,7 +83,8 @@ def render_template(template_path: str, dest: str, ctx: dict) -> None:
 
 def run(cmd: list[str], cwd: str | None = None) -> None:
     log("+ " + " ".join(cmd))
-    subprocess.check_call(cmd, cwd=cwd)
+    # Send child stdout/stderr to our stderr so redirected stdout stays clean JSON.
+    subprocess.run(cmd, cwd=cwd, check=True, stdout=sys.stderr, stderr=sys.stderr)
 
 
 def main() -> int:
