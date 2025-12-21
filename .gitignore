@@ -9,3 +9,6 @@ build
 .idea
 
 .sock
+.pnpm-store
+
+blob*

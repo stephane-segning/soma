@@ -1,0 +1,149 @@
+name: Release daemons (soma-daemon + soma-agentd)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version (defaults to backend workspace version)
+        required: false
+        type: string
+      tag:
+        description: Git tag for the GitHub Release (defaults to daemons-v<version>)
+        required: false
+        type: string
+      prerelease:
+        description: Mark the GitHub Release as prerelease
+        required: false
+        type: boolean
+        default: false
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - id: meta
+        name: Resolve version + tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "${{ inputs.version }}" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="$(python3 -c 'import re; t=open(\"backend/Cargo.toml\",\"r\",encoding=\"utf-8\").read(); m=re.search(r\"\\[workspace\\.package\\][\\s\\S]*?^version\\s*=\\s*\\\"([^\\\"]+)\\\"\", t, re.M); print(m.group(1) if m else \"\")')"
+            if [ -z "$VERSION" ]; then
+              echo "Failed to resolve backend workspace version from backend/Cargo.toml" >&2
+              exit 1
+            fi
+          fi
+          if [ -n "${{ inputs.tag }}" ]; then
+            TAG="${{ inputs.tag }}"
+          else
+            TAG="daemons-v${VERSION}"
+          fi
+          {
+            echo "version=${VERSION}"
+            echo "tag=${TAG}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create/update GitHub Release (never latest)
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ steps.meta.outputs.tag }}
+          name: Daemons ${{ steps.meta.outputs.version }}
+          prerelease: ${{ inputs.prerelease }}
+          allowUpdates: true
+          makeLatest: false
+          draft: false
+          body: |
+            Daemon binaries for Soma.
+
+            Assets are suffixed with OS/arch.
+
+  build:
+    name: Build + publish (${{ matrix.os }} / ${{ matrix.arch }})
+    needs: prepare
+    runs-on: ${{ matrix.runs_on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: linux
+            arch: amd64
+            runs_on: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: linux
+            arch: arm64
+            runs_on: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+          - os: macos
+            arch: amd64
+            runs_on: macos-15-intel
+            target: x86_64-apple-darwin
+          - os: macos
+            arch: arm64
+            runs_on: macos-latest
+            target: aarch64-apple-darwin
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Build soma-daemon + soma-agentd
+        uses: ./.github/actions/cargo-cross-build
+        with:
+          working_directory: backend
+          target: ${{ matrix.target }}
+          args: --locked --profile prod -p soma-daemon -p soma-agentd
+
+      - name: Package artifacts
+        id: pkg
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="artifacts/daemons/${{ matrix.os }}-${{ matrix.arch }}"
+          mkdir -p "$OUT"
+          DAEMON="backend/target/${{ matrix.target }}/prod/soma-daemon"
+          AGENT="backend/target/${{ matrix.target }}/prod/soma-agentd"
+          cp "$DAEMON" "$OUT/soma-daemon"
+          cp "$AGENT" "$OUT/soma-agentd"
+          (cd "$OUT" && shasum -a 256 soma-daemon soma-agentd > SHA256SUMS.txt 2>/dev/null || sha256sum soma-daemon soma-agentd > SHA256SUMS.txt)
+          tar -C "$OUT" -czf "$OUT/soma-daemon-${{ needs.prepare.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}.tar.gz" soma-daemon
+          tar -C "$OUT" -czf "$OUT/soma-agentd-${{ needs.prepare.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}.tar.gz" soma-agentd
+          echo "out_dir=$OUT" >> "$GITHUB_OUTPUT"
+
+      - name: Generate SBOM (Syft)
+        uses: anchore/sbom-action@v0
+        with:
+          path: ${{ steps.pkg.outputs.out_dir }}
+          format: spdx-json
+          output-file: ${{ steps.pkg.outputs.out_dir }}/sbom-daemons-${{ needs.prepare.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.prepare.outputs.tag }}
+          files: |
+            ${{ steps.pkg.outputs.out_dir }}/soma-daemon-${{ needs.prepare.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}.tar.gz
+            ${{ steps.pkg.outputs.out_dir }}/soma-agentd-${{ needs.prepare.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}.tar.gz
+            ${{ steps.pkg.outputs.out_dir }}/SHA256SUMS.txt
+            ${{ steps.pkg.outputs.out_dir }}/sbom-daemons-${{ needs.prepare.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}.spdx.json

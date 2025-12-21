@@ -1,0 +1,85 @@
+name: build-release-bundle
+description: Build OS/arch-specific Soma bundle packages by downloading published assets.
+
+inputs:
+  bundle_version:
+    description: Bundle version label (defaults to timestamp)
+    required: false
+    default: ""
+  daemons_version:
+    description: Daemons release version (without leading v, e.g. 0.1.0). If empty, resolves latest daemons-v*.
+    required: false
+    default: ""
+  desktop_version:
+    description: Desktop release version (without leading v, e.g. 1.0.0). If empty, resolves latest desktop-v*.
+    required: false
+    default: ""
+  docker_images:
+    description: Optional docker image refs (newline-separated) to include in README
+    required: false
+    default: ""
+  out_dir:
+    description: Output directory for the bundle build
+    required: false
+    default: artifacts/bundle
+  bundle_os:
+    description: linux or macos
+    required: true
+  bundle_arch:
+    description: amd64 or arm64
+    required: true
+
+outputs:
+  platform_out:
+    description: Platform output directory
+    value: ${{ steps.run.outputs.platform_out }}
+  staging_dir:
+    description: Directory scanned for SBOM
+    value: ${{ steps.run.outputs.staging_dir }}
+  produced:
+    description: Newline-separated list of produced files
+    value: ${{ steps.run.outputs.produced }}
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: "3.x"
+
+    - name: Install packaging deps (Linux)
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends build-essential ruby ruby-dev rpm
+        sudo gem install --no-document fpm
+
+    - id: run
+      name: Build bundle
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+        BUNDLE_VERSION: ${{ inputs.bundle_version }}
+        DAEMONS_VERSION: ${{ inputs.daemons_version }}
+        DESKTOP_VERSION: ${{ inputs.desktop_version }}
+        DOCKER_IMAGES: ${{ inputs.docker_images }}
+        OUT_DIR: ${{ inputs.out_dir }}
+        BUNDLE_OS: ${{ inputs.bundle_os }}
+        BUNDLE_ARCH: ${{ inputs.bundle_arch }}
+      run: |
+        set -euo pipefail
+        python3 .github/scripts/release_bundle.py > "$RUNNER_TEMP/release_bundle.json"
+        python3 - <<'PY'
+        import json, os, pathlib
+        o=json.loads(pathlib.Path(os.environ["RUNNER_TEMP"]).joinpath("release_bundle.json").read_text(encoding="utf-8"))
+        out=os.environ["GITHUB_OUTPUT"]
+        with open(out,"a",encoding="utf-8") as f:
+            f.write(f"platform_out={o['platform_out']}\n")
+            f.write(f"staging_dir={o['staging_dir']}\n")
+            f.write("produced<<EOF\n")
+            for p in o["produced"]:
+                f.write(p + "\n")
+            f.write("EOF\n")
+        PY

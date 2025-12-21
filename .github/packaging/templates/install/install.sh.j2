@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+DAEMONS_VERSION="$version"
+DAEMONS_TAG="daemons-v$version"
+DESKTOP_VERSION="$desktop_version"
+DESKTOP_TAG="desktop-v$desktop_version"
+REPO="$repo"
+
+os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+arch="$(uname -m)"
+
+case "$os" in
+  linux) OS=linux ;;
+  darwin) OS=macos ;;
+  *) echo "unsupported OS: $os" >&2; exit 1 ;;
+esac
+
+case "$arch" in
+  x86_64|amd64) ARCH=amd64 ;;
+  arm64|aarch64) ARCH=arm64 ;;
+  *) echo "unsupported arch: $arch" >&2; exit 1 ;;
+esac
+
+base="https://github.com/$REPO/releases/download"
+
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
+
+curl -fsSL "$base/$DAEMONS_TAG/soma-daemon-$version-$OS-$ARCH.tar.gz" -o "$tmp/soma-daemon.tar.gz"
+curl -fsSL "$base/$DAEMONS_TAG/soma-agentd-$version-$OS-$ARCH.tar.gz" -o "$tmp/soma-agentd.tar.gz"
+
+tar -xzf "$tmp/soma-daemon.tar.gz" -C "$tmp"
+tar -xzf "$tmp/soma-agentd.tar.gz" -C "$tmp"
+
+install -m 0755 "$tmp/soma-daemon" $install_prefix/bin/soma-daemon
+install -m 0755 "$tmp/soma-agentd" $install_prefix/bin/soma-agentd
+
+echo "Installed soma-daemon and soma-agentd to $install_prefix/bin"
+echo "Desktop installer is available at: $base/$DESKTOP_TAG/"

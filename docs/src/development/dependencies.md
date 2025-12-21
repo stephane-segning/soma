@@ -19,5 +19,5 @@ This keeps dependency upgrades simple, avoids version skew, and makes feature us
 
 ## Desktop (pnpm)
 
-- Desktop dependencies are managed via the `pnpm` workspace under `desktop/app/`.
+- Desktop dependencies are managed via the `pnpm` workspace under `desktop/`.
 - Install and run scripts via `pnpm` (not `npm`).

@@ -1,29 +1,147 @@
-name: Release Desktop
+name: Release desktop (Soma)
 
 on:
-  release:
-    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version label (defaults to app package.json version)
+        required: false
+        type: string
+      tag:
+        description: Git tag for the GitHub Release (defaults to desktop-v<version>)
+        required: false
+        type: string
+      prerelease:
+        description: Mark the GitHub Release as prerelease
+        required: false
+        type: boolean
+        default: false
 
 jobs:
-  build-and-release:
+  prepare:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      tag: ${{ steps.meta.outputs.tag }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - id: meta
+        name: Resolve version + tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "${{ inputs.version }}" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="$(python3 -c 'import json; print(json.load(open(\"desktop/soma/package.json\",\"r\",encoding=\"utf-8\"))[\"version\"])')"
+          fi
+          if [ -n "${{ inputs.tag }}" ]; then
+            TAG="${{ inputs.tag }}"
+          else
+            TAG="desktop-v${VERSION}"
+          fi
+          {
+            echo "version=${VERSION}"
+            echo "tag=${TAG}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create/update GitHub Release (never latest)
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ steps.meta.outputs.tag }}
+          name: Desktop ${{ steps.meta.outputs.version }}
+          prerelease: ${{ inputs.prerelease }}
+          allowUpdates: true
+          makeLatest: false
+          draft: false
+          body: |
+            Soma desktop builds for Linux and macOS.
+
+            Assets are suffixed with OS/arch.
+
+  build:
+    name: Build + publish (${{ matrix.os }} / ${{ matrix.arch }})
+    needs: prepare
+    runs-on: ${{ matrix.runs_on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: linux
+            arch: amd64
+            runs_on: ubuntu-latest
+          - os: linux
+            arch: arm64
+            runs_on: ubuntu-24.04-arm
+          - os: macos
+            arch: amd64
+            runs_on: macos-15-intel
+          - os: macos
+            arch: arm64
+            runs_on: macos-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
 
       - name: Package desktop artifacts
         id: package
         uses: ./.github/actions/package-desktop
         with:
-          project_dir: desktop/app
-          artifact_dir: artifacts/desktop
+          project_dir: desktop
+          app: soma
+          artifact_dir: artifacts/desktop/${{ matrix.os }}-${{ matrix.arch }}
+
+      - name: Normalize artifact names (OS/arch suffix)
+        id: norm
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT_DIR="artifacts/desktop/${{ matrix.os }}-${{ matrix.arch }}"
+          VERSION="${{ needs.prepare.outputs.version }}"
+
+          ARTIFACTS="${{ steps.package.outputs.artifact_paths }}"
+          mapfile -t FILES <<< "$ARTIFACTS"
+          RENAMED=()
+          for f in "${FILES[@]}"; do
+            [ -n "$f" ] || continue
+            ext="${f##*.}"
+            base="soma-desktop-${VERSION}-${{ matrix.os }}-${{ matrix.arch }}.${ext}"
+            out="${OUT_DIR}/${base}"
+            mv "$f" "$out"
+            RENAMED+=("$out")
+          done
+
+          {
+            echo "artifact_paths<<EOF"
+            printf '%s\n' "${RENAMED[@]}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Generate SBOM (Syft)
+        uses: anchore/sbom-action@v0
+        with:
+          path: artifacts/desktop/${{ matrix.os }}-${{ matrix.arch }}
+          format: spdx-json
+          output-file: artifacts/desktop/${{ matrix.os }}-${{ matrix.arch }}/sbom-desktop-${{ needs.prepare.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
 
       - name: Upload release assets
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ needs.prepare.outputs.tag }}
           files: |
-            ${{ steps.package.outputs.dmg_path }}
-            ${{ steps.package.outputs.deb_path }}
-            ${{ steps.package.outputs.install_script_path }}
+            ${{ steps.norm.outputs.artifact_paths }}
+            artifacts/desktop/${{ matrix.os }}-${{ matrix.arch }}/sbom-desktop-${{ needs.prepare.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}.spdx.json

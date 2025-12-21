@@ -15,7 +15,7 @@ This document describes the repository layout, code structure, and coding conven
 - `proto/` – shared protocol definitions and codegen inputs.
 - `deploy/` – Helm charts and infrastructure manifests.
 - `prd/` – product requirements and high-level product documentation.
-- `.github/packaging/` – release/packaging templates and helpers for CI.
+- `sbom/` – software bill of materials tooling.
 
 When in doubt, place:
 
@@ -29,27 +29,6 @@ When in doubt, place:
 - **Package manager**: `pnpm` (workspace at `desktop/pnpm-workspace.yaml`).
 - **Desktop apps**: Electron + React + TypeScript.
 - **Backends**: Rust.
-
-## CI, Packaging, and Releases
-
-This repo uses GitHub Actions workflows that are designed to be triggered manually (`workflow_dispatch`).
-
-- **Daemon + agent releases**: `.github/workflows/release-daemons.yml`
-  - Builds `soma-daemon` and `soma-agentd` for `linux/macos` × `amd64/arm64` using `cross` (via `.github/actions/cargo-cross-build/action.yml`).
-  - Publishes assets to GitHub Releases (never “latest”) with OS/arch suffixes.
-- **Desktop releases (Soma)**: `.github/workflows/release-desktop.yml`
-  - Builds desktop artifacts for `linux/macos` × `amd64/arm64` and publishes to GitHub Releases (never “latest”).
-- **Docker images**: `.github/workflows/docker-backend.yml`
-  - Builds/pushes multi-target images from `Dockerfile` (manual-only), gated by a successful `soma-daemon` cross-build matrix.
-- **Bundle releases**: `.github/workflows/release.yml`
-  - Bundles published daemon/agent and desktop versions into OS-specific installers (`.deb/.rpm/.dmg/.pkg/.zip`) and uploads them to a GitHub Release.
-
-SBOM:
-- SBOMs are generated in CI using `anchore/sbom-action` (Syft). There is no `sbom/` scripts folder anymore.
-
-Packaging templates:
-- Templates live under `.github/packaging/templates/` and are rendered by `.github/scripts/release_bundle.py`.
-- See `.github/packaging/templates/README.md` for the template variables and file list.
 
 ## Dependency Policy
 
@@ -72,69 +51,6 @@ Peer/daemon backends:
 - accept a **blob storage pool** path (a plain folder) via configuration for storing large binary assets.
 - use `yjs-rust` to reconcile collaborative content/state.
 - use SQLite on desktop; server deployments can enable PostgreSQL via Cargo features.
-
-### Blobs (content-addressed, daemon-owned)
-
-Soma treats binary assets (“blobs”: files, images, attachments, Yoopta-related assets, …) as **content-addressed objects** stored outside Yjs/Yoopta. Collaborative documents should only contain **references** to blobs.
-
-#### Roles and rules
-
-- `soma-daemon` is the **source of truth** for user-created blobs (writes allowed).
-- `soma-botd` (both `bot` and `server-daemon` modes) is **cache-only** for blobs (writes allowed only as a side-effect of *fetching* a blob from the network; never accepts user upload).
-- Blob identity is a CID computed from bytes (e.g. `sha256`), and storage is keyed by CID (content-addressed).
-
-#### Upload and persistence (daemon only)
-
-- The only supported “upload” entrypoint is local IPC to `soma-daemon` (Unix socket gRPC / daemon API).
-- `soma-daemon` persists bytes into its configured blob storage pool (space-scoped layout recommended) and records minimal metadata (size, content type, original name).
-- `soma-daemon` emits a peer event **only** when the blob is associated with Yoopta content (i.e. the upload includes Yoopta context like a document ID / node ID). Non-Yoopta blobs are stored but do not generate Yoopta-related peer events.
-
-Where to wire this:
-- Peer event definitions: `backend/crates/peer/src/lib.rs`, `backend/crates/peer/src/events.rs`
-- Daemon storage + IPC/controller: `backend/bins/daemon/`
-
-#### Network distribution (fetch + cache)
-
-- Peers retrieve blobs from each other by CID over libp2p (a simple request/response “get by CID” protocol).
-- When a Yoopta document starts referencing a blob, the writer can publish a lightweight “blob availability hint” (metadata only) so other peers know what to fetch/cache.
-- `soma-botd` participates as a peer that can:
-  - serve blobs it already has in cache
-  - fetch blobs on-demand and keep them if they’re frequently used
-  - evict according to policy (LRU/TTL + size cap)
-
-Non-goals / guardrails:
-- No HTTP upload endpoints in `soma-botd` in any mode.
-- No network “push bytes to bot” protocol; blob transfer is pull-based by CID.
-- Do **not** embed multiaddrs in Yoopta content (they are ephemeral) and do **not** assume every user has a bot; references must resolve via any reachable peer.
-
-#### Yoopta integration
-
-- Yoopta content must store blob *references* (structured objects) rather than bytes.
-- A reference should include at least: `cid`, `mime`, `size`, and optional `name` (and any renderer-specific fields).
-- Dialing happens at runtime: peers fetch by CID using `/soma/blob/1` from any reachable peer that has the blob (daemon store or bot cache).
-
-#### Space mirror bots (cache “everything referenced”)
-
-Some deployments want an always-on bot to cache the complete set of blobs referenced by a space (to improve availability/latency for other peers).
-
-- Role: a `soma-botd` instance can run as a **space mirror**:
-  - maintains a local `blob-cache-dir` (cache-only, populated via fetch)
-  - attempts to keep all referenced CIDs for configured spaces present locally
-- How the bot learns “what to cache”:
-  - **Announce-driven**: when a daemon stores a blob and writes a Yoopta reference, it publishes a lightweight “blob announce” (space_id + cid + mime + size). Mirror bots enqueue a fetch for announced CIDs.
-  - **Crawl/reconcile**: periodically scan the space’s collaborative state/docs, extract blob references, and reconcile (fetch missing; optionally evict unreferenced with TTL).
-- Fetch strategy:
-  - try any reachable peers (peerstore/Identify, rendezvous discovery, relays) until one serves the CID
-  - keep a retry queue (DB-backed, mailbox-style) for transient failures and offline sources
-- Cache policy:
-  - “mirror mode” prefers retention for referenced blobs; eviction is bounded by size/TTL and “unreferenced for N days”
-  - bots still never accept user uploads; the cache is filled only by pulling verified bytes (CID match)
-
-#### Security and limits
-
-- Always validate declared sizes/content types and enforce maximum blob sizes at ingress (daemon IPC) and at egress (network transfer).
-- Always verify bytes match the CID before persisting/serving.
-- Treat all remote blobs as untrusted: no automatic execution/rendering without appropriate sandboxing in the UI.
 
 Specific services (all now live under `backend/`):
 
@@ -196,8 +112,8 @@ Use this list to track domain flows and where the API lives. Mark items off as y
     - Daemon gRPC: `Daemon/JoinSpace(space_id, display_name, device_name, target_peer_id, target_multiaddrs)` (Unix socket, proto `proto/daemon/v1/daemon.proto`)
     - Join protocol: handled in `soma-peer` via a pluggable join decider (default: reject-all). Controllers (daemon/bot) supply a decider and/or admin actions. Membership capabilities are signed with the peer’s libp2p identity key when approved.
     - Bot mode (`soma-botd --mode bot`): auto-approves only when it holds a valid issuer capability for the space; otherwise records a pending join and rejects until manually approved elsewhere. HTTP stays read-only.
-    - Server-daemon mode (`soma-botd --mode server-daemon`): authenticated admin surface for join control (`POST /v1/join/request`, `GET /v1/join/requests`, `POST /v1/join/decide`); controllers delegate to storage + decider (no force-mint).
-    - Daemon gRPC also exposes manual approval surfaces: `Daemon/ListJoinRequests`, `Daemon/DecideJoin` and membership queries via `Daemon/ListMyMemberships`.
+    - Server-daemon mode (`soma-botd --mode server-daemon`): authenticated admin surface for join control (`/v1/join`, `/v1/join/requests`, `/v1/join/decide`); controllers delegate to storage + decider (no force-mint).
+    - Daemon gRPC also exposes manual approval surfaces: `Daemon/ListJoinRequests`, `Daemon/DecideJoin`.
 - [ ] Space create & ownership genesis (verifyable)
     - Add a real “space genesis” artifact (owner-signed record) that other peers can verify; current `spaces.owner_peer_id` is DB-local metadata only.
 - [ ] Issuer capability lifecycle (secure)
@@ -208,11 +124,18 @@ Use this list to track domain flows and where the API lives. Mark items off as y
     - If issuer != owner, verify issuer delegation chain (owner → issuer capability → membership).
 - [ ] Canonical signing format
     - Current signing uses CBOR encoding via `ciborium`, but canonical CBOR is not guaranteed; move to a canonical CBOR scheme before relying on signatures across versions/implementations.
-- [x] Async manual join decision delivery (in-band)
-    - Manual approvals complete via an in-network push: `/soma/join-decision/1` (libp2p request/response) sends a `JoinDecision` to the requester; requester persists membership/decision on receipt.
-    - If the requester is offline, the approver enqueues the outgoing decision in `mailbox` and retries later (TTL bounded; retries with backoff).
-- [ ] Multi-target join submission (recommended)
-    - Requesters should try multiple candidate deciders (owner first, then delegated bots) until one responds; this avoids a hard dependency on any single online peer.
+- [ ] Async manual join decision delivery (in-band)
+    - Current manual approval is effectively “out-of-band”: approver stores a pending join and requester must retry `JoinSpace` to receive the stored decision.
+    - Upgrade to an in-network “push” so manual approvals complete without a retry:
+      - Option A (recommended): add a dedicated libp2p protocol, e.g. `/soma/join-decision/1`, where approver sends a `JoinDecision` to the requester (one-way with optional ack).
+      - Option B: use the `mailbox` table as store-and-forward and add a lightweight peer delivery worker to push queued decisions when the requester is reachable.
+    - Keep the transport in `soma-peer` (new behaviour + `PeerCommand::SendJoinDecision`) and keep policy/persistence in `soma-membership` (decide + enqueue/push).
+    - Delivery semantics (recommended hybrid):
+      - On manual approval, persist the decision immediately (`join_decisions`) and attempt an in-network push to the requester via `/soma/join-decision/1`.
+      - If push fails (dial/outbound failure/timeout), enqueue an outgoing mailbox item (approver-side) and retry later.
+      - Mailbox retry policy should be per-message with backoff (`available_at` + attempts), not a single global scan loop.
+      - When connectivity is detected (connection established or fresh known multiaddrs), opportunistically drain mailbox items for that peer (rate-limited).
+      - Expire undelivered items after a TTL (e.g. 7 days) and mark them `dead` (or delete) to bound storage growth.
 - [ ] Space membership revocation/leave
     - Server-daemon HTTP (mode-gated): `POST /v1/space/revoke` (botd) to revoke capabilities by `space_id` and `subject_peer_id`; daemon gRPC: `Daemon/RevokeSpace` to request or consume a revocation and drop local capability
 - [ ] Space roster/query
@@ -229,9 +152,7 @@ Botd (Postgres or SQLite via `DATABASE_URL`) and daemon (SQLite file) embed the 
 - `spaces(space_id)` – optional display_name, created_at
 - `space_memberships(space_id, subject_peer_id)` – role, issuer_peer_id, issued_at, expires_at, capability blob
 - `join_decisions(decision_id)` – space_id, subject_peer_id, decision enum, reason, created_at, capability blob (audit)
-- `join_requests(request_id)` – join request tracking for both incoming manual approvals and outgoing submissions:
-  - Incoming (approver-side): `is_outgoing=0`, `target_peer_id=<this_peer>`, `status=pending` (used by `ListJoinRequests`/`/v1/join/requests`).
-  - Outgoing (requester-side): `is_outgoing=1`, `target_peer_id=<chosen_decider>`, `status/attempts/next_attempt_at/last_error` for local UI status.
+- `join_requests(request_id)` – pending join submissions awaiting manual approval (space_id, subject_peer_id, display_name, device_name, requested_role, created_at, payload blob)
 - `issuer_capabilities(space_id, delegate_peer_id)` – issuer_peer_id, issued_at, expires_at, capability blob
 - `mailbox(id)` – kind, space_id?, subject_peer_id?, status (queued|leased|done|dead), attempts, available_at, lease_until?, leased_by?, payload blob, created_at
 
@@ -274,7 +195,11 @@ Shared frontend stack (both Soma and Tapia):
 Soma (`desktop/soma`):
 
 - Uses a client to call the Soma peer/daemon over its Unix socket API.
-- Uses `yoopta-editor` for rich text editing.
+- Uses Yoopta for rich text editing (`@yoopta/editor` + `@yoopta/*` tools/plugins).
+- Renderer routes live under `desktop/soma/src/renderer/src/routes/`:
+  - `routes/router.tsx` defines route objects using `react-router` + `createHashRouter`.
+  - `routes/layouts/*` are shell routes that render an `<Outlet />` and shared UI.
+  - `routes/screens/*` are leaf “pages” that render screen content.
 - Uses DaisyUI with two themes.
 - Uses TanStack Query for optimistic UI flows.
 - Main process uses InversifyJS (`inversify` + `reflect-metadata`) for DI; container lives in `desktop/soma/src/main/container.ts`.
@@ -324,6 +249,8 @@ This repo intentionally has multiple binaries. Each has a distinct goal and depl
 
 - Use modern TypeScript with `strict` type-checking.
 - Follow the existing component organization in `desktop/*/src` (feature-oriented structure rather than huge generic folders).
+- Use `kebab-case` for new `.ts`/`.tsx` filenames in both renderer and main process code.
+- Prefer `@renderer/*` imports for renderer code (configured in `desktop/soma/tsconfig.web.json`) over deep relative paths.
 - Prefer function components with hooks over class components.
 - Use existing hooks and state containers before adding new global state mechanisms.
 - Keep side effects (I/O, daemon calls) in dedicated hooks or services, not inside presentational components.
@@ -385,78 +312,8 @@ This repo intentionally has multiple binaries. Each has a distinct goal and depl
 - Approver:
   - `soma-botd --mode bot`: auto-approves only with issuer delegation present; otherwise records `join_requests` and rejects.
   - `soma-botd --mode server-daemon` or `soma-daemon`: manual approval via `JoinRequests` list + `DecideJoin`.
-- Manual approval is asynchronous but does not require a requester retry: approver pushes `JoinDecision` in-network and falls back to mailbox if requester is offline.
-
-### Join Flows (Mermaid)
-
-The join MVP has two distinct planes:
-- **Transport**: `soma-peer` (libp2p request/response protocols).
-- **Policy + persistence**: `soma-membership` + SQLx repositories (`join_requests`, `join_decisions`, `space_memberships`, `mailbox`).
-
-#### 1) Single-target join (owner online)
-```mermaid
-sequenceDiagram
-  autonumber
-  participant R as Requester (bot/daemon)
-  participant P as soma-peer (Requester)
-  participant O as Owner/Decider (bot/daemon)
-  participant S as Storage (Decider DB)
-
-  R->>P: SendJoinRequest(space_id, requested_role, request_id)
-  P->>O: /soma/join/1 JoinRequest
-  O->>S: upsert join_requests (is_outgoing=0, status=pending)
-  O-->>P: JoinDecision (pending manual approval OR approved)
-  Note over O,P: Placeholder “pending” may be returned immediately
-  O->>O: Manual approve (UI/admin)
-  O->>S: record join_decisions + upsert space_memberships
-  O->>P: /soma/join-decision/1 JoinDecision (approved + signed capability)
-  P->>R: PeerEvent::JoinDecision
-  R->>R: ApplyJoinDecision -> persist membership
-```
-
-#### 2) Multi-target retry (owner offline, delegated bot online)
-```mermaid
-sequenceDiagram
-  autonumber
-  participant R as Requester
-  participant P as soma-peer (Requester)
-  participant O as Owner (offline)
-  participant B as Delegated Bot (online)
-  participant SB as Storage (Bot DB)
-
-  Note over R: Candidate deciders: [Owner, Bot1, Bot2...]
-  R->>P: attempt 1 -> target=Owner
-  P-->>R: outbound failure (dial/timeout)
-  R->>R: update join_requests (is_outgoing=1, attempts++, next_attempt_at)
-  R->>P: attempt 2 -> target=Delegated Bot
-  P->>B: /soma/join/1 JoinRequest
-  B->>B: validate issuer delegation (IssuerCapability) + policy
-  B->>SB: record join_decisions + upsert space_memberships
-  B->>P: /soma/join-decision/1 JoinDecision (approved + signed)
-  P->>R: PeerEvent::JoinDecision
-  R->>R: ApplyJoinDecision -> persist membership
-```
-
-#### 3) Decision delivery with mailbox fallback (requester offline)
-```mermaid
-sequenceDiagram
-  autonumber
-  participant D as Decider (bot/daemon)
-  participant SD as Storage (Decider DB)
-  participant PD as soma-peer (Decider)
-  participant R as Requester (offline)
-
-  D->>SD: record join_decisions + upsert space_memberships
-  D->>PD: SendJoinDecision(target=Requester)
-  PD-->>D: outbound failure / timeout
-  D->>SD: mailbox.enqueue(kind=join_decision, status=queued)
-  Note over D: periodic sweep + on-connect drain retries delivery
-  R-->>D: later comes online (ConnectionEstablished)
-  D->>SD: mailbox.list_due_for_subject(Requester) + lease
-  D->>PD: SendJoinDecision(delivery_id)
-  PD-->>D: ack (request/response)
-  D->>SD: mailbox.mark_done(delivery_id)
-```
+- Manual approval is asynchronous: requester must retry `JoinSpace` to receive the stored decision.
+- Target UX: manual approval triggers an in-network push of `JoinDecision` to the requester (no retry). See “Async manual join decision delivery (in-band)” TODO above.
 - Signatures exist, but verification on receipt is not yet enforced; treat them as provisional until verification lands.
 
 ## Networking Services (Relay + Rendezvous)

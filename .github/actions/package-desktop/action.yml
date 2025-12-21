@@ -1,84 +1,110 @@
 name: package-desktop
-description: Build and package desktop artifacts (dmg/deb/install.sh)
+description: Build and package the Soma desktop Electron app for the runner OS/arch.
 
 inputs:
   project_dir:
-    description: Path to desktop project (Electron/React)
+    description: Desktop workspace root
     required: false
-    default: desktop/app
+    default: desktop
+  app:
+    description: Workspace app to build (soma or tapia)
+    required: false
+    default: soma
   artifact_dir:
     description: Output directory for packaged artifacts
     required: false
     default: artifacts/desktop
-  dmg_name:
-    description: Filename for dmg artifact
-    required: false
-    default: soma-desktop.dmg
-  deb_name:
-    description: Filename for deb artifact
-    required: false
-    default: soma-desktop.deb
-  install_script:
-    description: Path to installer script to publish
-    required: false
-    default: desktop/packaging/install.sh
-  banner:
-    description: Path to banner file to include with artifacts
-    required: false
-    default: desktop/packaging/banner.txt
 
 outputs:
-  dmg_path:
-    description: Path to dmg artifact
-    value: ${{ steps.set-outputs.outputs.dmg_path }}
-  deb_path:
-    description: Path to deb artifact
-    value: ${{ steps.set-outputs.outputs.deb_path }}
-  install_script_path:
-    description: Path to installer script
-    value: ${{ steps.set-outputs.outputs.install_script_path }}
-  artifact_dir:
-    description: Directory containing all artifacts
-    value: ${{ steps.set-outputs.outputs.artifact_dir }}
+  version:
+    description: App version (from package.json)
+    value: ${{ steps.meta.outputs.version }}
+  artifact_paths:
+    description: Newline-separated list of produced artifact paths
+    value: ${{ steps.collect.outputs.artifact_paths }}
 
 runs:
-  using: "composite"
+  using: composite
   steps:
-    - name: Ensure corepack (yarn v4) is enabled
+    - name: Setup Node
+      uses: actions/setup-node@v6
+      with:
+        node-version: "24"
+
+    - name: Enable corepack (pnpm)
       shell: bash
       run: |
         corepack enable
-        corepack prepare yarn@stable --activate
+        corepack prepare pnpm@9.0.0 --activate
 
-    - name: Install dependencies and build (best-effort)
+    - name: Install dependencies
+      shell: bash
+      working-directory: ${{ inputs.project_dir }}
+      run: pnpm install --frozen-lockfile
+
+    - id: meta
+      name: Resolve app version
       shell: bash
       working-directory: ${{ inputs.project_dir }}
       run: |
-        if [ -f yarn.lock ]; then
-          yarn install --immutable
-          yarn build
+        set -euo pipefail
+        VERSION="$(node -p \"require('./${{ inputs.app }}/package.json').version\")"
+        echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+    - name: Build app
+      shell: bash
+      working-directory: ${{ inputs.project_dir }}
+      env:
+        CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      run: |
+        set -euo pipefail
+        PKG="@soma/${{ inputs.app }}"
+
+        # Build renderer/main first.
+        pnpm --filter "$PKG" run build
+
+        # Produce OS-native artifacts (include dmg/deb/zip).
+        if [ "${RUNNER_OS}" = "Linux" ]; then
+          pnpm --filter "$PKG" exec electron-builder --linux deb rpm zip
+        elif [ "${RUNNER_OS}" = "macOS" ]; then
+          pnpm --filter "$PKG" exec electron-builder --mac dmg pkg zip
         else
-          echo "No yarn.lock found in $PWD; skipping yarn install/build."
+          echo "Unsupported runner OS: ${RUNNER_OS}"
+          exit 1
         fi
 
-    - name: Prepare artifacts
-      id: prep
+    - id: collect
+      name: Collect artifacts
       shell: bash
+      working-directory: ${{ inputs.project_dir }}
       run: |
+        set -euo pipefail
         mkdir -p "${{ inputs.artifact_dir }}"
-        # TODO: replace placeholder touches with real packaging commands (electron-builder, etc.)
-        touch "${{ inputs.artifact_dir }}/${{ inputs.dmg_name }}"
-        touch "${{ inputs.artifact_dir }}/${{ inputs.deb_name }}"
-        cp "${{ inputs.install_script }}" "${{ inputs.artifact_dir }}/"
-        if [ -f "${{ inputs.banner }}" ]; then
-          cp "${{ inputs.banner }}" "${{ inputs.artifact_dir }}/"
+
+        DIST="./${{ inputs.app }}/dist"
+        if [ ! -d "$DIST" ]; then
+          echo "Expected dist directory at $DIST"
+          exit 1
         fi
 
-    - name: Set outputs
-      id: set-outputs
-      shell: bash
-      run: |
-        echo "dmg_path=${{ inputs.artifact_dir }}/${{ inputs.dmg_name }}" >> "$GITHUB_OUTPUT"
-        echo "deb_path=${{ inputs.artifact_dir }}/${{ inputs.deb_name }}" >> "$GITHUB_OUTPUT"
-        echo "install_script_path=${{ inputs.artifact_dir }}/$(basename "${{ inputs.install_script }}")" >> "$GITHUB_OUTPUT"
-        echo "artifact_dir=${{ inputs.artifact_dir }}" >> "$GITHUB_OUTPUT"
+        # electron-builder emits different extensions depending on target.
+        mapfile -t FILES < <(find "$DIST" -maxdepth 1 -type f \\( -name '*.dmg' -o -name '*.deb' -o -name '*.AppImage' -o -name '*.zip' \\) -print | sort)
+        if [ "${#FILES[@]}" -eq 0 ]; then
+          echo "No artifacts found in $DIST"
+          find "$DIST" -maxdepth 1 -type f -print
+          exit 1
+        fi
+
+        OUTS=()
+        for f in "${FILES[@]}"; do
+          base="$(basename "$f")"
+          out="${{ inputs.artifact_dir }}/${base}"
+          cp "$f" "$out"
+          OUTS+=("$out")
+        done
+
+        {
+          echo "artifact_paths<<EOF"
+          printf '%s\n' "${OUTS[@]}"
+          echo "EOF"
+        } >> "$GITHUB_OUTPUT"

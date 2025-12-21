@@ -1,8 +1,0 @@
-Package: soma-desktop
-Version: 0.1.0
-Section: utils
-Priority: optional
-Architecture: amd64
-Maintainer: TODO
-Description: Soma desktop application
-

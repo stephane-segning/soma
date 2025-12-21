@@ -16,10 +16,10 @@ git clone <this-repo-url> soma
 cd soma
 ```
 
-The Rust workspace lives under `backend/`. The desktop apps (Soma and Tapia) live under `desktop/app/`. Install desktop dependencies with `pnpm`:
+The Rust workspace lives under `backend/`. The desktop apps (Soma and Tapia) live under `desktop/`. Install desktop dependencies with `pnpm`:
 
 ```bash
-cd desktop/app
+cd desktop
 pnpm install
 ```
 
@@ -37,7 +37,7 @@ RUST_LOG=info cargo run --release -p soma-daemon
 ## 3. Start Tapia (Electron UI)
 
 ```bash
-cd desktop/app/tapia
+cd desktop/tapia
 pnpm dev
 ```
 
@@ -47,7 +47,7 @@ pnpm dev
 You can also run the main Soma desktop app similarly:
 
 ```bash
-cd desktop/app/soma
+cd desktop/soma
 pnpm dev
 ```
 
