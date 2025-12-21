@@ -21,7 +21,7 @@ env:
   IMAGE_NAME: ${{ github.repository_owner }}/soma-backend
 
 jobs:
-  build-daemon:
+  build-test:
     name: Build soma-daemon (${{ matrix.os }} / ${{ matrix.arch }})
     runs-on: ${{ matrix.runs_on }}
     strategy:
@@ -56,12 +56,13 @@ jobs:
         with:
           working_directory: backend
           target: ${{ matrix.target }}
-          args: --locked --profile prod -p soma-daemon
+          args: --locked
 
   build:
     name: Docker build for ${{ matrix.name }}
     runs-on: ubuntu-latest
-    needs: build-daemon
+    needs:
+      - build-test
     strategy:
       fail-fast: false
       matrix:
