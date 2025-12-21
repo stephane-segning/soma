@@ -102,8 +102,11 @@ def main() -> int:
 
     log(f"Using daemons={daemons_tag} desktop={desktop_tag} bundle_version={bundle_version}")
 
-    rel_daemons = gh_api_get(f"https://api.github.com/repos/{repo}/releases/tags/{daemons_tag}", token)
-    rel_desktop = gh_api_get(f"https://api.github.com/repos/{repo}/releases/tags/{desktop_tag}", token)
+    def fetch_release(tag: str) -> dict:
+        return gh_api_get(f"https://api.github.com/repos/{repo}/releases/tags/{tag}", token)
+
+    rel_daemons = fetch_release(daemons_tag)
+    rel_desktop = fetch_release(desktop_tag)
 
     # Download daemon+agent tarballs for this OS/arch (allow common arch aliases).
     def arch_aliases(arch: str) -> list[str]:
@@ -113,22 +116,29 @@ def main() -> int:
             return ["amd64", "x86_64"]
         return [arch]
 
-    daemon_asset = None
-    agent_asset = None
-    for arch in arch_aliases(platform_arch):
-        pat_daemon = rf"soma-daemon-{re.escape(daemons_version)}-{platform_os}-{arch}\\.tar\\.gz"
-        pat_agent = rf"soma-agentd-{re.escape(daemons_version)}-{platform_os}-{arch}\\.tar\\.gz"
-        try:
-            daemon_asset = find_asset(rel_daemons, pat_daemon)
-            agent_asset = find_asset(rel_daemons, pat_agent)
-            platform_arch = arch  # use the matched alias for naming downstream
+    def resolve_assets() -> tuple[dict, dict, str]:
+        for arch in arch_aliases(platform_arch):
+            pat_daemon = rf"soma-daemon-{re.escape(daemons_version)}-{platform_os}-{arch}\\.tar\\.gz"
+            pat_agent = rf"soma-agentd-{re.escape(daemons_version)}-{platform_os}-{arch}\\.tar\\.gz"
+            try:
+                return find_asset(rel_daemons, pat_daemon), find_asset(rel_daemons, pat_agent), arch
+            except Exception:
+                continue
+        return None, None, platform_arch
+
+    attempts = 0
+    daemon_asset = agent_asset = None
+    while attempts < 5 and (daemon_asset is None or agent_asset is None):
+        daemon_asset, agent_asset, matched_arch = resolve_assets()
+        if daemon_asset and agent_asset:
+            platform_arch = matched_arch
             break
-        except Exception:
-            daemon_asset = None
-            agent_asset = None
+        attempts += 1
+        time.sleep(10)
+        rel_daemons = fetch_release(daemons_tag)  # refresh assets and retry
     if daemon_asset is None or agent_asset is None:
         raise RuntimeError(
-            f"daemon/agent assets not found for {platform_os}-{platform_arch} (looked for aliases {arch_aliases(platform_arch)})"
+            f"daemon/agent assets not found for {platform_os}-{platform_arch} after retries (aliases tried: {arch_aliases(platform_arch)})"
         )
 
     platform_out = os.path.join(out_dir, f"{platform_os}-{platform_arch}")
