@@ -74,7 +74,7 @@ tracing = { version = "0", features = ["attributes", "async-await", "std"] }
 mimalloc = "0"
 futures = "0.3"
 prometheus-client = "0.22"
-prometheus-client-derive-encode = "0.4"
+prometheus-client-derive-encode = "0.5"
 tempfile = "3"
 base64 = "0.22"
 sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "macros", "any", "postgres", "sqlite", "migrate", "time", "chrono", "json"] }
