@@ -124,10 +124,12 @@ jobs:
           AGENT="backend/target/${{ matrix.target }}/prod/soma-agentd"
           cp "$DAEMON" "$OUT/soma-daemon"
           cp "$AGENT" "$OUT/soma-agentd"
-          (cd "$OUT" && shasum -a 256 soma-daemon soma-agentd > SHA256SUMS.txt 2>/dev/null || sha256sum soma-daemon soma-agentd > SHA256SUMS.txt)
+          SUMS="SHA256SUMS-${{ matrix.os }}-${{ matrix.arch }}.txt"
+          (cd "$OUT" && shasum -a 256 soma-daemon soma-agentd > "$SUMS" 2>/dev/null || sha256sum soma-daemon soma-agentd > "$SUMS")
           tar -C "$OUT" -czf "$OUT/soma-daemon-${{ needs.prepare.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}.tar.gz" soma-daemon
           tar -C "$OUT" -czf "$OUT/soma-agentd-${{ needs.prepare.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}.tar.gz" soma-agentd
           echo "out_dir=$OUT" >> "$GITHUB_OUTPUT"
+          echo "sums_file=$OUT/$SUMS" >> "$GITHUB_OUTPUT"
 
       - name: Generate SBOM (Syft)
         uses: anchore/sbom-action@v0
@@ -145,5 +147,5 @@ jobs:
           files: |
             ${{ steps.pkg.outputs.out_dir }}/soma-daemon-${{ needs.prepare.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}.tar.gz
             ${{ steps.pkg.outputs.out_dir }}/soma-agentd-${{ needs.prepare.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}.tar.gz
-            ${{ steps.pkg.outputs.out_dir }}/SHA256SUMS.txt
+            ${{ steps.pkg.outputs.sums_file }}
             ${{ steps.pkg.outputs.out_dir }}/sbom-daemons-${{ needs.prepare.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}.spdx.json
