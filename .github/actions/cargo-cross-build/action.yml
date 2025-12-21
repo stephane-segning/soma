@@ -19,7 +19,7 @@ inputs:
   use_cross:
     description: Use cross (true/false). Set to false for native cargo builds.
     required: false
-    default: "true"
+    default: "false"
 
 runs:
   using: composite
