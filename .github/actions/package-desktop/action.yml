@@ -103,6 +103,9 @@ runs:
           exit 1
         fi
 
+        ARTIFACT_DIR_ABS="$GITHUB_WORKSPACE/${{ inputs.artifact_dir }}"
+        mkdir -p "$ARTIFACT_DIR_ABS"
+
         OUTS_FILE="$RUNNER_TEMP/desktop-artifacts.txt"
         : > "$OUTS_FILE"
 
@@ -114,7 +117,7 @@ runs:
         do
           [ -e "$f" ] || continue
           base="$(basename "$f")"
-          out="${{ inputs.artifact_dir }}/${base}"
+          out="$ARTIFACT_DIR_ABS/${base}"
           cp "$f" "$out"
           printf '%s\n' "$out" >> "$OUTS_FILE"
         done

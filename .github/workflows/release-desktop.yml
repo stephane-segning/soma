@@ -109,7 +109,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          OUT_DIR="artifacts/desktop/${{ matrix.os }}-${{ matrix.arch }}"
+          OUT_DIR="$GITHUB_WORKSPACE/artifacts/desktop/${{ matrix.os }}-${{ matrix.arch }}"
           VERSION="${{ needs.prepare.outputs.version }}"
 
           ARTIFACTS="${{ steps.package.outputs.artifact_paths }}"
