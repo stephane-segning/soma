@@ -10,6 +10,10 @@ inputs:
     description: Workspace app to build (soma or tapia)
     required: false
     default: soma
+  arch:
+    description: Target architecture for packaging (x64 or arm64). Defaults to host arch.
+    required: false
+    default: ""
   artifact_dir:
     description: Output directory for packaged artifacts
     required: false
@@ -59,15 +63,27 @@ runs:
       run: |
         set -euo pipefail
         PKG="@soma/${{ inputs.app }}"
+        ARCH="${{ inputs.arch }}"
+        if [ -z "$ARCH" ]; then
+          case "$(uname -m)" in
+            x86_64|amd64) ARCH="x64" ;;
+            aarch64|arm64) ARCH="arm64" ;;
+            *) echo "Unsupported host arch: $(uname -m)" >&2; exit 1 ;;
+          esac
+        fi
+        case "$ARCH" in
+          x64|arm64) ;;
+          *) echo "Unsupported arch input: $ARCH (expected x64 or arm64)" >&2; exit 1 ;;
+        esac
 
         # Build renderer/main first.
         pnpm --filter "$PKG" run build
 
         # Produce OS-native artifacts (include dmg/deb/zip).
         if [ "${RUNNER_OS}" = "Linux" ]; then
-          pnpm --filter "$PKG" exec electron-builder --linux deb rpm zip
+          pnpm --filter "$PKG" exec electron-builder --linux deb rpm zip --"$ARCH"
         elif [ "${RUNNER_OS}" = "macOS" ]; then
-          pnpm --filter "$PKG" exec electron-builder --mac dmg pkg zip
+          pnpm --filter "$PKG" exec electron-builder --mac dmg pkg zip --"$ARCH"
         else
           echo "Unsupported runner OS: ${RUNNER_OS}"
           exit 1
@@ -87,27 +103,27 @@ runs:
           exit 1
         fi
 
-        # electron-builder emits different extensions depending on target.
-        FILES="$(find "$DIST" -maxdepth 1 -type f \\( \
-          -name '*.dmg' -o -name '*.pkg' -o \
-          -name '*.deb' -o -name '*.rpm' -o -name '*.AppImage' -o \
-          -name '*.zip' \
-        \\) -print | sort || true)"
-        if [ -z "$FILES" ]; then
-          echo "No artifacts found in $DIST"
-          find "$DIST" -maxdepth 1 -type f -print
-          exit 1
-        fi
-
         OUTS_FILE="$RUNNER_TEMP/desktop-artifacts.txt"
         : > "$OUTS_FILE"
-        printf '%s\n' "$FILES" | while IFS= read -r f; do
-          [ -n "$f" ] || continue
+
+        # Use globs instead of find-grouping to avoid shell parsing issues across runners.
+        for f in \
+          "$DIST"/*.dmg "$DIST"/*.pkg \
+          "$DIST"/*.deb "$DIST"/*.rpm "$DIST"/*.AppImage \
+          "$DIST"/*.zip
+        do
+          [ -e "$f" ] || continue
           base="$(basename "$f")"
           out="${{ inputs.artifact_dir }}/${base}"
           cp "$f" "$out"
           printf '%s\n' "$out" >> "$OUTS_FILE"
         done
+
+        if [ ! -s "$OUTS_FILE" ]; then
+          echo "No artifacts found in $DIST"
+          find "$DIST" -maxdepth 1 -type f -print
+          exit 1
+        fi
 
         {
           echo "artifact_paths<<EOF"

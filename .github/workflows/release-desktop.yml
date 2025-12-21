@@ -78,7 +78,7 @@ jobs:
             runs_on: ubuntu-latest
           - os: linux
             arch: arm64
-            runs_on: ubuntu-24.04-arm
+            runs_on: ubuntu-latest
           - os: macos
             arch: amd64
             runs_on: macos-15-intel
@@ -101,6 +101,7 @@ jobs:
         with:
           project_dir: desktop
           app: soma
+          arch: ${{ matrix.arch == 'amd64' && 'x64' || 'arm64' }}
           artifact_dir: artifacts/desktop/${{ matrix.os }}-${{ matrix.arch }}
 
       - name: Normalize artifact names (OS/arch suffix)
