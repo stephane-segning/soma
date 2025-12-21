@@ -48,7 +48,7 @@ runs:
       working-directory: ${{ inputs.project_dir }}
       run: |
         set -euo pipefail
-        VERSION="$(node -p \"require('./${{ inputs.app }}/package.json').version\")"
+        VERSION="$(node -p "require('./${{ inputs.app }}/package.json').version")"
         echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
     - name: Build app
@@ -88,23 +88,29 @@ runs:
         fi
 
         # electron-builder emits different extensions depending on target.
-        mapfile -t FILES < <(find "$DIST" -maxdepth 1 -type f \\( -name '*.dmg' -o -name '*.deb' -o -name '*.AppImage' -o -name '*.zip' \\) -print | sort)
-        if [ "${#FILES[@]}" -eq 0 ]; then
+        FILES="$(find "$DIST" -maxdepth 1 -type f \\( \
+          -name '*.dmg' -o -name '*.pkg' -o \
+          -name '*.deb' -o -name '*.rpm' -o -name '*.AppImage' -o \
+          -name '*.zip' \
+        \\) -print | sort || true)"
+        if [ -z "$FILES" ]; then
           echo "No artifacts found in $DIST"
           find "$DIST" -maxdepth 1 -type f -print
           exit 1
         fi
 
-        OUTS=()
-        for f in "${FILES[@]}"; do
+        OUTS_FILE="$RUNNER_TEMP/desktop-artifacts.txt"
+        : > "$OUTS_FILE"
+        printf '%s\n' "$FILES" | while IFS= read -r f; do
+          [ -n "$f" ] || continue
           base="$(basename "$f")"
           out="${{ inputs.artifact_dir }}/${base}"
           cp "$f" "$out"
-          OUTS+=("$out")
+          printf '%s\n' "$out" >> "$OUTS_FILE"
         done
 
         {
           echo "artifact_paths<<EOF"
-          printf '%s\n' "${OUTS[@]}"
+          cat "$OUTS_FILE"
           echo "EOF"
         } >> "$GITHUB_OUTPUT"
