@@ -16,6 +16,10 @@ inputs:
     description: Rust toolchain channel (stable/beta/nightly)
     required: false
     default: stable
+  use_cross:
+    description: Use cross (true/false). Set to false for native cargo builds.
+    required: false
+    default: "true"
 
 runs:
   using: composite
@@ -39,7 +43,27 @@ runs:
       with:
         workspaces: ${{ inputs.working_directory }} -> target
 
-    - name: Cargo build (${{ inputs.target }})
+    - name: Install target toolchain (native)
+      if: ${{ inputs.use_cross != 'true' }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        rustup target add "${{ inputs.target }}"
+        if [[ "${{ inputs.target }}" == aarch64-unknown-linux-gnu* ]]; then
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends gcc-aarch64-linux-gnu
+        fi
+
+    - name: Cargo build (native)
+      if: ${{ inputs.use_cross != 'true' }}
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}
+      run: |
+        set -euo pipefail
+        cargo build --target "${{ inputs.target }}" ${{ inputs.args }}
+
+    - name: Cargo build (cross)
+      if: ${{ inputs.use_cross == 'true' }}
       uses: houseabsolute/actions-rust-cross@v0
       with:
         command: build
@@ -47,4 +71,3 @@ runs:
         toolchain: ${{ inputs.toolchain }}
         working-directory: ${{ inputs.working_directory }}
         args: ${{ inputs.args }}
-
