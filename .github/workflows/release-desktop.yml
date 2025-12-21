@@ -140,6 +140,26 @@ jobs:
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
+      - name: Generate checksums
+        id: sums
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT_DIR="$GITHUB_WORKSPACE/artifacts/desktop/${{ matrix.os }}-${{ matrix.arch }}"
+          SUMS_FILE="$OUT_DIR/SHA256SUMS-${{ matrix.os }}-${{ matrix.arch }}.txt"
+          pushd "$OUT_DIR" >/dev/null
+          # if shasum is present prefer it to match mac runners; fallback to sha256sum.
+          if command -v shasum >/dev/null 2>&1; then
+            shasum -a 256 *.dmg *.pkg *.deb *.rpm *.AppImage *.zip 2>/dev/null | sed '/^shasum: /d' > "$SUMS_FILE" || true
+          else
+            sha256sum *.dmg *.pkg *.deb *.rpm *.AppImage *.zip 2>/dev/null > "$SUMS_FILE" || true
+          fi
+          popd >/dev/null
+          if [ ! -s "$SUMS_FILE" ]; then
+            echo "WARN: checksum file empty (no artifacts?)"
+          fi
+          echo "sums_file=$SUMS_FILE" >> "$GITHUB_OUTPUT"
+
       - name: Generate SBOM (Syft)
         uses: anchore/sbom-action@v0
         with:
@@ -155,4 +175,5 @@ jobs:
           tag_name: ${{ needs.prepare.outputs.tag }}
           files: |
             ${{ steps.norm.outputs.artifact_paths }}
+            ${{ steps.sums.outputs.sums_file }}
             artifacts/desktop/${{ matrix.os }}-${{ matrix.arch }}/sbom-desktop-${{ needs.prepare.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}.spdx.json

@@ -119,7 +119,7 @@ runs:
 
     - name: Install Cosign
       if: ${{ inputs.push == 'true' }}
-      uses: sigstore/cosign-installer@v4
+      uses: sigstore/cosign-installer@v3
 
     - name: Vulnerability scan (Trivy)
       if: ${{ inputs.push == 'true' }}
