@@ -7,6 +7,7 @@ import subprocess
 import sys
 import time
 import urllib.request
+from pathlib import Path
 
 
 def log(msg: str) -> None:
@@ -56,7 +57,7 @@ def find_asset(release: dict, pattern: str) -> dict:
         name = asset.get("name", "")
         if rx.fullmatch(name):
             return asset
-    raise RuntimeError(f"asset not found: pattern={pattern}")
+    raise RuntimeError(f"asset not found: pattern={pattern}; available={[a.get('name','') for a in release.get('assets', [])]}")
 
 
 def write_text(path: str, content: str) -> None:
@@ -104,15 +105,31 @@ def main() -> int:
     rel_daemons = gh_api_get(f"https://api.github.com/repos/{repo}/releases/tags/{daemons_tag}", token)
     rel_desktop = gh_api_get(f"https://api.github.com/repos/{repo}/releases/tags/{desktop_tag}", token)
 
-    # Download daemon+agent tarballs for this OS/arch.
-    daemon_asset = find_asset(
-        rel_daemons,
-        rf"soma-daemon-{re.escape(daemons_version)}-{platform_os}-{platform_arch}\\.tar\\.gz",
-    )
-    agent_asset = find_asset(
-        rel_daemons,
-        rf"soma-agentd-{re.escape(daemons_version)}-{platform_os}-{platform_arch}\\.tar\\.gz",
-    )
+    # Download daemon+agent tarballs for this OS/arch (allow common arch aliases).
+    def arch_aliases(arch: str) -> list[str]:
+        if arch == "arm64":
+            return ["arm64", "aarch64"]
+        if arch == "amd64":
+            return ["amd64", "x86_64"]
+        return [arch]
+
+    daemon_asset = None
+    agent_asset = None
+    for arch in arch_aliases(platform_arch):
+        pat_daemon = rf"soma-daemon-{re.escape(daemons_version)}-{platform_os}-{arch}\\.tar\\.gz"
+        pat_agent = rf"soma-agentd-{re.escape(daemons_version)}-{platform_os}-{arch}\\.tar\\.gz"
+        try:
+            daemon_asset = find_asset(rel_daemons, pat_daemon)
+            agent_asset = find_asset(rel_daemons, pat_agent)
+            platform_arch = arch  # use the matched alias for naming downstream
+            break
+        except Exception:
+            daemon_asset = None
+            agent_asset = None
+    if daemon_asset is None or agent_asset is None:
+        raise RuntimeError(
+            f"daemon/agent assets not found for {platform_os}-{platform_arch} (looked for aliases {arch_aliases(platform_arch)})"
+        )
 
     platform_out = os.path.join(out_dir, f"{platform_os}-{platform_arch}")
     staging = os.path.join(platform_out, "staging")
