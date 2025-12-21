@@ -53,11 +53,18 @@ def resolve_latest_tag(repo: str, token: str, prefix: str) -> tuple[str, str]:
 
 def find_asset(release: dict, pattern: str) -> dict:
     rx = re.compile(pattern)
-    for asset in release.get("assets", []):
+    assets = release.get("assets", [])
+    # Prefer exact/full match, but allow fallback to regex search to handle minor naming variants.
+    for asset in assets:
         name = asset.get("name", "")
         if rx.fullmatch(name):
             return asset
-    raise RuntimeError(f"asset not found: pattern={pattern}; available={[a.get('name','') for a in release.get('assets', [])]}")
+    for asset in assets:
+        name = asset.get("name", "")
+        if rx.search(name):
+            log(f"[find_asset] fallback regex match for pattern={pattern!r} -> {name!r}")
+            return asset
+    raise RuntimeError(f"asset not found: pattern={pattern}; available={[a.get('name','') for a in assets]}")
 
 
 def write_text(path: str, content: str) -> None:
@@ -107,6 +114,8 @@ def main() -> int:
 
     rel_daemons = fetch_release(daemons_tag)
     rel_desktop = fetch_release(desktop_tag)
+    log(f"[release] daemons assets: {[a.get('name','') for a in rel_daemons.get('assets', [])]}")
+    log(f"[release] desktop assets: {[a.get('name','') for a in rel_desktop.get('assets', [])]}")
 
     # Download daemon+agent tarballs for this OS/arch (allow common arch aliases).
     def arch_aliases(arch: str) -> list[str]:
