@@ -11,4 +11,6 @@ build
 .sock
 .pnpm-store
 
-blob*
+# Local blob storage pools (runtime data, not source).
+backend/blobs/
+backend/blobs-test/

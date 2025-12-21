@@ -42,7 +42,7 @@ jobs:
           if [ -n "${{ inputs.version }}" ]; then
             VERSION="${{ inputs.version }}"
           else
-            VERSION="$(python3 -c 'import re; t=open(\"backend/Cargo.toml\",\"r\",encoding=\"utf-8\").read(); m=re.search(r\"\\[workspace\\.package\\][\\s\\S]*?^version\\s*=\\s*\\\"([^\\\"]+)\\\"\", t, re.M); print(m.group(1) if m else \"\")')"
+            VERSION="$(python3 -c 'import re; t=open("backend/Cargo.toml","r",encoding="utf-8").read(); m=re.search(r"\\[workspace\\.package\\][\\s\\S]*?^version\\s*=\\s*\\"([^\\"]+)\\"", t, re.M); print(m.group(1) if m else "")')"
             if [ -z "$VERSION" ]; then
               echo "Failed to resolve backend workspace version from backend/Cargo.toml" >&2
               exit 1
