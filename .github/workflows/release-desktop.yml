@@ -39,7 +39,7 @@ jobs:
           if [ -n "${{ inputs.version }}" ]; then
             VERSION="${{ inputs.version }}"
           else
-            VERSION="$(python3 -c 'import json; print(json.load(open(\"desktop/soma/package.json\",\"r\",encoding=\"utf-8\"))[\"version\"])')"
+            VERSION="$(python3 -c 'import json; print(json.load(open("desktop/soma/package.json", "r", encoding="utf-8"))["version"])')"
           fi
           if [ -n "${{ inputs.tag }}" ]; then
             TAG="${{ inputs.tag }}"
