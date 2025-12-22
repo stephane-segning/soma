@@ -21,29 +21,21 @@ env:
   IMAGE_NAME: ${{ github.repository_owner }}/soma-backend
 
 jobs:
-  build-test:
-    name: Build soma-daemon (${{ matrix.os }} / ${{ matrix.arch }})
+  build-binaries:
+    name: Build backend bins (${{ matrix.arch }})
     runs-on: ${{ matrix.runs_on }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu
-            arch: amd64
+          - arch: amd64
             runs_on: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-          - os: ubuntu
-            arch: arm64
+            target: x86_64-unknown-linux-musl
+            linker_env: CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER
+          - arch: arm64
             runs_on: ubuntu-24.04-arm
-            target: aarch64-unknown-linux-gnu
-          - os: macos
-            arch: amd64
-            runs_on: macos-15-intel
-            target: x86_64-apple-darwin
-          - os: macos
-            arch: arm64
-            runs_on: macos-latest
-            target: aarch64-apple-darwin
+            target: aarch64-unknown-linux-musl
+            linker_env: CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -51,18 +43,55 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Build soma-daemon
-        uses: ./.github/actions/cargo-cross-build
+      - name: Install build deps
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            musl-tools build-essential pkg-config perl protobuf-compiler libprotobuf-dev
+          rustup target add ${{ matrix.target }}
+
+      - name: Build backend binaries (musl)
+        shell: bash
+        working-directory: backend
+        run: |
+          set -euo pipefail
+          export PROTOC=/usr/bin/protoc
+          export PROTOC_INCLUDE=/usr/include
+          export ${{ matrix.linker_env }}=musl-gcc
+          cargo build --profile prod --locked --target "${{ matrix.target }}" \
+            -p soma-botd \
+            -p soma-relayd \
+            -p soma-rendezvousd \
+            -p soma-bffd \
+            -p soma-serverd
+
+      - name: Collect artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="dist/backend/linux-${{ matrix.arch }}"
+          mkdir -p "$OUT"
+          cp backend/target/${{ matrix.target }}/prod/soma-botd "$OUT/"
+          cp backend/target/${{ matrix.target }}/prod/soma-relayd "$OUT/"
+          cp backend/target/${{ matrix.target }}/prod/soma-rendezvousd "$OUT/"
+          cp backend/target/${{ matrix.target }}/prod/soma-bffd "$OUT/"
+          cp backend/target/${{ matrix.target }}/prod/soma-serverd "$OUT/"
+          (cd "$OUT" && shasum -a 256 soma-* > SHA256SUMS.txt 2>/dev/null || sha256sum soma-* > SHA256SUMS.txt)
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
         with:
-          working_directory: backend
-          target: ${{ matrix.target }}
-          args: --locked
+          name: backend-bins-${{ matrix.arch }}
+          path: dist/backend/linux-${{ matrix.arch }}
+          if-no-files-found: error
 
   build:
     name: Docker build for ${{ matrix.name }}
     runs-on: ubuntu-latest
     needs:
-      - build-test
+      - build-binaries
     strategy:
       fail-fast: false
       matrix:
@@ -100,6 +129,23 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+
+      - name: Download amd64 artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-bins-amd64
+          path: dist/backend/linux-amd64
+
+      - name: Download arm64 artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-bins-arm64
+          path: dist/backend/linux-arm64
+
+      - name: Ensure executables
+        shell: bash
+        run: |
+          chmod +x dist/backend/linux-amd64/soma-* dist/backend/linux-arm64/soma-*
 
       - id: lowercase
         name: Lowercase image name

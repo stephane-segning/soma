@@ -1,9 +1,9 @@
+version: "3.9"
+
 services:
   soma-relayd:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: relayd
+    image: ${SOMA_BACKEND_IMAGE_PREFIX:-ghcr.io/stephane-segning/soma-backend}-relayd:${SOMA_TAG:-latest}
+    pull_policy: always
     environment:
       RUST_LOG: info
       HTTP_ADDR: 0.0.0.0:8081
@@ -17,10 +17,8 @@ services:
       - relayd-data:/data
 
   soma-rendezvousd:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: rendezvousd
+    image: ${SOMA_BACKEND_IMAGE_PREFIX:-ghcr.io/stephane-segning/soma-backend}-rendezvousd:${SOMA_TAG:-latest}
+    pull_policy: always
     environment:
       RUST_LOG: info
       HTTP_ADDR: 0.0.0.0:8082
@@ -34,10 +32,8 @@ services:
       - rendezvousd-data:/data
 
   soma-botd:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: botd
+    image: ${SOMA_BACKEND_IMAGE_PREFIX:-ghcr.io/stephane-segning/soma-backend}-botd:${SOMA_TAG:-latest}
+    pull_policy: always
     depends_on:
       - soma-relayd
       - soma-rendezvousd
@@ -64,10 +60,8 @@ services:
       - botd-blobs:/blobs
 
   soma-bffd:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: bffd
+    image: ${SOMA_BACKEND_IMAGE_PREFIX:-ghcr.io/stephane-segning/soma-backend}-bffd:${SOMA_TAG:-latest}
+    pull_policy: always
     environment:
       RUST_LOG: info
       HTTP_ADDR: 0.0.0.0:8083
@@ -86,4 +80,3 @@ volumes:
   botd-data: {}
   botd-blobs: {}
   bffd-data: {}
-
