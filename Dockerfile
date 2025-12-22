@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.5
 
-FROM rust:1.85-bookworm AS base
+FROM rust:1.88-bookworm AS base
 
 ENV CARGO_TERM_COLOR=always
 
