@@ -20,6 +20,7 @@ RUN \
     pkg-config \
     perl \
     protobuf-compiler \
+    libprotobuf-dev \
     ca-certificates \
   && rustup target add x86_64-unknown-linux-musl aarch64-unknown-linux-musl
 
@@ -46,6 +47,8 @@ RUN \
       ;; \
   esac; \
   cd /app/backend; \
+  export PROTOC=/usr/bin/protoc; \
+  export PROTOC_INCLUDE=/usr/include; \
   cargo build --profile prod --locked --target "${RUST_TARGET}" \
     -p soma-botd \
     -p soma-relayd \
