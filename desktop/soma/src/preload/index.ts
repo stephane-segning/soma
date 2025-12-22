@@ -39,11 +39,65 @@ const api = {
 			documentId: string;
 			contentJson: string;
 			updatedAtMs: number;
+			published?: boolean;
 		}): Promise<{ ok: true }> =>
 			electronAPI.ipcRenderer.invoke(
 				"documents:queue-daemon-sync",
 				input,
 			) as Promise<{ ok: true }>,
+		ensurePage: (input: {
+			spaceId: string;
+			pageId?: string;
+			title?: string;
+			parentPageIds?: string[];
+		}) =>
+			electronAPI.ipcRenderer.invoke("documents:ensure-page", input) as Promise<{
+				spaceId: string;
+				pageId: string;
+				title: string;
+				parentPageIds: string[];
+				createdAtMs: number;
+				updatedAtMs: number;
+			}>,
+		listPages: (input: { spaceId: string }) =>
+			electronAPI.ipcRenderer.invoke("documents:list-pages", input) as Promise<
+				Array<{
+					spaceId: string;
+					pageId: string;
+					title: string;
+					parentPageIds: string[];
+					createdAtMs: number;
+					updatedAtMs: number;
+				}>
+			>,
+		updatePageTitle: (input: { spaceId: string; pageId: string; title: string }) =>
+			electronAPI.ipcRenderer.invoke(
+				"documents:update-page-title",
+				input,
+			) as Promise<{
+				spaceId: string;
+				pageId: string;
+				title: string;
+				parentPageIds: string[];
+				createdAtMs: number;
+				updatedAtMs: number;
+			} | null>,
+		setPageParents: (input: {
+			spaceId: string;
+			pageId: string;
+			parentPageIds: string[];
+		}) =>
+			electronAPI.ipcRenderer.invoke(
+				"documents:set-page-parents",
+				input,
+			) as Promise<{
+				spaceId: string;
+				pageId: string;
+				title: string;
+				parentPageIds: string[];
+				createdAtMs: number;
+				updatedAtMs: number;
+			} | null>,
 	},
 	blobs: {
 		stage: (input: { bytes: Uint8Array; mime: string; fileName?: string }) =>
@@ -78,6 +132,13 @@ const api = {
 					input,
 				) as Promise<{ ok: true; uploaded: number }>,
 		},
+	agent: {
+		inlineComplete: (input: { prompt: string; context?: string }) =>
+			electronAPI.ipcRenderer.invoke(
+				"agent:inline-complete",
+				input,
+			) as Promise<{ completion: string }>,
+	},
 	setLastRoute: (route: string): void =>
 		electronAPI.ipcRenderer.send("router:set-last-route", route),
 	window: {

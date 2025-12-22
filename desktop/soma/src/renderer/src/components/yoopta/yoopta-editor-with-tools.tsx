@@ -31,12 +31,13 @@ import Table from "@yoopta/table";
 import Divider from "@yoopta/divider";
 import Toolbar, { DefaultToolbarRender } from "@yoopta/toolbar";
 import LinkTool, { DefaultLinkToolRender } from "@yoopta/link-tool";
-import { useMemo, useState } from "react";
+import React, { useEffect, useMemo } from "react";
 
 import { YooptaEditorView } from "./yoopta-editor-view";
 import { uploadToBlob } from "@renderer/lib/blob";
 import { YooptaPlugin } from "@yoopta/editor/dist/plugins";
 import { SlateElement } from "@yoopta/editor/dist/editor/types";
+import { setEditorValue } from "@yoopta/editor/dist/editor/core/setEditorValue";
 
 type Props = {
 	placeholder?: string;
@@ -137,6 +138,10 @@ function YooptaEditorWithTools({
 		[],
 	);
 
+	useEffect(() => {
+		setEditorValue(editor, initialValue ?? null);
+	}, [editor, initialValue]);
+
 	const tools: Partial<Tools> = useMemo(
 		() => ({
 			ActionMenu: {
@@ -155,25 +160,17 @@ function YooptaEditorWithTools({
 		[],
 	);
 
-	const [value, setValue] = useState<YooptaContentValue | undefined>(
-		() => initialValue,
-	);
-
 	return (
 		<YooptaEditorView
 			className={className}
 			editor={editor}
 			marks={marks}
-			onChange={(nextValue) => {
-				setValue(nextValue);
-				onValueChange?.(nextValue);
-			}}
+			onChange={(nextValue) => onValueChange?.(nextValue)}
 			placeholder={placeholder}
 			plugins={plugins}
 			readOnly={readOnly}
 			style={style}
 			tools={tools}
-			value={value}
 		/>
 	);
 }

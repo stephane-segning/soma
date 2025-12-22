@@ -34,6 +34,7 @@ function useQueueDaemonSyncMutation() {
 			documentId: string;
 			contentJson: string;
 			updatedAtMs: number;
+			published?: boolean;
 		}) => window.api.documents.queueDaemonSync(input),
 	});
 }

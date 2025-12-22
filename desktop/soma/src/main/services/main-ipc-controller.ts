@@ -4,6 +4,7 @@ import { inject, injectable } from 'inversify'
 import { readLastRoute, writeLastRoute } from '../route-store'
 import { TYPES } from '../tokens'
 import type { AppSettingsService } from './app-settings-service'
+import type { AgentService } from './agent-service'
 import type { DaemonClient } from './daemon-client'
 import type { DbService } from './db-service'
 import type { DocumentsService } from './documents-service'
@@ -17,6 +18,7 @@ export class MainIpcController {
     @inject(TYPES.appSettingsService) private readonly appSettings: AppSettingsService,
     @inject(TYPES.dbService) private readonly db: DbService,
     @inject(TYPES.documentsService) private readonly documents: DocumentsService,
+    @inject(TYPES.agentService) private readonly agent: AgentService,
     @inject(TYPES.daemonClient) private readonly daemon: DaemonClient
   ) {}
 
@@ -113,6 +115,37 @@ export class MainIpcController {
     )
 
     ipcMain.handle(
+      'documents:ensure-page',
+      async (
+        _event,
+        input: { spaceId: string; pageId?: string; title?: string; parentPageIds?: string[] }
+      ) => {
+        return this.documents.ensurePage(input)
+      }
+    )
+
+    ipcMain.handle('documents:list-pages', async (_event, input: { spaceId: string }) => {
+      return this.documents.listPages(input.spaceId)
+    })
+
+    ipcMain.handle(
+      'documents:update-page-title',
+      async (_event, input: { spaceId: string; pageId: string; title: string }) => {
+        return this.documents.updatePageTitle(input.spaceId, input.pageId, input.title)
+      }
+    )
+
+    ipcMain.handle(
+      'documents:set-page-parents',
+      async (
+        _event,
+        input: { spaceId: string; pageId: string; parentPageIds: string[] }
+      ) => {
+        return this.documents.setPageParents(input.spaceId, input.pageId, input.parentPageIds)
+      }
+    )
+
+    ipcMain.handle(
       'daemon:upsert-document',
       async (
         _event,
@@ -176,6 +209,13 @@ export class MainIpcController {
         input: { bytes: Uint8Array; mime: string; fileName?: string }
       ) => {
         return this.documents.stageBlob(input)
+      }
+    )
+
+    ipcMain.handle(
+      'agent:inline-complete',
+      async (_event, input: { prompt: string; context?: string }) => {
+        return this.agent.inlineComplete(input)
       }
     )
 

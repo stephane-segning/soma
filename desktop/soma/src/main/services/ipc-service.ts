@@ -1,8 +1,8 @@
-import { BrowserWindow, ipcMain } from "electron";
-import { injectable } from "inversify";
-import { Observable, Subject } from "rxjs";
-import { filter, map, share } from "rxjs/operators";
+import { type BrowserWindow, ipcMain } from "electron";
 import log from "electron-log";
+import { injectable } from "inversify";
+import { type Observable, Subject } from "rxjs";
+import { filter, map, share } from "rxjs/operators";
 
 type IpcEnvelope<T = unknown> = {
 	channel: string;
@@ -45,6 +45,7 @@ export class IpcService {
 			this.logger.warn(`No target window to send channel "${channel}"`);
 			return;
 		}
+
 		this.targetWindow.webContents.send(MAIN_EVENT_CHANNEL, {
 			channel,
 			payload,

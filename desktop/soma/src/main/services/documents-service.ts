@@ -26,6 +26,17 @@ type QueueDaemonSyncInput = {
 	documentId: string;
 	contentJson: string;
 	updatedAtMs: number;
+	published?: boolean;
+};
+
+type DaemonOutboxItem = {
+	id: string;
+	spaceId: string;
+	documentId: string;
+	contentJson: string;
+	published: 0 | 1;
+	updatedAtMs: number;
+	createdAtMs: number;
 };
 
 type StageBlobInput = {
@@ -40,6 +51,22 @@ type StagedBlob = {
 	byteLength: number;
 	createdAtMs: number;
 	url: string;
+};
+
+type EnsurePageInput = {
+	spaceId: string;
+	pageId?: string;
+	title?: string;
+	parentPageIds?: string[];
+};
+
+type PageRecord = {
+	spaceId: string;
+	pageId: string;
+	title: string;
+	parentPageIds: string[];
+	createdAtMs: number;
+	updatedAtMs: number;
 };
 
 const LOCAL_BLOB_SCHEME = "soma-blob";
@@ -62,18 +89,23 @@ function blobUrl(blobId: string): string {
 	return `${LOCAL_BLOB_SCHEME}://${LOCAL_BLOB_AUTHORITY}/${blobId}`;
 }
 
-	@injectable()
-	export class DocumentsService {
-		private readonly logger = log.scope("documents-service");
-		private initialized = false;
+function safeTitle(title?: string | null): string {
+	const trimmed = typeof title === "string" ? title.trim() : "";
+	return trimmed || "Untitled page";
+}
 
-		constructor(@inject(TYPES.dbService) private readonly _db: DbService) {}
+@injectable()
+export class DocumentsService {
+	private readonly logger = log.scope("documents-service");
+	private initialized = false;
+
+	constructor(@inject(TYPES.dbService) private readonly _db: DbService) {}
 
 	init(): void {
 		if (this.initialized) return;
 		this.initialized = true;
 
-			this._db.run(`
+		this._db.run(`
       CREATE TABLE IF NOT EXISTS documents_drafts (
         space_id TEXT NOT NULL,
         document_id TEXT NOT NULL,
@@ -84,18 +116,37 @@ function blobUrl(blobId: string): string {
       )
     `);
 
-			this._db.run(`
+		this._db.run(`
       CREATE TABLE IF NOT EXISTS documents_daemon_outbox (
         id TEXT PRIMARY KEY,
         space_id TEXT NOT NULL,
         document_id TEXT NOT NULL,
         content_json TEXT NOT NULL,
+        published INTEGER NOT NULL DEFAULT 1,
         updated_at_ms INTEGER NOT NULL,
         created_at_ms INTEGER NOT NULL
       )
     `);
 
-			this._db.run(`
+		try {
+			const columns = this._db.all<{ name: string }>(
+				`PRAGMA table_info(documents_daemon_outbox)`,
+			);
+			const hasPublished = columns.some((col) => col.name === "published");
+			if (!hasPublished) {
+				this._db.run(
+					`ALTER TABLE documents_daemon_outbox ADD COLUMN published INTEGER NOT NULL DEFAULT 1`,
+				);
+			}
+		} catch (error) {
+			this.logger.warn("Failed to ensure daemon outbox schema", error);
+		}
+
+		this._db.run(
+			`CREATE INDEX IF NOT EXISTS documents_daemon_outbox_doc_idx ON documents_daemon_outbox(space_id, document_id)`,
+		);
+
+		this._db.run(`
 	      CREATE TABLE IF NOT EXISTS staged_blobs (
 	        blob_id TEXT PRIMARY KEY,
 	        mime TEXT NOT NULL,
@@ -106,7 +157,7 @@ function blobUrl(blobId: string): string {
 	      )
 	    `);
 
-			this._db.run(`
+		this._db.run(`
         CREATE TABLE IF NOT EXISTS blob_migrations (
           blob_id TEXT PRIMARY KEY,
           space_id TEXT NOT NULL,
@@ -115,8 +166,33 @@ function blobUrl(blobId: string): string {
         )
       `);
 
-			this.logger.info("Documents tables ready");
-		}
+		this._db.run(`
+      CREATE TABLE IF NOT EXISTS pages (
+        space_id TEXT NOT NULL,
+        page_id TEXT NOT NULL,
+        title TEXT NOT NULL,
+        created_at_ms INTEGER NOT NULL,
+        updated_at_ms INTEGER NOT NULL,
+        PRIMARY KEY(space_id, page_id)
+      )
+    `);
+
+		this._db.run(`
+      CREATE TABLE IF NOT EXISTS page_parents (
+        space_id TEXT NOT NULL,
+        page_id TEXT NOT NULL,
+        parent_page_id TEXT NOT NULL,
+        created_at_ms INTEGER NOT NULL,
+        PRIMARY KEY(space_id, page_id, parent_page_id)
+      )
+    `);
+
+		this._db.run(
+			`CREATE INDEX IF NOT EXISTS page_parents_parent_idx ON page_parents(space_id, parent_page_id)`,
+		);
+
+		this.logger.info("Documents tables ready");
+	}
 
 	upsertDraft(input: UpsertDocumentDraftInput): void {
 		this.init();
@@ -158,21 +234,68 @@ function blobUrl(blobId: string): string {
 	queueDaemonSync(input: QueueDaemonSyncInput): void {
 		this.init();
 
+		const spaceId = ensureString(input.spaceId);
+		const documentId = ensureString(input.documentId);
+		const contentJson = ensureString(input.contentJson);
+		if (!spaceId || !documentId || !contentJson) return;
+
 		const id = crypto.randomUUID();
-		this._db.run(
-			`
-        INSERT INTO documents_daemon_outbox (id, space_id, document_id, content_json, updated_at_ms, created_at_ms)
-        VALUES (?, ?, ?, ?, ?, ?)
+		const published = input.published ? 1 : 0;
+		const updatedAtMs = Number.isFinite(input.updatedAtMs)
+			? input.updatedAtMs
+			: nowMs();
+
+		const tx = (this._db as unknown as { transaction?: unknown }).transaction;
+		if (typeof tx === "function") {
+			(tx as (cb: () => void) => void).call(this._db, () => {
+				this._db.run(
+					`DELETE FROM documents_daemon_outbox WHERE space_id = ? AND document_id = ?`,
+					[spaceId, documentId],
+				);
+				this._db.run(
+					`
+          INSERT INTO documents_daemon_outbox (id, space_id, document_id, content_json, published, updated_at_ms, created_at_ms)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+        `,
+					[id, spaceId, documentId, contentJson, published, updatedAtMs, nowMs()],
+				);
+			});
+		} else {
+			this._db.run(
+				`DELETE FROM documents_daemon_outbox WHERE space_id = ? AND document_id = ?`,
+				[spaceId, documentId],
+			);
+			this._db.run(
+				`
+        INSERT INTO documents_daemon_outbox (id, space_id, document_id, content_json, published, updated_at_ms, created_at_ms)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
       `,
-			[
-				id,
-				ensureString(input.spaceId),
-				ensureString(input.documentId),
-				ensureString(input.contentJson),
-				input.updatedAtMs,
-				nowMs(),
-			],
+				[id, spaceId, documentId, contentJson, published, updatedAtMs, nowMs()],
+			);
+		}
+	}
+
+	takeDaemonOutbox(limit = 10): DaemonOutboxItem[] {
+		this.init();
+		return this._db.all<DaemonOutboxItem>(
+			`
+        SELECT id, space_id as spaceId, document_id as documentId, content_json as contentJson, published, updated_at_ms as updatedAtMs, created_at_ms as createdAtMs
+        FROM documents_daemon_outbox
+        ORDER BY created_at_ms ASC
+        LIMIT ?
+      `,
+			[limit],
 		);
+	}
+
+	deleteDaemonOutboxEntries(ids: string[]): void {
+		if (ids.length === 0) return;
+		this.init();
+		this._db.transaction(() => {
+			for (const id of ids) {
+				this._db.run(`DELETE FROM documents_daemon_outbox WHERE id = ?`, [id]);
+			}
+		});
 	}
 
 	stageBlob(input: StageBlobInput): StagedBlob {
@@ -317,6 +440,168 @@ function blobUrl(blobId: string): string {
 		return deleted;
 	}
 
+	ensurePage(input: EnsurePageInput): PageRecord {
+		this.init();
+
+		const spaceId = ensureString(input.spaceId);
+		if (!spaceId) {
+			throw new Error("spaceId is required to ensure a page");
+		}
+		const pageId = ensureString(input.pageId) || safeBlobId();
+		const title = safeTitle(input.title ?? pageId);
+		const parentPageIds = input.parentPageIds ?? [];
+		const createdAtMs = nowMs();
+
+		const tx = (this._db as unknown as { transaction?: unknown }).transaction;
+		if (typeof tx === "function") {
+			(tx as (cb: () => void) => void).call(this._db, () => {
+				this._db.run(
+					`
+          INSERT INTO pages (space_id, page_id, title, created_at_ms, updated_at_ms)
+          VALUES (?, ?, ?, ?, ?)
+          ON CONFLICT(space_id, page_id) DO UPDATE SET
+            title = COALESCE(NULLIF(excluded.title, ''), pages.title),
+            updated_at_ms = CASE WHEN excluded.title != pages.title THEN excluded.updated_at_ms ELSE pages.updated_at_ms END
+        `,
+					[spaceId, pageId, title, createdAtMs, createdAtMs],
+				);
+				this.replacePageParents(spaceId, pageId, parentPageIds);
+			});
+		} else {
+			this._db.run(
+				`
+          INSERT INTO pages (space_id, page_id, title, created_at_ms, updated_at_ms)
+          VALUES (?, ?, ?, ?, ?)
+          ON CONFLICT(space_id, page_id) DO UPDATE SET
+            title = COALESCE(NULLIF(excluded.title, ''), pages.title),
+            updated_at_ms = CASE WHEN excluded.title != pages.title THEN excluded.updated_at_ms ELSE pages.updated_at_ms END
+        `,
+				[spaceId, pageId, title, createdAtMs, createdAtMs],
+			);
+			this.replacePageParents(spaceId, pageId, parentPageIds);
+		}
+
+		const page = this.getPage(spaceId, pageId);
+		if (!page) {
+			throw new Error(`Failed to ensure page ${spaceId}/${pageId}`);
+		}
+		return page;
+	}
+
+	updatePageTitle(spaceId: string, pageId: string, title: string): PageRecord | null {
+		this.init();
+		const nextTitle = safeTitle(title);
+		this._db.run(
+			`UPDATE pages SET title = ?, updated_at_ms = ? WHERE space_id = ? AND page_id = ?`,
+			[nextTitle, nowMs(), spaceId, pageId],
+		);
+		return this.getPage(spaceId, pageId);
+	}
+
+	setPageParents(spaceId: string, pageId: string, parentPageIds: string[]): PageRecord | null {
+		this.init();
+		const tx = (this._db as unknown as { transaction?: unknown }).transaction;
+		if (typeof tx === "function") {
+			(tx as (cb: () => void) => void).call(this._db, () => {
+				this.replacePageParents(spaceId, pageId, parentPageIds);
+				this._db.run(
+					`UPDATE pages SET updated_at_ms = ? WHERE space_id = ? AND page_id = ?`,
+					[nowMs(), spaceId, pageId],
+				);
+			});
+		} else {
+			this.replacePageParents(spaceId, pageId, parentPageIds);
+			this._db.run(
+				`UPDATE pages SET updated_at_ms = ? WHERE space_id = ? AND page_id = ?`,
+				[nowMs(), spaceId, pageId],
+			);
+		}
+		return this.getPage(spaceId, pageId);
+	}
+
+	getPage(spaceId: string, pageId: string): PageRecord | null {
+		this.init();
+		const row = this._db.get<{
+			spaceId: string;
+			pageId: string;
+			title: string;
+			createdAtMs: number;
+			updatedAtMs: number;
+		}>(
+			`
+        SELECT space_id as spaceId, page_id as pageId, title, created_at_ms as createdAtMs, updated_at_ms as updatedAtMs
+        FROM pages
+        WHERE space_id = ? AND page_id = ?
+      `,
+			[spaceId, pageId],
+		);
+		if (!row) return null;
+
+		const parents = this._db.all<{ parentPageId: string }>(
+			`SELECT parent_page_id as parentPageId FROM page_parents WHERE space_id = ? AND page_id = ?`,
+			[spaceId, pageId],
+		);
+
+		return {
+			...row,
+			parentPageIds: parents.map((p) => p.parentPageId),
+		};
+	}
+
+	listPages(spaceId: string): PageRecord[] {
+		this.init();
+		const rows = this._db.all<{
+			spaceId: string;
+			pageId: string;
+			title: string;
+			createdAtMs: number;
+			updatedAtMs: number;
+		}>(
+			`
+        SELECT space_id as spaceId, page_id as pageId, title, created_at_ms as createdAtMs, updated_at_ms as updatedAtMs
+        FROM pages
+        WHERE space_id = ?
+        ORDER BY title
+      `,
+			[spaceId],
+		);
+
+		const parents = this._db.all<{ pageId: string; parentPageId: string }>(
+			`SELECT page_id as pageId, parent_page_id as parentPageId FROM page_parents WHERE space_id = ?`,
+			[spaceId],
+		);
+		const parentsByPage = new Map<string, string[]>();
+		for (const { pageId, parentPageId } of parents) {
+			const list = parentsByPage.get(pageId) ?? [];
+			list.push(parentPageId);
+			parentsByPage.set(pageId, list);
+		}
+
+		return rows.map((row) => ({
+			...row,
+			parentPageIds: parentsByPage.get(row.pageId) ?? [],
+		}));
+	}
+
+	private replacePageParents(spaceId: string, pageId: string, parentPageIds: string[]): void {
+		const uniqueParents = Array.from(
+			new Set(parentPageIds.map((p) => ensureString(p).trim()).filter(Boolean)),
+		);
+		this._db.run(`DELETE FROM page_parents WHERE space_id = ? AND page_id = ?`, [
+			spaceId,
+			pageId,
+		]);
+		for (const parentId of uniqueParents) {
+			this._db.run(
+				`
+          INSERT INTO page_parents (space_id, page_id, parent_page_id, created_at_ms)
+          VALUES (?, ?, ?, ?)
+        `,
+				[spaceId, pageId, parentId, nowMs()],
+			);
+		}
+	}
+
 	private resolveStagedBlobPath(blobId: string): string {
 		const userData = app.getPath("userData");
 		return join(userData, "blobs", "staged", blobId);
@@ -324,4 +609,9 @@ function blobUrl(blobId: string): string {
 }
 
 export { LOCAL_BLOB_AUTHORITY, LOCAL_BLOB_SCHEME };
-export type { StagedBlob, UpsertDocumentDraftInput };
+export type {
+	DaemonOutboxItem,
+	PageRecord,
+	StagedBlob,
+	UpsertDocumentDraftInput,
+};

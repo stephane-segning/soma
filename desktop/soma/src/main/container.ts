@@ -3,6 +3,9 @@ import { SomaElectronApp } from "./app";
 import { AppStateSyncService } from "./services/app-state-sync-service";
 import { AppSettingsService } from "./services/app-settings-service";
 import { DaemonClient } from "./services/daemon-client";
+import { DaemonSyncService } from "./services/daemon-sync-service";
+import { DaemonSupervisor } from "./services/daemon-supervisor";
+import { AgentService } from "./services/agent-service";
 import { DbService } from "./services/db-service";
 import { DocumentsService } from "./services/documents-service";
 import { IpcService } from "./services/ipc-service";
@@ -23,6 +26,9 @@ container
 container.bind<DbService>(TYPES.dbService).to(DbService);
 container.bind<DocumentsService>(TYPES.documentsService).to(DocumentsService);
 container.bind<DaemonClient>(TYPES.daemonClient).to(DaemonClient);
+container.bind<DaemonSupervisor>(TYPES.daemonSupervisor).to(DaemonSupervisor);
+container.bind<DaemonSyncService>(TYPES.daemonSyncService).to(DaemonSyncService);
+container.bind<AgentService>(TYPES.agentService).to(AgentService);
 container.bind<IpcService>(TYPES.ipcService).to(IpcService);
 container
 	.bind<MainIpcController>(TYPES.mainIpcController)
@@ -45,8 +51,11 @@ function resolve(
 ): AppSettingsService;
 function resolve(identifier: typeof TYPES.dbService): DbService;
 function resolve(identifier: typeof TYPES.documentsService): DocumentsService;
+function resolve(identifier: typeof TYPES.agentService): AgentService;
 function resolve(identifier: typeof TYPES.ipcService): IpcService;
 function resolve(identifier: typeof TYPES.mainIpcController): MainIpcController;
+function resolve(identifier: typeof TYPES.daemonSupervisor): DaemonSupervisor;
+function resolve(identifier: typeof TYPES.daemonSyncService): DaemonSyncService;
 function resolve(
 	identifier: typeof TYPES.mainBootstrapService,
 ): MainBootstrapService;

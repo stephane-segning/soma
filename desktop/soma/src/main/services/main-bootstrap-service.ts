@@ -4,8 +4,10 @@ import log from 'electron-log'
 import { inject, injectable } from 'inversify'
 import { TYPES } from '../tokens'
 import type { AppSettingsService } from './app-settings-service'
+import type { DaemonSyncService } from './daemon-sync-service'
 import type { DbService } from './db-service'
 import { type DocumentsService, LOCAL_BLOB_AUTHORITY, LOCAL_BLOB_SCHEME } from './documents-service'
+import type { DaemonSupervisor } from './daemon-supervisor'
 import type { MainIpcController } from './main-ipc-controller'
 
 @injectable()
@@ -18,6 +20,8 @@ export class MainBootstrapService {
     @inject(TYPES.dbService) private readonly _dbService: DbService,
     @inject(TYPES.appSettingsService) private readonly appSettings: AppSettingsService,
     @inject(TYPES.documentsService) private readonly documents: DocumentsService,
+    @inject(TYPES.daemonSyncService) private readonly daemonSync: DaemonSyncService,
+    @inject(TYPES.daemonSupervisor) private readonly daemonSupervisor: DaemonSupervisor,
     @inject(TYPES.mainIpcController) private readonly ipcController: MainIpcController
   ) {}
 
@@ -34,6 +38,14 @@ export class MainBootstrapService {
     } catch (error) {
       this.logger.error('Failed to initialize persistence', error)
     }
+
+    // Ensure the daemon is reachable before the renderer starts calling it, but don't block UI startup.
+    void this.daemonSupervisor
+      .ensureConnected({ startupTimeoutMs: 5_000 })
+      .catch((error) => {
+        this.logger.warn('Continuing without daemon connectivity', error)
+      })
+    this.daemonSync.start()
 
     if (!this.browserWindowCreatedRegistered) {
       this.browserWindowCreatedRegistered = true

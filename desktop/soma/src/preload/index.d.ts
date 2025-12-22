@@ -26,7 +26,55 @@ type RendererApi = {
 			documentId: string;
 			contentJson: string;
 			updatedAtMs: number;
+			published?: boolean;
 		}) => Promise<{ ok: true }>;
+		ensurePage: (input: {
+			spaceId: string;
+			pageId?: string;
+			title?: string;
+			parentPageIds?: string[];
+		}) => Promise<{
+			spaceId: string;
+			pageId: string;
+			title: string;
+			parentPageIds: string[];
+			createdAtMs: number;
+			updatedAtMs: number;
+		}>;
+		listPages: (input: { spaceId: string }) => Promise<
+			Array<{
+				spaceId: string;
+				pageId: string;
+				title: string;
+				parentPageIds: string[];
+				createdAtMs: number;
+				updatedAtMs: number;
+			}>
+		>;
+		updatePageTitle: (input: {
+			spaceId: string;
+			pageId: string;
+			title: string;
+		}) => Promise<{
+			spaceId: string;
+			pageId: string;
+			title: string;
+			parentPageIds: string[];
+			createdAtMs: number;
+			updatedAtMs: number;
+		} | null>;
+		setPageParents: (input: {
+			spaceId: string;
+			pageId: string;
+			parentPageIds: string[];
+		}) => Promise<{
+			spaceId: string;
+			pageId: string;
+			title: string;
+			parentPageIds: string[];
+			createdAtMs: number;
+			updatedAtMs: number;
+		} | null>;
 	};
 	blobs: {
 		stage: (input: {
@@ -56,6 +104,12 @@ type RendererApi = {
 				updatedAtMs: number;
 			}) => Promise<{ ok: true; uploaded: number }>;
 		};
+	agent: {
+		inlineComplete: (input: {
+			prompt: string;
+			context?: string;
+		}) => Promise<{ completion: string }>;
+	};
 	setLastRoute: (route: string) => void;
 	window: {
 		minimize: () => void;

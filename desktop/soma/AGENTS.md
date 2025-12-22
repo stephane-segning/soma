@@ -419,7 +419,8 @@ For how peers (`soma-daemon`, `soma-botd`) use mDNS, rendezvous, and relay clien
 ### Desktop (Electron/React)
 
 - Treat `desktop/soma` and `desktop/tapia` as separate products sharing a backend daemon.
-- Keep Electron main-process code (window management, protocol handlers, daemon bootstrap) separate from renderer React code.
+- Keep Electron main-process code (window management, protocol handlers, daemon connectivity checks) separate from renderer React code.
+- Desktop apps must **never** start `soma-daemon`; they only check reachability on startup and surface a clear error if it’s not running (socket path via `SOMA_DAEMON_SOCKET`).
 - Route all network operations through the local daemon; do not introduce direct server calls from the UI unless explicitly required.
 - Main-process DI uses Inversify with typed tokens in `src/main/tokens.ts`; resolve dependencies via the container using these symbols (see `src/main/container.ts`).
 - Main-process persistence:

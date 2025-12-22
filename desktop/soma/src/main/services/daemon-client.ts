@@ -1,3 +1,4 @@
+import { basename, join, resolve } from "node:path";
 import type grpc from "@grpc/grpc-js";
 import { credentials, loadPackageDefinition, Metadata } from "@grpc/grpc-js";
 import { loadSync } from "@grpc/proto-loader";
@@ -5,7 +6,6 @@ import { app } from "electron";
 import log from "electron-log";
 import { accessSync } from "fs-extra";
 import { injectable } from "inversify";
-import { join, resolve } from "node:path";
 import { Observable } from "rxjs";
 
 type StatusRequest = Record<string, never>;
@@ -161,28 +161,34 @@ type GrpcDaemonClient = grpc.Client & {
 @injectable()
 export class DaemonClient {
 	private readonly logger = log.scope("daemon-client");
-	private readonly socketPath: string;
-	private readonly client: GrpcDaemonClient;
+	private socketPath: string;
+	private client: GrpcDaemonClient | null = null;
 
 	constructor() {
-		this.socketPath =
-			process.env.SOMA_DAEMON_SOCKET ??
-			resolve(process.cwd(), "../../../backend", "soma-daemon.sock");
+		this.socketPath = this.resolveDefaultSocketPath();
+	}
 
-		this.client = this.buildClient();
+	setSocketPath(socketPath: string): void {
+		if (socketPath && socketPath !== this.socketPath) {
+			this.socketPath = socketPath;
+			this.client = null;
+		}
 	}
 
 	async status(): Promise<StatusResponse> {
-		return this.callUnary((req, cb) => this.client.Status(req, cb), {});
+		return this.callUnary((client, req, cb) => client.Status(req, cb), {});
 	}
 
 	async joinSpace(request: JoinSpaceRequest): Promise<JoinSpaceResponse> {
-		return this.callUnary((req, cb) => this.client.JoinSpace(req, cb), request);
+		return this.callUnary(
+			(client, req, cb) => client.JoinSpace(req, cb),
+			request,
+		);
 	}
 
 	async revokeSpace(request: RevokeSpaceRequest): Promise<RevokeSpaceResponse> {
 		return this.callUnary(
-			(req, cb) => this.client.RevokeSpace(req, cb),
+			(client, req, cb) => client.RevokeSpace(req, cb),
 			request,
 		);
 	}
@@ -191,7 +197,7 @@ export class DaemonClient {
 		request: ListSpaceMembersRequest,
 	): Promise<ListSpaceMembersResponse> {
 		return this.callUnary(
-			(req, cb) => this.client.ListSpaceMembers(req, cb),
+			(client, req, cb) => client.ListSpaceMembers(req, cb),
 			request,
 		);
 	}
@@ -200,25 +206,28 @@ export class DaemonClient {
 		request: IssueIssuerCapabilityRequest,
 	): Promise<IssueIssuerCapabilityResponse> {
 		return this.callUnary(
-			(req, cb) => this.client.IssueIssuerCapability(req, cb),
+			(client, req, cb) => client.IssueIssuerCapability(req, cb),
 			request,
 		);
 	}
 
 	async discoverSpaces(): Promise<DiscoverSpacesResponse> {
-		return this.callUnary((req, cb) => this.client.DiscoverSpaces(req, cb), {});
+		return this.callUnary(
+			(client, req, cb) => client.DiscoverSpaces(req, cb),
+			{},
+		);
 	}
 
 	async listJoinRequests(): Promise<ListJoinRequestsResponse> {
 		return this.callUnary(
-			(req, cb) => this.client.ListJoinRequests(req, cb),
+			(client, req, cb) => client.ListJoinRequests(req, cb),
 			{},
 		);
 	}
 
 	async decideJoin(request: DecideJoinRequest): Promise<DecideJoinResponse> {
 		return this.callUnary(
-			(req, cb) => this.client.DecideJoin(req, cb),
+			(client, req, cb) => client.DecideJoin(req, cb),
 			request,
 		);
 	}
@@ -232,7 +241,7 @@ export class DaemonClient {
 			updated_at_ms: request.updatedAtMs,
 		};
 		await this.callUnary(
-			(req, cb) => this.client.UpsertDocument(req, cb),
+			(client, req, cb) => client.UpsertDocument(req, cb),
 			wire,
 		);
 	}
@@ -245,11 +254,14 @@ export class DaemonClient {
 			name: request.name,
 			doc_id: request.docId ?? "",
 		};
-		return this.callUnary((req, cb) => this.client.UploadBlob(req, cb), wire);
+		return this.callUnary(
+			(client, req, cb) => client.UploadBlob(req, cb),
+			wire,
+		);
 	}
 
 	streamEvents(): Observable<DaemonEvent> {
-		const stream = this.client.StreamEvents({}, new Metadata());
+		const stream = this.getClient().StreamEvents({}, new Metadata());
 		return new Observable<DaemonEvent>((subscriber) => {
 			stream.on("data", (event) => subscriber.next(event));
 			stream.on("error", (err) => {
@@ -263,8 +275,10 @@ export class DaemonClient {
 		});
 	}
 
-	private buildClient(): GrpcDaemonClient {
+	private getClient(): GrpcDaemonClient {
+		if (this.client) return this.client;
 		const protoPath = this.resolveProtoPath();
+		const includeDirs = this.resolveProtoIncludeDirs(protoPath);
 		this.logger.info(`Using daemon proto at ${protoPath}`);
 		const definition = loadPackageDefinition(
 			loadSync(protoPath, {
@@ -273,7 +287,7 @@ export class DaemonClient {
 				longs: String,
 				defaults: true,
 				oneofs: true,
-				includeDirs: ["/Users/selast/dev/personal/soma/proto/"],
+				includeDirs,
 			}),
 		) as unknown as {
 			daemon: { v1: { Daemon: new (...args: unknown[]) => GrpcDaemonClient } };
@@ -281,14 +295,27 @@ export class DaemonClient {
 
 		const target = `unix:${this.socketPath}`;
 		this.logger.info(`Connecting to soma-daemon at ${target}`);
-		return new definition.daemon.v1.Daemon(
+		this.client = new definition.daemon.v1.Daemon(
 			target,
 			credentials.createInsecure(),
 		);
+		return this.client;
+	}
+
+	private resolveDefaultSocketPath(): string {
+		const fromEnv = process.env.SOMA_DAEMON_SOCKET;
+		if (fromEnv && fromEnv.trim()) return fromEnv.trim();
+
+		if (app.isReady()) {
+			return resolve(app.getPath("userData"), "soma-daemon.sock");
+		}
+
+		// Dev fallback (works when running from `desktop/`).
+		return resolve(process.cwd(), "../../../backend", "soma-daemon.sock");
 	}
 
 	private resolveProtoPath(): string {
-		const appRoot = app.getAppPath();
+		const appRoot = app.isReady() ? app.getAppPath() : process.cwd();
 		const envOverride = process.env.SOMA_DAEMON_PROTO;
 
 		const candidates = [
@@ -297,8 +324,6 @@ export class DaemonClient {
 			join(appRoot, "proto", "daemon", "v1", "daemon.proto"),
 			join(appRoot, "../../proto/daemon/v1/daemon.proto"),
 		].filter(Boolean) as string[];
-
-		this.logger.error("Proto candidates:", candidates);
 
 		for (const candidate of candidates) {
 			try {
@@ -318,15 +343,41 @@ export class DaemonClient {
 		);
 	}
 
+	private resolveProtoIncludeDirs(protoPath: string): string[] {
+		const env = process.env.SOMA_DAEMON_PROTO_INCLUDE_DIRS;
+		if (env?.trim()) {
+			return env
+				.split(",")
+				.map((p) => p.trim())
+				.filter(Boolean)
+				.map((p) => resolve(p));
+		}
+
+		// Try to find a directory named `proto` above protoPath.
+		let cur = resolve(protoPath, "..");
+		for (let i = 0; i < 6; i++) {
+			if (basename(cur) === "proto") break;
+			const candidate = resolve(cur, "..");
+			if (candidate === cur) break;
+			cur = candidate;
+		}
+
+		const protoRoot =
+			basename(cur) === "proto" ? cur : resolve(protoPath, "../../../..");
+		return [protoRoot];
+	}
+
 	private callUnary<Req, Res>(
 		invoker: (
+			client: GrpcDaemonClient,
 			request: Req,
 			callback: grpc.requestCallback<Res>,
 		) => grpc.ClientUnaryCall,
 		request: Req,
 	): Promise<Res> {
 		return new Promise<Res>((resolve, reject) => {
-			invoker(request, (err, response) => {
+			const client = this.getClient();
+			invoker(client, request, (err, response) => {
 				if (err) {
 					this.logger.error("Daemon call failed", err);
 					reject(err);

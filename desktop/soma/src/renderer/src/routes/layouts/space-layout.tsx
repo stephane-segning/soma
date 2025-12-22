@@ -1,14 +1,15 @@
+import { PageTree } from "@renderer/components/page-tree";
 import { Link, Outlet, NavLink, useParams } from "react-router";
 import { useTranslation } from "react-i18next";
 
 function Component(): React.JSX.Element {
 	const { t } = useTranslation("common");
-	const { spaceId } = useParams();
+	const { spaceId, pageId } = useParams();
 
 	return (
 		<div className="flex h-content w-full bg-base-100">
-			<aside className="w-60 border-r border-base-300 bg-base-200/40">
-				<div className="sticky top-0 border-b border-base-300 bg-base-200/60 backdrop-blur">
+			<aside className="flex w-72 flex-col border-r border-base-300 bg-base-200/40">
+				<div className="border-b border-base-300 bg-base-200/60 backdrop-blur">
 					<div className="px-3 py-3">
 						<Link
 							className="btn btn-ghost btn-sm w-full justify-start"
@@ -34,6 +35,10 @@ function Component(): React.JSX.Element {
 						</NavLink>
 					</li>
 				</nav>
+
+				<div className="flex-1 overflow-y-auto px-2 py-2">
+					<PageTree spaceId={spaceId ?? ""} activePageId={pageId ?? undefined} />
+				</div>
 
 				<div className="sticky bottom-0 mt-auto border-t border-base-300 bg-base-200/60 backdrop-blur">
 					<nav className="menu px-2 py-2">

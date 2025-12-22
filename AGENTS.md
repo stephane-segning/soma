@@ -379,6 +379,166 @@ This repo intentionally has multiple binaries. Each has a distinct goal and depl
     - Start `desktop/soma` or `desktop/tapia` in dev mode.
     - Exercise join flows, class navigation, and basic messaging.
 
+## Docker Images (Backend) and Docker Testing
+
+This repo builds **backend Docker images** for server daemons using precompiled binaries. The goals are:
+
+- small runtime images (distroless) that behave like production
+- no Rust compilation during `docker build`
+- multi-arch publish (amd64 + arm64) with consistent tagging
+
+### Where it lives
+
+- Workflow: `/.github/workflows/docker-backend.yml`
+  - builds Linux MUSL binaries per arch
+  - builds/pushes one image per daemon target
+- Composite action: `/.github/actions/docker-build-backend/action.yml`
+  - runs Trivy config scan on the repo/Dockerfile
+  - builds with buildx (+ metadata tags/labels)
+  - optionally pushes to GHCR (+ provenance + SBOM) and runs Trivy vuln scan
+- Dockerfile targets: `Dockerfile` (`botd`, `relayd`, `rendezvousd`, `bffd`, `serverd`)
+
+### Build inputs and expected layout
+
+Docker builds copy **prebuilt** binaries from the build context:
+
+- `dist/backend/linux-amd64/soma-*`
+- `dist/backend/linux-arm64/soma-*`
+
+The `Dockerfile` selects the correct directory using `ARG TARGETARCH` and:
+- `COPY dist/backend/linux-${TARGETARCH}/soma-botd /app/soma-botd` (and similar for other targets)
+
+Mermaid (CI build flow):
+```mermaid
+flowchart TD
+  A[CI: docker-backend.yml] --> B[Build MUSL bins\nx86_64-unknown-linux-musl]
+  A --> C[Build MUSL bins\naarch64-unknown-linux-musl]
+  B --> D[Upload artifact\nbackend-bins-amd64]
+  C --> E[Upload artifact\nbackend-bins-arm64]
+  D --> F[Docker build job\n(per daemon target)]
+  E --> F
+  F --> G[Trivy config scan\n(scan-type=config)]
+  G --> H[buildx build\n(Dockerfile target)]
+  H --> I{push?}
+  I -- no --> J[Build only]
+  I -- yes --> K[Push to GHCR\n+ provenance/SBOM]
+  K --> L[Trivy vuln scan\n(os+deps)]
+```
+
+### Image naming and tags (GHCR)
+
+The workflow publishes images to GHCR using:
+- `REGISTRY=ghcr.io`
+- `IMAGE_NAME=${owner}/soma-backend` (lowercased in-job)
+
+Each daemon is a separate image under that base name with a suffix:
+- `-botd`, `-relayd`, `-rendezvousd`, `-bffd`, `-serverd`
+
+`docker/metadata-action` generates tags such as:
+- `latest` (default branch)
+- branch tag
+- `sha-<long>` and `<branch>-sha-<long>`
+- release tag (`type=ref,event=tag`)
+
+### Runtime conventions (containers)
+
+All backend images are distroless and run as non-root:
+- base image: `gcr.io/distroless/static-debian12:nonroot`
+- entrypoint: `/app/soma-…`
+
+Common env vars used by these images:
+- `RUST_LOG` (defaults to `info` in `Dockerfile`)
+- `HTTP_ADDR` (Axum bind; varies per daemon)
+- `SOMA_DATA_DIR` (identity + persistent node data)
+- `SOMA_BLOB_DIR` (blob pool/cache directory; relevant for peers/bots)
+
+Common HTTP endpoints:
+- `GET /healthz` → `"ok"`
+- `GET /metrics` → Prometheus text format
+
+### Ports (Dockerfile targets)
+
+Ports are documented via `EXPOSE` in `Dockerfile` and should be forwarded when testing locally:
+
+- `soma-botd`: `8080`, `14005/tcp`, `14105/tcp`, `14205/udp`
+- `soma-relayd`: `8081`, `14003/tcp`, `14103/tcp`, `14203/udp`
+- `soma-rendezvousd`: `8082`, `14004/tcp`, `14104/tcp`, `4204/udp`
+- `soma-bffd`: `8083`, `14010/tcp`, `14110/tcp`, `14210/udp`
+- `soma-serverd`: composed runner (exports multiple HTTP/libp2p ports)
+
+### Local Docker testing plan (recommended)
+
+This plan validates that images run, expose health/metrics, and that relay+rendezvous enable discovery/connectivity.
+
+#### 1) Build binaries (host) and stage for Docker
+
+Example (amd64):
+```bash
+cd backend
+rustup target add x86_64-unknown-linux-musl
+cargo build --profile prod --locked --target x86_64-unknown-linux-musl \
+  -p soma-botd -p soma-relayd -p soma-rendezvousd -p soma-bffd -p soma-serverd
+mkdir -p ../dist/backend/linux-amd64
+cp target/x86_64-unknown-linux-musl/prod/soma-* ../dist/backend/linux-amd64/
+```
+
+#### 2) Build images (local, single-arch)
+
+```bash
+docker buildx build --target relayd --build-arg TARGETARCH=amd64 -t soma-relayd:local --load .
+docker buildx build --target rendezvousd --build-arg TARGETARCH=amd64 -t soma-rendezvousd:local --load .
+docker buildx build --target botd --build-arg TARGETARCH=amd64 -t soma-botd:local --load .
+```
+
+#### 3) Run relay + rendezvous + botd
+
+Persist identity data by bind-mounting `SOMA_DATA_DIR` (stable Peer IDs across restarts):
+
+```bash
+docker network create soma-net || true
+
+docker run -d --name relayd --network soma-net \
+  -p 8081:8081 -p 14003:14003 -p 14103:14103 -p 14203:14203/udp \
+  -e HTTP_ADDR=0.0.0.0:8081 -e SOMA_DATA_DIR=/data \
+  -v "$PWD/.data/relay:/data" soma-relayd:local
+
+docker run -d --name rendezvousd --network soma-net \
+  -p 8082:8082 -p 14004:14004 -p 14104:14104 -p 4204:4204/udp \
+  -e HTTP_ADDR=0.0.0.0:8082 -e SOMA_DATA_DIR=/data \
+  -v "$PWD/.data/rendezvous:/data" soma-rendezvousd:local
+
+docker run -d --name botd --network soma-net \
+  -p 8080:8080 -p 14005:14005 -p 14105:14105 -p 14205:14205/udp \
+  -e HTTP_ADDR=0.0.0.0:8080 -e SOMA_DATA_DIR=/data -e SOMA_BLOB_DIR=/blobs \
+  -e SOMA_DATABASE_URL=sqlite:/data/botd.db \
+  -v "$PWD/.data/botd:/data" -v "$PWD/.data/botd-blobs:/blobs" soma-botd:local
+```
+
+Sanity checks:
+- `curl -fsS http://localhost:8081/healthz && curl -fsS http://localhost:8081/metrics | head`
+- `curl -fsS http://localhost:8082/healthz && curl -fsS http://localhost:8082/metrics | head`
+- `curl -fsS http://localhost:8080/healthz && curl -fsS http://localhost:8080/info`
+
+#### 4) Optional: full end-to-end peer flows (hybrid host + Docker)
+
+For join/blob E2E you typically run a requester peer (`soma-daemon`) on the host and point it at the container-published relay/rendezvous ports.
+
+Mermaid (runtime topology):
+```mermaid
+flowchart LR
+  subgraph Docker[soma-net (Docker network)]
+    R[soma-relayd\n:8081 + libp2p]
+    Z[soma-rendezvousd\n:8082 + libp2p]
+    B[soma-botd\n:8080 + libp2p\n(cache-only blobs)]
+  end
+
+  D1[soma-daemon (host)\n(peer + blob store)] ---|dial| R
+  D1 ---|register/discover| Z
+  D2[soma-daemon (host)\nrequester] ---|discover| Z
+  D2 ---|fetch blob by CID| B
+  B ---|miss fallback fetch| D1
+```
+
 ### E2E Join Smoke (current MVP)
 
 - Requester: `soma-daemon` sends join via `Daemon/JoinSpace` (libp2p join protocol).
@@ -562,7 +722,8 @@ For how peers (`soma-daemon`, `soma-botd`) use mDNS, rendezvous, and relay clien
 ### Desktop (Electron/React)
 
 - Treat `desktop/soma` and `desktop/tapia` as separate products sharing a backend daemon.
-- Keep Electron main-process code (window management, protocol handlers, daemon bootstrap) separate from renderer React code.
+- Keep Electron main-process code (window management, protocol handlers, daemon connectivity checks) separate from renderer React code.
+- Desktop apps must **never** start `soma-daemon`; they only check reachability on startup and surface a clear error if it’s not running (socket path via `SOMA_DAEMON_SOCKET`).
 - Route all network operations through the local daemon; do not introduce direct server calls from the UI unless explicitly required.
 - Main-process DI uses Inversify with typed tokens in `src/main/tokens.ts`; resolve dependencies via the container using these symbols (see `src/main/container.ts`).
 - Main-process persistence:
