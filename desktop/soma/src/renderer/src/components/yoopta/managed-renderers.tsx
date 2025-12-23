@@ -60,6 +60,28 @@ const calloutClasses = cva("alert", {
 		severity: "default",
 	},
 });
+const tableWrapperClasses = cva(
+	"yoopta-table-wrapper overflow-x-auto rounded-lg border border-base-200 bg-base-100 p-2",
+);
+const tableClasses = cva("table-zebra table w-full");
+const tableRowClasses = cva("yoopta-table-row");
+const tableCellClasses = cva("yoopta-table-cell align-top");
+const accordionClasses = cva("yoopta-accordion rounded-box bg-base-200 p-4");
+const codeBlockClasses = cva(
+	"yoopta-code mockup-code overflow-auto bg-base-200 text-sm leading-6",
+);
+const inlineCodeClasses = cva(
+	"yoopta-inline-code rounded bg-base-300 px-1.5 py-0.5 text-sm",
+);
+const listItemClasses = cva("yoopta-list-item flex gap-2");
+const listBulletClasses = cva("yoopta-list-bullet mt-1 text-base-content");
+const todoWrapperClasses = cva("yoopta-todo flex items-start gap-2");
+const todoCheckboxClasses = cva("checkbox checkbox-sm mt-1");
+const linkClasses = cva("yoopta-link link link-primary");
+const embedWrapperClasses = cva(
+	"yoopta-embed card overflow-hidden border border-base-300 bg-base-200 shadow-sm",
+);
+const embedBodyClasses = cva("card-body gap-2");
 
 function BaseImage({
 	attributes,
@@ -257,6 +279,201 @@ function BaseCallout({
 const ManagedCallout = memo(BaseCallout);
 ManagedCallout.displayName = "ManagedCallout";
 
+function BaseTable({
+	attributes,
+	children,
+}: PluginElementRenderProps): React.JSX.Element {
+	return (
+		<div {...attributes} className={cn(tableWrapperClasses())}>
+			<table className={cn(tableClasses())}>
+				<tbody>{children}</tbody>
+			</table>
+		</div>
+	);
+}
+
+const ManagedTable = memo(BaseTable);
+ManagedTable.displayName = "ManagedTable";
+
+function BaseTableRow({
+	attributes,
+	children,
+}: PluginElementRenderProps): React.JSX.Element {
+	return (
+		<tr {...attributes} className={cn(tableRowClasses())}>
+			{children}
+		</tr>
+	);
+}
+
+const ManagedTableRow = memo(BaseTableRow);
+ManagedTableRow.displayName = "ManagedTableRow";
+
+function BaseTableCell({
+	attributes,
+	children,
+}: PluginElementRenderProps): React.JSX.Element {
+	return (
+		<td {...attributes} className={cn(tableCellClasses())}>
+			{children}
+		</td>
+	);
+}
+
+const ManagedTableCell = memo(BaseTableCell);
+ManagedTableCell.displayName = "ManagedTableCell";
+
+function BaseAccordion({
+	attributes,
+	children,
+}: PluginElementRenderProps): React.JSX.Element {
+	return (
+		<div {...attributes} className={cn(accordionClasses())}>
+			{children}
+		</div>
+	);
+}
+
+const ManagedAccordion = memo(BaseAccordion);
+ManagedAccordion.displayName = "ManagedAccordion";
+
+function BaseNumberedList({
+	attributes,
+	children,
+}: PluginElementRenderProps): React.JSX.Element {
+	return (
+		<ol
+			{...attributes}
+			className="yoopta-numbered-list list-decimal space-y-1 pl-6"
+		>
+			<li className={cn(listItemClasses())}>{children}</li>
+		</ol>
+	);
+}
+
+const ManagedNumberedList = memo(BaseNumberedList);
+ManagedNumberedList.displayName = "ManagedNumberedList";
+
+function BaseBulletedList({
+	attributes,
+	children,
+}: PluginElementRenderProps): React.JSX.Element {
+	return (
+		<ul
+			{...attributes}
+			className="yoopta-bulleted-list list-disc space-y-1 pl-6"
+		>
+			<li className={cn(listItemClasses())}>
+				<span className={cn(listBulletClasses())}>•</span>
+				<div>{children}</div>
+			</li>
+		</ul>
+	);
+}
+
+const ManagedBulletedList = memo(BaseBulletedList);
+ManagedBulletedList.displayName = "ManagedBulletedList";
+
+function BaseTodoList({
+	attributes,
+	children,
+	element,
+}: PluginElementRenderProps): React.JSX.Element {
+	const checked = Boolean((element.props as { checked?: boolean })?.checked);
+
+	return (
+		<div
+			{...attributes}
+			className={cn(todoWrapperClasses())}
+			data-checked={checked}
+		>
+			<input
+				checked={checked}
+				className={cn(todoCheckboxClasses())}
+				readOnly
+				tabIndex={-1}
+				type="checkbox"
+			/>
+			<div className={checked ? "line-through opacity-70" : undefined}>
+				{children}
+			</div>
+		</div>
+	);
+}
+
+const ManagedTodoList = memo(BaseTodoList);
+ManagedTodoList.displayName = "ManagedTodoList";
+
+function BaseCode({
+	attributes,
+	children,
+}: PluginElementRenderProps): React.JSX.Element {
+	return (
+		<pre {...attributes} className={cn(codeBlockClasses())}>
+			<code>{children}</code>
+		</pre>
+	);
+}
+
+const ManagedCode = memo(BaseCode);
+ManagedCode.displayName = "ManagedCode";
+
+function BaseLink({
+	attributes,
+	children,
+	element,
+}: PluginElementRenderProps): React.JSX.Element {
+	const href =
+		(element.props as { url?: string; href?: string })?.url ??
+		element.props?.href;
+
+	return (
+		<a
+			{...attributes}
+			className={cn(linkClasses())}
+			href={href ?? ""}
+			rel="noreferrer"
+			target="_blank"
+		>
+			{children}
+		</a>
+	);
+}
+
+const ManagedLink = memo(BaseLink);
+ManagedLink.displayName = "ManagedLink";
+
+function BaseEmbed({
+	attributes,
+	children,
+	element,
+}: PluginElementRenderProps): React.JSX.Element {
+	const src =
+		(element.props as { url?: string; src?: string })?.url ??
+		element.props?.src;
+
+	return (
+		<div {...attributes} className={cn(embedWrapperClasses())}>
+			<div className={cn(embedBodyClasses())}>
+				{src && (
+					<a
+						className="link link-primary"
+						href={src}
+						rel="noreferrer"
+						target="_blank"
+					>
+						{src}
+					</a>
+				)}
+				<div>{children}</div>
+			</div>
+		</div>
+	);
+}
+
+const ManagedEmbed = memo(BaseEmbed);
+ManagedEmbed.displayName = "ManagedEmbed";
+
 const renderManagedImage = (props: PluginElementRenderProps) => (
 	<ManagedImage {...props} />
 );
@@ -284,6 +501,36 @@ const renderManagedBlockquote = (props: PluginElementRenderProps) => (
 const renderManagedCallout = (props: PluginElementRenderProps) => (
 	<ManagedCallout {...props} />
 );
+const renderManagedTable = (props: PluginElementRenderProps) => (
+	<ManagedTable {...props} />
+);
+const renderManagedTableRow = (props: PluginElementRenderProps) => (
+	<ManagedTableRow {...props} />
+);
+const renderManagedTableCell = (props: PluginElementRenderProps) => (
+	<ManagedTableCell {...props} />
+);
+const renderManagedAccordion = (props: PluginElementRenderProps) => (
+	<ManagedAccordion {...props} />
+);
+const renderManagedNumberedList = (props: PluginElementRenderProps) => (
+	<ManagedNumberedList {...props} />
+);
+const renderManagedBulletedList = (props: PluginElementRenderProps) => (
+	<ManagedBulletedList {...props} />
+);
+const renderManagedTodoList = (props: PluginElementRenderProps) => (
+	<ManagedTodoList {...props} />
+);
+const renderManagedCode = (props: PluginElementRenderProps) => (
+	<ManagedCode {...props} />
+);
+const renderManagedLink = (props: PluginElementRenderProps) => (
+	<ManagedLink {...props} />
+);
+const renderManagedEmbed = (props: PluginElementRenderProps) => (
+	<ManagedEmbed {...props} />
+);
 
 export {
 	renderManagedFile,
@@ -295,4 +542,14 @@ export {
 	renderManagedHeadingThree,
 	renderManagedBlockquote,
 	renderManagedCallout,
+	renderManagedTable,
+	renderManagedTableRow,
+	renderManagedTableCell,
+	renderManagedAccordion,
+	renderManagedNumberedList,
+	renderManagedBulletedList,
+	renderManagedTodoList,
+	renderManagedCode,
+	renderManagedLink,
+	renderManagedEmbed,
 };

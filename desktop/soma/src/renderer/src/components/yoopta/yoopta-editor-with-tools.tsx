@@ -45,6 +45,16 @@ import {
 	renderManagedHeadingThree,
 	renderManagedBlockquote,
 	renderManagedCallout,
+	renderManagedTable,
+	renderManagedTableRow,
+	renderManagedTableCell,
+	renderManagedAccordion,
+	renderManagedNumberedList,
+	renderManagedBulletedList,
+	renderManagedTodoList,
+	renderManagedCode,
+	renderManagedLink,
+	renderManagedEmbed,
 	renderManagedVideo,
 } from "./managed-renderers";
 import { YooptaEditorView } from "./yoopta-editor-view";
@@ -95,7 +105,13 @@ function YooptaEditorWithTools({
 						paragraph: renderManagedParagraph,
 					},
 				}),
-				Table,
+				Table.extend({
+					renders: {
+						table: renderManagedTable,
+						"table-row": renderManagedTableRow,
+						"table-data-cell": renderManagedTableCell,
+					},
+				}),
 				Divider.extend({
 					elementProps: {
 						divider: (props) => ({
@@ -104,7 +120,11 @@ function YooptaEditorWithTools({
 						}),
 					},
 				}),
-				Accordion,
+				Accordion.extend({
+					renders: {
+						accordion: renderManagedAccordion,
+					},
+				}),
 				HeadingOne.extend({
 					renders: {
 						"heading-one": renderManagedHeadingOne,
@@ -130,12 +150,37 @@ function YooptaEditorWithTools({
 						callout: renderManagedCallout,
 					},
 				}),
-				NumberedList,
-				BulletedList,
-				TodoList,
-				Code,
-				Link,
-				Embed,
+				NumberedList.extend({
+					renders: {
+						"numbered-list": renderManagedNumberedList,
+					},
+				}),
+				BulletedList.extend({
+					renders: {
+						"bulleted-list": renderManagedBulletedList,
+					},
+				}),
+				TodoList.extend({
+					renders: {
+						"todo-list": renderManagedTodoList,
+					},
+				}),
+				Code.extend({
+					renders: {
+						code: renderManagedCode,
+						"code-inline": renderManagedCode,
+					},
+				}),
+				Link.extend({
+					renders: {
+						link: renderManagedLink,
+					},
+				}),
+				Embed.extend({
+					renders: {
+						embed: renderManagedEmbed,
+					},
+				}),
 				Image.extend({
 					renders: { image: renderManagedImage },
 					options: {

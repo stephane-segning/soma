@@ -6,7 +6,7 @@ import {
 } from "@renderer/queries/pages";
 import type React from "react";
 import { useEffect, useMemo, useState } from "react";
-import { Edit2, Plus } from "react-feather";
+import { Edit2, File, Plus } from "react-feather";
 import { Link, useNavigate } from "react-router";
 
 type TreeNode = {
@@ -46,25 +46,6 @@ function buildTree(pages: PageRecord[]): TreeNode[] {
 		if (!attached) roots.push(node);
 	}
 	return roots;
-}
-
-function FileIcon(): React.JSX.Element {
-	return (
-		<svg
-			className="h-4 w-4"
-			fill="none"
-			stroke="currentColor"
-			strokeWidth="1.5"
-			viewBox="0 0 24 24"
-			xmlns="http://www.w3.org/2000/svg"
-		>
-			<path
-				d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
-				strokeLinecap="round"
-				strokeLinejoin="round"
-			/>
-		</svg>
-	);
 }
 
 function PageTree({ spaceId, activePageId }: Props): React.JSX.Element | null {
@@ -197,11 +178,14 @@ function TreeItem({
 	const isActive = node.page.pageId === activePageId;
 	const isEditing = node.page.pageId === editingPageId;
 	const content = isEditing ? (
-		<div className="flex items-center gap-2 px-2 py-1">
-			<FileIcon />
+		<div className="group flex items-center gap-2">
+			<span className="transition-opacity">
+				<File className="size-4 shrink-0 stroke-current" />
+			</span>
+
 			<input
-				autoFocus
-				className="input input-xs flex-1 truncate"
+				autoFocus={true}
+				className="input input-xs input-ghost flex-1 truncate"
 				disabled={isSaving}
 				onBlur={() => {
 					void onSubmitTitle(node.page);
@@ -221,10 +205,10 @@ function TreeItem({
 			/>
 		</div>
 	) : (
-		<div className="group flex items-center gap-2 px-1 py-1">
+		<div className="group flex items-center gap-2">
 			<button
 				aria-label="Rename page"
-				className="btn btn-ghost btn-circle btn-xs relative"
+				className="relative cursor-pointer"
 				onClick={(event) => {
 					event.preventDefault();
 					event.stopPropagation();
@@ -232,13 +216,14 @@ function TreeItem({
 				}}
 				type="button"
 			>
-				<span className="transition-opacity group-hover:opacity-0">
-					<FileIcon />
+				<span className="transition-opacity">
+					<File className="size-4 shrink-0 stroke-current" />
 				</span>
-				<span className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
-					<Edit2 size={12} />
+				<span className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity">
+					<Edit2 className="size-4 shrink-0 stroke-current" />
 				</span>
 			</button>
+
 			<Link
 				className={`${isActive ? "active" : ""} flex-1`}
 				to={`/spaces/${spaceId}/pages/${node.page.pageId}`}
