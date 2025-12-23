@@ -82,7 +82,7 @@ function ensureString(value: unknown, fallback = ""): string {
 }
 
 function safeBlobId(): string {
-	return crypto.randomUUID();
+	return `${crypto.randomUUID()}--${crypto.randomUUID()}`;
 }
 
 function blobUrl(blobId: string): string {

@@ -2,7 +2,7 @@
 @use './cmdk.scss';
 
 @plugin "daisyui" {
-  themes: lemonade --default;
+  themes: lemonade --default, dark;
 }
 
 @utility no-scrollbar {

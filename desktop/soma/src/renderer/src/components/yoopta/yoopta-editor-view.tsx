@@ -29,6 +29,7 @@ function YooptaEditorView({
 	const maybeValueProps = value === undefined ? {} : { value };
 	return (
 		<YooptaEditor
+			autoFocus
 			className={className}
 			editor={editor}
 			marks={marks}

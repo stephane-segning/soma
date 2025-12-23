@@ -4,7 +4,7 @@ import {
 	useUpsertDocumentDraftMutation,
 } from "@renderer/queries/documents";
 import type { YooptaContentValue } from "@yoopta/editor";
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type LoaderFunctionArgs, useLoaderData } from "react-router";
 import { useDebouncedCallback } from "use-debounce";
 
@@ -153,6 +153,7 @@ function Component(): React.JSX.Element {
 				className="!w-full"
 				initialValue={contentValue}
 				key={`${data.spaceId}:${data.pageId}`}
+				onSave={handleSave}
 				onValueChange={(value) => {
 					try {
 						const now = Date.now();
@@ -165,7 +166,6 @@ function Component(): React.JSX.Element {
 						// ignore serialization failures
 					}
 				}}
-				onSave={handleSave}
 				placeholder="Start writing…"
 			/>
 		</div>
