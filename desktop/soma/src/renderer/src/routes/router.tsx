@@ -56,8 +56,8 @@ const routes: RouteObject[] = [
 					{
 						path: "pages/:pageId",
 						handle: { title: "Page" },
-						// lazy: () => import("./screens/space-page"),
-						Component: () => <>Test</>,
+						lazy: () => import("./screens/space-page"),
+						// Component: () => <>Test</>,
 					},
 					{
 						path: "members",

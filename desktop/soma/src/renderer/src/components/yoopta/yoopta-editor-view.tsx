@@ -26,6 +26,7 @@ function YooptaEditorView({
 	tools,
 	onChange,
 }: Props): React.JSX.Element {
+	const maybeValueProps = value === undefined ? {} : { value };
 	return (
 		<YooptaEditor
 			className={className}
@@ -37,7 +38,7 @@ function YooptaEditorView({
 			readOnly={readOnly}
 			style={style}
 			tools={tools}
-			value={value}
+			{...maybeValueProps}
 		/>
 	);
 }
