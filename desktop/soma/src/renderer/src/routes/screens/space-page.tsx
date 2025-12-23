@@ -62,7 +62,7 @@ function Component(): React.JSX.Element {
 
 	// When navigation changes the page, reset local state and sent tracker.
 	useEffect(() => {
-		setContentJson(data.initialContentJson ?? `null-${data.pageId}`);
+		setContentJson(data.initialContentJson ?? "null");
 		lastSentRef.current = null;
 	}, [data.pageId, data.initialContentJson]);
 

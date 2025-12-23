@@ -1,12 +1,13 @@
 import {
+	type PageRecord,
 	useEnsurePageMutation,
 	usePagesQuery,
-	type PageRecord,
+	useUpdatePageTitleMutation,
 } from "@renderer/queries/pages";
-import React from "react";
-import { useMemo } from "react";
+import type React from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Edit2, Plus } from "react-feather";
 import { Link, useNavigate } from "react-router";
-import { Plus } from "react-feather";
 
 type TreeNode = {
 	page: PageRecord;
@@ -34,7 +35,10 @@ function buildTree(pages: PageRecord[]): TreeNode[] {
 		for (const parentId of node.page.parentPageIds) {
 			if (parentId === node.page.pageId) continue;
 			const parent = nodes.get(parentId);
-			if (parent && !parent.children.some((c) => c.page.pageId === node.page.pageId)) {
+			if (
+				parent &&
+				!parent.children.some((c) => c.page.pageId === node.page.pageId)
+			) {
 				parent.children.push(node);
 				attached = true;
 			}
@@ -47,17 +51,17 @@ function buildTree(pages: PageRecord[]): TreeNode[] {
 function FileIcon(): React.JSX.Element {
 	return (
 		<svg
-			xmlns="http://www.w3.org/2000/svg"
-			fill="none"
-			viewBox="0 0 24 24"
-			strokeWidth="1.5"
-			stroke="currentColor"
 			className="h-4 w-4"
+			fill="none"
+			stroke="currentColor"
+			strokeWidth="1.5"
+			viewBox="0 0 24 24"
+			xmlns="http://www.w3.org/2000/svg"
 		>
 			<path
+				d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
 				strokeLinecap="round"
 				strokeLinejoin="round"
-				d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
 			/>
 		</svg>
 	);
@@ -66,17 +70,45 @@ function FileIcon(): React.JSX.Element {
 function PageTree({ spaceId, activePageId }: Props): React.JSX.Element | null {
 	const { data, isLoading } = usePagesQuery(spaceId);
 	const ensurePage = useEnsurePageMutation();
+	const updatePageTitle = useUpdatePageTitleMutation();
+	const [editingPageId, setEditingPageId] = useState<string | null>(null);
+	const [titleDraft, setTitleDraft] = useState("");
 	const navigate = useNavigate();
 
 	const tree = useMemo(() => buildTree(data ?? []), [data]);
+
+	useEffect(() => {
+		setEditingPageId(null);
+		setTitleDraft("");
+	}, [activePageId, spaceId]);
+
+	const handleSubmitTitle = async (page: PageRecord) => {
+		const trimmed = titleDraft.trim();
+		const nextTitle = trimmed || page.title || "Untitled";
+		if (!spaceId) return;
+		if (nextTitle === page.title) {
+			setEditingPageId(null);
+			return;
+		}
+		try {
+			await updatePageTitle.mutateAsync({
+				spaceId,
+				pageId: page.pageId,
+				title: nextTitle,
+			});
+			setEditingPageId(null);
+		} catch {
+			// Keep the input open on failure so the user can retry.
+		}
+	};
 
 	if (!spaceId) return null;
 
 	return (
 		<div className="space-y-2">
 			<button
-				className="btn btn-soft btn-circle btn-primary btn-xs"
 				aria-label="New page"
+				className="btn btn-soft btn-circle btn-primary btn-xs"
 				disabled={ensurePage.isPending}
 				onClick={async () => {
 					try {
@@ -93,7 +125,7 @@ function PageTree({ spaceId, activePageId }: Props): React.JSX.Element | null {
 				<Plus size={14} />
 			</button>
 
-			<ul className="menu menu-xs w-full rounded-box bg-base-200">
+			<ul className="menu w-full rounded-box">
 				{isLoading && (
 					<li className="p-2">
 						<div className="skeleton h-6 w-full" />
@@ -101,14 +133,27 @@ function PageTree({ spaceId, activePageId }: Props): React.JSX.Element | null {
 				)}
 				{tree.map((node) => (
 					<TreeItem
+						activePageId={activePageId}
+						editingPageId={editingPageId}
+						isSaving={updatePageTitle.isPending}
 						key={node.page.pageId}
 						node={node}
+						onCancelEditing={() => {
+							setEditingPageId(null);
+							setTitleDraft("");
+						}}
+						onStartEditing={(page) => {
+							setEditingPageId(page.pageId);
+							setTitleDraft(page.title);
+						}}
+						onSubmitTitle={handleSubmitTitle}
+						onTitleDraftChange={setTitleDraft}
 						spaceId={spaceId}
-						activePageId={activePageId}
+						titleDraft={titleDraft}
 					/>
 				))}
 				{!isLoading && tree.length === 0 && (
-					<li className="p-2 text-xs text-base-content/60">No pages yet</li>
+					<li className="p-2 text-base-content/60 text-xs">No pages yet</li>
 				)}
 			</ul>
 		</div>
@@ -119,16 +164,30 @@ function TreeItem({
 	node,
 	spaceId,
 	activePageId,
+	editingPageId,
+	titleDraft,
+	onTitleDraftChange,
+	onStartEditing,
+	onSubmitTitle,
+	onCancelEditing,
+	isSaving,
 	depth = 0,
 }: {
 	node: TreeNode;
 	spaceId: string;
 	activePageId?: string;
+	editingPageId: string | null;
+	titleDraft: string;
+	onTitleDraftChange: (title: string) => void;
+	onStartEditing: (page: PageRecord) => void;
+	onSubmitTitle: (page: PageRecord) => void;
+	onCancelEditing: () => void;
+	isSaving: boolean;
 	depth?: number;
 }): React.JSX.Element {
 	if (depth > 8) {
 		return (
-			<li className="text-xs text-warning">
+			<li className="text-warning text-xs">
 				<Link to={`/spaces/${spaceId}/pages/${node.page.pageId}`}>
 					Loop detected…
 				</Link>
@@ -136,16 +195,57 @@ function TreeItem({
 		);
 	}
 	const isActive = node.page.pageId === activePageId;
-	const content = (
-		<Link
-			className={isActive ? "active" : ""}
-			to={`/spaces/${spaceId}/pages/${node.page.pageId}`}
-		>
-			<span className="flex items-center gap-2">
-				<FileIcon />
+	const isEditing = node.page.pageId === editingPageId;
+	const content = isEditing ? (
+		<div className="flex items-center gap-2 px-2 py-1">
+			<FileIcon />
+			<input
+				autoFocus
+				className="input input-xs flex-1 truncate"
+				disabled={isSaving}
+				onBlur={() => {
+					void onSubmitTitle(node.page);
+				}}
+				onChange={(event) => onTitleDraftChange(event.target.value)}
+				onKeyDown={async (event) => {
+					if (event.key === "Enter") {
+						event.preventDefault();
+						await onSubmitTitle(node.page);
+					}
+					if (event.key === "Escape") {
+						event.preventDefault();
+						onCancelEditing();
+					}
+				}}
+				value={titleDraft}
+			/>
+		</div>
+	) : (
+		<div className="group flex items-center gap-2 px-1 py-1">
+			<button
+				aria-label="Rename page"
+				className="btn btn-ghost btn-circle btn-xs relative"
+				onClick={(event) => {
+					event.preventDefault();
+					event.stopPropagation();
+					onStartEditing(node.page);
+				}}
+				type="button"
+			>
+				<span className="transition-opacity group-hover:opacity-0">
+					<FileIcon />
+				</span>
+				<span className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
+					<Edit2 size={12} />
+				</span>
+			</button>
+			<Link
+				className={`${isActive ? "active" : ""} flex-1`}
+				to={`/spaces/${spaceId}/pages/${node.page.pageId}`}
+			>
 				<span className="truncate">{node.page.title}</span>
-			</span>
-		</Link>
+			</Link>
+		</div>
 	);
 
 	if (node.children.length === 0) {
@@ -159,11 +259,18 @@ function TreeItem({
 				<ul>
 					{node.children.map((child) => (
 						<TreeItem
-							key={child.page.pageId}
-							node={child}
-							spaceId={spaceId}
 							activePageId={activePageId}
 							depth={depth + 1}
+							editingPageId={editingPageId}
+							isSaving={isSaving}
+							key={child.page.pageId}
+							node={child}
+							onCancelEditing={onCancelEditing}
+							onStartEditing={onStartEditing}
+							onSubmitTitle={onSubmitTitle}
+							onTitleDraftChange={onTitleDraftChange}
+							spaceId={spaceId}
+							titleDraft={titleDraft}
 						/>
 					))}
 				</ul>

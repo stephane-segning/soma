@@ -39,6 +39,12 @@ import { useCallback, useEffect, useMemo } from "react";
 import {
 	renderManagedFile,
 	renderManagedImage,
+	renderManagedParagraph,
+	renderManagedHeadingOne,
+	renderManagedHeadingTwo,
+	renderManagedHeadingThree,
+	renderManagedBlockquote,
+	renderManagedCallout,
 	renderManagedVideo,
 } from "./managed-renderers";
 import { YooptaEditorView } from "./yoopta-editor-view";
@@ -84,7 +90,11 @@ function YooptaEditorWithTools({
 	const plugins = useMemo(
 		() =>
 			[
-				Paragraph,
+				Paragraph.extend({
+					renders: {
+						paragraph: renderManagedParagraph,
+					},
+				}),
 				Table,
 				Divider.extend({
 					elementProps: {
@@ -95,11 +105,31 @@ function YooptaEditorWithTools({
 					},
 				}),
 				Accordion,
-				HeadingOne,
-				HeadingTwo,
-				HeadingThree,
-				Blockquote,
-				Callout,
+				HeadingOne.extend({
+					renders: {
+						"heading-one": renderManagedHeadingOne,
+					},
+				}),
+				HeadingTwo.extend({
+					renders: {
+						"heading-two": renderManagedHeadingTwo,
+					},
+				}),
+				HeadingThree.extend({
+					renders: {
+						"heading-three": renderManagedHeadingThree,
+					},
+				}),
+				Blockquote.extend({
+					renders: {
+						blockquote: renderManagedBlockquote,
+					},
+				}),
+				Callout.extend({
+					renders: {
+						callout: renderManagedCallout,
+					},
+				}),
 				NumberedList,
 				BulletedList,
 				TodoList,
