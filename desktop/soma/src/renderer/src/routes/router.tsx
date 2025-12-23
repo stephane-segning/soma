@@ -1,9 +1,5 @@
 import type { RouteObject } from "react-router";
-import {
-	createHashRouter,
-	createMemoryRouter,
-	RouterProvider,
-} from "react-router";
+import { createMemoryRouter } from "react-router";
 
 const routes: RouteObject[] = [
 	{
@@ -57,7 +53,6 @@ const routes: RouteObject[] = [
 						path: "pages/:pageId",
 						handle: { title: "Page" },
 						lazy: () => import("./screens/space-page"),
-						// Component: () => <>Test</>,
 					},
 					{
 						path: "members",
@@ -96,10 +91,4 @@ function createTabRouter(initialPath: string) {
 	return createMemoryRouter(routes, { initialEntries: [initialPath] });
 }
 
-const router = createHashRouter(routes);
-
-function AppRouter(): React.JSX.Element {
-	return <RouterProvider router={router} />;
-}
-
-export { AppRouter, createTabRouter, routes };
+export { createTabRouter, routes };

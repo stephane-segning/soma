@@ -4,7 +4,7 @@ import {
 	useUpsertDocumentDraftMutation,
 } from "@renderer/queries/documents";
 import type { YooptaContentValue } from "@yoopta/editor";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { type LoaderFunctionArgs, useLoaderData } from "react-router";
 import { useDebouncedCallback } from "use-debounce";
 
@@ -58,6 +58,7 @@ function Component(): React.JSX.Element {
 	const upsertDraft = useUpsertDocumentDraftMutation();
 	const lastSentRef = useRef<string | null>(null);
 	const reloadingRef = useRef(false);
+	const latestSerializedRef = useRef<string | null>(contentJson);
 
 	// When navigation changes the page, reset local state and sent tracker.
 	useEffect(() => {
@@ -110,6 +111,42 @@ function Component(): React.JSX.Element {
 		5,
 	);
 
+	useEffect(() => {
+		latestSerializedRef.current = contentJson;
+	}, [contentJson]);
+
+	const handleSave = useCallback(() => {
+		sendDebounced.flush();
+		if (!data.spaceId || !data.pageId) return;
+
+		const payload = latestSerializedRef.current;
+		if (!payload) return;
+		try {
+			// Validate JSON before persisting to avoid corrupt drafts.
+			JSON.parse(payload);
+		} catch {
+			return;
+		}
+
+		if (lastSentRef.current === payload) return;
+
+		const now = Date.now();
+		lastSentRef.current = payload;
+		upsertDraft.mutate({
+			spaceId: data.spaceId,
+			documentId: data.pageId,
+			contentJson: payload,
+			published: true,
+		});
+		queueDaemonSync.mutate({
+			spaceId: data.spaceId,
+			documentId: data.pageId,
+			contentJson: payload,
+			updatedAtMs: now,
+			published: true,
+		});
+	}, [data.pageId, data.spaceId, queueDaemonSync, sendDebounced, upsertDraft]);
+
 	return (
 		<div className="flex flex-col gap-4 px-4">
 			<YooptaEditorWithTools
@@ -122,11 +159,13 @@ function Component(): React.JSX.Element {
 						const serialized = JSON.stringify(value ?? null);
 						if (serialized === contentJson) return;
 						setContentJson(serialized);
+						latestSerializedRef.current = serialized;
 						sendDebounced(serialized, now);
 					} catch {
 						// ignore serialization failures
 					}
 				}}
+				onSave={handleSave}
 				placeholder="Start writing…"
 			/>
 		</div>

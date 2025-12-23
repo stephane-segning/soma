@@ -35,7 +35,12 @@ import Table from "@yoopta/table";
 import Toolbar, { DefaultToolbarRender } from "@yoopta/toolbar";
 import Video from "@yoopta/video";
 import type React from "react";
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
+import {
+	renderManagedFile,
+	renderManagedImage,
+	renderManagedVideo,
+} from "./managed-renderers";
 import { YooptaEditorView } from "./yoopta-editor-view";
 
 type Props = {
@@ -45,6 +50,7 @@ type Props = {
 	style?: React.CSSProperties;
 	initialValue?: YooptaContentValue;
 	onValueChange?: (value: YooptaContentValue) => void;
+	onSave?: () => void;
 };
 
 function YooptaEditorWithTools({
@@ -54,8 +60,26 @@ function YooptaEditorWithTools({
 	style,
 	initialValue,
 	onValueChange,
+	onSave,
 }: Props): React.JSX.Element {
+	const handleSaveShortcut = useCallback(
+		(event: KeyboardEvent) => {
+			if (readOnly || !onSave) return;
+			if (event.key.toLowerCase() !== "s") return;
+			if (!event.metaKey && !event.ctrlKey) return;
+			event.preventDefault();
+			onSave();
+		},
+		[onSave, readOnly],
+	);
+
+	useEffect(() => {
+		window.addEventListener("keydown", handleSaveShortcut);
+		return () => window.removeEventListener("keydown", handleSaveShortcut);
+	}, [handleSaveShortcut]);
+
 	const editor: YooEditor = useMemo(() => createYooptaEditor(), []);
+
 	// Rich toolbelt restored; keep uploads wired through uploadToBlob.
 	const plugins = useMemo(
 		() =>
@@ -83,24 +107,25 @@ function YooptaEditorWithTools({
 				Link,
 				Embed,
 				Image.extend({
+					renders: { image: renderManagedImage },
 					options: {
 						async onUpload(file) {
 							const data = await uploadToBlob(file, "image");
 							return {
 								src: data.secure_url,
-								alt: "cloudinary",
+								alt: file.name,
 								sizes: { width: data.width, height: data.height },
 							};
 						},
 					},
 				}),
 				Video.extend({
+					renders: { video: renderManagedVideo },
 					options: {
 						onUpload: async (file) => {
 							const data = await uploadToBlob(file, "video");
 							return {
 								src: data.secure_url,
-								alt: "cloudinary",
 								sizes: { width: data.width, height: data.height },
 							};
 						},
@@ -111,6 +136,7 @@ function YooptaEditorWithTools({
 					},
 				}),
 				File.extend({
+					renders: { file: renderManagedFile },
 					options: {
 						onUpload: async (file) => {
 							const response = await uploadToBlob(file, "auto");
@@ -145,7 +171,6 @@ function YooptaEditorWithTools({
 		<YooptaEditorView
 			className={className}
 			editor={editor}
-			value={initialValue}
 			marks={marks}
 			onChange={(nextValue) => onValueChange?.(nextValue)}
 			placeholder={placeholder}
@@ -153,6 +178,7 @@ function YooptaEditorWithTools({
 			readOnly={readOnly}
 			style={style}
 			tools={tools}
+			value={initialValue}
 		/>
 	);
 }

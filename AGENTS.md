@@ -278,6 +278,11 @@ Soma (`desktop/soma`):
 - Uses DaisyUI with two themes.
 - Uses TanStack Query for optimistic UI flows.
 - Main process uses InversifyJS (`inversify` + `reflect-metadata`) for DI; container lives in `desktop/soma/src/main/container.ts`.
+- Yoopta editor wiring (current simplifications):
+  - Editor is controlled from local state: `value={contentValue}` derived from `contentJson` and updated on `onValueChange`. This keeps the UI in sync with saves.
+  - Page change remounts the editor (`key=spaceId:pageId`) and resets local state; window focus refetches the latest draft so other tabs’ edits appear when you return.
+  - Saves are debounced once: a single callback writes the draft (`useUpsertDocumentDraftMutation`) and enqueues daemon sync (`useQueueDaemonSyncMutation`), skipping duplicates via `lastSentRef`.
+  - Full Yoopta toolbelt is enabled (headings/lists/embeds, image/video/file uploads via `uploadToBlob`, toolbar/action menu/link tool); adjust in `desktop/soma/src/renderer/src/components/yoopta/yoopta-editor-with-tools.tsx`.
 
 Tapia (`desktop/tapia`):
 
