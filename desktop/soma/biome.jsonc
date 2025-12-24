@@ -65,5 +65,13 @@
 			"cssModules": true,
 			"tailwindDirectives": true
 		}
-	}
+	},
+	"overrides": [
+		{
+			"includes": ["src/main/**/*.{ts,tsx}", "src/preload/**/*.{ts,tsx}"],
+			"formatter": {
+				"enabled": false
+			}
+		}
+	]
 }

@@ -1,16 +1,16 @@
-import { Outlet, NavLink } from "react-router";
 import { useTranslation } from "react-i18next";
+import { NavLink, Outlet } from "react-router";
 
 function Component(): React.JSX.Element {
 	const { t } = useTranslation("common");
 
 	return (
 		<div className="flex h-content w-full overflow-hidden rounded-box border border-base-300 bg-base-200/60">
-			<aside className="w-64 border-r border-base-300 bg-base-200">
-				<div className="sticky top-0 border-b border-base-300 bg-base-200/80 px-4 py-4">
+			<aside className="w-64 border-base-300 border-r bg-base-200">
+				<div className="sticky top-0 border-base-300 border-b bg-base-200/80 px-4 py-4">
 					<div className="flex items-center gap-3">
 						<div className="avatar placeholder">
-							<div className="bg-base-300 text-base-content rounded-full w-10">
+							<div className="w-10 rounded-full bg-base-300 text-base-content">
 								<span>SD</span>
 							</div>
 						</div>

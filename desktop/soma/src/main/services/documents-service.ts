@@ -1,10 +1,10 @@
 import { mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { createId } from "@paralleldrive/cuid2";
 import { app } from "electron";
 import log from "electron-log";
 import { inject, injectable } from "inversify";
 import { TYPES } from "../tokens";
-import { createId } from "@paralleldrive/cuid2";
 import type { DbService } from "./db-service";
 
 type UpsertDocumentDraftInput = {

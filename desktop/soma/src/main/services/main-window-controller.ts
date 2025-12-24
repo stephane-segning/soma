@@ -1,12 +1,12 @@
-import { BrowserWindow } from 'electron'
+import type { BrowserWindow } from 'electron'
 import log from 'electron-log'
 import { inject, injectable } from 'inversify'
-import { TYPES } from '../tokens'
 import { readLastRoute } from '../route-store'
-import { AppSettingsService } from './app-settings-service'
-import { AppStateSyncService } from './app-state-sync-service'
-import { IpcService } from './ipc-service'
-import { WindowManager } from './window-manager'
+import { TYPES } from '../tokens'
+import type { AppSettingsService } from './app-settings-service'
+import type { AppStateSyncService } from './app-state-sync-service'
+import type { IpcService } from './ipc-service'
+import type { WindowManager } from './window-manager'
 
 @injectable()
 export class MainWindowController {

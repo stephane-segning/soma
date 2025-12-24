@@ -5,7 +5,7 @@ function Component(): React.JSX.Element {
 
 	return (
 		<div className="space-y-4">
-			<h2 className="text-lg font-semibold">
+			<h2 className="font-semibold text-lg">
 				{t("space.members.title", "Members")}
 			</h2>
 			<p className="text-base-content/70">

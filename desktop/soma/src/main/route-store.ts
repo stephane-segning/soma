@@ -1,7 +1,7 @@
+import { dirname, join } from "node:path";
 import { app } from "electron";
 import { existsSync, readFileSync } from "fs";
 import { mkdir, writeFile } from "fs/promises";
-import { dirname, join } from "path";
 
 type RouteState = {
 	lastRoute: string;

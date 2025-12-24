@@ -42,7 +42,10 @@ function writeMailbox(
 ): void {
 	if (typeof window === "undefined" || !window.localStorage) return;
 	try {
-		window.localStorage.setItem(mailboxKey(spaceId, pageId), JSON.stringify(entry));
+		window.localStorage.setItem(
+			mailboxKey(spaceId, pageId),
+			JSON.stringify(entry),
+		);
 	} catch {
 		// ignore localStorage write failures
 	}

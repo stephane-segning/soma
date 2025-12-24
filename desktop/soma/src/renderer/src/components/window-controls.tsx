@@ -16,22 +16,22 @@ function WindowControls(): React.JSX.Element | null {
 	return (
 		<div className="flex items-center gap-2 [-webkit-app-region:no-drag]">
 			<button
-				type="button"
 				aria-label="Close window"
 				className="size-3 rounded-full bg-error hover:bg-red-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-error/60"
 				onClick={() => api.close?.()}
+				type="button"
 			/>
 			<button
-				type="button"
 				aria-label="Minimize window"
 				className="size-3 rounded-full bg-warning hover:bg-yellow-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-warning/60"
 				onClick={() => api.minimize?.()}
+				type="button"
 			/>
 			<button
-				type="button"
 				aria-label="Maximize window"
 				className="size-3 rounded-full bg-success hover:bg-green-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-success/60"
 				onClick={() => api.toggleMaximize?.()}
+				type="button"
 			/>
 		</div>
 	);

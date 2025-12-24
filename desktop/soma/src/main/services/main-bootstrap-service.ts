@@ -4,10 +4,10 @@ import log from 'electron-log'
 import { inject, injectable } from 'inversify'
 import { TYPES } from '../tokens'
 import type { AppSettingsService } from './app-settings-service'
+import type { DaemonSupervisor } from './daemon-supervisor'
 import type { DaemonSyncService } from './daemon-sync-service'
 import type { DbService } from './db-service'
 import { type DocumentsService, LOCAL_BLOB_AUTHORITY, LOCAL_BLOB_SCHEME } from './documents-service'
-import type { DaemonSupervisor } from './daemon-supervisor'
 import type { MainIpcController } from './main-ipc-controller'
 
 @injectable()

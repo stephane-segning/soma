@@ -5,7 +5,7 @@ function Component(): React.JSX.Element {
 
 	return (
 		<div className="space-y-6">
-			<div className="card bg-base-100 shadow-sm border border-base-300">
+			<div className="card border border-base-300 bg-base-100 shadow-sm">
 				<div className="card-body">
 					<h1 className="card-title">{t("join.title", "Join space")}</h1>
 					<p className="text-base-content/70">
@@ -21,9 +21,9 @@ function Component(): React.JSX.Element {
 								{t("join.spaceId", "Space ID")}
 							</span>
 							<input
+								aria-label={t("join.spaceId", "Space ID")}
 								className="input input-bordered w-full"
 								placeholder={t("join.spaceIdPlaceholder", "space_...")}
-								aria-label={t("join.spaceId", "Space ID")}
 							/>
 						</label>
 						<label className="form-control w-full">
@@ -31,9 +31,9 @@ function Component(): React.JSX.Element {
 								{t("join.inviteSecret", "Invite secret")}
 							</span>
 							<input
+								aria-label={t("join.inviteSecret", "Invite secret")}
 								className="input input-bordered w-full"
 								placeholder={t("join.inviteSecretPlaceholder", "secret_...")}
-								aria-label={t("join.inviteSecret", "Invite secret")}
 							/>
 						</label>
 						<label className="form-control w-full">
@@ -41,9 +41,9 @@ function Component(): React.JSX.Element {
 								{t("join.displayName", "Display name")}
 							</span>
 							<input
+								aria-label={t("join.displayName", "Display name")}
 								className="input input-bordered w-full"
 								placeholder={t("join.displayNamePlaceholder", "Your name")}
-								aria-label={t("join.displayName", "Display name")}
 							/>
 						</label>
 						<label className="form-control w-full">
@@ -51,15 +51,15 @@ function Component(): React.JSX.Element {
 								{t("join.deviceName", "Device name")}
 							</span>
 							<input
+								aria-label={t("join.deviceName", "Device name")}
 								className="input input-bordered w-full"
 								placeholder={t("join.deviceNamePlaceholder", "MacBook Pro")}
-								aria-label={t("join.deviceName", "Device name")}
 							/>
 						</label>
 					</div>
 
 					<div className="card-actions justify-end">
-						<button type="button" className="btn btn-primary">
+						<button className="btn btn-primary" type="button">
 							{t("join.submit", "Request to join")}
 						</button>
 					</div>

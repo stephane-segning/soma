@@ -1,10 +1,10 @@
-import { BrowserWindow } from 'electron'
-import { inject, injectable } from 'inversify'
-import { debounceTime, fromEvent, merge, Subscription, tap } from 'rxjs'
+import type { BrowserWindow } from 'electron'
 import log from 'electron-log'
-import { AppSettingsService } from './app-settings-service'
-import { IpcService } from './ipc-service'
+import { inject, injectable } from 'inversify'
+import { debounceTime, fromEvent, merge, type Subscription, tap } from 'rxjs'
 import { TYPES } from '../tokens'
+import type { AppSettingsService } from './app-settings-service'
+import type { IpcService } from './ipc-service'
 
 type SetSettingPayload = { key: string; value: unknown }
 type KvSetPayload = { namespace: string; key: string; value: unknown }

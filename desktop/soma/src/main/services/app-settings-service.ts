@@ -1,7 +1,7 @@
 import log from 'electron-log'
 import { inject, injectable } from 'inversify'
-import { DbService } from './db-service'
 import { TYPES } from '../tokens'
+import type { DbService } from './db-service'
 
 type WindowBounds = { x: number; y: number; width: number; height: number }
 

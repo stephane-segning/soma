@@ -1,8 +1,8 @@
+import { join } from "node:path";
+import Database, { type Database as DatabaseType } from "better-sqlite3";
 import { app } from "electron";
 import log from "electron-log";
 import { injectable } from "inversify";
-import { join } from "path";
-import Database, { type Database as DatabaseType } from "better-sqlite3";
 
 @injectable()
 export class DbService {

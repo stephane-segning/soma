@@ -1,11 +1,11 @@
 import { Container } from "inversify";
 import { SomaElectronApp } from "./app";
-import { AppStateSyncService } from "./services/app-state-sync-service";
-import { AppSettingsService } from "./services/app-settings-service";
-import { DaemonClient } from "./services/daemon-client";
-import { DaemonSyncService } from "./services/daemon-sync-service";
-import { DaemonSupervisor } from "./services/daemon-supervisor";
 import { AgentService } from "./services/agent-service";
+import { AppSettingsService } from "./services/app-settings-service";
+import { AppStateSyncService } from "./services/app-state-sync-service";
+import { DaemonClient } from "./services/daemon-client";
+import { DaemonSupervisor } from "./services/daemon-supervisor";
+import { DaemonSyncService } from "./services/daemon-sync-service";
 import { DbService } from "./services/db-service";
 import { DocumentsService } from "./services/documents-service";
 import { IpcService } from "./services/ipc-service";
@@ -13,7 +13,7 @@ import { MainBootstrapService } from "./services/main-bootstrap-service";
 import { MainIpcController } from "./services/main-ipc-controller";
 import { MainWindowController } from "./services/main-window-controller";
 import { WindowManager } from "./services/window-manager";
-import { TYPES, type Token } from "./tokens";
+import { type Token, TYPES } from "./tokens";
 
 const container = new Container({ defaultScope: "Singleton" });
 

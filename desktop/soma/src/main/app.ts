@@ -1,10 +1,10 @@
 import { app, BrowserWindow } from 'electron'
 import log from 'electron-log'
 import { inject, injectable } from 'inversify'
-import { fromEvent, merge, of, Subject, map, takeUntil, tap } from 'rxjs'
+import { fromEvent, map, merge, of, Subject, takeUntil, tap } from 'rxjs'
+import type { MainBootstrapService } from './services/main-bootstrap-service'
+import type { MainWindowController } from './services/main-window-controller'
 import { TYPES } from './tokens'
-import { MainBootstrapService } from './services/main-bootstrap-service'
-import { MainWindowController } from './services/main-window-controller'
 
 type AppLifecycleEvent = 'ready' | 'activate' | 'window-all-closed'
 
