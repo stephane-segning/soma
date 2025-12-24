@@ -8,8 +8,10 @@ nav:
   - Architecture:
       - Soma & Tapia: architecture/soma-tapia.md
       - libp2p Primer: architecture/libp2p-primer.md
+      - Peer Connectivity: architecture/peer-connectivity.md
       - Infrastructure Services: architecture/infra-services.md
       - Class Membership: architecture/class-membership.md
+      - Blobs (VDFS): architecture/blobs-vdfs.md
       - Packaging & Deployment: architecture/deployment.md
   - Getting Started: getting-started/index.md
   - Development:

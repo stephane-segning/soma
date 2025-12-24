@@ -8,7 +8,7 @@ import {
 	isPersistedTabsStateV1,
 	useTabsStore,
 } from "@renderer/store/tabs";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { RouterProvider } from "react-router";
 import { createTabRouter } from "./router";
 
@@ -101,11 +101,17 @@ function TabbedApp(): React.JSX.Element | null {
 		}
 	}, [initialized, tabs]);
 
-	const activeTab = tabs.find((t) => t.id === activeId);
-	const router =
-		initialized && activeTab
-			? getOrCreateRouter(activeTab.id, activeTab.path)
-			: null;
+	const activeTab = useMemo(
+		() => tabs.find((t) => t.id === activeId),
+		[tabs, activeId],
+	);
+	const router = useMemo(
+		() =>
+			initialized && activeTab
+				? getOrCreateRouter(activeTab.id, activeTab.path)
+				: null,
+		[activeTab, initialized],
+	);
 
 	if (!initialized || !activeTab || !router) return null;
 	return <RouterProvider key={activeTab.id} router={router} />;
