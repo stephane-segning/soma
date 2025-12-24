@@ -1,0 +1,34 @@
+version: "3.9"
+
+services:
+  soma-botd:
+    image: ${SOMA_BACKEND_IMAGE_PREFIX:-ghcr.io/stephane-segning/soma-backend}-botd:${SOMA_TAG:-latest}
+    pull_policy: always
+    depends_on:
+      - soma-relayd
+      - soma-rendezvousd
+    environment:
+      RUST_LOG: info
+      HTTP_ADDR: 0.0.0.0:8080
+      SOMA_DATA_DIR: /data
+      SOMA_BLOB_DIR: /blobs
+      SOMA_DATABASE_URL: /data/botd.db
+      # Optional: point the bot at your infra nodes (needs /p2p/<peer_id> in the multiaddr).
+      # Example:
+      #   SOMA_RELAY_ADDRS: /dns4/soma-relayd/tcp/14003/p2p/<relay_peer_id>,/dns4/soma-relayd/udp/14203/quic-v1/p2p/<relay_peer_id>
+      #   SOMA_RDV_ADDRS: /dns4/soma-rendezvousd/tcp/14004/p2p/<rdv_peer_id>
+      # SOMA_RELAY_ADDRS: ""
+      # SOMA_RDV_ADDRS: ""
+      SOMA_MODE: bot
+    ports:
+      - "8080:8080"
+      - "14005:14005/tcp"
+      - "14105:14105/tcp"
+      - "14205:14205/udp"
+    volumes:
+      - botd-data:/data
+      - botd-blobs:/blobs
+
+volumes:
+  botd-data: {}
+  botd-blobs: {}

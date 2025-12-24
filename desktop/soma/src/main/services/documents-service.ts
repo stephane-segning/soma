@@ -73,6 +73,8 @@ type PageRecord = {
 const LOCAL_BLOB_SCHEME = "soma-blob";
 const LOCAL_BLOB_AUTHORITY = "local";
 const LOCAL_BLOB_URL_RE = /soma-blob:\/\/local\/([0-9a-fA-F-]{10,})/g;
+const MAX_BLOB_BYTES = 50 * 1024 * 1024; // hard cap to protect main thread and disk
+const MAX_CONTENT_JSON_BYTES = 512 * 1024; // avoid oversized drafts
 
 function nowMs(): number {
 	return Date.now();
@@ -80,6 +82,17 @@ function nowMs(): number {
 
 function ensureString(value: unknown, fallback = ""): string {
 	return typeof value === "string" ? value : fallback;
+}
+
+function sanitizeId(value: unknown): string {
+	return ensureString(value).trim();
+}
+
+function enforceContentJsonSize(value: string): string {
+	if (Buffer.byteLength(value, "utf8") > MAX_CONTENT_JSON_BYTES) {
+		throw new Error("contentJson exceeds maximum allowed size");
+	}
+	return value;
 }
 
 function safeBlobId(): string {
@@ -198,9 +211,9 @@ export class DocumentsService {
 	upsertDraft(input: UpsertDocumentDraftInput): void {
 		this.init();
 
-		const spaceId = ensureString(input.spaceId);
-		const documentId = ensureString(input.documentId);
-		const contentJson = ensureString(input.contentJson);
+		const spaceId = sanitizeId(input.spaceId);
+		const documentId = sanitizeId(input.documentId);
+		const contentJson = enforceContentJsonSize(ensureString(input.contentJson));
 		const updatedAtMs = nowMs();
 		const published = input.published ? 1 : 0;
 
@@ -235,9 +248,9 @@ export class DocumentsService {
 	queueDaemonSync(input: QueueDaemonSyncInput): void {
 		this.init();
 
-		const spaceId = ensureString(input.spaceId);
-		const documentId = ensureString(input.documentId);
-		const contentJson = ensureString(input.contentJson);
+		const spaceId = sanitizeId(input.spaceId);
+		const documentId = sanitizeId(input.documentId);
+		const contentJson = enforceContentJsonSize(ensureString(input.contentJson));
 		if (!spaceId || !documentId || !contentJson) return;
 
 		const id = createId();
@@ -246,30 +259,7 @@ export class DocumentsService {
 			? input.updatedAtMs
 			: nowMs();
 
-		const tx = (this._db as unknown as { transaction?: unknown }).transaction;
-		if (typeof tx === "function") {
-			(tx as (cb: () => void) => void).call(this._db, () => {
-				this._db.run(
-					`DELETE FROM documents_daemon_outbox WHERE space_id = ? AND document_id = ?`,
-					[spaceId, documentId],
-				);
-				this._db.run(
-					`
-          INSERT INTO documents_daemon_outbox (id, space_id, document_id, content_json, published, updated_at_ms, created_at_ms)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
-        `,
-					[
-						id,
-						spaceId,
-						documentId,
-						contentJson,
-						published,
-						updatedAtMs,
-						nowMs(),
-					],
-				);
-			});
-		} else {
+		this.withTransaction(() => {
 			this._db.run(
 				`DELETE FROM documents_daemon_outbox WHERE space_id = ? AND document_id = ?`,
 				[spaceId, documentId],
@@ -281,7 +271,7 @@ export class DocumentsService {
       `,
 				[id, spaceId, documentId, contentJson, published, updatedAtMs, nowMs()],
 			);
-		}
+		});
 	}
 
 	takeDaemonOutbox(limit = 10): DaemonOutboxItem[] {
@@ -315,6 +305,13 @@ export class DocumentsService {
 		const blobDir = join(userData, "blobs", "staged");
 		mkdirSync(blobDir, { recursive: true });
 		const blobPath = join(blobDir, blobId);
+
+		if (!input.bytes || input.bytes.byteLength === 0) {
+			throw new Error("Cannot stage an empty blob");
+		}
+		if (input.bytes.byteLength > MAX_BLOB_BYTES) {
+			throw new Error("Blob exceeds maximum allowed size");
+		}
 
 		writeFileSync(blobPath, input.bytes);
 
@@ -458,7 +455,7 @@ export class DocumentsService {
 	ensurePage(input: EnsurePageInput): PageRecord {
 		this.init();
 
-		const spaceId = ensureString(input.spaceId);
+		const spaceId = sanitizeId(input.spaceId);
 		if (!spaceId) {
 			throw new Error("spaceId is required to ensure a page");
 		}
@@ -467,22 +464,7 @@ export class DocumentsService {
 		const parentPageIds = input.parentPageIds ?? [];
 		const createdAtMs = nowMs();
 
-		const tx = (this._db as unknown as { transaction?: unknown }).transaction;
-		if (typeof tx === "function") {
-			(tx as (cb: () => void) => void).call(this._db, () => {
-				this._db.run(
-					`
-          INSERT INTO pages (space_id, page_id, title, created_at_ms, updated_at_ms)
-          VALUES (?, ?, ?, ?, ?)
-          ON CONFLICT(space_id, page_id) DO UPDATE SET
-            title = COALESCE(NULLIF(excluded.title, ''), pages.title),
-            updated_at_ms = CASE WHEN excluded.title != pages.title THEN excluded.updated_at_ms ELSE pages.updated_at_ms END
-        `,
-					[spaceId, pageId, title, createdAtMs, createdAtMs],
-				);
-				this.replacePageParents(spaceId, pageId, parentPageIds);
-			});
-		} else {
+		this.withTransaction(() => {
 			this._db.run(
 				`
           INSERT INTO pages (space_id, page_id, title, created_at_ms, updated_at_ms)
@@ -494,7 +476,7 @@ export class DocumentsService {
 				[spaceId, pageId, title, createdAtMs, createdAtMs],
 			);
 			this.replacePageParents(spaceId, pageId, parentPageIds);
-		}
+		});
 
 		const page = this.getPage(spaceId, pageId);
 		if (!page) {
@@ -523,22 +505,13 @@ export class DocumentsService {
 		parentPageIds: string[],
 	): PageRecord | null {
 		this.init();
-		const tx = (this._db as unknown as { transaction?: unknown }).transaction;
-		if (typeof tx === "function") {
-			(tx as (cb: () => void) => void).call(this._db, () => {
-				this.replacePageParents(spaceId, pageId, parentPageIds);
-				this._db.run(
-					`UPDATE pages SET updated_at_ms = ? WHERE space_id = ? AND page_id = ?`,
-					[nowMs(), spaceId, pageId],
-				);
-			});
-		} else {
+		this.withTransaction(() => {
 			this.replacePageParents(spaceId, pageId, parentPageIds);
 			this._db.run(
 				`UPDATE pages SET updated_at_ms = ? WHERE space_id = ? AND page_id = ?`,
 				[nowMs(), spaceId, pageId],
 			);
-		}
+		});
 		return this.getPage(spaceId, pageId);
 	}
 
@@ -627,6 +600,15 @@ export class DocumentsService {
 				[spaceId, pageId, parentId, nowMs()],
 			);
 		}
+	}
+
+	private withTransaction(callback: () => void): void {
+		const tx = (this._db as unknown as { transaction?: unknown }).transaction;
+		if (typeof tx === "function") {
+			(tx as (cb: () => void) => void).call(this._db, callback);
+			return;
+		}
+		callback();
 	}
 
 	private resolveStagedBlobPath(blobId: string): string {

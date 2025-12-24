@@ -1,0 +1,20 @@
+version: "3.9"
+
+services:
+  soma-bffd:
+    image: ${SOMA_BACKEND_IMAGE_PREFIX:-ghcr.io/stephane-segning/soma-backend}-bffd:${SOMA_TAG:-latest}
+    pull_policy: always
+    environment:
+      RUST_LOG: info
+      HTTP_ADDR: 0.0.0.0:8083
+      SOMA_DATA_DIR: /data
+      # Optional p2p peer:
+      # SOMA_P2P_ENABLE: "true"
+      # SOMA_P2P_LISTEN_ADDRS: /ip4/0.0.0.0/tcp/14010,/ip4/0.0.0.0/tcp/14110/ws,/ip4/0.0.0.0/udp/14210/quic-v1
+    ports:
+      - "8083:8083"
+    volumes:
+      - bffd-data:/data
+
+volumes:
+  bffd-data: {}

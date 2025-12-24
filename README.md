@@ -18,3 +18,8 @@ This repository is organized as a monorepo with clear boundaries between:
 - deployment artifacts (`deploy/`)
 - software bill of materials tooling (`sbom/`)
 
+## Docker Compose
+
+- Default stack: `docker compose up -d`
+- If your Docker Compose version does not support `include` (Compose v2.20+), use:
+  - `docker compose -f compose/backend.infra.yml -f compose/backend.botd.yml -f compose/backend.bffd.yml up -d`

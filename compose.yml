@@ -1,82 +1,8 @@
 version: "3.9"
 
-services:
-  soma-relayd:
-    image: ${SOMA_BACKEND_IMAGE_PREFIX:-ghcr.io/stephane-segning/soma-backend}-relayd:${SOMA_TAG:-latest}
-    pull_policy: always
-    environment:
-      RUST_LOG: info
-      HTTP_ADDR: 0.0.0.0:8081
-      SOMA_DATA_DIR: /data
-    ports:
-      - "8081:8081"
-      - "14003:14003/tcp"
-      - "14103:14103/tcp"
-      - "14203:14203/udp"
-    volumes:
-      - relayd-data:/data
-
-  soma-rendezvousd:
-    image: ${SOMA_BACKEND_IMAGE_PREFIX:-ghcr.io/stephane-segning/soma-backend}-rendezvousd:${SOMA_TAG:-latest}
-    pull_policy: always
-    environment:
-      RUST_LOG: info
-      HTTP_ADDR: 0.0.0.0:8082
-      SOMA_DATA_DIR: /data
-    ports:
-      - "8082:8082"
-      - "14004:14004/tcp"
-      - "14104:14104/tcp"
-      - "4204:4204/udp"
-    volumes:
-      - rendezvousd-data:/data
-
-  soma-botd:
-    image: ${SOMA_BACKEND_IMAGE_PREFIX:-ghcr.io/stephane-segning/soma-backend}-botd:${SOMA_TAG:-latest}
-    pull_policy: always
-    depends_on:
-      - soma-relayd
-      - soma-rendezvousd
-    environment:
-      RUST_LOG: info
-      HTTP_ADDR: 0.0.0.0:8080
-      SOMA_DATA_DIR: /data
-      SOMA_BLOB_DIR: /blobs
-      SOMA_DATABASE_URL: /data/botd.db
-      # Optional: point the bot at your infra nodes (needs /p2p/<peer_id> in the multiaddr).
-      # Example:
-      #   SOMA_RELAY_ADDRS: /dns4/soma-relayd/tcp/14003/p2p/<relay_peer_id>,/dns4/soma-relayd/udp/14203/quic-v1/p2p/<relay_peer_id>
-      #   SOMA_RDV_ADDRS: /dns4/soma-rendezvousd/tcp/14004/p2p/<rdv_peer_id>
-      # SOMA_RELAY_ADDRS: ""
-      # SOMA_RDV_ADDRS: ""
-      SOMA_MODE: bot
-    ports:
-      - "8080:8080"
-      - "14005:14005/tcp"
-      - "14105:14105/tcp"
-      - "14205:14205/udp"
-    volumes:
-      - botd-data:/data
-      - botd-blobs:/blobs
-
-  soma-bffd:
-    image: ${SOMA_BACKEND_IMAGE_PREFIX:-ghcr.io/stephane-segning/soma-backend}-bffd:${SOMA_TAG:-latest}
-    pull_policy: always
-    environment:
-      RUST_LOG: info
-      HTTP_ADDR: 0.0.0.0:8083
-      SOMA_DATA_DIR: /data
-      # Optional p2p peer:
-      # SOMA_P2P_ENABLE: "true"
-      # SOMA_P2P_LISTEN_ADDRS: /ip4/0.0.0.0/tcp/14010,/ip4/0.0.0.0/tcp/14110/ws,/ip4/0.0.0.0/udp/14210/quic-v1
-    ports:
-      - "8083:8083"
-    volumes:
-      - bffd-data:/data
-
-volumes:
-  relayd-data: {}
-  rendezvousd-data: {}
-  botd-data: {}
-  botd-blobs: {}
-  bffd-data: {}
+# Requires Docker Compose v2.20+ for `include`.
+# If you're on an older version, use the multi-file invocation listed in README.md.
+include:
+  - compose/backend.infra.yml
+  - compose/backend.botd.yml
+  - compose/backend.bffd.yml

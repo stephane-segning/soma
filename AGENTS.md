@@ -2,6 +2,14 @@
 
 This document describes the repository layout, code structure, and coding conventions for working on Soma and Tapia in this monorepo.
 
+## Terminology: VDF
+
+In this repo, **VDF** refers to a **cache-only peer role** (sometimes casually written as “VDFS” in chat) that exists to improve availability/latency by **fetching and caching data addressed by content IDs**.
+
+- VDFs **never accept user uploads** and are **not a source of truth** for user-created blobs.
+- VDFs may persist cache in-memory (LRU/TTL), on disk, or via an external cache (e.g. Redis), but **cache writes are allowed only as a side-effect of fetching/verifying content**.
+- VDFs must **verify bytes match the claimed CID** before serving/persisting.
+
 ## Repository Layout
 
 - `backend/` – Rust workspace for **all** backends (desktop + server) and supporting crates.

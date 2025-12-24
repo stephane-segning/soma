@@ -1,0 +1,36 @@
+version: "3.9"
+
+services:
+  soma-relayd:
+    image: ${SOMA_BACKEND_IMAGE_PREFIX:-ghcr.io/stephane-segning/soma-backend}-relayd:${SOMA_TAG:-latest}
+    pull_policy: always
+    environment:
+      RUST_LOG: info
+      HTTP_ADDR: 0.0.0.0:8081
+      SOMA_DATA_DIR: /data
+    ports:
+      - "8081:8081"
+      - "14003:14003/tcp"
+      - "14103:14103/tcp"
+      - "14203:14203/udp"
+    volumes:
+      - relayd-data:/data
+
+  soma-rendezvousd:
+    image: ${SOMA_BACKEND_IMAGE_PREFIX:-ghcr.io/stephane-segning/soma-backend}-rendezvousd:${SOMA_TAG:-latest}
+    pull_policy: always
+    environment:
+      RUST_LOG: info
+      HTTP_ADDR: 0.0.0.0:8082
+      SOMA_DATA_DIR: /data
+    ports:
+      - "8082:8082"
+      - "14004:14004/tcp"
+      - "14104:14104/tcp"
+      - "4204:4204/udp"
+    volumes:
+      - rendezvousd-data:/data
+
+volumes:
+  relayd-data: {}
+  rendezvousd-data: {}
