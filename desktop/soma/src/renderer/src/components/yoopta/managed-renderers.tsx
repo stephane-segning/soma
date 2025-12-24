@@ -70,9 +70,6 @@ const accordionClasses = cva("yoopta-accordion rounded-box bg-base-200 p-4");
 const codeBlockClasses = cva(
 	"yoopta-code mockup-code overflow-auto bg-base-200 text-sm leading-6",
 );
-const inlineCodeClasses = cva(
-	"yoopta-inline-code rounded bg-base-300 px-1.5 py-0.5 text-sm",
-);
 const listItemClasses = cva("yoopta-list-item flex gap-2");
 const listBulletClasses = cva("yoopta-list-bullet mt-1 text-base-content");
 const todoWrapperClasses = cva("yoopta-todo flex items-start gap-2");

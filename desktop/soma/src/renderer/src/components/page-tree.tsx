@@ -307,13 +307,14 @@ function TreeItem({
 	const isEditing = node.page.pageId === editingPageId;
 	const isDragging = activeDragId === node.page.pageId;
 
+	const draggable = useDraggable({ id: node.page.pageId });
 	const {
 		attributes,
 		listeners,
 		setNodeRef: setDragRef,
 		transform,
-		transition,
-	} = useDraggable({ id: node.page.pageId });
+	} = draggable;
+	const transition = (draggable as { transition?: string }).transition;
 	const { isOver, setNodeRef: setDropRef } = useDroppable({
 		id: node.page.pageId,
 	});

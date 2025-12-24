@@ -15,6 +15,7 @@ import {
 } from "@yoopta/editor";
 import type { SlateElement } from "@yoopta/editor/dist/editor/types";
 import type { YooptaPlugin } from "@yoopta/editor/dist/plugins";
+import type { PluginElementRenderProps } from "@yoopta/editor/dist/plugins/types";
 import Embed from "@yoopta/embed";
 import File from "@yoopta/file";
 import { HeadingOne, HeadingThree, HeadingTwo } from "@yoopta/headings";
@@ -58,6 +59,11 @@ import {
 	renderManagedVideo,
 } from "./managed-renderers";
 import { YooptaEditorView } from "./yoopta-editor-view";
+type PluginRenderMap = Record<
+	string,
+	(props: PluginElementRenderProps) => React.JSX.Element
+>;
+const asPluginRenders = (renders: PluginRenderMap) => renders;
 
 type Props = {
 	placeholder?: string;
@@ -101,16 +107,16 @@ function YooptaEditorWithTools({
 		() =>
 			[
 				Paragraph.extend({
-					renders: {
+					renders: asPluginRenders({
 						paragraph: renderManagedParagraph,
-					},
+					}),
 				}),
 				Table.extend({
-					renders: {
+					renders: asPluginRenders({
 						table: renderManagedTable,
 						"table-row": renderManagedTableRow,
 						"table-data-cell": renderManagedTableCell,
-					},
+					}),
 				}),
 				Divider.extend({
 					elementProps: {
@@ -121,68 +127,68 @@ function YooptaEditorWithTools({
 					},
 				}),
 				Accordion.extend({
-					renders: {
+					renders: asPluginRenders({
 						accordion: renderManagedAccordion,
-					},
+					}),
 				}),
 				HeadingOne.extend({
-					renders: {
+					renders: asPluginRenders({
 						"heading-one": renderManagedHeadingOne,
-					},
+					}),
 				}),
 				HeadingTwo.extend({
-					renders: {
+					renders: asPluginRenders({
 						"heading-two": renderManagedHeadingTwo,
-					},
+					}),
 				}),
 				HeadingThree.extend({
-					renders: {
+					renders: asPluginRenders({
 						"heading-three": renderManagedHeadingThree,
-					},
+					}),
 				}),
 				Blockquote.extend({
-					renders: {
+					renders: asPluginRenders({
 						blockquote: renderManagedBlockquote,
-					},
+					}),
 				}),
 				Callout.extend({
-					renders: {
+					renders: asPluginRenders({
 						callout: renderManagedCallout,
-					},
+					}),
 				}),
 				NumberedList.extend({
-					renders: {
+					renders: asPluginRenders({
 						"numbered-list": renderManagedNumberedList,
-					},
+					}),
 				}),
 				BulletedList.extend({
-					renders: {
+					renders: asPluginRenders({
 						"bulleted-list": renderManagedBulletedList,
-					},
+					}),
 				}),
 				TodoList.extend({
-					renders: {
+					renders: asPluginRenders({
 						"todo-list": renderManagedTodoList,
-					},
+					}),
 				}),
 				Code.extend({
-					renders: {
+					renders: asPluginRenders({
 						code: renderManagedCode,
 						"code-inline": renderManagedCode,
-					},
+					}),
 				}),
 				Link.extend({
-					renders: {
+					renders: asPluginRenders({
 						link: renderManagedLink,
-					},
+					}),
 				}),
 				Embed.extend({
-					renders: {
+					renders: asPluginRenders({
 						embed: renderManagedEmbed,
-					},
+					}),
 				}),
 				Image.extend({
-					renders: { image: renderManagedImage },
+					renders: asPluginRenders({ image: renderManagedImage }),
 					options: {
 						async onUpload(file) {
 							const data = await uploadToBlob(file, "image");
@@ -195,7 +201,7 @@ function YooptaEditorWithTools({
 					},
 				}),
 				Video.extend({
-					renders: { video: renderManagedVideo },
+					renders: asPluginRenders({ video: renderManagedVideo }),
 					options: {
 						onUpload: async (file) => {
 							const data = await uploadToBlob(file, "video");
@@ -211,7 +217,7 @@ function YooptaEditorWithTools({
 					},
 				}),
 				File.extend({
-					renders: { file: renderManagedFile },
+					renders: asPluginRenders({ file: renderManagedFile }),
 					options: {
 						onUpload: async (file) => {
 							const response = await uploadToBlob(file, "auto");
