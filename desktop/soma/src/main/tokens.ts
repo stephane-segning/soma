@@ -12,6 +12,7 @@ const DOCUMENTS_SERVICE = Symbol("DocumentsService");
 const DAEMON_SUPERVISOR = Symbol("DaemonSupervisor");
 const DAEMON_SYNC_SERVICE = Symbol("DaemonSyncService");
 const AGENT_SERVICE = Symbol("AgentService");
+const AGENTD_CLIENT = Symbol("AgentdClient");
 
 const TYPES = {
 	daemonClient: DAEMON_CLIENT,
@@ -28,6 +29,7 @@ const TYPES = {
 	daemonSupervisor: DAEMON_SUPERVISOR,
 	daemonSyncService: DAEMON_SYNC_SERVICE,
 	agentService: AGENT_SERVICE,
+	agentdClient: AGENTD_CLIENT,
 } as const;
 
 type Token = (typeof TYPES)[keyof typeof TYPES];

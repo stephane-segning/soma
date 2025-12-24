@@ -9,3 +9,9 @@ pub mod daemon {
         tonic::include_proto!("daemon.v1");
     }
 }
+
+pub mod agent {
+    pub mod v1 {
+        tonic::include_proto!("agent.v1");
+    }
+}

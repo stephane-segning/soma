@@ -1,0 +1,88 @@
+syntax = "proto3";
+
+package agent.v1;
+
+import "google/protobuf/empty.proto";
+
+// Local agent service (IPC over Unix domain socket).
+service Agent {
+  rpc Status(google.protobuf.Empty) returns (StatusResponse);
+  rpc InlineComplete(InlineCompleteRequest) returns (InlineCompleteResponse);
+  rpc Chat(ChatRequest) returns (ChatResponse);
+  rpc ChatStream(ChatRequest) returns (stream ChatStreamEvent);
+  rpc Embed(EmbedRequest) returns (EmbedResponse);
+}
+
+message StatusResponse {
+  string version = 1;
+  string default_chat_model = 2;
+  string default_embed_model = 3;
+  repeated ModelInfo models = 4;
+}
+
+enum ModelKind {
+  MODEL_KIND_UNSPECIFIED = 0;
+  MODEL_KIND_CHAT = 1;
+  MODEL_KIND_EMBED = 2;
+}
+
+message ModelInfo {
+  string name = 1;
+  ModelKind kind = 2;
+  string path = 3;
+  bool loaded = 4;
+}
+
+message InlineCompleteRequest {
+  string prompt = 1;
+  string context = 2;
+  // Optional model override; defaults to StatusResponse.default_chat_model.
+  string model = 3;
+}
+
+message InlineCompleteResponse {
+  string completion = 1;
+  string model = 2;
+}
+
+message ChatMessage {
+  // Typical roles: "system", "user", "assistant".
+  string role = 1;
+  string content = 2;
+}
+
+message ChatRequest {
+  // Optional model override; defaults to StatusResponse.default_chat_model.
+  string model = 1;
+  repeated ChatMessage messages = 2;
+  float temperature = 3;
+  uint32 max_tokens = 4;
+}
+
+message ChatResponse {
+  string model = 1;
+  string content = 2;
+}
+
+message ChatStreamEvent {
+  oneof event {
+    string token = 1;
+    ChatResponse done = 2;
+  }
+}
+
+message EmbedRequest {
+  // Optional model override; defaults to StatusResponse.default_embed_model.
+  string model = 1;
+  repeated string input = 2;
+}
+
+message EmbedVector {
+  repeated float values = 1;
+}
+
+message EmbedResponse {
+  string model = 1;
+  repeated EmbedVector embeddings = 2;
+}
+

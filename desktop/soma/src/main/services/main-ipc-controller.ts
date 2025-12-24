@@ -258,6 +258,28 @@ export class MainIpcController {
 			},
 		);
 
+		ipcMain.handle(
+			"agent:chat",
+			async (
+				_event,
+				input: {
+					messages: Array<{ role: string; content: string }>;
+					model?: string;
+					temperature?: number;
+					maxTokens?: number;
+				},
+			) => {
+				return this.agent.chat(input);
+			},
+		);
+
+		ipcMain.handle(
+			"agent:embed",
+			async (_event, input: { input: string[]; model?: string }) => {
+				return this.agent.embed(input);
+			},
+		);
+
 		ipcMain.on("window:minimize", (event) => {
 			BrowserWindow.fromWebContents(event.sender)?.minimize();
 		});

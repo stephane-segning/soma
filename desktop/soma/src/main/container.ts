@@ -1,6 +1,7 @@
 import { Container } from "inversify";
 import { SomaElectronApp } from "./app";
 import { AgentService } from "./services/agent-service";
+import { AgentdClient } from "./services/agentd-client";
 import { AppSettingsService } from "./services/app-settings-service";
 import { AppStateSyncService } from "./services/app-state-sync-service";
 import { DaemonClient } from "./services/daemon-client";
@@ -30,6 +31,7 @@ container.bind<DaemonSupervisor>(TYPES.daemonSupervisor).to(DaemonSupervisor);
 container
 	.bind<DaemonSyncService>(TYPES.daemonSyncService)
 	.to(DaemonSyncService);
+container.bind<AgentdClient>(TYPES.agentdClient).to(AgentdClient);
 container.bind<AgentService>(TYPES.agentService).to(AgentService);
 container.bind<IpcService>(TYPES.ipcService).to(IpcService);
 container
@@ -54,6 +56,7 @@ function resolve(
 function resolve(identifier: typeof TYPES.dbService): DbService;
 function resolve(identifier: typeof TYPES.documentsService): DocumentsService;
 function resolve(identifier: typeof TYPES.agentService): AgentService;
+function resolve(identifier: typeof TYPES.agentdClient): AgentdClient;
 function resolve(identifier: typeof TYPES.ipcService): IpcService;
 function resolve(identifier: typeof TYPES.mainIpcController): MainIpcController;
 function resolve(identifier: typeof TYPES.daemonSupervisor): DaemonSupervisor;

@@ -9,4 +9,16 @@ authors.workspace = true
 [dependencies]
 soma-agent = { workspace = true }
 soma-common = { workspace = true }
-
+soma-core = { workspace = true }
+soma-proto-build = { workspace = true }
+soma-socket = { workspace = true }
+anyhow = { workspace = true }
+clap = { workspace = true }
+tokio = { workspace = true }
+tonic = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+mimalloc = { workspace = true }
+llama-cpp-2 = { workspace = true }
+futures = { workspace = true }
+tokio-stream = { workspace = true }

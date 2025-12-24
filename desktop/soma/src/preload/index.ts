@@ -145,6 +145,20 @@ const api = {
 				"agent:inline-complete",
 				input,
 			) as Promise<{ completion: string }>,
+		chat: (input: {
+			messages: Array<{ role: string; content: string }>;
+			model?: string;
+			temperature?: number;
+			maxTokens?: number;
+		}) =>
+			electronAPI.ipcRenderer.invoke("agent:chat", input) as Promise<{
+				content: string;
+				model: string;
+			}>,
+		embed: (input: { input: string[]; model?: string }) =>
+			electronAPI.ipcRenderer.invoke("agent:embed", input) as Promise<{
+				embeddings: number[][];
+			}>,
 	},
 	setLastRoute: (route: string): void =>
 		electronAPI.ipcRenderer.send("router:set-last-route", route),

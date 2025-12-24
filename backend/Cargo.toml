@@ -82,6 +82,7 @@ base64 = "0.22"
 sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "macros", "any", "postgres", "sqlite", "migrate", "time", "chrono", "json"] }
 sqlx-utils = "1.1.3"
 ciborium = "0.2"
+llama-cpp-2 = "0.1.130"
 
 [workspace.dependencies.libp2p]
 version = "0.56"

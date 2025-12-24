@@ -109,6 +109,16 @@ type RendererApi = {
 			prompt: string;
 			context?: string;
 		}) => Promise<{ completion: string }>;
+		chat: (input: {
+			messages: Array<{ role: string; content: string }>;
+			model?: string;
+			temperature?: number;
+			maxTokens?: number;
+		}) => Promise<{ content: string; model: string }>;
+		embed: (input: {
+			input: string[];
+			model?: string;
+		}) => Promise<{ embeddings: number[][] }>;
 	};
 	setLastRoute: (route: string) => void;
 	window: {
