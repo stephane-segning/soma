@@ -73,6 +73,7 @@
 		"@yoopta/video": "^4.9.9",
 		"class-variance-authority": "^0.7.1",
 		"composed-offset-position": "^0.0.6",
+		"@paralleldrive/cuid2": "^3.0.0",
 		"cssnano": "^7.1.2",
 		"daisyui": "^5.5.14",
 		"electron": "39.2.7",

@@ -4,6 +4,7 @@ import { app } from "electron";
 import log from "electron-log";
 import { inject, injectable } from "inversify";
 import { TYPES } from "../tokens";
+import { createId } from "@paralleldrive/cuid2";
 import type { DbService } from "./db-service";
 
 type UpsertDocumentDraftInput = {
@@ -82,7 +83,7 @@ function ensureString(value: unknown, fallback = ""): string {
 }
 
 function safeBlobId(): string {
-	return `${crypto.randomUUID()}--${crypto.randomUUID()}`;
+	return `blb-${createId()}--${createId()}`;
 }
 
 function blobUrl(blobId: string): string {
@@ -239,7 +240,7 @@ export class DocumentsService {
 		const contentJson = ensureString(input.contentJson);
 		if (!spaceId || !documentId || !contentJson) return;
 
-		const id = crypto.randomUUID();
+		const id = createId();
 		const published = input.published ? 1 : 0;
 		const updatedAtMs = Number.isFinite(input.updatedAtMs)
 			? input.updatedAtMs

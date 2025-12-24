@@ -1,3 +1,4 @@
+import { createId } from "@paralleldrive/cuid2";
 import { create } from "zustand";
 
 type PersistedTab = {
@@ -30,10 +31,7 @@ type TabsStore = {
 const MAX_TABS = 10;
 
 function newTabId(): string {
-	if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-		return crypto.randomUUID();
-	}
-	return `tab_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+	return createId();
 }
 
 function coercePath(path: string): string {
