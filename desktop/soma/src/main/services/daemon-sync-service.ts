@@ -12,7 +12,8 @@ class DaemonSyncService {
 
 	constructor(
 		@inject(TYPES.daemonClient) private readonly daemon: DaemonClient,
-		@inject(TYPES.documentsService) private readonly documents: DocumentsService,
+		@inject(TYPES.documentsService)
+		private readonly documents: DocumentsService,
 	) {}
 
 	start(): void {

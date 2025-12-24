@@ -27,7 +27,9 @@ container.bind<DbService>(TYPES.dbService).to(DbService);
 container.bind<DocumentsService>(TYPES.documentsService).to(DocumentsService);
 container.bind<DaemonClient>(TYPES.daemonClient).to(DaemonClient);
 container.bind<DaemonSupervisor>(TYPES.daemonSupervisor).to(DaemonSupervisor);
-container.bind<DaemonSyncService>(TYPES.daemonSyncService).to(DaemonSyncService);
+container
+	.bind<DaemonSyncService>(TYPES.daemonSyncService)
+	.to(DaemonSyncService);
 container.bind<AgentService>(TYPES.agentService).to(AgentService);
 container.bind<IpcService>(TYPES.ipcService).to(IpcService);
 container

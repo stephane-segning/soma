@@ -83,7 +83,7 @@ function ensureString(value: unknown, fallback = ""): string {
 }
 
 function safeBlobId(): string {
-	return `blb-${createId()}--${createId()}`;
+	return `${createId()}--${createId()}`;
 }
 
 function blobUrl(blobId: string): string {
@@ -258,7 +258,15 @@ export class DocumentsService {
           INSERT INTO documents_daemon_outbox (id, space_id, document_id, content_json, published, updated_at_ms, created_at_ms)
           VALUES (?, ?, ?, ?, ?, ?, ?)
         `,
-					[id, spaceId, documentId, contentJson, published, updatedAtMs, nowMs()],
+					[
+						id,
+						spaceId,
+						documentId,
+						contentJson,
+						published,
+						updatedAtMs,
+						nowMs(),
+					],
 				);
 			});
 		} else {
@@ -349,7 +357,11 @@ export class DocumentsService {
 		const blobPath = this.resolveStagedBlobPath(blobId);
 		try {
 			const bytes = readFileSync(blobPath);
-			return { bytes: new Uint8Array(bytes), mime: row.mime, fileName: row.fileName };
+			return {
+				bytes: new Uint8Array(bytes),
+				mime: row.mime,
+				fileName: row.fileName,
+			};
 		} catch {
 			return null;
 		}
@@ -430,7 +442,9 @@ export class DocumentsService {
 
 		let deleted = 0;
 		for (const row of rows) {
-			this._db.run(`DELETE FROM documents_daemon_outbox WHERE id = ?`, [row.id]);
+			this._db.run(`DELETE FROM documents_daemon_outbox WHERE id = ?`, [
+				row.id,
+			]);
 			deleted += 1;
 		}
 
@@ -489,7 +503,11 @@ export class DocumentsService {
 		return page;
 	}
 
-	updatePageTitle(spaceId: string, pageId: string, title: string): PageRecord | null {
+	updatePageTitle(
+		spaceId: string,
+		pageId: string,
+		title: string,
+	): PageRecord | null {
 		this.init();
 		const nextTitle = safeTitle(title);
 		this._db.run(
@@ -499,7 +517,11 @@ export class DocumentsService {
 		return this.getPage(spaceId, pageId);
 	}
 
-	setPageParents(spaceId: string, pageId: string, parentPageIds: string[]): PageRecord | null {
+	setPageParents(
+		spaceId: string,
+		pageId: string,
+		parentPageIds: string[],
+	): PageRecord | null {
 		this.init();
 		const tx = (this._db as unknown as { transaction?: unknown }).transaction;
 		if (typeof tx === "function") {
@@ -584,14 +606,18 @@ export class DocumentsService {
 		}));
 	}
 
-	private replacePageParents(spaceId: string, pageId: string, parentPageIds: string[]): void {
+	private replacePageParents(
+		spaceId: string,
+		pageId: string,
+		parentPageIds: string[],
+	): void {
 		const uniqueParents = Array.from(
 			new Set(parentPageIds.map((p) => ensureString(p).trim()).filter(Boolean)),
 		);
-		this._db.run(`DELETE FROM page_parents WHERE space_id = ? AND page_id = ?`, [
-			spaceId,
-			pageId,
-		]);
+		this._db.run(
+			`DELETE FROM page_parents WHERE space_id = ? AND page_id = ?`,
+			[spaceId, pageId],
+		);
 		for (const parentId of uniqueParents) {
 			this._db.run(
 				`

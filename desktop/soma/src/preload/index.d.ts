@@ -89,21 +89,21 @@ type RendererApi = {
 			url: string;
 		}>;
 	};
-		daemon: {
-			upsertDocument: (input: {
-				spaceId: string;
-				documentId: string;
-				contentJson: string;
-				published: boolean;
-				updatedAtMs: number;
-			}) => Promise<{ ok: true }>;
-			syncPublishedDocument: (input: {
-				spaceId: string;
-				documentId: string;
-				contentJson: string;
-				updatedAtMs: number;
-			}) => Promise<{ ok: true; uploaded: number }>;
-		};
+	daemon: {
+		upsertDocument: (input: {
+			spaceId: string;
+			documentId: string;
+			contentJson: string;
+			published: boolean;
+			updatedAtMs: number;
+		}) => Promise<{ ok: true }>;
+		syncPublishedDocument: (input: {
+			spaceId: string;
+			documentId: string;
+			contentJson: string;
+			updatedAtMs: number;
+		}) => Promise<{ ok: true; uploaded: number }>;
+	};
 	agent: {
 		inlineComplete: (input: {
 			prompt: string;

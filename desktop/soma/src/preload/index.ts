@@ -51,7 +51,10 @@ const api = {
 			title?: string;
 			parentPageIds?: string[];
 		}) =>
-			electronAPI.ipcRenderer.invoke("documents:ensure-page", input) as Promise<{
+			electronAPI.ipcRenderer.invoke(
+				"documents:ensure-page",
+				input,
+			) as Promise<{
 				spaceId: string;
 				pageId: string;
 				title: string;
@@ -70,7 +73,11 @@ const api = {
 					updatedAtMs: number;
 				}>
 			>,
-		updatePageTitle: (input: { spaceId: string; pageId: string; title: string }) =>
+		updatePageTitle: (input: {
+			spaceId: string;
+			pageId: string;
+			title: string;
+		}) =>
 			electronAPI.ipcRenderer.invoke(
 				"documents:update-page-title",
 				input,
@@ -109,29 +116,29 @@ const api = {
 				url: string;
 			}>,
 	},
-		daemon: {
-			upsertDocument: (input: {
-				spaceId: string;
-				documentId: string;
-				contentJson: string;
-				published: boolean;
-				updatedAtMs: number;
-			}): Promise<{ ok: true }> =>
-				electronAPI.ipcRenderer.invoke(
-					"daemon:upsert-document",
-					input,
-				) as Promise<{ ok: true }>,
-			syncPublishedDocument: (input: {
-				spaceId: string;
-				documentId: string;
-				contentJson: string;
-				updatedAtMs: number;
-			}): Promise<{ ok: true; uploaded: number }> =>
-				electronAPI.ipcRenderer.invoke(
-					"daemon:sync-published-document",
-					input,
-				) as Promise<{ ok: true; uploaded: number }>,
-		},
+	daemon: {
+		upsertDocument: (input: {
+			spaceId: string;
+			documentId: string;
+			contentJson: string;
+			published: boolean;
+			updatedAtMs: number;
+		}): Promise<{ ok: true }> =>
+			electronAPI.ipcRenderer.invoke(
+				"daemon:upsert-document",
+				input,
+			) as Promise<{ ok: true }>,
+		syncPublishedDocument: (input: {
+			spaceId: string;
+			documentId: string;
+			contentJson: string;
+			updatedAtMs: number;
+		}): Promise<{ ok: true; uploaded: number }> =>
+			electronAPI.ipcRenderer.invoke(
+				"daemon:sync-published-document",
+				input,
+			) as Promise<{ ok: true; uploaded: number }>,
+	},
 	agent: {
 		inlineComplete: (input: { prompt: string; context?: string }) =>
 			electronAPI.ipcRenderer.invoke(

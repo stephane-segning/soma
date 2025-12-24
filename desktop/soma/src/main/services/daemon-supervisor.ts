@@ -15,7 +15,9 @@ export class DaemonSupervisor {
 	private ensureInFlight: Promise<void> | null = null;
 	private connected = false;
 
-	constructor(@inject(TYPES.daemonClient) private readonly daemon: DaemonClient) {}
+	constructor(
+		@inject(TYPES.daemonClient) private readonly daemon: DaemonClient,
+	) {}
 
 	async ensureConnected(options: EnsureOptions = {}): Promise<void> {
 		if (this.connected) return;
