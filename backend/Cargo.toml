@@ -14,6 +14,7 @@ members = [
     "crates/rendezvous",
     "crates/bff",
     "crates/peer",
+    "crates/vdfs",
     "crates/socket",
     "bins/daemon",
     "bins/botd",
@@ -39,6 +40,7 @@ soma-rendezvous = { path = "crates/rendezvous" }
 soma-relay = { path = "crates/relay" }
 soma-bff = { path = "crates/bff" }
 soma-peer = { path = "crates/peer" }
+soma-vdfs = { path = "crates/vdfs" }
 soma-socket = { path = "crates/socket" }
 soma-metrics = { path = "crates/metrics" }
 soma-proto-build = { path = "crates/proto-build" }

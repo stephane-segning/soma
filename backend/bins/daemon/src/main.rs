@@ -12,6 +12,7 @@ use soma_peer::{PeerCommand, PeerConfig, join::JoinDecider, spawn_ping_peer};
 use soma_proto_build::daemon;
 use soma_proto_build::spaceroom::JoinDecision;
 use soma_storage::mailbox::MailboxRepository;
+use soma_vdfs::BlobProvider;
 use std::time::{Duration, SystemTime};
 use tokio::{
     signal,
@@ -74,7 +75,7 @@ async fn run(config: DaemonConfig) -> SomaResult<()> {
 
     std::fs::create_dir_all(&blob_dir)?;
     let blob_store = BlobStore::new(blob_dir.clone());
-    let blob_provider: Arc<dyn soma_peer::BlobProvider> = Arc::new(blob_store.clone());
+    let blob_provider: Arc<dyn BlobProvider> = Arc::new(blob_store.clone());
     static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("../../crates/storage/migrations");
     let db_url = soma_core::db::normalize_sqlite_url(db_path.to_string_lossy().as_ref());
     info!(%db_url, scheme = "sqlite", "configuring database");

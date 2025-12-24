@@ -16,6 +16,7 @@ use soma_peer::{
 };
 use soma_proto_build::spaceroom::JoinDecision;
 use soma_storage::mailbox::MailboxRepository;
+use soma_vdfs::BlobProvider;
 use std::time::{Duration, SystemTime};
 use tokio::task::JoinHandle;
 use tracing::{info, warn};
@@ -53,7 +54,7 @@ pub async fn run_from_cli() -> SomaResult<()> {
 pub async fn run(config: BotConfig, metrics: BotMetrics) -> SomaResult<()> {
     std::fs::create_dir_all(&config.blob_dir)?;
     let blob_cache = BlobCache::new(config.blob_dir.clone());
-    let blob_provider: Arc<dyn soma_peer::BlobProvider> = Arc::new(blob_cache.clone());
+    let blob_provider: Arc<dyn BlobProvider> = Arc::new(blob_cache.clone());
 
     // DB: allow postgres or sqlite URL, default to sqlite file path.
     static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("../../crates/storage/migrations");

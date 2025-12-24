@@ -92,7 +92,7 @@ This means blobs are currently limited to “small attachment” sizes; large fi
 
 `soma-peer` treats “blob storage” as a dependency injected into the peer runtime:
 
-- Trait: `soma_peer::BlobProvider` (`backend/crates/peer/src/lib.rs`)
+- Trait: `soma_vdfs::BlobProvider` (`backend/crates/vdfs/src/lib.rs`)
   - `get(cid, space_id) -> Option<BlobResponse>`
   - `put(expected_cid, space_id, bytes, mime) -> SomaResult<bool>` (implementations verify CID before writing)
 
@@ -142,4 +142,3 @@ The current CAS logic is duplicated in the daemon and bot binaries. The planned 
 - the storage trait boundary currently defined in `soma-peer` (`BlobProvider`)
 
 The `soma-peer` crate should keep the libp2p wiring and depend on the extracted crate for “blob/VDFS” types and primitives.
-

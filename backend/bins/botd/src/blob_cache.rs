@@ -1,8 +1,7 @@
 use std::{path::PathBuf, sync::Arc};
 
-use sha2::{Digest, Sha256};
 use soma_core::SomaResult;
-use soma_peer::{BlobProvider, BlobResponse};
+use soma_vdfs::{BlobProvider, BlobResponse, cid_for};
 use tokio::fs;
 
 /// Cache-only content-addressed blob store for botd.
@@ -16,13 +15,6 @@ impl BlobCache {
         Self {
             root: Arc::new(root),
         }
-    }
-
-    fn cid_for(bytes: &[u8]) -> String {
-        let mut hasher = Sha256::new();
-        hasher.update(bytes);
-        let digest = hasher.finalize();
-        format!("{:x}", digest)
     }
 
     fn path_for(&self, space_id: &str, cid: &str) -> PathBuf {
@@ -82,7 +74,7 @@ impl BlobProvider for BlobCache {
         if space.is_empty() {
             return Ok(false);
         }
-        let computed = Self::cid_for(bytes);
+        let computed = cid_for(bytes);
         if computed != expected_cid {
             return Ok(false);
         }

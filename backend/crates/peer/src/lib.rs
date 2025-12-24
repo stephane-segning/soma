@@ -12,6 +12,7 @@ use prost::Message;
 use soma_core::SomaResult;
 use soma_net::NetIdentity;
 use soma_proto_build::spaceroom;
+use soma_vdfs::{BLOB_PROTOCOL, BlobProvider, BlobRequest, BlobResponse, MAX_BLOB_MESSAGE_BYTES};
 use std::collections::{HashMap, HashSet};
 use std::io;
 use std::sync::Arc;
@@ -28,9 +29,6 @@ const JOIN_PROTOCOL: &str = "/soma/join/1";
 const JOIN_DECISION_PROTOCOL: &str = "/soma/join-decision/1";
 const MAX_JOIN_MESSAGE_BYTES: usize = 16 * 1024;
 const MAX_JOIN_DECISION_MESSAGE_BYTES: usize = 64 * 1024;
-const BLOB_PROTOCOL: &str = "/soma/blob/1";
-/// Conservative upper bound for a single in-flight blob message (including header).
-const MAX_BLOB_MESSAGE_BYTES: usize = 8 * 1024 * 1024;
 const AGENT_PROTOCOL: &str = "/soma/0.1.0";
 
 /// Commands sent to the peer runtime.
@@ -158,20 +156,6 @@ pub enum PeerEvent {
         found: bool,
         stored: bool,
     },
-}
-
-/// Serves blob bytes for inbound `/soma/blob/1` requests.
-#[async_trait]
-pub trait BlobProvider: Send + Sync {
-    async fn get(&self, cid: &str, space_id: Option<&str>) -> Option<BlobResponse>;
-    /// Store a blob received over the network. Implementations should verify CID before writing.
-    async fn put(
-        &self,
-        expected_cid: &str,
-        space_id: Option<&str>,
-        bytes: &[u8],
-        mime: &str,
-    ) -> SomaResult<bool>;
 }
 
 /// Handle to a running peer.
@@ -730,31 +714,6 @@ struct BlobCodec;
 
 #[derive(Clone, PartialEq, Message)]
 struct JoinDecisionAck {}
-
-#[derive(Clone, PartialEq, Message)]
-pub struct BlobRequest {
-    #[prost(string, tag = "1")]
-    pub cid: String,
-    /// Optional logical scope (e.g. space id) for storage layout.
-    #[prost(string, tag = "2")]
-    pub space_id: String,
-}
-
-#[derive(Clone, PartialEq, Message)]
-pub struct BlobResponse {
-    #[prost(string, tag = "1")]
-    pub cid: String,
-    #[prost(string, tag = "2")]
-    pub mime: String,
-    #[prost(uint64, tag = "3")]
-    pub size: u64,
-    #[prost(bytes, tag = "4")]
-    pub data: Vec<u8>,
-    #[prost(bool, tag = "5")]
-    pub found: bool,
-    #[prost(string, tag = "6")]
-    pub space_id: String,
-}
 
 #[async_trait]
 impl reqres::Codec for JoinCodec {

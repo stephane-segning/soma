@@ -1,8 +1,7 @@
 use std::{path::PathBuf, sync::Arc};
 
-use sha2::{Digest, Sha256};
 use soma_core::SomaResult;
-use soma_peer::BlobProvider;
+use soma_vdfs::{BlobProvider, BlobResponse, cid_for};
 use tokio::fs;
 
 /// Simple content-addressed blob store rooted at a directory.
@@ -26,13 +25,6 @@ impl BlobStore {
     }
 
     /// Compute the content hash for a blob.
-    pub fn cid_for(bytes: &[u8]) -> String {
-        let mut hasher = Sha256::new();
-        hasher.update(bytes);
-        let digest = hasher.finalize();
-        format!("{:x}", digest)
-    }
-
     /// Location for a given space + cid.
     pub fn path_for(&self, space_id: &str, cid: &str) -> PathBuf {
         self.root.join(space_id).join(cid)
@@ -40,7 +32,7 @@ impl BlobStore {
 
     /// Write a blob if it is not already present. Returns the cid and size.
     pub async fn write(&self, space_id: &str, bytes: &[u8]) -> SomaResult<BlobWriteResult> {
-        let cid = Self::cid_for(bytes);
+        let cid = cid_for(bytes);
         let size = bytes.len() as u64;
         let path = self.path_for(space_id, &cid);
 
@@ -70,7 +62,7 @@ impl BlobStore {
 
 #[async_trait::async_trait]
 impl BlobProvider for BlobStore {
-    async fn get(&self, cid: &str, space_id: Option<&str>) -> Option<soma_peer::BlobResponse> {
+    async fn get(&self, cid: &str, space_id: Option<&str>) -> Option<BlobResponse> {
         let space = space_id.unwrap_or("");
         if space.is_empty() {
             return None;
@@ -79,7 +71,7 @@ impl BlobProvider for BlobStore {
             return None;
         };
         let bytes = bytes_opt?;
-        Some(soma_peer::BlobResponse {
+        Some(BlobResponse {
             cid: cid.to_string(),
             mime: "application/octet-stream".to_string(),
             size: bytes.len() as u64,
@@ -100,7 +92,7 @@ impl BlobProvider for BlobStore {
         if space.is_empty() {
             return Ok(false);
         }
-        let computed = Self::cid_for(bytes);
+        let computed = cid_for(bytes);
         if computed != expected_cid {
             return Ok(false);
         }
