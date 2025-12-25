@@ -12,7 +12,7 @@ Soma is a local-first learning and collaboration platform for schools, designed 
 
 The monorepo is organized into clear, documented areas:
 - backend Rust workspace (`backend/`)
-- desktop applications (`desktop/`)
+- desktop application (`desktop/`)
 - deployment artifacts (`deploy/`)
 - Docker Compose bundles (`compose/`)
 - shared protocol definitions (`proto/`)
