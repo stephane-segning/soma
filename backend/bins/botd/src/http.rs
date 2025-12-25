@@ -40,7 +40,6 @@ pub struct BotState {
     pub repos: RepositoryFactory,
     pub signer: Keypair,
     pub peer_commands: mpsc::Sender<PeerCommand>,
-    pub blob_cache: crate::blob_cache::BlobCache,
 }
 
 pub async fn serve_http(

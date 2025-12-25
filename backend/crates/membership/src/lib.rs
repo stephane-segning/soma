@@ -23,7 +23,9 @@ use soma_storage::{
 };
 use tracing::warn;
 
-#[derive(Clone)]
+pub mod outbox;
+
+#[derive(Clone, Copy)]
 pub struct JoinPolicy {
     pub allow_auto_with_delegation: bool,
 }

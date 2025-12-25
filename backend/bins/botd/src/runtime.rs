@@ -1,33 +1,28 @@
 use std::sync::Arc;
+use std::path::{Path, PathBuf};
 
 use clap::Parser;
-use libp2p::Multiaddr;
-use prost::Message;
 use soma_core::SomaResult;
 use soma_membership::{JoinPolicy, build_join_decider};
-use soma_membership::{
-    MAILBOX_KIND_JOIN_DECISION, MAILBOX_KIND_JOIN_REQUEST, decode_outgoing_join_request_payload,
-};
-use soma_net::{NetIdentity, default_identity_path, generate_identity};
+use soma_net::{default_identity_path, generate_identity};
 use soma_peer::{
     PeerCommand, PeerConfig,
     events::{PeerEventDispatcher, PeerEventHandler, handler_with_queue},
-    spawn_ping_peer,
 };
-use soma_proto_build::spaceroom::JoinDecision;
-use soma_storage::mailbox::MailboxRepository;
 use soma_vdfs::BlobProvider;
-use std::time::{Duration, SystemTime};
+use std::time::Duration;
 use tokio::task::JoinHandle;
 use tracing::{info, warn};
 
 use crate::{
-    blob_cache::BlobCache,
     config::{Args, BotConfig, Command, Mode},
     event_handlers,
     http::{self, BotInfo, BotState},
     metrics::BotMetrics,
 };
+use soma_peer::bootstrap::{PeerBootstrapper, spawn_with_identity};
+use soma_net::NetIdentity;
+use soma_vdfs::fs::FsBlobStore;
 
 /// Build configuration from CLI args and run the bot runtime.
 pub async fn run_from_cli() -> SomaResult<()> {
@@ -53,8 +48,8 @@ pub async fn run_from_cli() -> SomaResult<()> {
 /// Run botd: spawn peer + HTTP server, then dispatch peer events until shutdown.
 pub async fn run(config: BotConfig, metrics: BotMetrics) -> SomaResult<()> {
     std::fs::create_dir_all(&config.blob_dir)?;
-    let blob_cache = BlobCache::new(config.blob_dir.clone());
-    let blob_provider: Arc<dyn BlobProvider> = Arc::new(blob_cache.clone());
+    let blob_store = FsBlobStore::new(config.blob_dir.clone());
+    let blob_provider: Arc<dyn BlobProvider> = Arc::new(blob_store.clone());
 
     // DB: allow postgres or sqlite URL, default to sqlite file path.
     static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("../../crates/storage/migrations");
@@ -62,31 +57,21 @@ pub async fn run(config: BotConfig, metrics: BotMetrics) -> SomaResult<()> {
     let db_scheme = db_scheme(&config.database_url);
     info!(scheme = %db_scheme, url = %config.database_url, "configuring database");
     let repos = soma_storage::bootstrap::connect_any(&config.database_url, &MIGRATOR).await?;
-    let net_identity = NetIdentity::load_or_generate(&config.identity_path)?;
-    let join_decider = build_join_decider(
-        &repos,
-        net_identity.keypair().clone(),
-        net_identity.peer_id(),
-        if matches!(config.mode, Mode::Bot) {
-            JoinPolicy::bot_auto()
-        } else {
-            JoinPolicy::manual_only()
-        },
-    );
+    let join_policy = if matches!(config.mode, Mode::Bot) {
+        JoinPolicy::bot_auto()
+    } else {
+        JoinPolicy::manual_only()
+    };
 
-    let peer_config = PeerConfig::builder()
-        .identity_path(config.identity_path.clone())
-        .listen_addrs(config.listen_addrs.clone())
-        .bootstrap_addrs(config.bootstrap_addrs.clone())
-        .rendezvous_nodes(config.rendezvous_addrs.clone())
-        .relay_addrs(config.relay_addrs.clone())
-        .enable_mdns(config.enable_mdns)
-        .join_decider(join_decider.clone())
-        .blob_provider(blob_provider)
-        .build()
-        .expect("peer config");
+    let bootstrapper = BotPeerBootstrap {
+        identity_path: config.identity_path.clone(),
+        config: config.clone(),
+        blob_provider: blob_provider.clone(),
+        repos: repos.clone(),
+        join_policy,
+    };
 
-    let peer = spawn_ping_peer(peer_config)?;
+    let (peer, net_identity) = spawn_with_identity(&bootstrapper)?;
     let peer_id = peer.peer_id;
 
     info!(
@@ -107,7 +92,6 @@ pub async fn run(config: BotConfig, metrics: BotMetrics) -> SomaResult<()> {
         repos: repos.clone(),
         signer: net_identity.keypair().clone(),
         peer_commands: peer.commands.clone(),
-        blob_cache: blob_cache.clone(),
     });
 
     let http_handle = tokio::spawn({
@@ -169,123 +153,7 @@ fn spawn_mailbox_sweeper(state: Arc<BotState>) {
 }
 
 async fn sweep_mailbox(state: &BotState) {
-    let now_secs = SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs() as i64;
-
-    let _ = state.repos.mailbox().requeue_expired_leases(now_secs).await;
-
-    let entries = match state.repos.mailbox().list_due(now_secs, 50).await {
-        Ok(entries) => entries,
-        Err(err) => {
-            warn!(%err, "mailbox sweep failed to list entries");
-            return;
-        }
-    };
-
-    for entry in entries {
-        match entry.kind.as_str() {
-            MAILBOX_KIND_JOIN_DECISION => {
-                let Some(subject_peer_id) = entry.subject_peer_id.clone() else {
-                    let _ = state.repos.mailbox().mark_dead(&entry.id).await;
-                    continue;
-                };
-                let Ok(target) = subject_peer_id.parse() else {
-                    let _ = state.repos.mailbox().mark_dead(&entry.id).await;
-                    continue;
-                };
-
-                let lease_until = now_secs + 30;
-                let leased = match state
-                    .repos
-                    .mailbox()
-                    .lease(&entry.id, &state.peer_id.to_string(), lease_until)
-                    .await
-                {
-                    Ok(rows) => rows,
-                    Err(_) => continue,
-                };
-                if leased == 0 {
-                    continue;
-                }
-
-                let Some(payload) = entry.payload.clone() else {
-                    let _ = state.repos.mailbox().mark_dead(&entry.id).await;
-                    continue;
-                };
-                let Ok(decision) = JoinDecision::decode(payload.as_slice()) else {
-                    let _ = state.repos.mailbox().mark_dead(&entry.id).await;
-                    continue;
-                };
-
-                let _ = state
-                    .peer_commands
-                    .send(PeerCommand::SendJoinDecision {
-                        target,
-                        addrs: Vec::new(),
-                        delivery_id: entry.id.clone(),
-                        decision,
-                    })
-                    .await;
-            }
-            MAILBOX_KIND_JOIN_REQUEST => {
-                let Some(subject_peer_id) = entry.subject_peer_id.clone() else {
-                    let _ = state.repos.mailbox().mark_dead(&entry.id).await;
-                    continue;
-                };
-                let Ok(target) = subject_peer_id.parse() else {
-                    let _ = state.repos.mailbox().mark_dead(&entry.id).await;
-                    continue;
-                };
-
-                let lease_until = now_secs + 30;
-                let leased = match state
-                    .repos
-                    .mailbox()
-                    .lease(&entry.id, &state.peer_id.to_string(), lease_until)
-                    .await
-                {
-                    Ok(rows) => rows,
-                    Err(_) => continue,
-                };
-                if leased == 0 {
-                    continue;
-                }
-
-                let Some(payload) = entry.payload.clone() else {
-                    let _ = state.repos.mailbox().mark_dead(&entry.id).await;
-                    continue;
-                };
-                let outgoing = match decode_outgoing_join_request_payload(&payload) {
-                    Ok(o) => o,
-                    Err(_) => {
-                        let _ = state.repos.mailbox().mark_dead(&entry.id).await;
-                        continue;
-                    }
-                };
-
-                let mut addrs = Vec::new();
-                for addr in outgoing.addrs {
-                    if let Ok(parsed) = addr.parse::<Multiaddr>() {
-                        addrs.push(parsed);
-                    }
-                }
-
-                let _ = state
-                    .peer_commands
-                    .send(PeerCommand::SendJoinRequest {
-                        target,
-                        addrs,
-                        delivery_id: entry.id.clone(),
-                        request_id: outgoing.request_id,
-                        request: outgoing.request,
-                    })
-                    .await;
-            }
-            _ => {}
-        }
-    }
+    soma_membership::outbox::sweep_due(&state.repos, &state.peer_id, &state.peer_commands).await;
 }
 
 fn build_dispatcher(state: Arc<BotState>) -> PeerEventDispatcher<BotState> {
@@ -330,5 +198,40 @@ fn db_scheme(url: &str) -> &'static str {
         "sqlite"
     } else {
         "unknown"
+    }
+}
+
+struct BotPeerBootstrap {
+    identity_path: PathBuf,
+    config: BotConfig,
+    blob_provider: Arc<dyn BlobProvider>,
+    repos: soma_storage::RepositoryFactory,
+    join_policy: JoinPolicy,
+}
+
+impl PeerBootstrapper for BotPeerBootstrap {
+    fn identity_path(&self) -> &Path {
+        &self.identity_path
+    }
+
+    fn build_config(&self, identity: &NetIdentity) -> PeerConfig {
+        let join_decider = build_join_decider(
+            &self.repos,
+            identity.keypair().clone(),
+            identity.peer_id(),
+            self.join_policy,
+        );
+
+        PeerConfig::builder()
+            .identity_path(self.identity_path.clone())
+            .listen_addrs(self.config.listen_addrs.clone())
+            .bootstrap_addrs(self.config.bootstrap_addrs.clone())
+            .rendezvous_nodes(self.config.rendezvous_addrs.clone())
+            .relay_addrs(self.config.relay_addrs.clone())
+            .enable_mdns(self.config.enable_mdns)
+            .join_decider(join_decider.clone())
+            .blob_provider(self.blob_provider.clone())
+            .build()
+            .expect("peer config")
     }
 }

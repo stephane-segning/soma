@@ -1,6 +1,7 @@
 use crate::join::JoinDecider;
 use async_trait::async_trait;
 pub use config::{PeerConfig, PeerConfigBuilder};
+pub mod bootstrap;
 use futures::{StreamExt, prelude::*};
 use libp2p::{
     Multiaddr, PeerId, identify, identity, mdns,
@@ -1024,17 +1025,17 @@ mod tests {
         );
     }
 
-    #[test]
-    fn reject_join_sets_rejection() {
+    #[tokio::test]
+    async fn reject_join_sets_rejection() {
         let req = sample_request();
         let peer = PeerId::random();
-        let decision = reject_join(&req, peer);
+        let decision = crate::join::RejectAll.decide(&req, &peer).await;
         assert_eq!(
             decision.decision,
             spaceroom::JoinDecisionType::JoinRejected as i32
         );
         assert_eq!(decision.space_id.unwrap().value, "space-123");
         assert_eq!(decision.subject_peer_id.unwrap().value, "peer-abc");
-        assert_eq!(decision.reason, "not an issuer");
+        assert_eq!(decision.reason, "issuer not configured");
     }
 }

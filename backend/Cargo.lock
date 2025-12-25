@@ -4004,9 +4004,11 @@ dependencies = [
  "clap",
  "libp2p",
  "mimalloc",
+ "once_cell",
  "soma-bff",
  "soma-core",
  "soma-metrics",
+ "soma-net",
  "soma-peer",
  "tokio",
  "tracing",
@@ -4073,9 +4075,11 @@ name = "soma-core"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "axum",
  "sqlx",
  "thiserror 2.0.17",
  "tokio",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -4123,6 +4127,7 @@ dependencies = [
  "soma-peer",
  "soma-proto-build",
  "soma-storage",
+ "tokio",
  "tracing",
 ]
 
@@ -4202,6 +4207,7 @@ dependencies = [
  "axum",
  "clap",
  "mimalloc",
+ "soma-core",
  "soma-net",
  "soma-relay",
  "tokio",
@@ -4233,6 +4239,7 @@ dependencies = [
  "axum",
  "clap",
  "mimalloc",
+ "soma-core",
  "soma-net",
  "soma-rendezvous",
  "tokio",
@@ -4286,6 +4293,7 @@ dependencies = [
  "prost",
  "sha2",
  "soma-core",
+ "tokio",
 ]
 
 [[package]]

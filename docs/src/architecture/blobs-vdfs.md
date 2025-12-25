@@ -39,8 +39,8 @@ Terminology note:
 
 Implementations:
 
-- Daemon store: `backend/bins/daemon/src/blob_store.rs`
-- Bot cache: `backend/bins/botd/src/blob_cache.rs`
+- Shared filesystem store: `soma_vdfs::fs::FsBlobStore` (`backend/crates/vdfs/src/fs.rs`)
+  - Used by both `soma-daemon` (authoritative store) and `soma-botd` (cache-only by policy, populated via fetch).
 
 Note: this is “CID” in the generic sense; it is not currently a multihash/CIDv1 string.
 
@@ -103,8 +103,7 @@ This means blobs are currently limited to “small attachment” sizes; large fi
 
 Implementations:
 
-- `soma-daemon`: `BlobStore` (`backend/bins/daemon/src/blob_store.rs`)
-- `soma-botd`: `BlobCache` (`backend/bins/botd/src/blob_cache.rs`)
+- `soma-daemon` and `soma-botd`: `soma_vdfs::fs::FsBlobStore` (`backend/crates/vdfs/src/fs.rs`)
 
 Operational note: current filesystem implementations require a non‑empty `space_id` and will refuse to read/write if it is missing.
 
@@ -137,13 +136,10 @@ Today, the peer runtime already supports `/soma/blob/1` and `PeerCommand::FetchB
 - Treat remote blobs as untrusted: do not automatically execute or render without appropriate UI sandboxing.
 - Authorization is currently minimal; future work should gate downloads using membership/permissions (see `SPACE_PERMISSION_DOWNLOAD_BLOBS` in `proto/spaceroom/v1/membership.proto`).
 
-## Planned refactor: dedicated VDFS crate
+## Implementation note: shared FS backend
 
-The current CAS logic is duplicated in the daemon and bot binaries. The planned direction is to extract a reusable crate (for Soma and other projects) that owns:
+The daemon and bot now share a single filesystem backend in `soma-vdfs`:
 
-- CID type + hashing utilities (SHA‑256 hex)
-- filesystem layout helpers (`<root>/<space_id>/<cid>`)
-- one or more filesystem-backed implementations (write-enabled vs cache-only policy)
-- the storage trait boundary currently defined in `soma-peer` (`BlobProvider`)
+- `soma_vdfs::fs::FsBlobStore` (`backend/crates/vdfs/src/fs.rs`)
 
-The `soma-peer` crate should keep the libp2p wiring and depend on the extracted crate for “blob/VDFS” types and primitives.
+Policy-level differences (“authoritative store” vs “cache-only”) are enforced by which code paths are exposed to users (daemon IPC upload vs network pull-by-CID) rather than by separate storage implementations today.

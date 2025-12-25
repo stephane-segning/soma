@@ -2,10 +2,9 @@
 
 ## Context
 
-Soma’s “blob CAS” implementation is currently duplicated:
+Soma’s “blob CAS” implementation used to be duplicated in the daemon and bot binaries. It is now shared via `soma-vdfs`:
 
-- `backend/bins/daemon/src/blob_store.rs`
-- `backend/bins/botd/src/blob_cache.rs`
+- `soma_vdfs::fs::FsBlobStore` (`backend/crates/vdfs/src/fs.rs`)
 
 Meanwhile, the peer runtime (`backend/crates/peer/src/lib.rs`) defines the `BlobProvider` boundary and the `/soma/blob/1` protocol types. This makes it harder to:
 
@@ -15,7 +14,7 @@ Meanwhile, the peer runtime (`backend/crates/peer/src/lib.rs`) defines the `Blob
 
 ## Decision
 
-Create a dedicated crate for the minimal “VDFS” surface (blob CAS + fetch-by-CID primitives), and make `soma-peer` depend on it.
+Create (and use) a dedicated crate for the minimal “VDFS” surface (blob CAS + fetch-by-CID primitives), and make `soma-peer` depend on it.
 
 The crate will intentionally stay narrow (no virtual filesystem mapping).
 
@@ -31,4 +30,3 @@ Negative / follow-ups:
 
 - Requires a small refactor to move `BlobProvider` and blob protocol types out of `soma-peer`.
 - May need a short compatibility phase while consumers migrate.
-

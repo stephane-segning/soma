@@ -73,8 +73,7 @@ Relevant code:
 
 - Protocol id: `backend/crates/peer/src/lib.rs` (`/soma/blob/1`)
 - Provider boundary: `backend/crates/vdfs/src/lib.rs` (`BlobProvider`)
-- Daemon implementation: `backend/bins/daemon/src/blob_store.rs`
-- Bot implementation: `backend/bins/botd/src/blob_cache.rs`
+- Filesystem implementation: `backend/crates/vdfs/src/fs.rs` (`soma_vdfs::fs::FsBlobStore`, used by both daemon and bot)
 
 ```mermaid
 sequenceDiagram

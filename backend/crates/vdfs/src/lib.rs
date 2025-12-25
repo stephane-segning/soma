@@ -3,6 +3,8 @@ use prost::Message;
 use sha2::{Digest, Sha256};
 use soma_core::SomaResult;
 
+pub mod fs;
+
 /// Protocol ID for fetching blobs over libp2p.
 pub const BLOB_PROTOCOL: &str = "/soma/blob/1";
 

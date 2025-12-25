@@ -11,6 +11,7 @@ soma-core = { workspace = true }
 soma-bff = { workspace = true }
 soma-metrics = { workspace = true }
 soma-peer = { workspace = true }
+soma-net = { workspace = true }
 clap = { workspace = true }
 tokio = { workspace = true }
 tracing-subscriber = { workspace = true }
@@ -18,3 +19,4 @@ tracing = { workspace = true }
 mimalloc = { workspace = true }
 axum = { workspace = true }
 libp2p = { workspace = true }
+once_cell = "1"

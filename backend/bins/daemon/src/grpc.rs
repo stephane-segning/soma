@@ -15,8 +15,8 @@ use tokio_stream::{StreamExt as TokioStreamExt, wrappers::BroadcastStream};
 use tonic::{Request, Response, Status};
 use tracing::{info, warn};
 
-use crate::blob_store::BlobStore;
 use libp2p::identity::Keypair;
+use soma_vdfs::fs::FsBlobStore;
 use soma_socket::serve_grpc_unix;
 use soma_storage::mailbox::MailboxRepository;
 use soma_storage::{RepositoryFactory, membership::MembershipRepository};
@@ -31,7 +31,7 @@ pub struct DaemonState {
     pub events: broadcast::Sender<daemon::DaemonEvent>,
     pub repos: RepositoryFactory,
     pub signer: Keypair,
-    pub blob_store: BlobStore,
+    pub blob_store: FsBlobStore,
 }
 
 impl DaemonState {
@@ -227,7 +227,7 @@ impl daemon::daemon_server::Daemon for DaemonService {
         let write_res = self
             .state
             .blob_store
-            .write(&payload.space_id, &payload.data)
+            .write_local(&payload.space_id, &payload.data)
             .await
             .map_err(|err| {
                 warn!(%err, "failed to persist blob");

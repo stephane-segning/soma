@@ -3,6 +3,7 @@ use std::{future::Future, path::Path};
 use soma_core::SomaResult;
 use tokio::net::{UnixListener, UnixStream};
 use tonic::transport::server::Router as TonicRouter;
+use tonic::transport::Server;
 use tracing::{info, warn};
 
 /// Run a Unix socket server with a custom connection handler and shutdown future.
@@ -83,4 +84,23 @@ pub async fn serve_grpc_unix(
     }
 
     Ok(())
+}
+
+/// Trait for gRPC services served over Unix sockets.
+pub trait GrpcUnixService {
+    fn socket_path(&self) -> &Path;
+    fn configure(self, server: Server) -> TonicRouter;
+}
+
+/// Run a [`GrpcUnixService`] with Ctrl+C shutdown.
+pub async fn run_grpc_unix_service<S>(svc: S) -> SomaResult<()>
+where
+    S: GrpcUnixService + Send + 'static,
+{
+    let socket = svc.socket_path().to_path_buf();
+    let router = svc.configure(Server::builder());
+    serve_grpc_unix(socket, router, async {
+        let _ = tokio::signal::ctrl_c().await;
+    })
+    .await
 }
