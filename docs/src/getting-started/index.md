@@ -31,8 +31,9 @@ RUST_LOG=info cargo run --release -p soma-daemon
 ```
 
 - On first run the daemon creates a keypair and prints its Peer ID.
-- It registers with the configured rendezvous server (or uses mDNS on LAN) and starts the local IPC/HTTP endpoint that Tapia will consume.
+- It registers with the configured rendezvous server (or uses mDNS on LAN) and listens on a local Unix socket gRPC interface (no HTTP surface).
 - Logs indicate whether it connected to relays or downloaded class metadata.
+- The socket path defaults to `./soma-daemon.sock` (set via `--socket` or `SOMA_DAEMON_SOCKET`). Desktop apps must be configured with this path to connect; for example, by setting the `SOMA_DAEMON_SOCKET` environment variable for the app. gRPC methods are defined in `proto/daemon/v1/daemon.proto`.
 
 ## 3. Start Tapia (Electron UI)
 
@@ -41,7 +42,7 @@ cd desktop/tapia
 pnpm dev
 ```
 
-- Tapia looks for the local daemon, launches it if needed, and surfaces errors if it cannot connect (check the developer console).
+- Tapia expects the local daemon to already be running at the configured Unix socket path (`SOMA_DAEMON_SOCKET`) and surfaces errors if it cannot connect (check the developer console).
 - Development builds typically hot-reload the React app while Electron stays running.
 
 You can also run the main Soma desktop app similarly:
