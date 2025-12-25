@@ -26,6 +26,17 @@ The monorepo is organized into clear, documented areas:
 - If your Docker Compose version does not support `include` (Compose v2.20+), use:
   - `docker compose -f compose/backend.infra.yml -f compose/backend.botd.yml -f compose/backend.bffd.yml up -d`
 
+## Development shortcuts
+
+`justfile` at the repo root defines a handful of helpers for building/running Rust daemons, lifting the server stack via Compose, and running the bundled backend and desktop tests. After installing [`just`](https://github.com/casey/just) you can run commands such as:
+
+- `just build-daemons`, `just run-daemon`, `just run-botd` / `just run-relayd`
+- `just compose-up`, `just compose-logs`, `just compose-down`
+- `just test-backend`, `just test-desktop-all`, etc.
+- `just help` to list available recipes.
+
+For smoother shell usage, we recommend contributing developers use `zsh` together with [JBarberU/zsh-justfile](https://github.com/JBarberU/zsh-justfile) so the `just` commands get tab completion and helpful hints.
+
 ## License
 
 This project is available under the terms of the MIT License. See [LICENSE](LICENSE) for details.
