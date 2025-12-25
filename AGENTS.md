@@ -746,10 +746,15 @@ For how peers (`soma-daemon`, `soma-botd`) use mDNS, rendezvous, and relay clien
   - **Facade**: `SomaElectronApp` is the lifecycle facade; it orchestrates startup/shutdown and delegates to bootstrap + window controllers.
   - **Delegation**: `MainBootstrapService` owns one-time app initialization (DB/settings + IPC + shortcuts), while `MainWindowController` owns window lifecycle/state restore. Keep logic in these services instead of growing `app.ts`.
 - Renderer integration (IPC + settings):
-  - Renderer must communicate with main via the preload bridge (`src/preload/index.ts`): `window.api` (explicit RPC-like helpers) and `window.ipc` (RxJS event stream + send).
+  - Renderer must communicate with main via the preload bridge (`desktop/soma/src/preload/index.ts`): `window.api` (RPC-like helpers) and `window.ipc.sendToMain` (fire-and-forget events).
+  - Do **not** expose RxJS `Observable`s (or any function/class instances) from preload: contextBridge serialization does not preserve prototypes/functions, so `subscribe`-style APIs will break.
+  - Prefer a Renderer MVC-ish split:
+    - Services under `desktop/soma/src/renderer/src/services/*` are the only place that may call `window.api` / `window.ipc`.
+    - Hooks under `desktop/soma/src/renderer/src/hooks/*` wrap services (TanStack Query hooks for request/response; RxJS streams created in-renderer for realtime).
+    - UI components should depend on hooks (e.g. `const [setLastRoute] = useSetLastRoute()`) and avoid direct `window.api` usage.
   - Router last route:
-    - Read: `await window.api.getLastRoute()`
-    - Persist: `window.api.setLastRoute(route)` → handled in main (`router:set-last-route`) and persisted to settings + route-store file.
+    - Read: `await window.api.getLastRoute()` (or `getLastRoute` service/hook wrapper)
+    - Persist: `const [setLastRoute] = useSetLastRoute(); setLastRoute(route)` → handled in main (`router:set-last-route`) and persisted to settings + route-store file.
   - App settings (unstructured JSON) are written from renderer → main via IPC events (handled by `AppStateSyncService` → `AppSettingsService`):
     - Set a setting:
       - `window.ipc.sendToMain('settings:set', { key: 'ui:theme', value: 'dark' })`

@@ -49,7 +49,8 @@ export const uploadToBlob = async (
 ): Promise<MediaObject> => {
 	try {
 		const bytes = new Uint8Array(await file.arrayBuffer());
-		const staged = await window.api.blobs.stage({
+		const { stageBlob } = await import("../services/blob-service");
+		const staged = await stageBlob({
 			bytes,
 			mime: file.type || "application/octet-stream",
 			fileName: file.name,

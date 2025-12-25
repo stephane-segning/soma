@@ -7,6 +7,7 @@ import type { YooptaContentValue } from "@yoopta/editor";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type LoaderFunctionArgs, useLoaderData } from "react-router";
 import { useDebouncedCallback } from "use-debounce";
+import * as documentsService from "../../services/documents-service";
 
 type LoaderData = {
 	spaceId: string;
@@ -34,7 +35,7 @@ async function loader({ params }: LoaderFunctionArgs): Promise<LoaderData> {
 	}
 
 	// Minimal fetch: try to hydrate from drafts; fall back to empty.
-	const draft = await window.api.documents.getDraft({
+	const draft = await documentsService.getDraft({
 		spaceId,
 		documentId: pageId,
 	});
@@ -72,7 +73,7 @@ function Component(): React.JSX.Element {
 			if (reloadingRef.current) return;
 			reloadingRef.current = true;
 			try {
-				const draft = await window.api.documents.getDraft({
+				const draft = await documentsService.getDraft({
 					spaceId: data.spaceId,
 					documentId: data.pageId,
 				});

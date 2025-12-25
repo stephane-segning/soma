@@ -1,4 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
+import * as documentsService from "../services/documents-service";
 
 type DraftRow = {
 	spaceId: string;
@@ -12,7 +13,7 @@ function useDocumentDraftQuery(spaceId: string, documentId: string) {
 	return useQuery({
 		queryKey: ["documents", "draft", spaceId, documentId] as const,
 		queryFn: async (): Promise<DraftRow | null> =>
-			window.api.documents.getDraft({ spaceId, documentId }),
+			documentsService.getDraft({ spaceId, documentId }),
 	});
 }
 
@@ -23,7 +24,7 @@ function useUpsertDocumentDraftMutation() {
 			documentId: string;
 			contentJson: string;
 			published: boolean;
-		}) => window.api.documents.upsertDraft(input),
+		}) => documentsService.upsertDraft(input),
 	});
 }
 
@@ -35,7 +36,7 @@ function useQueueDaemonSyncMutation() {
 			contentJson: string;
 			updatedAtMs: number;
 			published?: boolean;
-		}) => window.api.documents.queueDaemonSync(input),
+		}) => documentsService.queueDaemonSync(input),
 	});
 }
 
@@ -46,7 +47,7 @@ function useSyncPublishedDocumentMutation() {
 			documentId: string;
 			contentJson: string;
 			updatedAtMs: number;
-		}) => window.api.daemon.syncPublishedDocument(input),
+		}) => documentsService.syncPublishedDocument(input),
 	});
 }
 

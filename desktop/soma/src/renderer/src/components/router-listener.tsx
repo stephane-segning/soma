@@ -1,6 +1,7 @@
 import { useTabsStore } from "@renderer/store/tabs";
 import { useEffect } from "react";
 import { useLocation, useMatches } from "react-router";
+import { useSetLastRoute } from "../hooks/use-settings";
 
 function RouterListener() {
 	const location = useLocation();
@@ -8,11 +9,12 @@ function RouterListener() {
 	const activeTabId = useTabsStore((s) => s.activeId);
 	const setTabPath = useTabsStore((s) => s.setTabPath);
 	const renameTab = useTabsStore((s) => s.renameTab);
+	const [setLastRoute] = useSetLastRoute();
 
 	useEffect(() => {
 		if (location.pathname === "/") return;
 		const next = `${location.pathname}${location.search}`;
-		window.api.setLastRoute(next);
+		setLastRoute(next);
 		if (activeTabId) setTabPath(activeTabId, next);
 	}, [location.pathname, location.search, activeTabId, setTabPath]);
 

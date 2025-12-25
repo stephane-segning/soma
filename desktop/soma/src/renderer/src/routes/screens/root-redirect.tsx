@@ -1,4 +1,5 @@
 import { redirect } from "react-router";
+import { getLastRoute } from "../../services/settings-service";
 
 function isSpacePageRoute(route: string): boolean {
 	return /^\/spaces\/[^/]+\/pages\/[^/]+/.test(route);
@@ -6,7 +7,7 @@ function isSpacePageRoute(route: string): boolean {
 
 async function loader(): Promise<Response> {
 	try {
-		const lastRoute = await window.api.getLastRoute();
+		const lastRoute = await getLastRoute();
 		if (typeof lastRoute === "string" && isSpacePageRoute(lastRoute)) {
 			return redirect(lastRoute);
 		}

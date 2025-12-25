@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import * as documentsService from "../services/documents-service";
 
 type PageRecord = {
 	spaceId: string;
@@ -14,7 +15,7 @@ function usePagesQuery(spaceId: string) {
 		enabled: Boolean(spaceId),
 		queryKey: ["pages", spaceId] as const,
 		queryFn: async (): Promise<PageRecord[]> =>
-			window.api.documents.listPages({ spaceId }),
+			documentsService.listPages({ spaceId }),
 	});
 }
 
@@ -26,7 +27,7 @@ function useEnsurePageMutation() {
 			pageId?: string;
 			title?: string;
 			parentPageIds?: string[];
-		}): Promise<PageRecord> => window.api.documents.ensurePage(input),
+		}): Promise<PageRecord> => documentsService.ensurePage(input),
 		onSuccess: (data) => {
 			void queryClient.invalidateQueries({
 				queryKey: ["pages", data.spaceId],
@@ -43,7 +44,7 @@ function useUpdatePageTitleMutation() {
 			pageId: string;
 			title: string;
 		}): Promise<PageRecord | null> =>
-			window.api.documents.updatePageTitle(input),
+			documentsService.updatePageTitle(input),
 		onSuccess: (data, variables) => {
 			if (data) {
 				void queryClient.invalidateQueries({
@@ -66,7 +67,7 @@ function useSetPageParentsMutation() {
 			pageId: string;
 			parentPageIds: string[];
 		}): Promise<PageRecord | null> =>
-			window.api.documents.setPageParents(input),
+			documentsService.setPageParents(input),
 		onSuccess: (_data, variables) => {
 			void queryClient.invalidateQueries({
 				queryKey: ["pages", variables.spaceId],

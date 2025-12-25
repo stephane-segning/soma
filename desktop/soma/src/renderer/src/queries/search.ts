@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useDebounce } from "use-debounce";
+import * as searchService from "../services/search-service";
 
 type SearchResult = {
 	id: string;
@@ -14,7 +15,7 @@ function useSearchQuery(rawQuery: string) {
 	return useQuery({
 		queryKey: ["search", query] as const,
 		enabled,
-		queryFn: async (): Promise<SearchResult[]> => window.api.search(query),
+		queryFn: async (): Promise<SearchResult[]> => searchService.search(query),
 	});
 }
 
