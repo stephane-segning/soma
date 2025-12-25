@@ -4040,6 +4040,7 @@ dependencies = [
  "soma-peer",
  "soma-proto-build",
  "soma-storage",
+ "soma-vdfs",
  "sqlx",
  "tokio",
  "tracing",
@@ -4099,6 +4100,7 @@ dependencies = [
  "soma-proto-build",
  "soma-socket",
  "soma-storage",
+ "soma-vdfs",
  "sqlx",
  "tokio",
  "tokio-stream",
@@ -4158,6 +4160,7 @@ dependencies = [
  "soma-core",
  "soma-net",
  "soma-proto-build",
+ "soma-vdfs",
  "tokio",
  "tracing",
 ]

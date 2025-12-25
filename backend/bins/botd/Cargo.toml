@@ -11,6 +11,7 @@ soma-core = { workspace = true, features = ["db"] }
 soma-storage = { workspace = true }
 soma-net = { workspace = true }
 soma-common = { workspace = true }
+soma-vdfs = { workspace = true }
 soma-metrics = { workspace = true }
 soma-peer = { workspace = true }
 soma-proto-build = { workspace = true }

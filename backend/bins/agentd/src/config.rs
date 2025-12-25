@@ -7,7 +7,11 @@ use clap::Parser;
 #[command(name = "soma-agentd", version)]
 pub struct Args {
     /// Unix socket path for desktop IPC.
-    #[arg(long, env = "SOMA_AGENTD_SOCKET", default_value = "./soma-agentd.sock")]
+    #[arg(
+        long,
+        env = "SOMA_AGENTD_SOCKET",
+        default_value = "/tmp/soma-agentd.sock"
+    )]
     pub socket_path: PathBuf,
 
     /// Directory holding GGUF models (or symlinks to them).

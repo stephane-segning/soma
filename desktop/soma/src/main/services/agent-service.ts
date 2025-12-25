@@ -47,6 +47,15 @@ class AgentService {
 		const embeddings = await this.agentd.embed(input);
 		return { embeddings };
 	}
+
+	async chatStream(input: {
+		messages: Array<{ role: string; content: string }>;
+		model?: string;
+		temperature?: number;
+		maxTokens?: number;
+	}) {
+		return this.agentd.chatStream(input);
+	}
 }
 
 export { AgentService };

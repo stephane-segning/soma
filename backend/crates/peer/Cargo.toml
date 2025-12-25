@@ -9,6 +9,7 @@ authors.workspace = true
 [dependencies]
 soma-core = { workspace = true }
 soma-net = { workspace = true }
+soma-vdfs = { workspace = true }
 soma-proto-build = { workspace = true }
 libp2p = { workspace = true }
 tokio = { workspace = true }

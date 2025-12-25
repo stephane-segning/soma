@@ -1,7 +1,5 @@
 import { electronAPI } from "@electron-toolkit/preload";
 import { contextBridge } from "electron";
-import { fromEventPattern } from "rxjs";
-import { filter, map } from "rxjs/operators";
 
 // Custom APIs for renderer
 const api = {
@@ -159,6 +157,19 @@ const api = {
 			electronAPI.ipcRenderer.invoke("agent:embed", input) as Promise<{
 				embeddings: number[][];
 			}>,
+		chatStream: (input: {
+			messages: Array<{ role: string; content: string }>;
+			model?: string;
+			temperature?: number;
+			maxTokens?: number;
+		}) => {
+			const channel = `agent:chat-stream:${crypto.randomUUID()}`;
+			electronAPI.ipcRenderer.send("ipc:renderer-event", {
+				channel: "agent:chat-stream",
+				payload: { channel, request: input },
+			});
+			return channel;
+		},
 	},
 	setLastRoute: (route: string): void =>
 		electronAPI.ipcRenderer.send("router:set-last-route", route),
@@ -174,18 +185,6 @@ const ipc = {
 	sendToMain: (channel: string, payload?: unknown): void => {
 		electronAPI.ipcRenderer.send("ipc:renderer-event", { channel, payload });
 	},
-	onMainEvent: <T = unknown>(channel: string) =>
-		fromEventPattern<
-			[Electron.IpcRendererEvent, { channel: string; payload: T }]
-		>(
-			(handler) => electronAPI.ipcRenderer.on("ipc:main-event", handler),
-			(handler) =>
-				electronAPI.ipcRenderer.removeListener("ipc:main-event", handler),
-		).pipe(
-			map(([, message]) => message),
-			filter((message) => message.channel === channel),
-			map((message) => message.payload),
-		),
 };
 
 // Use `contextBridge` APIs to expose Electron APIs to

@@ -217,7 +217,10 @@ fn run_engine(rx: mpsc::Receiver<EngineRequest>, config: AgentdConfig) -> anyhow
                 let _ = respond_to.send(res);
             }
             EngineRequest::ChatStream { request, events } => {
-                let _ = state.chat_stream(request, events);
+                let events_clone = events.clone();
+                if let Err(err) = state.chat_stream(request, events) {
+                    let _ = events_clone.send(Err(err));
+                }
             }
             EngineRequest::Embed {
                 request,
@@ -274,7 +277,9 @@ impl EngineState {
             .model
             .clone()
             .unwrap_or_else(|| self.config.default_chat_model.clone());
-        let model = self.get_or_load_model(&model_name, ModelKind::Chat)?;
+        let model = self
+            .get_or_load_model(&model_name, ModelKind::Chat)
+            .context("failed to load chat model")?;
 
         let prompt = build_prompt_for_model(&model.model, &request.messages)
             .unwrap_or_else(|_| build_prompt(&request.messages));
@@ -308,7 +313,9 @@ impl EngineState {
             .model
             .clone()
             .unwrap_or_else(|| self.config.default_chat_model.clone());
-        let model = self.get_or_load_model(&model_name, ModelKind::Chat)?;
+        let model = self
+            .get_or_load_model(&model_name, ModelKind::Chat)
+            .context("failed to load chat model")?;
 
         let prompt = build_prompt_for_model(&model.model, &request.messages)
             .unwrap_or_else(|_| build_prompt(&request.messages));
@@ -332,7 +339,8 @@ impl EngineState {
             temperature,
             max_tokens,
             Some(events.clone()),
-        )?;
+        )
+        .context("generation failed")?;
 
         let _ = events.send(Ok(EngineChatStreamEvent::Done(out)));
         Ok(())

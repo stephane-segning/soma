@@ -119,6 +119,12 @@ type RendererApi = {
 			input: string[];
 			model?: string;
 		}) => Promise<{ embeddings: number[][] }>;
+		chatStream: (input: {
+			messages: Array<{ role: string; content: string }>;
+			model?: string;
+			temperature?: number;
+			maxTokens?: number;
+		}) => string;
 	};
 	setLastRoute: (route: string) => void;
 	window: {
@@ -130,7 +136,6 @@ type RendererApi = {
 
 type IpcBridge = {
 	sendToMain: (channel: string, payload?: unknown) => void;
-	onMainEvent: <T = unknown>(channel: string) => Observable<T>;
 };
 
 declare global {

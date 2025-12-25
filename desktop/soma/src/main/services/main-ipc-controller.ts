@@ -5,6 +5,7 @@ import { readLastRoute, writeLastRoute } from "../route-store";
 import { TYPES } from "../tokens";
 import type { AgentService } from "./agent-service";
 import type { AppSettingsService } from "./app-settings-service";
+import type { IpcService } from "./ipc-service";
 import type { DaemonClient } from "./daemon-client";
 import type { DbService } from "./db-service";
 import type { DocumentsService } from "./documents-service";
@@ -22,6 +23,7 @@ export class MainIpcController {
 		private readonly documents: DocumentsService,
 		@inject(TYPES.agentService) private readonly agent: AgentService,
 		@inject(TYPES.daemonClient) private readonly daemon: DaemonClient,
+		@inject(TYPES.ipcService) private readonly ipc: IpcService,
 	) {}
 
 	register(): void {
@@ -279,6 +281,39 @@ export class MainIpcController {
 				return this.agent.embed(input);
 			},
 		);
+
+		// Streaming chat: renderer sends a channel id + request; we push tokens back on that channel.
+		this.ipc
+			.onRendererEvent<{
+				channel: string;
+				request: {
+					messages: Array<{ role: string; content: string }>;
+					model?: string;
+					temperature?: number;
+					maxTokens?: number;
+				};
+			}>("agent:chat-stream")
+			.subscribe(async (payload) => {
+				const { channel, request } = payload;
+				this.logger.debug("agent:chat-stream received", { channel });
+				// Let the renderer know we got the request.
+				this.ipc.send(channel, { ready: true });
+				try {
+					const stream = await this.agent.chatStream(request);
+					stream.subscribe({
+						next: (event) => this.ipc.send(channel, event),
+						error: (err) =>
+							this.ipc.send(channel, {
+								error: err instanceof Error ? err.message : String(err),
+							}),
+						complete: () => this.ipc.send(channel, { done: true }),
+					});
+				} catch (err) {
+					this.ipc.send(channel, {
+						error: err instanceof Error ? err.message : String(err),
+					});
+				}
+			});
 
 		ipcMain.on("window:minimize", (event) => {
 			BrowserWindow.fromWebContents(event.sender)?.minimize();

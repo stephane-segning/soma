@@ -3,6 +3,7 @@ import {
 	useSetSettingMutation,
 	useSettingQuery,
 } from "@renderer/queries/settings";
+import { ChatSidebar } from "@renderer/routes/chat-sidebar";
 import {
 	createDefaultState,
 	isPersistedTabsStateV1,
@@ -114,7 +115,16 @@ function TabbedApp(): React.JSX.Element | null {
 	);
 
 	if (!initialized || !activeTab || !router) return null;
-	return <RouterProvider key={activeTab.id} router={router} />;
+	return (
+		<div className="grid h-screen w-screen grid-cols-[minmax(0,1fr)_360px] bg-base-100 text-base-content">
+			<div className="min-h-0 min-w-0">
+				<RouterProvider key={activeTab.id} router={router} />
+			</div>
+			<aside className="sticky top-0">
+				<ChatSidebar />
+			</aside>
+		</div>
+	);
 }
 
 export { TabbedApp };

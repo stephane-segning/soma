@@ -12,6 +12,7 @@ soma-storage = { workspace = true }
 soma-net = { workspace = true }
 soma-api = { workspace = true }
 soma-common = { workspace = true }
+soma-vdfs = { workspace = true }
 soma-peer = { workspace = true }
 soma-socket = { workspace = true }
 soma-proto-build = { workspace = true }

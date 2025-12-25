@@ -202,14 +202,10 @@ export class AgentdClient {
 
 	private resolveDefaultSocketPath(): string {
 		const fromEnv = process.env.SOMA_AGENTD_SOCKET;
-		if (fromEnv && fromEnv.trim()) return fromEnv.trim();
+		if (fromEnv?.trim()) return fromEnv.trim();
 
-		if (app.isReady()) {
-			return resolve(app.getPath("userData"), "soma-agentd.sock");
-		}
-
-		// Dev fallback (works when running from `desktop/`).
-		return resolve(process.cwd(), "../../../backend", "soma-agentd.sock");
+		// Keep default aligned with agentd CLI default.
+		return "/tmp/soma-agentd.sock";
 	}
 
 	private resolveProtoPath(): string {
