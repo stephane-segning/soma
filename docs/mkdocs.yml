@@ -5,6 +5,15 @@ docs_dir: src
 theme:
   name: bootstrap386
 
+plugins:
+  - search
+  - mermaid2
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+
 nav:
   - Home: index.md
   - Overview: 00-overview.md
