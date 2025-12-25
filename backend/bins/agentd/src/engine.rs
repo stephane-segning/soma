@@ -530,9 +530,11 @@ fn generate_text(
 
     let mut out = String::new();
     let mut pos = i32::try_from(prompt_tokens.len()).unwrap_or_default();
+    let mut sample_logits_idx =
+        i32::try_from(prompt_tokens.len().saturating_sub(1)).unwrap_or_default();
 
     for _ in 0..max_tokens {
-        let token = sampler.sample(&ctx, 0);
+        let token = sampler.sample(&ctx, sample_logits_idx);
         sampler.accept(token);
 
         if token == model.token_eos() {
@@ -553,6 +555,9 @@ fn generate_text(
             .context("failed to add token to batch")?;
         ctx.decode(&mut batch).context("decode failed")?;
         pos += 1;
+        // We decode a single token each step (with logits enabled), so logits will be available at
+        // token index 0 for the next sampling step.
+        sample_logits_idx = 0;
     }
 
     Ok(out)

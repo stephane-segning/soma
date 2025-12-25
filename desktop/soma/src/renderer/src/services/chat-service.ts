@@ -1,14 +1,22 @@
 import { Observable } from "rxjs";
 
-export type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
-export type StreamEvent = { token?: string; done?: boolean; error?: string; ready?: boolean };
+export type ChatMessage = {
+	role: "system" | "user" | "assistant";
+	content: string;
+};
+export type StreamEvent = {
+	token?: string;
+	done?: boolean;
+	error?: string;
+	ready?: boolean;
+};
 
 /**
  * Start a streaming chat request via IPC and return an observable of streamed events.
  * The observable is constructed entirely in the renderer to keep preload thin.
  */
 export function streamChat(messages: ChatMessage[]): Observable<StreamEvent> {
-	const channel = window.api.agent.chatStream({ messages });
+	const channel = window.api.agent.chatStream({ messages, maxTokens: 10_000 });
 
 	return new Observable<StreamEvent>((subscriber) => {
 		const handler = (

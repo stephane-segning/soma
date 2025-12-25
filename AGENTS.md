@@ -314,6 +314,8 @@ This repo intentionally has multiple binaries. Each has a distinct goal and depl
 - `soma-daemon` (`backend/bins/daemon`, run with `cargo run -p soma-daemon`): the desktop **libp2p peer identity** process (Unix socket IPC). It must not include Axum.
 - `soma-botd` (`backend/bins/botd`, run with `cargo run -p soma-botd`): the server-hosted **libp2p peer identity** process for bots/agents (Axum + metrics).
 - `soma-agentd` (`backend/bins/agentd`, run with `cargo run -p soma-agentd`): optional **desktop-only** companion process for long-running CPU-heavy tasks (hashing, OCR, indexing, Yjs reconciliation, local LLM inference). It should be reached via local IPC (UDS) and typically through `soma-daemon`, not directly from the UI.
+  - `llama-cpp-2` batch/logits gotcha: after `LlamaBatch::add_sequence(...)` with `logits_all=false`, llama.cpp only computes logits for the **last** token in the batch. Sampling from `idx=0` will crash (`invalid logits id 0, reason: batch.logits[0] != true`).
+  - In `backend/bins/agentd/src/engine.rs`, ensure the first sampling step uses the last prompt-token index (`prompt_tokens.len() - 1`), then use `idx=0` once you decode a single token per step with `logits=true`.
 
 ### Infrastructure Backends (also `backend/`)
 
