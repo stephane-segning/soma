@@ -1,6 +1,9 @@
 site_name: Soma
-repo_url: https://github.com/example/soma
+repo_url: https://github.com/stephane-segning/soma
+edit_uri: edit/main/docs/src/
 docs_dir: src
+theme:
+  name: bootstrap386
 
 nav:
   - Overview: 00-overview.md
