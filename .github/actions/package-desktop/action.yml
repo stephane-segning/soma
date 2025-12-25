@@ -79,11 +79,11 @@ runs:
         # Build renderer/main first.
         pnpm --filter "$PKG" run build
 
-        # Produce OS-native artifacts (include dmg/deb/zip).
+        # Produce OS-native artifacts (mac: zip; linux: deb/rpm/zip).
         if [ "${RUNNER_OS}" = "Linux" ]; then
           pnpm --filter "$PKG" exec electron-builder --linux deb rpm zip --"$ARCH"
         elif [ "${RUNNER_OS}" = "macOS" ]; then
-          pnpm --filter "$PKG" exec electron-builder --mac dmg pkg zip --"$ARCH"
+          pnpm --filter "$PKG" exec electron-builder --mac zip --"$ARCH"
         else
           echo "Unsupported runner OS: ${RUNNER_OS}"
           exit 1
@@ -111,7 +111,6 @@ runs:
 
         # Use globs instead of find-grouping to avoid shell parsing issues across runners.
         for f in \
-          "$DIST"/*.dmg "$DIST"/*.pkg \
           "$DIST"/*.deb "$DIST"/*.rpm "$DIST"/*.AppImage \
           "$DIST"/*.zip
         do

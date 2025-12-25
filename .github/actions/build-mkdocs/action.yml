@@ -3,6 +3,9 @@ description: Build MkDocs site
 runs:
   using: "composite"
   steps:
+    - name: Setup just
+      uses: extractions/setup-just@v3
+
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
@@ -14,6 +17,4 @@ runs:
         pip install mkdocs mkdocs-material mkdocs-bootstrap386
     - name: Build MkDocs
       shell: bash
-      run: |
-        mkdocs build --config-file mkdocs.yml --site-dir ../site
-      working-directory: docs
+      run: just build-docs

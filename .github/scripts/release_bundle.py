@@ -210,6 +210,11 @@ def main() -> int:
         ctx,
     )
     os.chmod(install_path, 0o755)
+    # Keep install.sh alongside artifacts (do not embed in packages).
+    produced: list[str] = []
+    install_out = os.path.join(platform_out, "install.sh")
+    shutil.copy2(install_path, install_out)
+    produced.append(install_out)
 
     # Service definitions.
     systemd_path = os.path.join(staging, "soma-daemon.service")
@@ -238,7 +243,6 @@ def main() -> int:
         ctx,
     )
 
-    produced: list[str] = []
     name_base = f"soma-bundle-{bundle_version}-{platform_os}-{platform_arch}"
 
     if platform_os == "linux":
@@ -254,7 +258,6 @@ def main() -> int:
         shutil.copy2(os.path.join(staging, "soma-daemon"), os.path.join(pkgroot, "usr/local/bin/soma-daemon"))
         shutil.copy2(os.path.join(staging, "soma-agentd"), os.path.join(pkgroot, "usr/local/bin/soma-agentd"))
         shutil.copy2(os.path.join(staging, "README.md"), os.path.join(pkgroot, "usr/local/share/soma/README.md"))
-        shutil.copy2(os.path.join(staging, "install.sh"), os.path.join(pkgroot, "usr/local/share/soma/install.sh"))
         shutil.copy2(systemd_path, os.path.join(pkgroot, "usr", "lib", "systemd", "system", "soma-daemon.service"))
         shutil.copy2(systemd_agent_path, os.path.join(pkgroot, "usr", "lib", "systemd", "system", "soma-agentd.service"))
 
@@ -289,7 +292,7 @@ def main() -> int:
             )
             produced.append(outp)
 
-        # Zip bundle (with service + README + install).
+        # Zip bundle (with service + README).
         zip_out = os.path.join(platform_out, f"{name_base}.zip")
         run(
             [
@@ -301,38 +304,10 @@ def main() -> int:
                 systemd_agent_path,
                 systemd_path,
                 os.path.join(staging, "README.md"),
-                install_path,
             ]
         )
         produced.append(zip_out)
     else:
-        dmg_dir = os.path.join(platform_out, "dmgroot")
-        if os.path.exists(dmg_dir):
-            shutil.rmtree(dmg_dir)
-        os.makedirs(dmg_dir, exist_ok=True)
-        shutil.copy2(os.path.join(staging, "soma-daemon"), os.path.join(dmg_dir, "soma-daemon"))
-        shutil.copy2(os.path.join(staging, "soma-agentd"), os.path.join(dmg_dir, "soma-agentd"))
-        shutil.copy2(os.path.join(staging, "install.sh"), os.path.join(dmg_dir, "install.sh"))
-        shutil.copy2(os.path.join(staging, "README.md"), os.path.join(dmg_dir, "README.md"))
-        shutil.copy2(plist_path, os.path.join(dmg_dir, "soma-daemon.plist"))
-
-        dmg_out = os.path.join(platform_out, f"{name_base}.dmg")
-        run(
-            [
-                "hdiutil",
-                "create",
-                "-volname",
-                "Soma Bundle",
-                "-srcfolder",
-                dmg_dir,
-                "-ov",
-                "-format",
-                "UDZO",
-                dmg_out,
-            ]
-        )
-        produced.append(dmg_out)
-
         pkg_root = os.path.join(platform_out, "pkgroot")
         if os.path.exists(pkg_root):
             shutil.rmtree(pkg_root)
@@ -342,7 +317,6 @@ def main() -> int:
 
         shutil.copy2(os.path.join(staging, "soma-daemon"), os.path.join(pkg_root, "usr", "local", "bin", "soma-daemon"))
         shutil.copy2(os.path.join(staging, "soma-agentd"), os.path.join(pkg_root, "usr", "local", "bin", "soma-agentd"))
-        shutil.copy2(os.path.join(staging, "install.sh"), os.path.join(pkg_root, "usr", "local", "share", "soma", "install.sh"))
         shutil.copy2(os.path.join(staging, "README.md"), os.path.join(pkg_root, "usr", "local", "share", "soma", "README.md"))
         shutil.copy2(plist_path, os.path.join(pkg_root, "Library", "LaunchDaemons", "digital.camer.soma.daemon.plist"))
         shutil.copy2(plist_agent_path, os.path.join(pkg_root, "Library", "LaunchDaemons", "digital.camer.soma.agentd.plist"))
@@ -375,7 +349,6 @@ def main() -> int:
                 plist_agent_path,
                 plist_path,
                 os.path.join(staging, "README.md"),
-                install_path,
             ]
         )
         produced.append(zip_out)

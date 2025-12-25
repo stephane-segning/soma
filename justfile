@@ -95,6 +95,17 @@ test-desktop-all:
 	cd desktop && pnpm --filter soma run lint && pnpm --filter soma run typecheck
 	cd desktop && pnpm --filter tapia run lint && pnpm --filter tapia run typecheck
 
+# Build docs site (used in CI for gh-pages)
+build-docs:
+	cd docs && mkdocs build --config-file mkdocs.yml --site-dir ../site
+
+# CI helpers (combine existing recipes)
+
+# Run backend + desktop checks used in CI pipelines
+ci-verify:
+	just test-backend
+	just test-desktop-all
+
 # Show available just recipes
 help:
 	just --list

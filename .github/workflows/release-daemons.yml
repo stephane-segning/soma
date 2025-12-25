@@ -34,6 +34,9 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Setup just
+        uses: extractions/setup-just@v3
+
       - id: meta
         name: Resolve version + tag
         shell: bash
@@ -105,6 +108,9 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+
+      - name: Setup just
+        uses: extractions/setup-just@v3
 
       - name: Build soma-daemon + soma-agentd
         uses: ./.github/actions/cargo-cross-build

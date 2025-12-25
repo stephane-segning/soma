@@ -31,6 +31,9 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Setup just
+        uses: extractions/setup-just@v3
+
       - id: meta
         name: Resolve version + tag
         shell: bash
@@ -95,6 +98,9 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Setup just
+        uses: extractions/setup-just@v3
+
       - name: Package desktop artifacts
         id: package
         uses: ./.github/actions/package-desktop
@@ -150,9 +156,9 @@ jobs:
           pushd "$OUT_DIR" >/dev/null
           # if shasum is present prefer it to match mac runners; fallback to sha256sum.
           if command -v shasum >/dev/null 2>&1; then
-            shasum -a 256 *.dmg *.pkg *.deb *.rpm *.AppImage *.zip 2>/dev/null | sed '/^shasum: /d' > "$SUMS_FILE" || true
+            shasum -a 256 *.deb *.rpm *.AppImage *.zip 2>/dev/null | sed '/^shasum: /d' > "$SUMS_FILE" || true
           else
-            sha256sum *.dmg *.pkg *.deb *.rpm *.AppImage *.zip 2>/dev/null > "$SUMS_FILE" || true
+            sha256sum *.deb *.rpm *.AppImage *.zip 2>/dev/null > "$SUMS_FILE" || true
           fi
           popd >/dev/null
           if [ ! -s "$SUMS_FILE" ]; then

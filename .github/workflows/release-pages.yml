@@ -14,6 +14,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Setup just
+        uses: extractions/setup-just@v3
+
       - name: Build MkDocs
         uses: ./.github/actions/build-mkdocs
 

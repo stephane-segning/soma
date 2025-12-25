@@ -50,7 +50,7 @@ This repo uses GitHub Actions workflows that are designed to be triggered manual
 - **Docker images**: `.github/workflows/docker-backend.yml`
   - Builds/pushes multi-target images from `Dockerfile` (manual-only), gated by a successful `soma-daemon` cross-build matrix.
 - **Bundle releases**: `.github/workflows/release.yml`
-  - Bundles published daemon/agent and desktop versions into OS-specific installers (`.deb/.rpm/.dmg/.pkg/.zip`) and uploads them to a GitHub Release.
+  - Bundles published daemon/agent and desktop versions into OS-specific installers (`.deb/.rpm/.pkg/.zip`) and uploads them to a GitHub Release.
 
 SBOM:
 - SBOMs are generated in CI using `anchore/sbom-action` (Syft). There is no `sbom/` scripts folder anymore.
@@ -282,15 +282,14 @@ Shared frontend stack (both Soma and Tapia):
 Soma (`desktop/soma`):
 
 - Uses a client to call the Soma peer/daemon over its Unix socket API.
-- Uses `yoopta-editor` for rich text editing.
+- Uses Yoopta for rich text editing (`@yoopta/editor` + `@yoopta/*` tools/plugins).
+- Renderer routes live under `desktop/soma/src/renderer/src/routes/`:
+  - `routes/router.tsx` defines route objects using `react-router` + `createHashRouter`.
+  - `routes/layouts/*` are shell routes that render an `<Outlet />` and shared UI.
+  - `routes/screens/*` are leaf “pages” that render screen content.
 - Uses DaisyUI with two themes.
 - Uses TanStack Query for optimistic UI flows.
 - Main process uses InversifyJS (`inversify` + `reflect-metadata`) for DI; container lives in `desktop/soma/src/main/container.ts`.
-- Yoopta editor wiring (current simplifications):
-  - Editor is controlled from local state: `value={contentValue}` derived from `contentJson` and updated on `onValueChange`. This keeps the UI in sync with saves.
-  - Page change remounts the editor (`key=spaceId:pageId`) and resets local state; window focus refetches the latest draft so other tabs’ edits appear when you return.
-  - Saves are debounced once: a single callback writes the draft (`useUpsertDocumentDraftMutation`) and enqueues daemon sync (`useQueueDaemonSyncMutation`), skipping duplicates via `lastSentRef`.
-  - Full Yoopta toolbelt is enabled (headings/lists/embeds, image/video/file uploads via `uploadToBlob`, toolbar/action menu/link tool); adjust in `desktop/soma/src/renderer/src/components/yoopta/yoopta-editor-with-tools.tsx`.
 
 Tapia (`desktop/tapia`):
 
@@ -339,6 +338,8 @@ This repo intentionally has multiple binaries. Each has a distinct goal and depl
 
 - Use modern TypeScript with `strict` type-checking.
 - Follow the existing component organization in `desktop/*/src` (feature-oriented structure rather than huge generic folders).
+- Use `kebab-case` for new `.ts`/`.tsx` filenames in both renderer and main process code.
+- Prefer `@renderer/*` imports for renderer code (configured in `desktop/soma/tsconfig.web.json`) over deep relative paths.
 - Prefer function components with hooks over class components.
 - Use existing hooks and state containers before adding new global state mechanisms.
 - Keep side effects (I/O, daemon calls) in dedicated hooks or services, not inside presentational components.

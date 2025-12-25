@@ -4,7 +4,7 @@ Soma ships as a desktop application plus a small set of cloud services. This pag
 
 ## Desktop Application Packaging
 
-- **Targets** – Linux `.deb` packages (and optional `.AppImage`/`.tar.gz`) plus macOS `.dmg` installers. Windows support would require an alternative IPC transport and is currently out of scope.
+- **Targets** – Linux `.deb` packages (and optional `.AppImage`/`.tar.gz`) plus macOS `.pkg` installers. Windows support would require an alternative IPC transport and is currently out of scope.
 - **Contents** – Tapia (Electron/React) and the Soma daemon binary are bundled together. Tapia orchestrates starting/stopping the daemon, but the daemon can continue running headlessly for background networking.
 - **Build tooling** – Electron Builder (or equivalent) wraps the UI, embeds the Rust binary, registers the `soma://` deep-link protocol, and handles code-signing/notarization on macOS.
 - **Installation details** – On Linux, packages may install helper scripts or systemd units to keep the daemon running. On macOS, the daemon binary lives inside the `.app` bundle under `Contents/MacOS/` and is launched on demand.
