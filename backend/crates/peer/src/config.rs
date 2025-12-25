@@ -6,13 +6,13 @@ use crate::{
     BlobProvider,
     join::{JoinDecider, default_join_decider},
 };
-use soma_net::default_identity_path;
+use soma_net::IdentityManager;
 
 /// Common peer configuration shared by daemon/bot/bff peers.
 #[derive(Clone, Builder)]
 #[builder(pattern = "owned", setter(into, strip_option))]
 pub struct PeerConfig {
-    #[builder(default = "default_identity_path(\"peer\")")]
+    #[builder(default = "IdentityManager::from_env().default_identity_path(\"peer\")")]
     pub identity_path: PathBuf,
     #[builder(default)]
     pub listen_addrs: Vec<Multiaddr>,
@@ -45,8 +45,9 @@ impl PeerConfig {
     }
 
     pub fn with_identity(service: &str) -> Self {
+        let idm = IdentityManager::from_env();
         Self::builder()
-            .identity_path(default_identity_path(service))
+            .identity_path(idm.default_identity_path(service))
             .build()
             .expect("peer config")
     }

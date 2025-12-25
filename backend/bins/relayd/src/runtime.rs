@@ -1,16 +1,18 @@
 use clap::Parser;
 
 use soma_core::http::{HttpService, run_http};
-use soma_net::{default_identity_path, generate_identity};
+use soma_net::IdentityManager;
 
 use crate::config::{Args, Command};
 
 pub async fn run_from_cli() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let Args { cmd, http_addr } = Args::parse();
 
+    let idm = IdentityManager::from_env();
+
     if let Some(Command::GenerateIdentity { path }) = cmd {
-        let path = path.unwrap_or_else(|| default_identity_path("relay"));
-        let id = generate_identity(&path)?;
+        let path = path.unwrap_or_else(|| idm.default_identity_path("relay"));
+        let id = idm.generate(&path)?;
         println!(
             "generated relay identity at {:?}, peer_id={}",
             path,

@@ -1,8 +1,7 @@
 use clap::{Parser, Subcommand};
 use libp2p::Multiaddr;
+use soma_net::IdentityManager;
 use std::path::PathBuf;
-
-use soma_net::default_identity_path;
 
 /// CLI arguments for the daemon.
 #[derive(Debug, Parser)]
@@ -75,11 +74,12 @@ pub struct DaemonConfig {
 
 impl DaemonConfig {
     pub fn from_args(args: &Args) -> Self {
+        let idm = IdentityManager::from_env();
         Self {
             socket_path: args.socket_path.clone(),
             blob_dir: args.blob_dir.clone(),
             db_path: args.db_path.clone(),
-            identity_path: default_identity_path("daemon"),
+            identity_path: idm.default_identity_path("daemon"),
             listen_addrs: args.listen_addrs.clone(),
             bootstrap_addrs: args.bootstrap_addrs.clone(),
             rendezvous_addrs: args.rendezvous_addrs.clone(),

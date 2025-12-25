@@ -2,14 +2,15 @@
 mod tests {
     use std::fs;
 
-    use soma_net::{NetIdentity, default_identity_path, generate_identity};
+    use soma_net::{IdentityManager, NetIdentity};
 
     #[test]
     fn identity_roundtrip_generate_and_load() {
         let tmp = tempfile::tempdir().expect("temp dir");
         let path = tmp.path().join("id.key");
 
-        let generated = generate_identity(&path).expect("generate");
+        let manager = IdentityManager::from_env();
+        let generated = manager.generate(&path).expect("generate");
         assert!(path.exists());
 
         let loaded = NetIdentity::load_or_generate(&path).expect("load");
@@ -22,8 +23,9 @@ mod tests {
 
     #[test]
     fn default_identity_path_is_service_scoped() {
-        let a = default_identity_path("svc-a");
-        let b = default_identity_path("svc-b");
+        let manager = IdentityManager::from_env();
+        let a = manager.default_identity_path("svc-a");
+        let b = manager.default_identity_path("svc-b");
         assert_ne!(a, b);
     }
 }

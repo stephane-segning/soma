@@ -10,21 +10,38 @@ pub trait HttpService {
     fn router(self) -> Router;
 }
 
-/// Bind and serve an [`HttpService`] with a Ctrl+C shutdown.
+/// Thin wrapper that owns an [`HttpService`] and runs it.
+pub struct HttpServer<S: HttpService> {
+    svc: S,
+}
+
+impl<S: HttpService> HttpServer<S> {
+    pub fn new(svc: S) -> Self {
+        Self { svc }
+    }
+
+    pub async fn run(self) -> SomaResult<()>
+    where
+        S: Send + 'static,
+    {
+        let addr = self.svc.addr();
+        let router = self.svc.router();
+        let listener = tokio::net::TcpListener::bind(addr).await?;
+
+        axum::serve(listener, router)
+            .with_graceful_shutdown(async {
+                let _ = tokio::signal::ctrl_c().await;
+            })
+            .await?;
+
+        Ok(())
+    }
+}
+
+/// Legacy helper retained for compatibility.
 pub async fn run_http<S>(svc: S) -> SomaResult<()>
 where
     S: HttpService + Send + 'static,
 {
-    let addr = svc.addr();
-    let router = svc.router();
-    let listener = tokio::net::TcpListener::bind(addr).await?;
-
-    axum::serve(listener, router)
-        .with_graceful_shutdown(async {
-            let _ = tokio::signal::ctrl_c().await;
-        })
-        .await?;
-
-    Ok(())
+    HttpServer::new(svc).run().await
 }
-

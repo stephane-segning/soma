@@ -1,7 +1,7 @@
 use clap::Parser;
 use soma_core::SomaResult;
 use soma_membership::{JoinPolicy, build_join_decider};
-use soma_net::{NetIdentity, default_identity_path, generate_identity};
+use soma_net::{IdentityManager, NetIdentity};
 use soma_peer::{PeerCommand, PeerConfig, join::JoinDecider};
 use soma_proto_build::daemon;
 use soma_vdfs::BlobProvider;
@@ -12,21 +12,25 @@ use tokio::{
     sync::{Mutex, broadcast},
 };
 use tracing::info;
+use soma_socket::{GrpcUnixServer, GrpcUnixService};
+use tonic::transport::{Server, server::Router as TonicRouter};
 
 use crate::config::{Args, Command, DaemonConfig};
 use crate::dispatch::build_dispatcher;
-use crate::grpc::{DaemonService, DaemonState, serve_grpc};
+use crate::grpc::{DaemonService, DaemonState};
 use soma_vdfs::fs::FsBlobStore;
-use soma_peer::bootstrap::{PeerBootstrapper, spawn_with_identity};
+use soma_peer::bootstrap::{PeerBootstrapper, PeerLauncher};
 use std::path::{Path, PathBuf};
 
 /// Build configuration from CLI args and run the daemon runtime.
 pub async fn run_from_cli() -> SomaResult<()> {
     let args = Args::parse();
 
+    let idm = IdentityManager::from_env();
+
     if let Some(Command::GenerateIdentity { path }) = args.cmd {
-        let path = path.unwrap_or_else(|| default_identity_path("daemon"));
-        let id = generate_identity(&path)?;
+        let path = path.unwrap_or_else(|| idm.default_identity_path("daemon"));
+        let id = idm.generate(&path)?;
         println!(
             "generated daemon identity at {:?}, peer_id={}",
             path,
@@ -71,7 +75,7 @@ pub async fn run(config: DaemonConfig) -> SomaResult<()> {
         repos: repos.clone(),
     };
 
-    let (peer, net_identity) = spawn_with_identity(&bootstrapper)?;
+    let (peer, net_identity) = PeerLauncher::new(&bootstrapper).spawn()?;
     let peer_id = peer.peer_id;
     info!(%peer_id, ?socket_path, ?blob_dir, "soma-daemon starting");
 
@@ -86,11 +90,17 @@ pub async fn run(config: DaemonConfig) -> SomaResult<()> {
         blob_store,
     });
 
-    let grpc_service = daemon::daemon_server::DaemonServer::new(DaemonService {
+    let daemon_service = DaemonService {
         state: state.clone(),
+    };
+    let grpc_service = daemon::daemon_server::DaemonServer::new(daemon_service);
+    let grpc_service = DaemonGrpcService {
+        socket_path: socket_path.clone(),
+        svc: grpc_service,
+    };
+    let grpc_task = tokio::spawn(async move {
+        GrpcUnixServer::new(grpc_service).run().await
     });
-
-    let grpc_task = tokio::spawn(serve_grpc(socket_path.clone(), grpc_service));
     let peer_task = peer.task;
     let mut peer_events = peer.events;
 
@@ -129,6 +139,21 @@ pub async fn run(config: DaemonConfig) -> SomaResult<()> {
     }
 
     Ok(())
+}
+
+struct DaemonGrpcService {
+    socket_path: PathBuf,
+    svc: daemon::daemon_server::DaemonServer<DaemonService>,
+}
+
+impl GrpcUnixService for DaemonGrpcService {
+    fn socket_path(&self) -> &Path {
+        &self.socket_path
+    }
+
+    fn configure(self, mut server: Server) -> TonicRouter {
+        server.add_service(self.svc)
+    }
 }
 
 struct DaemonPeerBootstrap {

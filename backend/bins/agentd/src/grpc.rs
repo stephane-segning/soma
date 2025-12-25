@@ -1,9 +1,7 @@
-use std::{path::PathBuf, pin::Pin, sync::Arc};
+use std::{pin::Pin, sync::Arc};
 
 use futures::Stream;
-use soma_core::SomaResult;
 use soma_proto_build::agent;
-use soma_socket::serve_grpc_unix;
 use tokio_stream::{StreamExt as TokioStreamExt, wrappers::UnboundedReceiverStream};
 use tonic::{Request, Response, Status};
 
@@ -231,18 +229,4 @@ impl agent::agent_server::Agent for AgentdService {
                 .collect(),
         }))
     }
-}
-
-pub async fn serve_grpc(
-    socket_path: PathBuf,
-    server: agent::agent_server::AgentServer<AgentdService>,
-) -> SomaResult<()> {
-    serve_grpc_unix(
-        socket_path,
-        tonic::transport::Server::builder().add_service(server),
-        async {
-            let _ = tokio::signal::ctrl_c().await;
-        },
-    )
-    .await
 }

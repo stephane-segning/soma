@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use clap::Parser;
 use soma_core::SomaResult;
 use soma_membership::{JoinPolicy, build_join_decider};
-use soma_net::{default_identity_path, generate_identity};
+use soma_net::IdentityManager;
 use soma_peer::{
     PeerCommand, PeerConfig,
     events::{PeerEventDispatcher, PeerEventHandler, handler_with_queue},
@@ -20,7 +20,7 @@ use crate::{
     http::{self, BotInfo, BotState},
     metrics::BotMetrics,
 };
-use soma_peer::bootstrap::{PeerBootstrapper, spawn_with_identity};
+use soma_peer::bootstrap::{PeerBootstrapper, PeerLauncher};
 use soma_net::NetIdentity;
 use soma_vdfs::fs::FsBlobStore;
 
@@ -28,9 +28,11 @@ use soma_vdfs::fs::FsBlobStore;
 pub async fn run_from_cli() -> SomaResult<()> {
     let args = Args::parse();
 
+    let idm = IdentityManager::from_env();
+
     if let Some(Command::GenerateIdentity { path }) = args.cmd {
-        let path = path.unwrap_or_else(|| default_identity_path("bot"));
-        let id = generate_identity(&path)?;
+        let path = path.unwrap_or_else(|| idm.default_identity_path("bot"));
+        let id = idm.generate(&path)?;
         println!(
             "generated bot identity at {:?}, peer_id={}",
             path,
@@ -71,7 +73,7 @@ pub async fn run(config: BotConfig, metrics: BotMetrics) -> SomaResult<()> {
         join_policy,
     };
 
-    let (peer, net_identity) = spawn_with_identity(&bootstrapper)?;
+    let (peer, net_identity) = PeerLauncher::new(&bootstrapper).spawn()?;
     let peer_id = peer.peer_id;
 
     info!(

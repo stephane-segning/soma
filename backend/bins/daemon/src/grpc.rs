@@ -1,9 +1,8 @@
-use std::{path::PathBuf, pin::Pin, str::FromStr, sync::Arc, time::SystemTime};
+use std::{pin::Pin, str::FromStr, sync::Arc, time::SystemTime};
 
 use futures::Stream;
 use libp2p::PeerId;
 use prost_types::Timestamp;
-use soma_core::SomaResult;
 use soma_membership::{
     decide_join_request, enqueue_outgoing_join_decision, enqueue_outgoing_join_request,
     list_pending_join_requests, parse_role_str,
@@ -17,7 +16,6 @@ use tracing::{info, warn};
 
 use libp2p::identity::Keypair;
 use soma_vdfs::fs::FsBlobStore;
-use soma_socket::serve_grpc_unix;
 use soma_storage::mailbox::MailboxRepository;
 use soma_storage::{RepositoryFactory, membership::MembershipRepository};
 
@@ -450,18 +448,4 @@ impl daemon::daemon_server::Daemon for DaemonService {
             memberships,
         }))
     }
-}
-
-pub async fn serve_grpc(
-    socket_path: PathBuf,
-    server: daemon::daemon_server::DaemonServer<DaemonService>,
-) -> SomaResult<()> {
-    serve_grpc_unix(
-        socket_path,
-        tonic::transport::Server::builder().add_service(server),
-        async {
-            let _ = tokio::signal::ctrl_c().await;
-        },
-    )
-    .await
 }

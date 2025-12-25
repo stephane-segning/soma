@@ -2,7 +2,8 @@ use clap::Parser;
 use soma_core::SomaResult;
 use soma_core::http::{HttpService, run_http};
 use soma_peer::{PeerConfig, PeerEvent};
-use soma_peer::bootstrap::{PeerBootstrapper, spawn_with_identity};
+use soma_peer::bootstrap::{PeerBootstrapper, PeerLauncher};
+use soma_net::IdentityManager;
 use tracing::{info, warn};
 
 use crate::config::{Args, default_listen_addrs};
@@ -25,7 +26,7 @@ pub async fn run_from_cli() -> SomaResult<()> {
             bootstrap_addrs: p2p_bootstrap_addrs.clone(),
         };
 
-        let (peer, _identity) = spawn_with_identity(&bootstrapper)?;
+        let (peer, _identity) = PeerLauncher::new(&bootstrapper).spawn()?;
         let soma_peer::PeerHandle {
             peer_id,
             task,
@@ -120,8 +121,9 @@ struct BffPeerBootstrap {
 impl PeerBootstrapper for BffPeerBootstrap {
     fn identity_path(&self) -> &std::path::Path {
         // Shared identity path for the optional BFF peer.
-        static PATH: once_cell::sync::Lazy<std::path::PathBuf> =
-            once_cell::sync::Lazy::new(|| soma_net::default_identity_path("bff"));
+        static PATH: once_cell::sync::Lazy<std::path::PathBuf> = once_cell::sync::Lazy::new(|| {
+            IdentityManager::from_env().default_identity_path("bff")
+        });
         &PATH
     }
 

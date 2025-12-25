@@ -340,6 +340,11 @@ This repo intentionally has multiple binaries. Each has a distinct goal and depl
 - Use `tracing` for logging; avoid `println!` in production code.
 - Surface errors with rich types (thiserror / anyhow patterns) rather than panicking; reserve `panic!` for truly unrecoverable situations.
 - Keep async boundaries explicit and avoid blocking inside async tasks.
+- Favor traits as the primary extension/abstraction mechanism:
+  - Define behavior behind traits (with clear method contracts) rather than free-floating functions.
+  - Prefer trait impls on small structs (or newtypes) over ad-hoc helper functions; use free functions only for pure, stateless utilities.
+  - Add default methods on traits for common runners/wrappers instead of separate “helper” modules.
+  - When extracting shared logic, start by defining the trait in the owning crate (e.g., peer/bootstrap, HTTP services, IPC services) and implement it per binary.
 
 ### TypeScript / React (Desktop Apps)
 

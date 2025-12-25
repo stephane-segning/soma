@@ -1,6 +1,7 @@
 use clap::{Parser, Subcommand, ValueEnum};
 use libp2p::Multiaddr;
 use std::{net::SocketAddr, path::PathBuf};
+use soma_net::IdentityManager;
 
 /// CLI for soma-botd.
 #[derive(Debug, Parser)]
@@ -80,8 +81,9 @@ pub struct BotConfig {
 
 impl BotConfig {
     pub fn from_args(args: &Args) -> Self {
+        let idm = IdentityManager::from_env();
         Self {
-            identity_path: soma_net::default_identity_path("bot"),
+            identity_path: idm.default_identity_path("bot"),
             blob_dir: args.blob_dir.clone(),
             database_url: args
                 .database_url

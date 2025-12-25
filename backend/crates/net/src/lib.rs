@@ -6,6 +6,50 @@ use std::{
 use libp2p::{PeerId, Swarm, SwarmBuilder, identity, noise, swarm::NetworkBehaviour, tls, yamux};
 use soma_core::SomaResult;
 
+/// Manages libp2p identities and their filesystem locations.
+#[derive(Clone, Debug)]
+pub struct IdentityManager {
+    base_dir: Option<PathBuf>,
+}
+
+impl IdentityManager {
+    /// Create a manager that uses `SOMA_DATA_DIR` when present, otherwise `./data`.
+    pub fn from_env() -> Self {
+        let base_dir = env::var("SOMA_DATA_DIR")
+            .ok()
+            .map(PathBuf::from);
+        Self { base_dir }
+    }
+
+    /// Create a manager with an explicit base directory.
+    pub fn new(base_dir: impl Into<Option<PathBuf>>) -> Self {
+        Self {
+            base_dir: base_dir.into(),
+        }
+    }
+
+    /// Compute a deterministic identity path for a service.
+    pub fn default_identity_path(&self, service_name: &str) -> PathBuf {
+        let base = self
+            .base_dir
+            .clone()
+            .unwrap_or_else(|| PathBuf::from("data"));
+        base.join(service_name).join("identity.key")
+    }
+
+    /// Generate a new identity at the given path and return it.
+    pub fn generate(&self, path: impl AsRef<Path>) -> SomaResult<NetIdentity> {
+        let id = NetIdentity::generate();
+        id.save(path)?;
+        Ok(id)
+    }
+
+    /// Load an identity from disk, generating and persisting a new one if missing.
+    pub fn load_or_generate(&self, path: impl AsRef<Path>) -> SomaResult<NetIdentity> {
+        NetIdentity::load_or_generate(path)
+    }
+}
+
 /// Thin wrapper around a libp2p keypair with convenience helpers for logging and persistence.
 #[derive(Clone)]
 pub struct NetIdentity {
@@ -60,23 +104,6 @@ impl NetIdentity {
     pub fn peer_id(&self) -> PeerId {
         self.peer_id
     }
-}
-
-/// Generate a new identity and persist it to the given path, returning the identity.
-pub fn generate_identity(path: impl AsRef<Path>) -> SomaResult<NetIdentity> {
-    let id = NetIdentity::generate();
-    id.save(path)?;
-    Ok(id)
-}
-
-/// Compute a deterministic identity path for a service.
-///
-/// Honors `SOMA_DATA_DIR` when set, otherwise defaults to `./data/<service>/identity.key`.
-pub fn default_identity_path(service_name: &str) -> PathBuf {
-    let base = env::var("SOMA_DATA_DIR")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| PathBuf::from("data"));
-    base.join(service_name).join("identity.key")
 }
 
 /// Build a tokio-backed libp2p swarm for the provided behaviour.

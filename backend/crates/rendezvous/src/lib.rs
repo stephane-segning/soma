@@ -11,7 +11,7 @@ use prometheus_client::metrics::{counter::Counter, family::Family};
 use prometheus_client_derive_encode::EncodeLabelSet;
 use soma_core::SomaResult;
 use soma_metrics::{SharedRegistry, router_with_registry};
-use soma_net::{NetIdentity, build_swarm, default_identity_path};
+use soma_net::{IdentityManager, NetIdentity, build_swarm};
 use tokio::signal;
 use tracing::{error, info, warn};
 
@@ -26,8 +26,9 @@ pub struct RendezvousConfig {
 
 impl Default for RendezvousConfig {
     fn default() -> Self {
+        let idm = IdentityManager::from_env();
         Self {
-            identity_path: default_identity_path("rendezvous"),
+            identity_path: idm.default_identity_path("rendezvous"),
             listen_addrs: vec![
                 "/ip4/0.0.0.0/tcp/14004".parse().expect("valid multiaddr"),
                 "/ip4/0.0.0.0/tcp/14104/ws"
