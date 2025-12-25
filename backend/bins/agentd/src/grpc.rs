@@ -29,9 +29,6 @@ impl AgentdService {
 
 #[tonic::async_trait]
 impl agent::agent_server::Agent for AgentdService {
-    type ChatStreamStream =
-        Pin<Box<dyn Stream<Item = Result<agent::ChatStreamEvent, Status>> + Send + 'static>>;
-
     async fn status(
         &self,
         _request: Request<()>,
@@ -151,6 +148,9 @@ impl agent::agent_server::Agent for AgentdService {
             content,
         }))
     }
+
+    type ChatStreamStream =
+        Pin<Box<dyn Stream<Item = Result<agent::ChatStreamEvent, Status>> + Send + 'static>>;
 
     async fn chat_stream(
         &self,

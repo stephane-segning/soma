@@ -32,7 +32,7 @@ pub async fn run_from_cli() -> SomaResult<()> {
     if let Some(Command::GenerateIdentity { path }) = args.cmd {
         let path = path.unwrap_or_else(|| idm.default_identity_path("daemon"));
         let id = idm.generate(&path)?;
-        println!(
+        info!(
             "generated daemon identity at {:?}, peer_id={}",
             path,
             id.peer_id()

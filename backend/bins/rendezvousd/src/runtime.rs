@@ -1,5 +1,5 @@
 use clap::Parser;
-
+use tracing::info;
 use soma_core::http::{HttpService, HttpServer};
 use soma_net::IdentityManager;
 
@@ -13,7 +13,7 @@ pub async fn run_from_cli() -> Result<(), Box<dyn std::error::Error + Send + Syn
     if let Some(Command::GenerateIdentity { path }) = cmd {
         let path = path.unwrap_or_else(|| idm.default_identity_path("rendezvous"));
         let id = idm.generate(&path)?;
-        println!(
+        info!(
             "generated rendezvous identity at {:?}, peer_id={}",
             path,
             id.peer_id()

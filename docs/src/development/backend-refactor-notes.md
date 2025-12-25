@@ -15,7 +15,7 @@ This page summarizes the implementation work done recently to move Soma’s back
 - Protos: `proto/daemon/v1/daemon.proto`
 - Implementation: `backend/bins/daemon/src/grpc.rs` and `backend/crates/socket/src/lib.rs`
 
-The daemon binds a Unix socket (`--socket-path`, default `./soma-daemon.sock`) and serves tonic gRPC on it.
+The daemon binds a Unix socket (`--socket-path`, default `/tmp/soma-daemon.sock`) and serves tonic gRPC on it.
 
 Testing recipe: `docs/src/development/daemon-grpcurl.md`.
 

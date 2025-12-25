@@ -16,14 +16,14 @@ It exercises:
 
 ## Important note about `grpcurl` + Unix sockets
 
-In this repo, the daemon listens on a Unix socket (e.g. `./soma-daemon.sock`).
+In this repo, the daemon listens on a Unix socket (e.g. `/tmp/soma-daemon.sock`).
 
 On some `grpcurl` builds, `-unix` does not work reliably when the address is a plain path.
 The most reliable form is using a `unix://` target string:
 
 `"unix://$PWD/soma-daemon.sock"`
 
-If you try `-unix ./soma-daemon.sock` and see `dial tcp ... missing port in address`, use the `unix://` form.
+If you try `-unix /tmp/soma-daemon.sock` and see `dial tcp ... missing port in address`, use the `unix://` form.
 
 ## 1) Start the daemon (UDS gRPC server)
 
@@ -31,7 +31,7 @@ From `backend/`:
 
 ```bash
 cd backend
-rm -f ./soma-daemon.sock
+rm -f /tmp/soma-daemon.sock
 
 RUST_LOG=info cargo run -p soma-daemon -- \
   --socket-path "$PWD/soma-daemon.sock" \
@@ -153,5 +153,5 @@ Run with `--disable-mdns` for both `soma-daemon` and `soma-botd`.
 ### Daemon socket not created
 
 - Ensure `--socket-path` is writable.
-- Remove stale socket file: `rm -f ./soma-daemon.sock`
+- Remove stale socket file: `rm -f /tmp/soma-daemon.sock`
 - Check daemon logs for early panics or bind failures.
