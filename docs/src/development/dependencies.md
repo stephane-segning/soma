@@ -29,7 +29,7 @@ Docs are built with MkDocs using the `bootstrap386` theme (CI installs these via
 Local install:
 
 ```bash
-python3 -m pip install mkdocs mkdocs-material mkdocs-bootstrap386
+python3 -m pip install mkdocs mkdocs-material mkdocs-bootstrap386 mkdocs-mermaid2-plugin
 ```
 
 Build:
