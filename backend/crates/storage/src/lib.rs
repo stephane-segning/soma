@@ -1,6 +1,7 @@
 use std::{
     fs,
     path::{Path, PathBuf},
+    sync::Arc,
 };
 
 use soma_core::SomaResult;
@@ -10,6 +11,19 @@ pub mod bootstrap;
 pub mod issuer;
 pub mod mailbox;
 pub mod membership;
+use crate::{
+    issuer::IssuerRepository,
+    mailbox::MailboxRepository,
+    membership::MembershipRepository,
+};
+
+/// Abstraction over repositories needed by controllers/services.
+pub trait RepositoryProvider: Send + Sync {
+    fn membership_repo(&self) -> Arc<dyn MembershipRepository>;
+    fn issuer_repo(&self) -> Arc<dyn IssuerRepository>;
+    fn mailbox_repo(&self) -> Arc<dyn MailboxRepository>;
+    fn pool(&self) -> Pool;
+}
 
 /// Factory to build repository instances backed by a shared `AnyPool`.
 #[derive(Clone, Debug)]
@@ -36,6 +50,45 @@ impl RepositoryFactory {
 
     pub fn mailbox(&self) -> mailbox::SqlMailboxRepository {
         mailbox::SqlMailboxRepository::new(self.pool.clone())
+    }
+}
+
+impl RepositoryProvider for RepositoryFactory {
+    fn membership_repo(&self) -> Arc<dyn MembershipRepository> {
+        Arc::new(self.membership())
+    }
+
+    fn issuer_repo(&self) -> Arc<dyn IssuerRepository> {
+        Arc::new(self.issuer())
+    }
+
+    fn mailbox_repo(&self) -> Arc<dyn MailboxRepository> {
+        Arc::new(self.mailbox())
+    }
+
+    fn pool(&self) -> Pool {
+        self.pool()
+    }
+}
+
+impl<T> RepositoryProvider for Arc<T>
+where
+    T: RepositoryProvider + ?Sized,
+{
+    fn membership_repo(&self) -> Arc<dyn MembershipRepository> {
+        (**self).membership_repo()
+    }
+
+    fn issuer_repo(&self) -> Arc<dyn IssuerRepository> {
+        (**self).issuer_repo()
+    }
+
+    fn mailbox_repo(&self) -> Arc<dyn MailboxRepository> {
+        (**self).mailbox_repo()
+    }
+
+    fn pool(&self) -> Pool {
+        (**self).pool()
     }
 }
 

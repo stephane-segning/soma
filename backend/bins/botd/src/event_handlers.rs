@@ -6,7 +6,7 @@ use soma_peer::{
     PeerEvent,
     events::{PeerEventHandler, PeerEventKind},
 };
-use soma_storage::mailbox::MailboxRepository;
+use soma_storage::RepositoryProvider;
 use tracing::{info, warn};
 
 use crate::http::BotState;
@@ -342,13 +342,13 @@ impl PeerEventHandler<BotState> for MailboxOutboxHandler {
                 .await;
             }
             PeerEvent::JoinRequestDeliveryAck { delivery_id, .. } => {
-                let _ = ctx.repos.mailbox().mark_done(delivery_id).await;
+                let _ = ctx.repos.mailbox_repo().mark_done(delivery_id).await;
             }
             PeerEvent::JoinRequestDeliveryFailed { delivery_id, .. } => {
                 soma_membership::outbox::requeue_or_dead(&ctx.repos, delivery_id).await;
             }
             PeerEvent::JoinDecisionDeliveryAck { delivery_id, .. } => {
-                let _ = ctx.repos.mailbox().mark_done(delivery_id).await;
+                let _ = ctx.repos.mailbox_repo().mark_done(delivery_id).await;
             }
             PeerEvent::JoinDecisionDeliveryFailed { delivery_id, .. } => {
                 soma_membership::outbox::requeue_or_dead(&ctx.repos, delivery_id).await;

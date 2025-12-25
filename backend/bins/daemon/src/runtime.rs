@@ -14,6 +14,7 @@ use tokio::{
 use tracing::info;
 use soma_socket::{GrpcUnixServer, GrpcUnixService};
 use tonic::transport::{Server, server::Router as TonicRouter};
+use soma_storage::RepositoryProvider;
 
 use crate::config::{Args, Command, DaemonConfig};
 use crate::dispatch::build_dispatcher;
@@ -63,6 +64,7 @@ pub async fn run(config: DaemonConfig) -> SomaResult<()> {
     let db_url = soma_core::db::normalize_sqlite_url(db_path.to_string_lossy().as_ref());
     info!(%db_url, scheme = "sqlite", "configuring database");
     let repos = soma_storage::bootstrap::connect_any(&db_url, &MIGRATOR).await?;
+    let repos: Arc<dyn RepositoryProvider> = Arc::new(repos);
 
     let bootstrapper = DaemonPeerBootstrap {
         identity_path: identity_path.clone(),
@@ -164,7 +166,7 @@ struct DaemonPeerBootstrap {
     relay_addrs: Vec<libp2p::Multiaddr>,
     enable_mdns: bool,
     blob_provider: Arc<dyn BlobProvider>,
-    repos: soma_storage::RepositoryFactory,
+    repos: Arc<dyn RepositoryProvider>,
 }
 
 impl PeerBootstrapper for DaemonPeerBootstrap {

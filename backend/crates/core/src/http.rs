@@ -37,11 +37,3 @@ impl<S: HttpService> HttpServer<S> {
         Ok(())
     }
 }
-
-/// Legacy helper retained for compatibility.
-pub async fn run_http<S>(svc: S) -> SomaResult<()>
-where
-    S: HttpService + Send + 'static,
-{
-    HttpServer::new(svc).run().await
-}

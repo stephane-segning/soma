@@ -13,12 +13,12 @@ use soma_proto_build::spaceroom::{
     SpaceRole,
 };
 use soma_storage::{
-    RepositoryFactory,
-    issuer::{IssuerRepository, SqlIssuerRepository},
-    mailbox::{MailboxRepository, NewMailboxEntry},
+    RepositoryProvider,
+    issuer::IssuerRepository,
+    mailbox::NewMailboxEntry,
     membership::{
         JoinDecision as StoredDecision, JoinRequest as StoredJoinRequest, MembershipRepository,
-        Space, SpaceMembership, SqlMembershipRepository,
+        Space, SpaceMembership,
     },
 };
 use tracing::warn;
@@ -45,7 +45,7 @@ impl JoinPolicy {
 }
 
 pub fn build_join_decider(
-    repos: &RepositoryFactory,
+    repos: &dyn RepositoryProvider,
     signer: Keypair,
     local_peer_id: PeerId,
     policy: JoinPolicy,
@@ -60,8 +60,8 @@ pub fn build_join_decider(
 
 #[derive(Clone)]
 struct StorageBackedJoinDecider {
-    membership_repo: SqlMembershipRepository,
-    issuer_repo: SqlIssuerRepository,
+    membership_repo: Arc<dyn MembershipRepository>,
+    issuer_repo: Arc<dyn IssuerRepository>,
     signer: Keypair,
     local_peer_id: PeerId,
     policy: JoinPolicy,
@@ -69,14 +69,14 @@ struct StorageBackedJoinDecider {
 
 impl StorageBackedJoinDecider {
     fn new(
-        repos: &RepositoryFactory,
+        repos: &dyn RepositoryProvider,
         signer: Keypair,
         local_peer_id: PeerId,
         policy: JoinPolicy,
     ) -> Self {
         Self {
-            membership_repo: repos.membership(),
-            issuer_repo: repos.issuer(),
+            membership_repo: repos.membership_repo(),
+            issuer_repo: repos.issuer_repo(),
             signer,
             local_peer_id,
             policy,
@@ -204,7 +204,7 @@ impl JoinDecider for StorageBackedJoinDecider {
             let membership_cap_bytes = membership_cap.encode_to_vec();
 
             persist_membership(
-                &self.membership_repo,
+                self.membership_repo.as_ref(),
                 &space_id.value,
                 &subject_peer_id.value,
                 &self.local_peer_id,
@@ -263,13 +263,13 @@ impl JoinDecider for StorageBackedJoinDecider {
 }
 
 pub async fn list_pending_join_requests(
-    repos: &RepositoryFactory,
+    repos: &dyn RepositoryProvider,
 ) -> SomaResult<Vec<StoredJoinRequest>> {
-    repos.membership().list_join_requests().await
+    repos.membership_repo().list_join_requests().await
 }
 
 pub async fn decide_join_request(
-    repos: &RepositoryFactory,
+    repos: &dyn RepositoryProvider,
     signer: &Keypair,
     issuer_peer_id: &PeerId,
     request_id: &str,
@@ -277,7 +277,7 @@ pub async fn decide_join_request(
     role_override: Option<SpaceRole>,
     reason: Option<String>,
 ) -> SomaResult<JoinDecision> {
-    let repo = repos.membership();
+    let repo = repos.membership_repo();
     let req = repo
         .get_join_request(request_id)
         .await?
@@ -372,7 +372,7 @@ pub async fn decide_join_request(
     if approve {
         let cap_bytes = membership_cap.encode_to_vec();
         persist_membership(
-            &repo,
+            repo.as_ref(),
             &req.space_id,
             &req.subject_peer_id,
             issuer_peer_id,
@@ -413,25 +413,22 @@ pub async fn decide_join_request(
 }
 
 pub async fn create_space(
-    repos: &RepositoryFactory,
+    repos: &dyn RepositoryProvider,
     owner_peer_id: &PeerId,
     space_id: &str,
     display_name: Option<String>,
 ) -> SomaResult<()> {
     let now_secs = epoch_seconds(SystemTime::now());
-    repos
-        .membership()
-        .upsert_space(&Space {
-            space_id: space_id.to_string(),
-            display_name,
-            owner_peer_id: Some(owner_peer_id.to_string()),
-            created_at: now_secs,
-        })
-        .await
+    repos.membership_repo().upsert_space(&Space {
+        space_id: space_id.to_string(),
+        display_name,
+        owner_peer_id: Some(owner_peer_id.to_string()),
+        created_at: now_secs,
+    }).await
 }
 
 pub async fn issue_issuer_capability_to_storage(
-    repos: &RepositoryFactory,
+    repos: &dyn RepositoryProvider,
     signer: &Keypair,
     owner_peer_id: &PeerId,
     space_id: &str,
@@ -468,17 +465,14 @@ pub async fn issue_issuer_capability_to_storage(
     sign_issuer_capability(&mut issuer_cap, signer)?;
 
     let bytes = issuer_cap.encode_to_vec();
-    repos
-        .issuer()
-        .upsert(&soma_storage::issuer::IssuerCapability {
-            space_id: space_id.to_string(),
-            issuer_peer_id: owner_peer_id.to_string(),
-            delegate_peer_id: delegate_peer_id.to_string(),
-            issued_at: now_secs,
-            expires_at: expires_at_secs,
-            capability: Some(bytes),
-        })
-        .await?;
+    repos.issuer_repo().upsert(&soma_storage::issuer::IssuerCapability {
+        space_id: space_id.to_string(),
+        issuer_peer_id: owner_peer_id.to_string(),
+        delegate_peer_id: delegate_peer_id.to_string(),
+        issued_at: now_secs,
+        expires_at: expires_at_secs,
+        capability: Some(bytes),
+    }).await?;
 
     Ok(issuer_cap)
 }
@@ -516,7 +510,7 @@ pub struct OutgoingJoinRequest {
 }
 
 pub async fn enqueue_outgoing_join_request(
-    repos: &RepositoryFactory,
+    repos: &dyn RepositoryProvider,
     target_peer_id: &PeerId,
     request_id: &str,
     addrs: &[Multiaddr],
@@ -533,18 +527,15 @@ pub async fn enqueue_outgoing_join_request(
     let id = format!("mbx-joinreq-{}", request_id);
     let payload = encode_outgoing_join_request_payload(request_id, addrs, request);
 
-    repos
-        .mailbox()
-        .enqueue(&NewMailboxEntry {
-            id: id.clone(),
-            kind: MAILBOX_KIND_JOIN_REQUEST.to_string(),
-            space_id: Some(space_id),
-            subject_peer_id: Some(target_peer_id.to_string()),
-            available_at: now_secs,
-            payload: Some(payload),
-            created_at: now_secs,
-        })
-        .await?;
+    repos.mailbox_repo().enqueue(&NewMailboxEntry {
+        id: id.clone(),
+        kind: MAILBOX_KIND_JOIN_REQUEST.to_string(),
+        space_id: Some(space_id),
+        subject_peer_id: Some(target_peer_id.to_string()),
+        available_at: now_secs,
+        payload: Some(payload),
+        created_at: now_secs,
+    }).await?;
 
     Ok(id)
 }
@@ -616,7 +607,7 @@ fn read_bytes(input: &[u8], idx: &mut usize) -> SomaResult<Vec<u8>> {
 }
 
 pub async fn enqueue_outgoing_join_decision(
-    repos: &RepositoryFactory,
+    repos: &dyn RepositoryProvider,
     decision: &JoinDecision,
 ) -> SomaResult<String> {
     let space_id = decision
@@ -634,24 +625,21 @@ pub async fn enqueue_outgoing_join_decision(
 
     let now_secs = epoch_seconds(SystemTime::now());
     let id = format!("mbx-{}", decision.decision_id);
-    repos
-        .mailbox()
-        .enqueue(&NewMailboxEntry {
-            id: id.clone(),
-            kind: MAILBOX_KIND_JOIN_DECISION.to_string(),
-            space_id: Some(space_id),
-            subject_peer_id: Some(subject_peer_id),
-            available_at: now_secs,
-            payload: Some(decision.encode_to_vec()),
-            created_at: now_secs,
-        })
-        .await?;
+    repos.mailbox_repo().enqueue(&NewMailboxEntry {
+        id: id.clone(),
+        kind: MAILBOX_KIND_JOIN_DECISION.to_string(),
+        space_id: Some(space_id),
+        subject_peer_id: Some(subject_peer_id),
+        available_at: now_secs,
+        payload: Some(decision.encode_to_vec()),
+        created_at: now_secs,
+    }).await?;
 
     Ok(id)
 }
 
 pub async fn apply_join_decision(
-    repos: &RepositoryFactory,
+    repos: &dyn RepositoryProvider,
     decision: &JoinDecision,
 ) -> SomaResult<()> {
     let Some(space_id) = decision.space_id.as_ref().map(|s| s.value.clone()) else {
@@ -661,7 +649,7 @@ pub async fn apply_join_decision(
         return Err(Error::service("missing decision.subject_peer_id"));
     };
 
-    let repo = repos.membership();
+    let repo = repos.membership_repo();
     let now_secs = epoch_seconds(SystemTime::now());
 
     let cap_bytes = decision.capability.as_ref().map(|cap| cap.encode_to_vec());
@@ -781,7 +769,7 @@ fn issuer_cap_valid(
 }
 
 async fn persist_membership(
-    repo: &SqlMembershipRepository,
+    repo: &dyn MembershipRepository,
     space_id: &str,
     subject_peer_id: &str,
     issuer: &PeerId,

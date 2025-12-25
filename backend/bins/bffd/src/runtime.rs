@@ -1,6 +1,6 @@
 use clap::Parser;
 use soma_core::SomaResult;
-use soma_core::http::{HttpService, run_http};
+use soma_core::http::{HttpService, HttpServer};
 use soma_peer::{PeerConfig, PeerEvent};
 use soma_peer::bootstrap::{PeerBootstrapper, PeerLauncher};
 use soma_net::IdentityManager;
@@ -96,7 +96,7 @@ pub async fn run_from_cli() -> SomaResult<()> {
     }
 
     let service = BffHttpService { http_addr };
-    run_http(service).await
+    HttpServer::new(service).run().await
 }
 
 struct BffHttpService {

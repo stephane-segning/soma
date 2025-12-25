@@ -1,6 +1,6 @@
 use clap::Parser;
 
-use soma_core::http::{HttpService, run_http};
+use soma_core::http::{HttpService, HttpServer};
 use soma_net::IdentityManager;
 
 use crate::config::{Args, Command};
@@ -29,7 +29,8 @@ pub async fn run_from_cli() -> Result<(), Box<dyn std::error::Error + Send + Syn
     };
 
     let http = tokio::spawn(async move {
-        run_http(http_service)
+        HttpServer::new(http_service)
+            .run()
             .await
             .map_err(|e| Box::<dyn std::error::Error + Send + Sync>::from(e))
     });

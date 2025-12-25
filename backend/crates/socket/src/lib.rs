@@ -7,6 +7,7 @@ use tonic::transport::Server;
 use tracing::info;
 
 /// Serve a tonic gRPC router over a Unix Domain Socket, respecting a shutdown signal.
+#[inline]
 pub async fn serve_grpc_unix(
     socket_path: impl AsRef<Path>,
     router: TonicRouter,

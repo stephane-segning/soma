@@ -16,18 +16,16 @@ use tracing::{info, warn};
 
 use libp2p::identity::Keypair;
 use soma_vdfs::fs::FsBlobStore;
-use soma_storage::mailbox::MailboxRepository;
-use soma_storage::{RepositoryFactory, membership::MembershipRepository};
+use soma_storage::RepositoryProvider;
 
 const MAX_UPLOAD_BYTES: usize = 8 * 1024 * 1024;
 /// Daemon shared state (peer id, command channel, listeners, event bus).
-#[derive(Debug)]
 pub struct DaemonState {
     pub peer_id: PeerId,
     pub peer_commands: mpsc::Sender<PeerCommand>,
     pub listen_addrs: Mutex<Vec<String>>,
     pub events: broadcast::Sender<daemon::DaemonEvent>,
-    pub repos: RepositoryFactory,
+    pub repos: Arc<dyn RepositoryProvider>,
     pub signer: Keypair,
     pub blob_store: FsBlobStore,
 }
@@ -111,7 +109,7 @@ impl daemon::daemon_server::Daemon for DaemonService {
         let _ = self
             .state
             .repos
-            .mailbox()
+            .mailbox_repo()
             .lease(&delivery_id, &self.state.peer_id.to_string(), now_secs + 30)
             .await;
 
@@ -156,10 +154,8 @@ impl daemon::daemon_server::Daemon for DaemonService {
         request: Request<daemon::RevokeSpaceRequest>,
     ) -> Result<Response<daemon::RevokeSpaceResponse>, Status> {
         let payload = request.into_inner();
-        let rows = self
-            .state
-            .repos
-            .membership()
+        let repo = self.state.repos.membership_repo();
+        let rows = repo
             .delete_membership(&payload.space_id, &payload.subject_peer_id)
             .await
             .map_err(|err| {
@@ -177,10 +173,8 @@ impl daemon::daemon_server::Daemon for DaemonService {
         request: Request<daemon::ListSpaceMembersRequest>,
     ) -> Result<Response<daemon::ListSpaceMembersResponse>, Status> {
         let payload = request.into_inner();
-        let rows = self
-            .state
-            .repos
-            .membership()
+        let repo = self.state.repos.membership_repo();
+        let rows = repo
             .list_memberships(&payload.space_id)
             .await
             .map_err(|err| {
@@ -391,7 +385,7 @@ impl daemon::daemon_server::Daemon for DaemonService {
             let _ = self
                 .state
                 .repos
-                .mailbox()
+                .mailbox_repo()
                 .lease(&delivery_id, &self.state.peer_id.to_string(), now_secs + 30)
                 .await;
 
@@ -423,10 +417,8 @@ impl daemon::daemon_server::Daemon for DaemonService {
         _request: Request<()>,
     ) -> Result<Response<daemon::ListMyMembershipsResponse>, Status> {
         let peer_id = self.state.peer_id.to_string();
-        let rows = self
-            .state
-            .repos
-            .membership()
+        let repo = self.state.repos.membership_repo();
+        let rows = repo
             .list_memberships_by_subject(&peer_id)
             .await
             .map_err(|err| {

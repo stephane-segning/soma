@@ -4,8 +4,7 @@ use libp2p::{Multiaddr, PeerId};
 use prost::Message;
 use soma_peer::PeerCommand;
 use soma_proto_build::spaceroom::JoinDecision;
-use soma_storage::RepositoryFactory;
-use soma_storage::mailbox::MailboxRepository;
+use soma_storage::RepositoryProvider;
 use tokio::sync::mpsc;
 use tracing::warn;
 
@@ -17,15 +16,15 @@ use crate::{
 ///
 /// This is a time-based driver used when we don't have a connection event to trigger delivery.
 pub async fn sweep_due(
-    repos: &RepositoryFactory,
+    repos: &dyn RepositoryProvider,
     local_peer_id: &PeerId,
     peer_commands: &mpsc::Sender<PeerCommand>,
 ) {
     let now_secs = epoch_seconds(SystemTime::now());
 
-    let _ = repos.mailbox().requeue_expired_leases(now_secs).await;
+    let _ = repos.mailbox_repo().requeue_expired_leases(now_secs).await;
 
-    let entries = match repos.mailbox().list_due(now_secs, 50).await {
+    let entries = match repos.mailbox_repo().list_due(now_secs, 50).await {
         Ok(entries) => entries,
         Err(err) => {
             warn!(%err, "mailbox sweep failed to list entries");
@@ -37,11 +36,11 @@ pub async fn sweep_due(
         match entry.kind.as_str() {
             MAILBOX_KIND_JOIN_DECISION => {
                 let Some(subject_peer_id) = entry.subject_peer_id.clone() else {
-                    let _ = repos.mailbox().mark_dead(&entry.id).await;
+                    let _ = repos.mailbox_repo().mark_dead(&entry.id).await;
                     continue;
                 };
                 let Ok(target) = subject_peer_id.parse() else {
-                    let _ = repos.mailbox().mark_dead(&entry.id).await;
+                    let _ = repos.mailbox_repo().mark_dead(&entry.id).await;
                     continue;
                 };
 
@@ -50,11 +49,11 @@ pub async fn sweep_due(
                 }
 
                 let Some(payload) = entry.payload.clone() else {
-                    let _ = repos.mailbox().mark_dead(&entry.id).await;
+                    let _ = repos.mailbox_repo().mark_dead(&entry.id).await;
                     continue;
                 };
                 let Ok(decision) = JoinDecision::decode(payload.as_slice()) else {
-                    let _ = repos.mailbox().mark_dead(&entry.id).await;
+                    let _ = repos.mailbox_repo().mark_dead(&entry.id).await;
                     continue;
                 };
 
@@ -69,11 +68,11 @@ pub async fn sweep_due(
             }
             MAILBOX_KIND_JOIN_REQUEST => {
                 let Some(subject_peer_id) = entry.subject_peer_id.clone() else {
-                    let _ = repos.mailbox().mark_dead(&entry.id).await;
+                    let _ = repos.mailbox_repo().mark_dead(&entry.id).await;
                     continue;
                 };
                 let Ok(target) = subject_peer_id.parse() else {
-                    let _ = repos.mailbox().mark_dead(&entry.id).await;
+                    let _ = repos.mailbox_repo().mark_dead(&entry.id).await;
                     continue;
                 };
 
@@ -82,13 +81,13 @@ pub async fn sweep_due(
                 }
 
                 let Some(payload) = entry.payload.clone() else {
-                    let _ = repos.mailbox().mark_dead(&entry.id).await;
+                    let _ = repos.mailbox_repo().mark_dead(&entry.id).await;
                     continue;
                 };
                 let outgoing = match decode_outgoing_join_request_payload(&payload) {
                     Ok(outgoing) => outgoing,
                     Err(_) => {
-                        let _ = repos.mailbox().mark_dead(&entry.id).await;
+                        let _ = repos.mailbox_repo().mark_dead(&entry.id).await;
                         continue;
                     }
                 };
@@ -101,7 +100,7 @@ pub async fn sweep_due(
                 }
 
                 if addrs.is_empty() {
-                    let _ = repos.mailbox().mark_dead(&entry.id).await;
+                    let _ = repos.mailbox_repo().mark_dead(&entry.id).await;
                     continue;
                 }
 
@@ -116,7 +115,7 @@ pub async fn sweep_due(
                     .await;
             }
             _ => {
-                let _ = repos.mailbox().mark_dead(&entry.id).await;
+                let _ = repos.mailbox_repo().mark_dead(&entry.id).await;
             }
         }
     }
@@ -124,17 +123,17 @@ pub async fn sweep_due(
 
 /// Attempt delivery for a peer when we observe a connection establishment.
 pub async fn deliver_for_peer(
-    repos: &RepositoryFactory,
+    repos: &dyn RepositoryProvider,
     local_peer_id: &PeerId,
     peer_commands: &mpsc::Sender<PeerCommand>,
     peer: &PeerId,
 ) {
     let now_secs = epoch_seconds(SystemTime::now());
 
-    let _ = repos.mailbox().requeue_expired_leases(now_secs).await;
+    let _ = repos.mailbox_repo().requeue_expired_leases(now_secs).await;
 
     let subject = peer.to_string();
-    let entries = match repos.mailbox().list_due_for_subject(i64::MAX, &subject, 50).await {
+    let entries = match repos.mailbox_repo().list_due_for_subject(i64::MAX, &subject, 50).await {
         Ok(entries) => entries,
         Err(err) => {
             warn!(%err, "failed to list mailbox entries for peer");
@@ -150,7 +149,7 @@ pub async fn deliver_for_peer(
                 }
 
                 let Some(payload) = entry.payload.clone() else {
-                    let _ = repos.mailbox().mark_dead(&entry.id).await;
+                    let _ = repos.mailbox_repo().mark_dead(&entry.id).await;
                     continue;
                 };
 
@@ -158,7 +157,7 @@ pub async fn deliver_for_peer(
                     Ok(d) => d,
                     Err(err) => {
                         warn!(%err, mailbox_id=%entry.id, "failed to decode join decision payload");
-                        let _ = repos.mailbox().mark_dead(&entry.id).await;
+                        let _ = repos.mailbox_repo().mark_dead(&entry.id).await;
                         continue;
                     }
                 };
@@ -178,7 +177,7 @@ pub async fn deliver_for_peer(
                 }
 
                 let Some(payload) = entry.payload.clone() else {
-                    let _ = repos.mailbox().mark_dead(&entry.id).await;
+                    let _ = repos.mailbox_repo().mark_dead(&entry.id).await;
                     continue;
                 };
 
@@ -186,7 +185,7 @@ pub async fn deliver_for_peer(
                     Ok(o) => o,
                     Err(err) => {
                         warn!(%err, mailbox_id=%entry.id, "failed to decode join request payload");
-                        let _ = repos.mailbox().mark_dead(&entry.id).await;
+                        let _ = repos.mailbox_repo().mark_dead(&entry.id).await;
                         continue;
                     }
                 };
@@ -213,10 +212,10 @@ pub async fn deliver_for_peer(
     }
 }
 
-pub async fn requeue_or_dead(repos: &RepositoryFactory, mailbox_id: &str) {
+pub async fn requeue_or_dead(repos: &dyn RepositoryProvider, mailbox_id: &str) {
     let now_secs = epoch_seconds(SystemTime::now());
 
-    let entry = match repos.mailbox().get(mailbox_id).await {
+    let entry = match repos.mailbox_repo().get(mailbox_id).await {
         Ok(Some(entry)) => entry,
         Ok(None) => return,
         Err(err) => {
@@ -227,7 +226,7 @@ pub async fn requeue_or_dead(repos: &RepositoryFactory, mailbox_id: &str) {
 
     // Hard TTL: 24h.
     if now_secs.saturating_sub(entry.created_at) > 24 * 60 * 60 {
-        let _ = repos.mailbox().mark_dead(mailbox_id).await;
+        let _ = repos.mailbox_repo().mark_dead(mailbox_id).await;
         return;
     }
 
@@ -236,18 +235,18 @@ pub async fn requeue_or_dead(repos: &RepositoryFactory, mailbox_id: &str) {
     // Retry between 5 and 30 minutes.
     let delay = (300_i64.saturating_mul(1_i64 << exp)).clamp(300, 1800);
     let available_at = now_secs + delay;
-    let _ = repos.mailbox().requeue(mailbox_id, available_at).await;
+    let _ = repos.mailbox_repo().requeue(mailbox_id, available_at).await;
 }
 
 async fn lease_for_send(
-    repos: &RepositoryFactory,
+    repos: &dyn RepositoryProvider,
     local_peer_id: &PeerId,
     mailbox_id: &str,
     now_secs: i64,
 ) -> bool {
     let lease_until = now_secs + 30;
     match repos
-        .mailbox()
+        .mailbox_repo()
         .lease(mailbox_id, &local_peer_id.to_string(), lease_until)
         .await
     {
@@ -261,4 +260,3 @@ fn epoch_seconds(now: SystemTime) -> i64 {
         .unwrap_or_default()
         .as_secs() as i64
 }
-

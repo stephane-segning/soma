@@ -3,7 +3,6 @@ use soma_membership::apply_join_decision;
 use soma_peer::PeerEvent;
 use soma_peer::events::{PeerEventHandler, PeerEventKind};
 use soma_proto_build::daemon;
-use soma_storage::mailbox::MailboxRepository;
 use tracing::{info, warn};
 
 use crate::grpc::DaemonState;
@@ -199,13 +198,13 @@ impl PeerEventHandler<DaemonState> for MailboxOutboxHandler {
                 .await;
             }
             PeerEvent::JoinRequestDeliveryAck { delivery_id, .. } => {
-                let _ = ctx.repos.mailbox().mark_done(delivery_id).await;
+                let _ = ctx.repos.mailbox_repo().mark_done(delivery_id).await;
             }
             PeerEvent::JoinRequestDeliveryFailed { delivery_id, .. } => {
                 soma_membership::outbox::requeue_or_dead(&ctx.repos, delivery_id).await;
             }
             PeerEvent::JoinDecisionDeliveryAck { delivery_id, .. } => {
-                let _ = ctx.repos.mailbox().mark_done(delivery_id).await;
+                let _ = ctx.repos.mailbox_repo().mark_done(delivery_id).await;
             }
             PeerEvent::JoinDecisionDeliveryFailed { delivery_id, .. } => {
                 soma_membership::outbox::requeue_or_dead(&ctx.repos, delivery_id).await;
