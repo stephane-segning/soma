@@ -9,17 +9,17 @@
 Soma is a local-first learning and collaboration platform for schools.
 
 This repository is organized as a monorepo with clear boundaries between:
-- product requirements (`prd/`)
-- documentation (`docs/`)
-- shared protocol definitions (`proto/`)
 - backend Rust workspace (`backend/`)
-- desktop application (`desktop/`)
-- always-on server components (`server/`)
+- desktop applications (`desktop/`)
 - deployment artifacts (`deploy/`)
-- software bill of materials tooling (`sbom/`)
+- Docker Compose bundles (`compose/`)
+- shared protocol definitions (`proto/`)
+- documentation (`docs/`)
+- product requirements (`prd/`)
 
 ## Docker Compose
 
+- The Compose setup uses `compose.yml` to include the stack definitions under `compose/` (Compose v2.20+).
 - Default stack: `docker compose up -d`
 - If your Docker Compose version does not support `include` (Compose v2.20+), use:
   - `docker compose -f compose/backend.infra.yml -f compose/backend.botd.yml -f compose/backend.bffd.yml up -d`
