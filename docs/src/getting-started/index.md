@@ -1,6 +1,6 @@
 # Getting Started
 
-Follow these steps to run the full Soma stack (daemon, Tapia UI, and bots) on your development machine.
+Follow these steps to run the full Soma stack (daemon, Soma desktop app, and optional server peers) on your development machine.
 
 ## Prerequisites
 
@@ -33,26 +33,28 @@ RUST_LOG=info cargo run --release -p soma-daemon
 - On first run the daemon creates a keypair and prints its Peer ID.
 - It registers with the configured rendezvous server (or uses mDNS on LAN) and listens on a local Unix socket gRPC interface (no HTTP surface).
 - Logs indicate whether it connected to relays or downloaded class metadata.
-- The socket path defaults to `./soma-daemon.sock` (set via `--socket` or `SOMA_DAEMON_SOCKET`). Desktop apps must be configured with this path to connect; for example, by setting the `SOMA_DAEMON_SOCKET` environment variable for the app. gRPC methods are defined in `proto/daemon/v1/daemon.proto`.
+- The socket path defaults to `./soma-daemon.sock` (set via `--socket-path` or `SOMA_DAEMON_SOCKET`). Desktop apps must be configured with this path to connect; for example, by setting the `SOMA_DAEMON_SOCKET` environment variable for the app. gRPC methods are defined in `proto/daemon/v1/daemon.proto`.
 
-## 3. Start Tapia (Electron UI)
-
-```bash
-cd desktop/tapia
-pnpm dev
-```
-
-- Tapia expects the local daemon to already be running at the configured Unix socket path (`SOMA_DAEMON_SOCKET`) and surfaces errors if it cannot connect (check the developer console).
-- Development builds typically hot-reload the React app while Electron stays running.
-
-You can also run the main Soma desktop app similarly:
+## 3. Start Soma (Electron UI)
 
 ```bash
 cd desktop/soma
 pnpm dev
 ```
 
-## 4. Launch a Bot (Optional but Recommended)
+- Soma expects the local daemon to already be running at the configured Unix socket path (`SOMA_DAEMON_SOCKET`) and surfaces errors if it cannot connect (check the developer console).
+- Development builds typically hot-reload the React app while Electron stays running.
+
+## 4. Start Tapia (optional)
+
+```bash
+cd desktop/tapia
+pnpm dev
+```
+
+Tapia is a typing companion app; it can be developed independently, but it can also reuse daemon APIs for shared state.
+
+## 5. Launch a Bot (Optional but Recommended)
 
 Bots make onboarding realistic by auto-approving join requests.
 
@@ -71,23 +73,23 @@ cd backend
 RUST_LOG=info cargo run --release -p soma-agentd
 ```
 
-## 5. Simulate a Join Flow
+## 6. Simulate a Join Flow
 
-1. In Tapia, enter or select the class the bot manages.
-2. Tapia asks the daemon to emit a `JoinRequest`.
-3. Watch the bot logs for approval and Tapia for the resulting membership confirmation.
+1. In Soma, enter or select the class the bot manages.
+2. Soma asks the daemon to emit a `JoinRequest`.
+3. Watch the bot logs for approval and Soma for the resulting membership confirmation.
 
 If peers cannot discover one another, verify that both the bot and user daemon are connected to the same rendezvous namespace or can see each other via mDNS.
 
-## 6. (Optional) Run Local Rendezvous/Relay Services
+## 7. (Optional) Run Local Rendezvous/Relay Services
 
 - Use the libp2p rendezvous example (`cargo run --example rendezvous_server`) or the Helm charts under `deploy/` to host the discovery service locally.[^rendezvous]
 - For NAT testing, run a libp2p Circuit Relay (`cargo run --example relay` or the provided container images).[^relay]
 - Point your daemons to the local multiaddresses via config or environment variables.
 
-## 7. Development Tips
+## 8. Development Tips
 
-- Keep three terminals open (daemon, Tapia, bot) so you can correlate actions end-to-end.
+- Keep three terminals open (daemon, UI, bot) so you can correlate actions end-to-end.
 - Set `RUST_LOG=debug` for verbose networking traces when diagnosing libp2p issues.
 - Identity data typically lives under `~/.soma*`; remove or rename those directories to simulate a clean user.
 - You can run multiple user agents by specifying different data directories and API ports for each daemon.

@@ -21,3 +21,19 @@ This keeps dependency upgrades simple, avoids version skew, and makes feature us
 
 - Desktop dependencies are managed via the `pnpm` workspace under `desktop/`.
 - Install and run scripts via `pnpm` (not `npm`).
+
+## Docs (MkDocs)
+
+Docs are built with MkDocs using the `bootstrap386` theme (CI installs these via `.github/actions/build-mkdocs/action.yml`).
+
+Local install:
+
+```bash
+python3 -m pip install mkdocs mkdocs-material mkdocs-bootstrap386
+```
+
+Build:
+
+```bash
+just build-docs
+```

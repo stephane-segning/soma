@@ -30,11 +30,11 @@ Classes are secure collaboration spaces. Access is governed by explicit capabili
 
 ## Join Flow
 
-1. **JoinRequest sent** – Tapia asks the local daemon to join a space; the daemon publishes or sends a JoinRequest packet.
+1. **JoinRequest sent** – the Soma desktop app asks the local daemon to join a space; the daemon publishes or sends a JoinRequest packet.
 2. **Request processed** – The space bot or admin agent receives the request, verifies the invite, and checks IssuerCapability permissions.
 3. **Membership granted** – A MembershipCapability is created, typically by signing a statement `Peer X is a member of Space Y` with the issuer’s key.
 4. **Delivery** – The credential is sent back to the requester’s daemon, which stores it securely.
-5. **Access unlocked** – The daemon subscribes to the class pubsub topics, syncs documents, and informs Tapia that the class is now available.
+5. **Access unlocked** – The daemon subscribes to the class pubsub topics, syncs documents, and informs the UI (Soma desktop app) that the class is now available.
 6. **Ongoing enforcement** – Peers may verify that incoming messages are signed by members or consult bot-maintained member lists to reject unauthorized traffic.
 
 Revocation can be implemented by expiring capabilities, publishing revocation events, or rotating space secrets. Regardless of the specifics, membership is always tied to the requesting peer’s ID, leveraging libp2p’s secure identity layer.[^security]

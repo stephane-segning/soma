@@ -1,8 +1,13 @@
-# Blobs (VDFS): Content‑Addressed Storage + Fetch‑by‑CID
+# Blobs (VDF): Content‑Addressed Storage + Fetch‑by‑CID
 
-This doc describes Soma’s minimal “VDFS” layer: **blob content‑addressed storage (CAS)** plus a **pull‑based fetch‑by‑CID** protocol over libp2p.
+This doc describes Soma’s minimal “VDF” layer: **blob content‑addressed storage (CAS)** plus a **pull‑based fetch‑by‑CID** protocol over libp2p.
 
 It intentionally does **not** cover any virtual filesystem mapping (paths, directories, versioned mounts, etc.).
+
+Terminology note:
+
+- In repo discussions, a **VDF** is the **cache-only peer role** (most commonly `soma-botd`).
+- In code, the crate is currently named `soma-vdfs` for historical reasons.
 
 ## Goals
 

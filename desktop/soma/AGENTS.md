@@ -9,6 +9,7 @@ In this repo, **VDF** refers to a **cache-only peer role** (sometimes casually w
 - VDFs **never accept user uploads** and are **not a source of truth** for user-created blobs.
 - VDFs may persist cache in-memory (LRU/TTL), on disk, or via an external cache (e.g. Redis), but **cache writes are allowed only as a side-effect of fetching/verifying content**.
 - VDFs must **verify bytes match the claimed CID** before serving/persisting.
+- Naming note: the Rust crate is currently `soma-vdfs` for historical reasons, but “VDF” is the intended role/term in docs and conversations.
 
 ## Repository Layout
 
@@ -31,6 +32,11 @@ When in doubt, place:
 - UI logic under `desktop/soma` or `desktop/tapia`.
 - long-lived infra logic under `backend/crates/*`.
 - user-facing docs under `docs/src/`.
+
+Docs quickstart:
+
+- Local build: `cd docs && mkdocs build` (CI installs MkDocs; locally you may want a venv/pipx if `pip` is externally-managed).
+- Repo helper: `just build-docs` (writes to `./site`).
 
 ## Tech Stack
 
@@ -151,6 +157,7 @@ Specific services (all now live under `backend/`):
 - **Desktop peer/daemon** (`backend/bins/daemon`, `soma-daemon`): the desktop user agent (Unix socket IPC). Desktop backends must not depend on Axum.
 - **Server peer/bot** (`backend/bins/botd`, `soma-botd`): a server-hosted libp2p peer/bot with an Axum control plane + metrics.
 - **LLM BFF** (`backend/bins/bffd`, `backend/crates/bff`): a backend-for-frontend for interacting with LLMs via `llama-cpp-2`; runs `mimalloc` + Axum + a small metrics server. This is the only backend that does **not** use libp2p.
+  - Note: `soma-bffd` can optionally enable a small libp2p peer for diagnostics/testing, but the core service does not depend on libp2p.
 
 #### `soma-botd` internals (event handling + metrics)
 
@@ -162,7 +169,7 @@ Specific services (all now live under `backend/`):
     - Metrics: `backend/bins/botd/src/event_handlers.rs` (`MetricsHandler`, handles **all** `PeerEventKind`s)
     - Logging: `backend/bins/botd/src/event_handlers.rs` (`LoggingHandler`, selected events only)
 - Prometheus metrics definitions/registration: `backend/bins/botd/src/metrics.rs`
-- Storage: SQLx AnyPool (Postgres or SQLite) via `soma_core::db::DbFactory`. Config via `--database-url` / `SOMA_DATABASE_URL` (defaults to `./botd.db` SQLite). Migrations embedded from `backend/bins/botd/migrations` and run at startup (`sqlx::migrate!` in `runtime.rs`); startup fails if migration fails.
+- Storage: SQLx AnyPool (Postgres or SQLite) via `soma_core::db::DbFactory`. Config via `--database-url` / `SOMA_DATABASE_URL` (defaults to `./botd.db` SQLite). Migrations are shared under `backend/crates/storage/migrations` and embedded at startup (`sqlx::migrate!("../../crates/storage/migrations")` in `runtime.rs`); startup fails if migration fails.
 - Join decider: auto-approves only when the bot holds a valid issuer capability for the space (role/expiry enforced) and signs the membership capability with its libp2p identity key; otherwise the join is recorded for manual approval in storage.
 
 #### Operating modes (bot vs server-daemon)
@@ -194,7 +201,7 @@ When adding new peer events or instrumentation, prefer:
     - Entry point: `backend/bins/daemon/src/main.rs`
     - Runtime loop + wiring: same pattern as botd but gRPC over Unix socket (`backend/bins/daemon/src/grpc.rs`)
     - Event dispatcher: `backend/bins/daemon/src/dispatch.rs`
-- Storage: SQLx AnyPool over SQLite via `soma_core::db::DbFactory` (config `--db-path` / `SOMA_DAEMON_DB`, defaults to `./daemon.db`). Migrations embedded from `backend/bins/daemon/migrations` and run at startup (`sqlx::migrate!` in `main.rs`); startup fails if migration fails.
+- Storage: SQLx AnyPool over SQLite via `soma_core::db::DbFactory` (config `--db-path` / `SOMA_DAEMON_DB`, defaults to `./daemon.db`). Migrations are shared under `backend/crates/storage/migrations` and embedded at startup (`sqlx::migrate!("../../crates/storage/migrations")` in `main.rs`); startup fails if migration fails.
 
 ### Business Logic & API Checklist for Backends
 
@@ -232,7 +239,7 @@ Use this list to track domain flows and where the API lives. Mark items off as y
 
 ### Storage schema (SQLx-backed)
 
-Botd (Postgres or SQLite via `DATABASE_URL`) and daemon (SQLite file) embed the same migrations (`backend/bins/botd/migrations`, `backend/bins/daemon/migrations`). ER diagram (entities → PKs):
+Botd (Postgres or SQLite via `SOMA_DATABASE_URL`) and daemon (SQLite file) embed the same migrations (`backend/crates/storage/migrations`). ER diagram (entities → PKs):
 
 - `spaces(space_id)` – optional display_name, created_at
 - `space_memberships(space_id, subject_peer_id)` – role, issuer_peer_id, issued_at, expires_at, capability blob
@@ -243,12 +250,12 @@ Botd (Postgres or SQLite via `DATABASE_URL`) and daemon (SQLite file) embed the 
 - `issuer_capabilities(space_id, delegate_peer_id)` – issuer_peer_id, issued_at, expires_at, capability blob
 - `mailbox(id)` – kind, space_id?, subject_peer_id?, status (queued|leased|done|dead), attempts, available_at, lease_until?, leased_by?, payload blob, created_at
 
-Migrations live alongside each binary today; goal is to consolidate shared migrations under `backend/crates/storage/` once repositories land.
+Migrations are centralized in `backend/crates/storage/migrations` and embedded by both `soma-daemon` and `soma-botd` at startup.
 
 ### Persistence
 
 - Use `soma_core::db::DbFactory` to build pools and run migrators.
-- Keep SQLx queries out of controllers; add repository modules per aggregate (planned under `backend/crates/storage`: memberships, issuers, mailbox).
+- Keep SQLx queries out of controllers; add repository modules per aggregate under `backend/crates/storage` (memberships, issuers, mailbox).
 
 ### Design patterns in use (and how to apply them here)
 
@@ -739,7 +746,7 @@ For how peers (`soma-daemon`, `soma-botd`) use mDNS, rendezvous, and relay clien
 
 - Treat `desktop/soma` and `desktop/tapia` as separate products sharing a backend daemon.
 - Keep Electron main-process code (window management, protocol handlers, daemon connectivity checks) separate from renderer React code.
-- Desktop apps must **never** start `soma-daemon`; they only check reachability on startup and surface a clear error if it’s not running (socket path via `SOMA_DAEMON_SOCKET`).
+- Renderer code must **never** start `soma-daemon`. If the desktop app manages the daemon lifecycle, do it in Electron main (as a child process) and keep all daemon access over the Unix socket (`SOMA_DAEMON_SOCKET`).
 - Route all network operations through the local daemon; do not introduce direct server calls from the UI unless explicitly required.
 - Main-process DI uses Inversify with typed tokens in `src/main/tokens.ts`; resolve dependencies via the container using these symbols (see `src/main/container.ts`).
 - Main-process persistence:
