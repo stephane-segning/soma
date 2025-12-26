@@ -20,8 +20,8 @@
 				"decorations": false,
 				"transparent": true,
 				"windowEffects": {
-					"radius": 24,
-					"effects": ["blur", "appearanceBased", "windowBackground"]
+					"radius": 12,
+					"effects": ["windowBackground"]
 				}
 			}
 		],

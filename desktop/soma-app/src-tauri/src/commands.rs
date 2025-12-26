@@ -205,6 +205,13 @@ pub struct ChatStreamEvent {
     pub error: Option<String>,
 }
 
+#[derive(Clone, Serialize, Deserialize)]
+pub struct SearchResult {
+    pub id: String,
+    pub title: String,
+    pub subtitle: Option<String>,
+}
+
 #[tauri::command]
 pub async fn agent_chat_stream(
     state: State<'_, ManagedState>,
@@ -234,18 +241,56 @@ pub async fn agent_chat_stream(
         model: model.unwrap_or_default(),
     };
 
-    match state.agent.chat(req).await {
-        Ok(res) => Ok(ChatStreamEvent {
-            token: Some(res.content),
-            done: true,
-            error: None,
-        }),
+    match state.agent.chat_stream(req).await {
+        Ok(mut stream) => {
+            let mut content = String::new();
+            while let Some(item) = stream.message().await.transpose() {
+                match item {
+                    Ok(evt) => {
+                        if let Some(event) = evt.event {
+                            match event {
+                                soma_proto_build::agent::chat_stream_event::Event::Token(t) => {
+                                    content.push_str(&t);
+                                }
+                                soma_proto_build::agent::chat_stream_event::Event::Done(done) => {
+                                    content = done.content;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    Err(status) => {
+                        return Ok(ChatStreamEvent {
+                            token: None,
+                            done: true,
+                            error: Some(status.to_string()),
+                        });
+                    }
+                }
+            }
+
+            Ok(ChatStreamEvent {
+                token: Some(content),
+                done: true,
+                error: None,
+            })
+        }
         Err(err) => Ok(ChatStreamEvent {
             token: None,
             done: true,
             error: Some(err.to_string()),
         }),
     }
+}
+
+#[tauri::command]
+pub async fn search(query: String) -> Result<Vec<SearchResult>, String> {
+    let trimmed = query.trim();
+    if trimmed.is_empty() {
+        return Ok(vec![]);
+    }
+    // Placeholder: daemon-backed search not implemented yet.
+    Ok(vec![])
 }
 
 fn doc_cache() -> &'static Mutex<DocCache> {

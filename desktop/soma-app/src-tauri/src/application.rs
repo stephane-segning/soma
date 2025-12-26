@@ -120,7 +120,8 @@ impl SomaApp {
                 crate::commands::settings_get_last_route,
                 crate::commands::settings_get,
                 crate::commands::settings_set,
-                crate::commands::agent_chat_stream
+                crate::commands::agent_chat_stream,
+                crate::commands::search
             ])
             .run(context)
     }
