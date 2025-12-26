@@ -1,5 +1,5 @@
-import { invoke } from "@tauri-apps/api/core";
 import { createId } from "@paralleldrive/cuid2";
+import { invoke } from "@tauri-apps/api/core";
 
 type DraftRecord = {
 	spaceId: string;
@@ -22,7 +22,9 @@ export async function getDraft(input: {
 	spaceId: string;
 	documentId: string;
 }): Promise<DraftRecord | null> {
-	return invoke<DraftRecord | null>("documents_get_draft", input).catch(() => null);
+	return invoke<DraftRecord | null>("documents_get_draft", input).catch(
+		() => null,
+	);
 }
 
 export async function upsertDraft(input: {
@@ -55,9 +57,10 @@ export async function syncPublishedDocument(input: {
 	contentJson: string;
 	updatedAtMs: number;
 }): Promise<{ ok: true; uploaded: number }> {
-	const result = await invoke<{ uploaded: number }>("documents_sync_published", input).catch(
-		() => ({ uploaded: 0 }),
-	);
+	const result = await invoke<{ uploaded: number }>(
+		"documents_sync_published",
+		input,
+	).catch(() => ({ uploaded: 0 }));
 	return { ok: true, uploaded: result.uploaded };
 }
 
@@ -69,14 +72,19 @@ export async function ensurePage(input: {
 }): Promise<PageRecord> {
 	const payload = {
 		...input,
-		pageId: input.pageId && input.pageId.trim().length > 0 ? input.pageId : createId(),
+		pageId:
+			input.pageId && input.pageId.trim().length > 0
+				? input.pageId
+				: createId(),
 		title: input.title,
 		parentPageIds: input.parentPageIds ?? [],
 	};
 	return invoke<PageRecord>("documents_ensure_page", payload);
 }
 
-export async function listPages(input: { spaceId: string }): Promise<PageRecord[]> {
+export async function listPages(input: {
+	spaceId: string;
+}): Promise<PageRecord[]> {
 	return invoke<PageRecord[]>("documents_list_pages", input).catch(() => []);
 }
 
@@ -85,7 +93,9 @@ export async function updatePageTitle(input: {
 	pageId: string;
 	title: string;
 }): Promise<PageRecord | null> {
-	return invoke<PageRecord | null>("documents_update_page_title", input).catch(() => null);
+	return invoke<PageRecord | null>("documents_update_page_title", input).catch(
+		() => null,
+	);
 }
 
 export async function setPageParents(input: {
@@ -93,5 +103,7 @@ export async function setPageParents(input: {
 	pageId: string;
 	parentPageIds: string[];
 }): Promise<PageRecord | null> {
-	return invoke<PageRecord | null>("documents_set_page_parents", input).catch(() => null);
+	return invoke<PageRecord | null>("documents_set_page_parents", input).catch(
+		() => null,
+	);
 }

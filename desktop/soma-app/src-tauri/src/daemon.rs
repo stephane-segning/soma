@@ -1,4 +1,4 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{fs, path::PathBuf, sync::Arc};
 
 use anyhow::{Context, Result};
 use hyper_util::rt::tokio::TokioIo;
@@ -15,6 +15,7 @@ use tracing::info;
 
 pub struct DaemonApi {
     socket_path: PathBuf,
+    blob_dir: PathBuf,
     client: Mutex<Option<GrpcDaemonClient<Channel>>>,
 }
 
@@ -29,9 +30,14 @@ impl DaemonApi {
                     .map(|p| p.join("soma-daemon.sock"))
             })
             .unwrap_or_else(|| PathBuf::from("soma-daemon.sock"));
+        let blob_dir = std::env::var_os("SOMA_BLOB_DIR")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| PathBuf::from("blobs"));
         info!("Using soma-daemon socket at {:?}", socket_path);
+        info!("Assuming daemon blob directory at {:?}", blob_dir);
         Ok(Arc::new(Self {
             socket_path,
+            blob_dir,
             client: Mutex::new(None),
         }))
     }
@@ -71,5 +77,13 @@ impl DaemonApi {
         let mut client = self.client().await?;
         let res = client.upload_blob(req).await?;
         Ok(res.into_inner())
+    }
+
+    pub fn read_blob(&self, space_id: &str, cid: &str) -> Result<Option<Vec<u8>>> {
+        let path = self.blob_dir.join(space_id).join(cid);
+        if !path.exists() {
+            return Ok(None);
+        }
+        Ok(Some(fs::read(path)?))
     }
 }

@@ -62,9 +62,9 @@ pub async fn documents_upsert_draft(
     updated_at_ms: i64,
 ) -> Result<(), String> {
     let payload = UpsertDocumentRequest {
-        space_id,
-        document_id,
-        content_json,
+        space_id: space_id.clone(),
+        document_id: document_id.clone(),
+        content_json: content_json.clone(),
         published,
         updated_at_ms,
     };
@@ -74,6 +74,15 @@ pub async fn documents_upsert_draft(
         .await
         .map(|_| ())
         .map_err(|e: anyhow::Error| e.to_string())
+        .map(|_| {
+            persist_draft_record(DraftRecord {
+                space_id,
+                document_id,
+                content_json,
+                published: if published { 1 } else { 0 },
+                updated_at_ms,
+            });
+        })
 }
 
 #[tauri::command]
@@ -86,18 +95,28 @@ pub async fn documents_queue_daemon_sync(
     published: Option<bool>,
 ) -> Result<(), String> {
     let payload = UpsertDocumentRequest {
-        space_id,
-        document_id,
-        content_json,
+        space_id: space_id.clone(),
+        document_id: document_id.clone(),
+        content_json: content_json.clone(),
         published: published.unwrap_or(true),
         updated_at_ms,
     };
+    let published_flag = if payload.published { 1 } else { 0 };
     state
         .daemon
         .upsert_document(payload)
         .await
         .map(|_| ())
         .map_err(|e: anyhow::Error| e.to_string())
+        .map(|_| {
+            persist_draft_record(DraftRecord {
+                space_id,
+                document_id,
+                content_json,
+                published: published_flag,
+                updated_at_ms,
+            });
+        })
 }
 
 #[tauri::command]
@@ -109,9 +128,9 @@ pub async fn documents_sync_published(
     updated_at_ms: i64,
 ) -> Result<i32, String> {
     let payload = UpsertDocumentRequest {
-        space_id,
-        document_id,
-        content_json,
+        space_id: space_id.clone(),
+        document_id: document_id.clone(),
+        content_json: content_json.clone(),
         published: true,
         updated_at_ms,
     };
@@ -121,6 +140,16 @@ pub async fn documents_sync_published(
         .await
         .map(|_| 1)
         .map_err(|e: anyhow::Error| e.to_string())
+        .map(|uploaded| {
+            persist_draft_record(DraftRecord {
+                space_id,
+                document_id,
+                content_json,
+                published: 1,
+                updated_at_ms,
+            });
+            uploaded
+        })
 }
 
 #[tauri::command]
@@ -132,9 +161,10 @@ pub async fn blobs_stage(
     mime: String,
     file_name: Option<String>,
 ) -> Result<BlobStageResult, String> {
+    let space = space_id.clone();
     let payload = UploadBlobRequest {
-        space_id,
-        data: bytes,
+        space_id: space_id.clone(),
+        data: bytes.clone(),
         mime,
         name: file_name.unwrap_or_else(|| "blob".to_string()),
         doc_id: doc_id.unwrap_or_default(),
@@ -146,10 +176,11 @@ pub async fn blobs_stage(
         .map_err(|e: anyhow::Error| e.to_string())?;
 
     Ok(BlobStageResult {
-        cid: res.cid,
+        cid: res.cid.clone(),
         size: res.size,
-        mime: res.mime,
-        name: res.name,
+        mime: res.mime.clone(),
+        name: res.name.clone(),
+        url: format!("soma-blob://daemon/{}/{}", space, res.cid),
     })
 }
 
@@ -188,6 +219,7 @@ pub struct BlobStageResult {
     size: u64,
     mime: String,
     name: String,
+    url: String,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -237,7 +269,7 @@ pub async fn agent_chat_stream(
             })
             .collect(),
         temperature: temperature.unwrap_or(0.7),
-        max_tokens: max_tokens.unwrap_or(1024),
+        max_tokens: max_tokens.unwrap_or_default(),
         model: model.unwrap_or_default(),
     };
 
@@ -299,6 +331,12 @@ fn doc_cache() -> &'static Mutex<DocCache> {
 
 fn cache_key(space: &str, id: &str) -> String {
     format!("{space}::{id}")
+}
+
+fn persist_draft_record(record: DraftRecord) {
+    let mut cache = doc_cache().lock().unwrap();
+    let key = cache_key(&record.space_id, &record.document_id);
+    cache.drafts.insert(key, record);
 }
 
 #[tauri::command]

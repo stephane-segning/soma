@@ -1,29 +1,24 @@
-use std::sync::{Arc, OnceLock};
+use std::sync::Arc;
 
-use anyhow::{Context, Result};
-use tauri::{AppHandle, Builder, UriSchemeContext, Wry, http};
+use anyhow::Result;
+use tauri::{
+    AppHandle, Builder, Manager, UriSchemeContext, Wry,
+    http::{self, HeaderValue},
+};
 use tracing::{debug, warn};
 
-use crate::paths::{AppPaths, ensure_app_paths};
+use crate::state::ManagedState;
 
 pub trait ProtocolRegistrar: Send + Sync {
     fn attach(self: Arc<Self>, builder: Builder<Wry>) -> Builder<Wry>;
 }
 
 #[derive(Default)]
-pub struct BlobProtocol {
-    paths: OnceLock<AppPaths>,
-}
+pub struct BlobProtocol;
 
 impl BlobProtocol {
     pub fn new() -> Self {
-        Self {
-            paths: OnceLock::new(),
-        }
-    }
-
-    fn ensure_paths(&self, app: &AppHandle<Wry>) -> Result<AppPaths> {
-        ensure_app_paths(&self.paths, app)
+        Self
     }
 
     fn handle_request(
@@ -49,7 +44,6 @@ impl BlobProtocol {
         app: &AppHandle<Wry>,
         request: &http::Request<Vec<u8>>,
     ) -> Result<http::Response<Vec<u8>>> {
-        let paths = self.ensure_paths(app)?;
         let uri = request.uri();
 
         let authority = uri
@@ -57,32 +51,31 @@ impl BlobProtocol {
             .map(|a| a.as_str().to_string())
             .unwrap_or_default()
             .to_owned();
-        if authority != "local" {
-            return Ok(http::Response::builder()
-                .status(http::StatusCode::NOT_FOUND)
-                .body(Vec::new())
-                .unwrap());
+        if authority != "daemon" {
+            return Ok(not_found());
         }
 
-        let blob_id = uri.path().trim_start_matches('/');
-        if blob_id.is_empty() {
-            return Ok(http::Response::builder()
-                .status(http::StatusCode::NOT_FOUND)
-                .body(Vec::new())
-                .unwrap());
+        let mut parts = uri.path().trim_start_matches('/').split('/');
+        let space_id = parts.next().unwrap_or_default();
+        let cid = parts.next().unwrap_or_default();
+        if space_id.is_empty() || cid.is_empty() {
+            return Ok(not_found());
         }
 
-        let blob_path = paths.staged_blob_dir().join(blob_id);
-        debug!("serving staged blob from {:?}", blob_path);
-        let bytes = std::fs::read(&blob_path)
-            .with_context(|| format!("failed to read staged blob {:?}", blob_path))?;
+        let state = app.state::<ManagedState>();
+        let Some(bytes) = state
+            .daemon
+            .read_blob(space_id, cid)
+            .map_err(|err| anyhow::anyhow!(err))?
+        else {
+            debug!("blob {cid} not found for space {space_id}");
+            return Ok(not_found());
+        };
 
+        let content_type = HeaderValue::from_static(mime::APPLICATION_OCTET_STREAM.essence_str());
         let response = http::Response::builder()
             .status(http::StatusCode::OK)
-            .header(
-                http::header::CONTENT_TYPE,
-                mime::APPLICATION_OCTET_STREAM.essence_str(),
-            )
+            .header(http::header::CONTENT_TYPE, content_type)
             .body(bytes)
             .unwrap();
 
@@ -100,4 +93,11 @@ impl ProtocolRegistrar for BlobProtocol {
             },
         )
     }
+}
+
+fn not_found() -> http::Response<Vec<u8>> {
+    http::Response::builder()
+        .status(http::StatusCode::NOT_FOUND)
+        .body(Vec::new())
+        .unwrap()
 }

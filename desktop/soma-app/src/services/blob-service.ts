@@ -18,9 +18,10 @@ export async function stageBlob(input: {
 }): Promise<StagedBlob> {
 	const response = await invoke<{
 		cid: string;
-		size: string | number;
+		size: number;
 		mime: string;
 		name: string;
+		url: string;
 	}>("blobs_stage", {
 		spaceId: input.spaceId,
 		docId: input.docId,
@@ -29,18 +30,12 @@ export async function stageBlob(input: {
 		fileName: input.fileName,
 	});
 
-	const blob = new Blob([input.bytes], { type: input.mime });
-	const url = URL.createObjectURL(blob);
-
 	return {
 		cid: response.cid,
 		mime: response.mime,
-		byteLength:
-			typeof response.size === "string"
-				? Number.parseInt(response.size, 10)
-				: response.size,
+		byteLength: response.size,
 		createdAtMs: Date.now(),
-		url,
+		url: response.url,
 		fileName: input.fileName,
 	};
 }
