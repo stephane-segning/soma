@@ -1,0 +1,28 @@
+@use "tailwindcss/index.css";
+@use 'cmdk';
+
+@plugin "daisyui" {
+  themes: lemonade --default, dark;
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+}
+
+@utility h-content {
+  @apply min-h-[calc(100vh-3em)]
+}
+
+.tab {
+  &:not(.tab-active) {
+    button {
+      @apply btn-ghost;
+    }
+  }
+
+  &.tab-active {
+    button {
+      @apply btn-error;
+    }
+  }
+}

@@ -504,7 +504,7 @@ Example (amd64):
 ```bash
 cd backend
 rustup target add x86_64-unknown-linux-musl
-cargo build --profile prod --locked --target x86_64-unknown-linux-musl \
+cargo build --locked --target x86_64-unknown-linux-musl \
   -p soma-botd -p soma-relayd -p soma-rendezvousd -p soma-bffd -p soma-serverd
 mkdir -p ../dist/backend/linux-amd64
 cp target/x86_64-unknown-linux-musl/prod/soma-* ../dist/backend/linux-amd64/

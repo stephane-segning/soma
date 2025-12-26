@@ -10,7 +10,7 @@ inputs:
     description: Rust target triple
     required: true
   args:
-    description: Arguments passed to cargo/cross (e.g. --locked --profile prod -p soma-daemon)
+    description: Arguments passed to cargo/cross (e.g. --locked -p soma-daemon)
     required: true
   toolchain:
     description: Rust toolchain channel (stable/beta/nightly)

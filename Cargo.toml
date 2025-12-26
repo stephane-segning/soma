@@ -1,0 +1,130 @@
+[workspace]
+members = [
+    "backend/crates/core",
+    "backend/crates/storage",
+    "backend/crates/net",
+    "backend/crates/api",
+    "backend/crates/agent",
+    "backend/crates/common",
+    "backend/crates/membership",
+    "backend/crates/proto-build",
+    "backend/crates/metrics",
+    "backend/crates/cache",
+    "backend/crates/relay",
+    "backend/crates/rendezvous",
+    "backend/crates/bff",
+    "backend/crates/peer",
+    "backend/crates/vdfs",
+    "backend/crates/socket",
+
+    "backend/bins/daemon",
+    "backend/bins/botd",
+    "backend/bins/agentd",
+    "backend/bins/relayd",
+    "backend/bins/rendezvousd",
+    "backend/bins/bffd",
+    "backend/bins/serverd",
+
+    "desktop/soma-app/src-tauri",
+    "desktop/tapia-app/src-tauri"
+]
+
+resolver = "3"
+
+[workspace.dependencies]
+soma-core = { path = "backend/crates/core" }
+soma-cache = { path = "backend/crates/cache" }
+soma-storage = { path = "backend/crates/storage" }
+soma-net = { path = "backend/crates/net" }
+soma-api = { path = "backend/crates/api" }
+soma-agent = { path = "backend/crates/agent" }
+soma-common = { path = "backend/crates/common" }
+soma-membership = { path = "backend/crates/membership" }
+soma-rendezvous = { path = "backend/crates/rendezvous" }
+soma-relay = { path = "backend/crates/relay" }
+soma-bff = { path = "backend/crates/bff" }
+soma-peer = { path = "backend/crates/peer" }
+soma-vdfs = { path = "backend/crates/vdfs" }
+soma-socket = { path = "backend/crates/socket" }
+soma-metrics = { path = "backend/crates/metrics" }
+soma-proto-build = { path = "backend/crates/proto-build" }
+
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1"
+derive_builder = "0.20"
+
+prost = "0.14"
+prost-types = "0.14"
+tokio-stream = "0.1"
+async-trait = "0.1"
+tonic = { version = "0.14", features = ["transport"] }
+tonic-prost = "0.14"
+tonic-build = { version = "0.14" }
+tonic-prost-build = { version = "0.14" }
+prost-build = { version = "0.14" }
+walkdir = { version = "2.5" }
+
+rand = "0.9"
+clap = { version = "4", features = ["derive", "env"] }
+
+anyhow = "1"
+thiserror = "2"
+sha2 = "0.10"
+
+axum = { version = "0.8" }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal"] }
+
+tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }
+tracing = { version = "0", features = ["attributes", "async-await", "std"] }
+
+mimalloc = "0"
+futures = "0.3"
+prometheus-client = "0.22"
+prometheus-client-derive-encode = "0.4"
+tempfile = "3"
+base64 = "0.22"
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "macros", "any", "postgres", "sqlite", "migrate", "time", "chrono", "json"] }
+sqlx-utils = "1.1.3"
+ciborium = "0.2"
+llama-cpp-2 = "0.1.130"
+reqwest = { version = "0.12", default-features = false }
+
+tauri = { version = "2", features = ["tray-icon", "tracing"] }
+tauri-plugin-opener = "2"
+tauri-build = { version = "2", features = [] }
+tauri-plugin-single-instance = { version = "2.0.0", features = ["deep-link"] }
+fix-path-env = { git = "https://github.com/tauri-apps/fix-path-env-rs" }
+
+mime = "0.3.17"
+log = "0.4.29"
+tauri-plugin-deep-link = "2"
+tauri-plugin-log = "2"
+
+[workspace.dependencies.libp2p]
+version = "0.56"
+features = [
+    "tcp", "quic", "websocket", "relay", "rendezvous",
+    "autonat", "noise", "tls", "cbor", "mdns", "kad",
+    "tokio", "dns", "gossipsub", "macros", "upnp",
+    "yamux", "ping", "ecdsa", "identify", "request-response"
+]
+
+[profile.release]
+lto = true
+opt-level = "z"
+codegen-units = 1
+incremental = false
+strip = true
+panic = "abort"
+
+[profile.dev]
+incremental = true # Compile your binary in smaller steps.
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+publish = false
+authors = [
+    "Stephane Segning <selastlambou@gmail.com>"
+]

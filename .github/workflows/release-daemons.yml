@@ -117,7 +117,7 @@ jobs:
         with:
           working_directory: backend
           target: ${{ matrix.target }}
-          args: --locked --profile prod -p soma-daemon -p soma-agentd
+          args: --locked -p soma-daemon -p soma-agentd
 
       - name: Package artifacts
         id: pkg

@@ -63,7 +63,7 @@ jobs:
           export PROTOC=/usr/bin/protoc
           export PROTOC_INCLUDE=/usr/include
           export ${{ matrix.linker_env }}=musl-gcc
-          cargo build --profile prod --locked --target "${{ matrix.target }}" \
+          cargo build --locked --target "${{ matrix.target }}" \
             -p soma-botd \
             -p soma-relayd \
             -p soma-rendezvousd \
