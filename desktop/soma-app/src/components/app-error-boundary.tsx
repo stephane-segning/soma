@@ -10,7 +10,7 @@ function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
 				</p>
 			</div>
 			<pre className="max-h-64 max-w-3xl overflow-auto rounded-lg border border-base-300 bg-base-200/70 px-4 py-3 text-left text-xs">
-				{error?.stack || error?.message || String(error)}
+				{JSON.stringify(error, null, 4)}
 			</pre>
 			<div className="flex items-center gap-2">
 				<button
