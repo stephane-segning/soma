@@ -5,12 +5,13 @@ use std::{
 };
 
 use anyhow::{Context, Result};
+use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Wry};
 
 use crate::paths::{AppPaths, ensure_app_paths};
 
-#[derive(Clone, Debug, Serialize, Deserialize, Default)]
+#[derive(Builder, Clone, Debug, Serialize, Deserialize, Default)]
 pub struct WindowBounds {
     pub x: i32,
     pub y: i32,
@@ -18,7 +19,7 @@ pub struct WindowBounds {
     pub height: u32,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, Default)]
+#[derive(Builder, Clone, Debug, Serialize, Deserialize, Default)]
 pub struct AppSnapshot {
     pub last_route: Option<String>,
     pub window: Option<WindowBounds>,
@@ -123,7 +124,7 @@ impl AppStateStore for FileStateStore {
     }
 }
 
-#[derive(Clone)]
+#[derive(Builder, Clone)]
 pub struct ManagedState {
     pub store: std::sync::Arc<dyn AppStateStore>,
     pub daemon: std::sync::Arc<crate::daemon::DaemonApi>,

@@ -1,9 +1,10 @@
 use std::{fs, path::PathBuf, sync::OnceLock};
 
 use anyhow::{Context, Result};
+use derive_builder::Builder;
 use tauri::{AppHandle, Manager, Wry};
 
-#[derive(Clone, Debug)]
+#[derive(Builder, Clone, Debug)]
 pub struct AppPaths {
     data_dir: PathBuf,
     state_file: PathBuf,

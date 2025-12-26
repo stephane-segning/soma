@@ -1,3 +1,4 @@
+import type { ErrorInfo } from "react";
 import { ErrorBoundary, type FallbackProps } from "react-error-boundary";
 
 function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
@@ -9,6 +10,15 @@ function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
 					The renderer hit an unexpected error. Try reloading.
 				</p>
 			</div>
+			<pre className="max-h-64 max-w-3xl overflow-auto rounded-lg border border-base-300 bg-base-200/70 px-4 py-3 text-left text-xs">
+				{error?.stack}
+			</pre>
+			<pre className="max-h-64 max-w-3xl overflow-auto rounded-lg border border-base-300 bg-base-200/70 px-4 py-3 text-left text-xs">
+				{error?.message || String(error)}
+			</pre>
+			<pre className="max-h-64 max-w-3xl overflow-auto rounded-lg border border-base-300 bg-base-200/70 px-4 py-3 text-left text-xs">
+				{String(error)}
+			</pre>
 			<pre className="max-h-64 max-w-3xl overflow-auto rounded-lg border border-base-300 bg-base-200/70 px-4 py-3 text-left text-xs">
 				{JSON.stringify(error, null, 4)}
 			</pre>
@@ -28,9 +38,17 @@ function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
 	);
 }
 
+const logError = (error: Error, info: ErrorInfo) => {
+	console.error(error, info);
+};
+
 function AppErrorBoundary({ children }: { children: React.ReactNode }) {
 	return (
-		<ErrorBoundary FallbackComponent={ErrorFallback} onReset={() => {}}>
+		<ErrorBoundary
+			FallbackComponent={ErrorFallback}
+			onError={logError}
+			onReset={() => {}}
+		>
 			{children}
 		</ErrorBoundary>
 	);
