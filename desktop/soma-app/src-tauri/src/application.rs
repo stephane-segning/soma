@@ -121,7 +121,12 @@ impl SomaApp {
                 crate::commands::settings_get,
                 crate::commands::settings_set,
                 crate::commands::agent_chat_stream,
-                crate::commands::search
+                crate::commands::search,
+                crate::commands::spaces_list,
+                crate::commands::spaces_create,
+                crate::commands::spaces_get,
+                crate::commands::spaces_update,
+                crate::commands::spaces_delete
             ])
             .run(context)
     }

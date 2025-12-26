@@ -19,6 +19,7 @@ use tracing::info;
 use crate::config::{Args, Command, DaemonConfig};
 use crate::dispatch::build_dispatcher;
 use crate::grpc::{DaemonService, DaemonState};
+use crate::services::space::{DefaultSpaceManager, SpaceManager};
 use soma_peer::bootstrap::{PeerBootstrapper, PeerLauncher};
 use soma_vdfs::fs::FsBlobStore;
 use std::path::{Path, PathBuf};
@@ -82,6 +83,11 @@ pub async fn run(config: DaemonConfig) -> SomaResult<()> {
     info!(%peer_id, ?socket_path, ?blob_dir, "soma-daemon starting");
 
     let (event_tx, _) = broadcast::channel(64);
+    let space_manager: Arc<dyn SpaceManager> = Arc::new(DefaultSpaceManager::new(
+        repos.clone(),
+        net_identity.keypair().clone(),
+        peer_id,
+    ));
     let state = Arc::new(DaemonState {
         peer_id,
         peer_commands: peer.commands.clone(),
@@ -90,7 +96,10 @@ pub async fn run(config: DaemonConfig) -> SomaResult<()> {
         repos,
         signer: net_identity.keypair().clone(),
         blob_store,
+        space_manager,
     });
+
+    ensure_default_space(&state.space_manager).await?;
 
     let daemon_service = DaemonService {
         state: state.clone(),
@@ -202,4 +211,12 @@ fn spawn_mailbox_sweeper(state: Arc<DaemonState>) {
                 .await;
         }
     });
+}
+
+async fn ensure_default_space(manager: &Arc<dyn SpaceManager>) -> SomaResult<()> {
+    const DEFAULT_SPACE_ID: &str = "private";
+    const DEFAULT_SPACE_NAME: &str = "Private space";
+    manager
+        .ensure_owned_space(DEFAULT_SPACE_ID, Some(DEFAULT_SPACE_NAME.to_string()))
+        .await
 }

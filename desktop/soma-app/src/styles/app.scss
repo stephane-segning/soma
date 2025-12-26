@@ -44,3 +44,8 @@ html, body, #root {
 *[data-tauri-drag-region] {
   app-region: drag;
 }
+
+[data-no-drag],
+[data-no-drag] * {
+  app-region: no-drag;
+}

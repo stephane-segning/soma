@@ -6,6 +6,7 @@ mod dispatch;
 mod grpc;
 mod handlers;
 mod runtime;
+mod services;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;

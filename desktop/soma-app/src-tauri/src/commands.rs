@@ -4,7 +4,10 @@ use std::sync::{Arc, Mutex, OnceLock};
 use anyhow;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
-use soma_proto_build::daemon::{UploadBlobRequest, UpsertDocumentRequest};
+use soma_proto_build::daemon::{
+    CreateSpaceRequest, DeleteSpaceRequest, GetSpaceRequest, ListSpacesRequest,
+    UpdateSpaceRequest, UploadBlobRequest, UpsertDocumentRequest,
+};
 use tauri::{AppHandle, State};
 
 use crate::{error::AppError, state::ManagedState};
@@ -40,6 +43,24 @@ impl CommandState {
     pub fn new(handler: Arc<dyn CommandHandler>) -> Self {
         Self { handler }
     }
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SpaceDto {
+    pub space_id: String,
+    pub display_name: String,
+    pub owner_peer_id: String,
+    pub created_at: i64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SpacesListResponse {
+    pub spaces: Vec<SpaceDto>,
+    pub limit: u32,
+    pub offset: u32,
+    pub next_offset: Option<u32>,
 }
 
 #[tauri::command]
@@ -119,6 +140,128 @@ pub async fn documents_queue_daemon_sync(
                 updated_at_ms,
             });
         })
+}
+
+#[tauri::command]
+pub async fn spaces_list(
+    state: State<'_, ManagedState>,
+    limit: Option<u32>,
+    offset: Option<u32>,
+    q: Option<String>,
+) -> CmdResult<SpacesListResponse> {
+    let payload = ListSpacesRequest {
+        limit: limit.unwrap_or(50),
+        offset: offset.unwrap_or(0),
+        q,
+    };
+
+    state
+        .daemon
+        .list_spaces(payload)
+        .await
+        .map(|res| SpacesListResponse {
+            spaces: res
+                .spaces
+                .into_iter()
+                .map(|s| SpaceDto {
+                    space_id: s.space_id,
+                    display_name: s.display_name,
+                    owner_peer_id: s.owner_peer_id,
+                    created_at: s.created_at,
+                })
+                .collect(),
+            limit: res.limit,
+            offset: res.offset,
+            next_offset: res.next_offset,
+        })
+        .map_err(AppError::into_cmd_error)
+}
+
+#[tauri::command]
+pub async fn spaces_create(
+    state: State<'_, ManagedState>,
+    space_id: Option<String>,
+    display_name: Option<String>,
+) -> CmdResult<SpaceDto> {
+    let payload = CreateSpaceRequest {
+        space_id: space_id.unwrap_or_default(),
+        display_name: display_name.clone().unwrap_or_default(),
+    };
+
+    state
+        .daemon
+        .create_space(payload)
+        .await
+        .map(|res| SpaceDto {
+            space_id: res.space_id,
+            display_name: display_name.unwrap_or_default(),
+            owner_peer_id: res.owner_peer_id,
+            created_at: chrono::Utc::now().timestamp(),
+        })
+        .map_err(AppError::into_cmd_error)
+}
+
+#[tauri::command]
+pub async fn spaces_get(
+    state: State<'_, ManagedState>,
+    space_id: String,
+) -> CmdResult<SpaceDto> {
+    let payload = GetSpaceRequest { space_id };
+    state
+        .daemon
+        .get_space(payload)
+        .await
+        .map(|res| {
+            let space = res.space.unwrap_or_default();
+            SpaceDto {
+                space_id: space.space_id,
+                display_name: space.display_name,
+                owner_peer_id: space.owner_peer_id,
+                created_at: space.created_at,
+            }
+        })
+        .map_err(AppError::into_cmd_error)
+}
+
+#[tauri::command]
+pub async fn spaces_update(
+    state: State<'_, ManagedState>,
+    space_id: String,
+    display_name: Option<String>,
+) -> CmdResult<SpaceDto> {
+    let payload = UpdateSpaceRequest {
+        space_id,
+        display_name: display_name.unwrap_or_default(),
+    };
+
+    state
+        .daemon
+        .update_space(payload)
+        .await
+        .map(|res| {
+            let space = res.space.unwrap_or_default();
+            SpaceDto {
+                space_id: space.space_id,
+                display_name: space.display_name,
+                owner_peer_id: space.owner_peer_id,
+                created_at: space.created_at,
+            }
+        })
+        .map_err(AppError::into_cmd_error)
+}
+
+#[tauri::command]
+pub async fn spaces_delete(
+    state: State<'_, ManagedState>,
+    space_id: String,
+) -> CmdResult<bool> {
+    let payload = DeleteSpaceRequest { space_id };
+    state
+        .daemon
+        .delete_space(payload)
+        .await
+        .map(|res| res.deleted)
+        .map_err(AppError::into_cmd_error)
 }
 
 #[tauri::command]

@@ -66,6 +66,7 @@ pub trait MembershipRepository: Send + Sync {
         limit: u32,
         offset: u32,
     ) -> SomaResult<Vec<Space>>;
+    async fn delete_space(&self, space_id: &str) -> SomaResult<u64>;
     async fn upsert_membership(&self, membership: &SpaceMembership) -> SomaResult<()>;
     async fn delete_membership(&self, space_id: &str, subject_peer_id: &str) -> SomaResult<u64>;
     async fn get_membership(
@@ -216,6 +217,34 @@ impl MembershipRepository for SqlMembershipRepository {
             .map_err(Error::service)?;
 
         Ok(rows.into_iter().map(map_space_row).collect())
+    }
+
+    async fn delete_space(&self, space_id: &str) -> SomaResult<u64> {
+        let mut tx = self.pool.begin().await.map_err(Error::service)?;
+
+        for table in [
+            "space_memberships",
+            "join_decisions",
+            "issuer_capabilities",
+            "mailbox",
+            "documents",
+            "join_requests",
+        ] {
+            sqlx::query(&format!("DELETE FROM {table} WHERE space_id = $1"))
+                .bind(space_id)
+                .execute(&mut *tx)
+                .await
+                .map_err(Error::service)?;
+        }
+
+        let res = sqlx::query("DELETE FROM spaces WHERE space_id = $1")
+            .bind(space_id)
+            .execute(&mut *tx)
+            .await
+            .map_err(Error::service)?;
+
+        tx.commit().await.map_err(Error::service)?;
+        Ok(res.rows_affected())
     }
 
     async fn upsert_membership(&self, membership: &SpaceMembership) -> SomaResult<()> {

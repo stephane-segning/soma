@@ -4,23 +4,27 @@ import { TabbedApp } from "@soma/routes/tabbed-app.tsx";
 
 function App() {
 	return (
-		<main className="flex flex-col bg-base-200 text-base-content">
-			<div className="grid-max-content relative grid h-[2.5] select-none">
-				<div className="fixed inset-0" data-tauri-drag-region />
-				<div className="flex h-10 items-center gap-4 px-4" id="app-title">
-					<WindowControls />
-					<div className="font-semibold text-base-content/70 text-sm uppercase">
+		<main className="flex min-h-screen flex-col bg-base-100 text-base-content">
+			<header
+				className="grid-max-content relative grid h-10 select-none border-b border-base-300 bg-base-100/90 backdrop-blur"
+				data-tauri-drag-region
+			>
+				<div className="flex h-full items-center gap-4 px-4" id="app-title">
+					<div data-no-drag>
+						<WindowControls />
+					</div>
+					<div className="font-semibold text-base-content/70 text-sm uppercase tracking-[0.08em]">
 						Soma
 					</div>
 
-					<TabsBar />
+					<div className="flex-1" data-no-drag>
+						<TabsBar />
+					</div>
 				</div>
-			</div>
+			</header>
 
-			<div className="no-scrollbar max-h-[calc(100vh-2.5rem)] overflow-auto px-2 pb-2">
-				<div className="h-full">
-					<TabbedApp />
-				</div>
+			<div className="no-scrollbar flex-1 overflow-hidden">
+				<TabbedApp />
 			</div>
 		</main>
 	);

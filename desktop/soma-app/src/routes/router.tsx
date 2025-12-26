@@ -15,7 +15,7 @@ const routes: RouteObject[] = [
 			{
 				path: "spaces",
 				handle: { title: "Spaces" },
-				lazy: () => import("./layouts/spaces-layout"),
+				lazy: () => import("./layouts/modal-layout"),
 				children: [
 					{
 						index: true,
@@ -69,7 +69,7 @@ const routes: RouteObject[] = [
 			{
 				path: "settings",
 				handle: { title: "Settings" },
-				lazy: () => import("./layouts/settings-layout"),
+				lazy: () => import("./layouts/modal-layout"),
 				children: [
 					{
 						index: true,

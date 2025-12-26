@@ -116,11 +116,11 @@ function TabbedApp(): React.JSX.Element | null {
 
 	if (!initialized || !activeTab || !router) return null;
 	return (
-		<div className="grid h-screen w-screen grid-cols-[minmax(0,1fr)_360px] bg-base-100 text-base-content">
-			<div className="min-h-0 min-w-0">
+		<div className="grid h-full w-full grid-cols-[minmax(0,1fr)_360px]">
+			<div className="min-h-0 min-w-0 overflow-auto" data-no-drag>
 				<RouterProvider key={activeTab.id} router={router} />
 			</div>
-			<aside className="sticky top-0">
+			<aside className="sticky top-0" data-no-drag>
 				<ChatSidebar />
 			</aside>
 		</div>

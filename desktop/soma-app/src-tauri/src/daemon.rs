@@ -3,8 +3,10 @@ use std::{fs, path::PathBuf, sync::Arc};
 use anyhow::Context;
 use derive_builder::Builder;
 use soma_proto_build::daemon::{
-    UploadBlobRequest, UploadBlobResponse, UpsertDocumentRequest, UpsertDocumentResponse,
-    daemon_client::DaemonClient as GrpcDaemonClient,
+    CreateSpaceRequest, CreateSpaceResponse, DeleteSpaceRequest, DeleteSpaceResponse,
+    GetSpaceRequest, GetSpaceResponse, ListSpacesRequest, ListSpacesResponse,
+    UpdateSpaceRequest, UpdateSpaceResponse, UploadBlobRequest, UploadBlobResponse,
+    UpsertDocumentRequest, UpsertDocumentResponse, daemon_client::DaemonClient as GrpcDaemonClient,
 };
 use tauri::{AppHandle, Manager, Wry};
 use tokio::sync::Mutex;
@@ -98,6 +100,48 @@ impl DaemonApi {
     ) -> Result<UploadBlobResponse, AppError> {
         let mut client = self.client().await?;
         let res = client.upload_blob(req).await?;
+        Ok(res.into_inner())
+    }
+
+    pub async fn list_spaces(
+        &self,
+        req: ListSpacesRequest,
+    ) -> Result<ListSpacesResponse, AppError> {
+        let mut client = self.client().await?;
+        let res = client.list_spaces(req).await?;
+        Ok(res.into_inner())
+    }
+
+    pub async fn create_space(
+        &self,
+        req: CreateSpaceRequest,
+    ) -> Result<CreateSpaceResponse, AppError> {
+        let mut client = self.client().await?;
+        let res = client.create_space(req).await?;
+        Ok(res.into_inner())
+    }
+
+    pub async fn get_space(&self, req: GetSpaceRequest) -> Result<GetSpaceResponse, AppError> {
+        let mut client = self.client().await?;
+        let res = client.get_space(req).await?;
+        Ok(res.into_inner())
+    }
+
+    pub async fn update_space(
+        &self,
+        req: UpdateSpaceRequest,
+    ) -> Result<UpdateSpaceResponse, AppError> {
+        let mut client = self.client().await?;
+        let res = client.update_space(req).await?;
+        Ok(res.into_inner())
+    }
+
+    pub async fn delete_space(
+        &self,
+        req: DeleteSpaceRequest,
+    ) -> Result<DeleteSpaceResponse, AppError> {
+        let mut client = self.client().await?;
+        let res = client.delete_space(req).await?;
         Ok(res.into_inner())
     }
 }

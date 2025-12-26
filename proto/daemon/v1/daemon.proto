@@ -83,6 +83,61 @@ message DiscoverSpacesResponse {
   repeated DiscoveredSpace spaces = 1;
 }
 
+message Space {
+  string space_id = 1;
+  string display_name = 2;
+  string owner_peer_id = 3;
+  int64 created_at = 4;
+}
+
+message ListSpacesRequest {
+  uint32 limit = 1;
+  uint32 offset = 2;
+  optional string q = 3;
+}
+
+message ListSpacesResponse {
+  repeated Space spaces = 1;
+  uint32 limit = 2;
+  uint32 offset = 3;
+  optional uint32 next_offset = 4;
+}
+
+message CreateSpaceRequest {
+  string space_id = 1;
+  string display_name = 2;
+}
+
+message CreateSpaceResponse {
+  string space_id = 1;
+  string owner_peer_id = 2;
+}
+
+message GetSpaceRequest {
+  string space_id = 1;
+}
+
+message GetSpaceResponse {
+  Space space = 1;
+}
+
+message UpdateSpaceRequest {
+  string space_id = 1;
+  string display_name = 2;
+}
+
+message UpdateSpaceResponse {
+  Space space = 1;
+}
+
+message DeleteSpaceRequest {
+  string space_id = 1;
+}
+
+message DeleteSpaceResponse {
+  bool deleted = 1;
+}
+
 message JoinRequest {
   string request_id = 1;
   string space_id = 2;
@@ -182,6 +237,11 @@ service Daemon {
   rpc ListMyMemberships(google.protobuf.Empty) returns (ListMyMembershipsResponse);
   rpc IssueIssuerCapability(IssueIssuerCapabilityRequest) returns (IssueIssuerCapabilityResponse);
   rpc DiscoverSpaces(DiscoverSpacesRequest) returns (DiscoverSpacesResponse);
+  rpc ListSpaces(ListSpacesRequest) returns (ListSpacesResponse);
+  rpc CreateSpace(CreateSpaceRequest) returns (CreateSpaceResponse);
+  rpc GetSpace(GetSpaceRequest) returns (GetSpaceResponse);
+  rpc UpdateSpace(UpdateSpaceRequest) returns (UpdateSpaceResponse);
+  rpc DeleteSpace(DeleteSpaceRequest) returns (DeleteSpaceResponse);
   rpc ListJoinRequests(ListJoinRequestsRequest) returns (ListJoinRequestsResponse);
   rpc DecideJoin(DecideJoinRequest) returns (DecideJoinResponse);
   rpc UploadBlob(UploadBlobRequest) returns (UploadBlobResponse);
