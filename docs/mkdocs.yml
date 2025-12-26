@@ -53,6 +53,7 @@ nav:
       - justfile: development/justfile.md
       - Peer Events: development/peer-events.md
       - Agentd IPC: development/agentd-ipc.md
+      - Local LLMs (agentd models): development/agentd-models.md
       - Daemon Testing (grpcurl): development/daemon-grpcurl.md
       - Backend Refactor Notes: development/backend-refactor-notes.md
   - Security:

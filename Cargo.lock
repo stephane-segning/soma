@@ -6379,8 +6379,9 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "chrono",
+ "derive_builder",
  "fix-path-env",
- "hyper-util",
+ "hyper",
  "mime",
  "serde",
  "serde_json",
@@ -6391,6 +6392,7 @@ dependencies = [
  "tauri-plugin-log",
  "tauri-plugin-opener",
  "tauri-plugin-single-instance",
+ "thiserror 2.0.17",
  "tokio",
  "tonic",
  "tower 0.4.13",

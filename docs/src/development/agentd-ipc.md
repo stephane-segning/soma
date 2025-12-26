@@ -2,6 +2,10 @@
 
 `soma-agentd` is a long-running, CPU-heavy worker (OCR, hashing, indexing, Yjs reconciliation, local LLM inference). It should not be exposed directly to the Electron renderer.
 
+!!! note
+    `desktop/soma-app` (Tauri) is currently wiring the renderer → Tauri main process → `soma-agentd` directly for chat.
+    The long-term recommended topology is still “UI → daemon → agentd” so that the daemon can enforce authn/authz and policy centrally.
+
 ## Recommended Topology
 
 - Electron (renderer) → Electron (main) → `soma-daemon` → `soma-agentd`
@@ -76,4 +80,3 @@ To avoid UI-triggered resource exhaustion:
 - Limit input sizes (bytes, document lengths).
 - Add timeouts per job type and per request.
 - Add backpressure for streaming endpoints.
-

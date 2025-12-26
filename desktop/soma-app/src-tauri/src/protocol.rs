@@ -7,7 +7,7 @@ use tauri::{
 };
 use tracing::{debug, warn};
 
-use crate::state::ManagedState;
+use crate::{daemon::BlobSource, state::ManagedState};
 
 pub trait ProtocolRegistrar: Send + Sync {
     fn attach(self: Arc<Self>, builder: Builder<Wry>) -> Builder<Wry>;
@@ -26,16 +26,16 @@ impl BlobProtocol {
         app: &AppHandle<Wry>,
         request: &http::Request<Vec<u8>>,
     ) -> http::Response<Vec<u8>> {
-        let response = match self.try_handle_request(app, request) {
-            Ok(response) => response,
-            Err(error) => {
+        let response = self
+            .try_handle_request(app, request)
+            .unwrap_or_else(|error| {
                 warn!("blob protocol handler error: {error:?}");
                 http::Response::builder()
                     .status(http::StatusCode::NOT_FOUND)
                     .body(Vec::new())
                     .unwrap_or_else(|_| http::Response::new(Vec::new()))
-            }
-        };
+            });
+
         response
     }
 

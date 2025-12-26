@@ -7,7 +7,9 @@ use serde::{Deserialize, Serialize};
 use soma_proto_build::daemon::{UploadBlobRequest, UpsertDocumentRequest};
 use tauri::{AppHandle, State};
 
-use crate::state::ManagedState;
+use crate::{error::AppError, state::ManagedState};
+
+type CmdResult<T> = Result<T, String>;
 
 pub trait CommandHandler: Send + Sync + 'static {
     fn remember_route(&self, app: &AppHandle, route: String) -> anyhow::Result<()>;
@@ -60,7 +62,7 @@ pub async fn documents_upsert_draft(
     content_json: String,
     published: bool,
     updated_at_ms: i64,
-) -> Result<(), String> {
+) -> CmdResult<()> {
     let payload = UpsertDocumentRequest {
         space_id: space_id.clone(),
         document_id: document_id.clone(),
@@ -73,7 +75,7 @@ pub async fn documents_upsert_draft(
         .upsert_document(payload)
         .await
         .map(|_| ())
-        .map_err(|e: anyhow::Error| e.to_string())
+        .map_err(AppError::into_cmd_error)
         .map(|_| {
             persist_draft_record(DraftRecord {
                 space_id,
@@ -93,7 +95,7 @@ pub async fn documents_queue_daemon_sync(
     content_json: String,
     updated_at_ms: i64,
     published: Option<bool>,
-) -> Result<(), String> {
+) -> CmdResult<()> {
     let payload = UpsertDocumentRequest {
         space_id: space_id.clone(),
         document_id: document_id.clone(),
@@ -107,7 +109,7 @@ pub async fn documents_queue_daemon_sync(
         .upsert_document(payload)
         .await
         .map(|_| ())
-        .map_err(|e: anyhow::Error| e.to_string())
+        .map_err(AppError::into_cmd_error)
         .map(|_| {
             persist_draft_record(DraftRecord {
                 space_id,
@@ -126,7 +128,7 @@ pub async fn documents_sync_published(
     document_id: String,
     content_json: String,
     updated_at_ms: i64,
-) -> Result<i32, String> {
+) -> CmdResult<i32> {
     let payload = UpsertDocumentRequest {
         space_id: space_id.clone(),
         document_id: document_id.clone(),
@@ -139,7 +141,7 @@ pub async fn documents_sync_published(
         .upsert_document(payload)
         .await
         .map(|_| 1)
-        .map_err(|e: anyhow::Error| e.to_string())
+        .map_err(AppError::into_cmd_error)
         .map(|uploaded| {
             persist_draft_record(DraftRecord {
                 space_id,
@@ -160,7 +162,7 @@ pub async fn blobs_stage(
     bytes: Vec<u8>,
     mime: String,
     file_name: Option<String>,
-) -> Result<BlobStageResult, String> {
+) -> CmdResult<BlobStageResult> {
     let space = space_id.clone();
     let payload = UploadBlobRequest {
         space_id: space_id.clone(),
@@ -173,7 +175,7 @@ pub async fn blobs_stage(
         .daemon
         .upload_blob(payload)
         .await
-        .map_err(|e: anyhow::Error| e.to_string())?;
+        .map_err(AppError::into_cmd_error)?;
 
     Ok(BlobStageResult {
         cid: res.cid.clone(),
@@ -244,13 +246,78 @@ pub struct SearchResult {
     pub subtitle: Option<String>,
 }
 
+struct SomaChat;
+
+impl SomaChat {
+    const DEFAULT_SYSTEM_PROMPT: &'static str =
+        "You’re the Soma assistant. Keep replies concise and helpful.";
+
+    fn build_request(
+        messages: Vec<ChatMessage>,
+        model: Option<String>,
+        temperature: Option<f32>,
+        max_tokens: Option<u64>,
+    ) -> Result<soma_proto_build::agent::ChatRequest, AppError> {
+        let system = Self::extract_system(&messages);
+        let mut out_messages = Vec::new();
+        out_messages.push(soma_proto_build::agent::ChatMessage {
+            role: "system".to_string(),
+            content: system,
+        });
+
+        for msg in messages {
+            let role = msg.role.trim().to_lowercase();
+            if role == "system" {
+                continue;
+            }
+            let content = msg.content.trim().to_string();
+            if content.is_empty() {
+                continue;
+            }
+            let normalized_role = match role.as_str() {
+                "assistant" => "assistant",
+                "user" => "user",
+                _ => "user",
+            };
+            out_messages.push(soma_proto_build::agent::ChatMessage {
+                role: normalized_role.to_string(),
+                content,
+            });
+        }
+
+        if !out_messages.iter().any(|m| m.role == "user") {
+            return Err(AppError::Agent("no user message provided".to_string()));
+        }
+
+        Ok(soma_proto_build::agent::ChatRequest {
+            model: model.unwrap_or_default(),
+            messages: out_messages,
+            temperature: temperature.unwrap_or(0.7),
+            max_tokens: max_tokens.unwrap_or(256),
+        })
+    }
+
+    fn extract_system(messages: &[ChatMessage]) -> String {
+        messages
+            .iter()
+            .find(|m| m.role.trim().eq_ignore_ascii_case("system"))
+            .map(|m| m.content.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .unwrap_or_else(|| Self::DEFAULT_SYSTEM_PROMPT.to_string())
+    }
+
+    fn normalize_response(content: String) -> String {
+        content.trim().to_string()
+    }
+}
+
 #[tauri::command]
 pub async fn agent_chat_stream(
     state: State<'_, ManagedState>,
     messages: Vec<ChatMessage>,
     model: Option<String>,
     temperature: Option<f32>,
-    max_tokens: Option<u32>,
+    max_tokens: Option<u64>,
 ) -> Result<ChatStreamEvent, String> {
     if messages.is_empty() {
         return Ok(ChatStreamEvent {
@@ -260,47 +327,12 @@ pub async fn agent_chat_stream(
         });
     }
 
-    let req = soma_proto_build::agent::ChatRequest {
-        messages: messages
-            .into_iter()
-            .map(|m| soma_proto_build::agent::ChatMessage {
-                role: m.role,
-                content: m.content,
-            })
-            .collect(),
-        temperature: temperature.unwrap_or(0.7),
-        max_tokens: max_tokens.unwrap_or_default(),
-        model: model.unwrap_or_default(),
-    };
+    let req = SomaChat::build_request(messages, model, temperature, max_tokens)
+        .map_err(|e| e.to_string())?;
 
-    match state.agent.chat_stream(req).await {
-        Ok(mut stream) => {
-            let mut content = String::new();
-            while let Some(item) = stream.message().await.transpose() {
-                match item {
-                    Ok(evt) => {
-                        if let Some(event) = evt.event {
-                            match event {
-                                soma_proto_build::agent::chat_stream_event::Event::Token(t) => {
-                                    content.push_str(&t);
-                                }
-                                soma_proto_build::agent::chat_stream_event::Event::Done(done) => {
-                                    content = done.content;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                    Err(status) => {
-                        return Ok(ChatStreamEvent {
-                            token: None,
-                            done: true,
-                            error: Some(status.to_string()),
-                        });
-                    }
-                }
-            }
-
+    match state.agent.chat(req).await {
+        Ok(resp) => {
+            let content = SomaChat::normalize_response(resp.content);
             Ok(ChatStreamEvent {
                 token: Some(content),
                 done: true,

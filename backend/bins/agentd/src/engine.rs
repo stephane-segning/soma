@@ -12,7 +12,7 @@ use llama_cpp_2::{
     llama_backend::LlamaBackend,
     llama_batch::LlamaBatch,
     model::params::LlamaModelParams,
-    model::{AddBos, LlamaChatMessage, LlamaModel, Special},
+    model::{AddBos, LlamaChatMessage, LlamaChatTemplate, LlamaModel, Special},
     sampling::LlamaSampler,
     send_logs_to_tracing,
 };
@@ -54,7 +54,7 @@ pub struct ChatRequest {
     pub model: Option<String>,
     pub messages: Vec<ChatMessage>,
     pub temperature: f32,
-    pub max_tokens: u32,
+    pub max_tokens: u64,
 }
 
 #[derive(Debug, Clone)]
@@ -175,6 +175,59 @@ struct LoadedModel {
     model: LlamaModel,
 }
 
+struct ChatPrompt {
+    text: String,
+    add_bos: AddBos,
+}
+
+impl ChatPrompt {
+    fn new(text: String) -> Self {
+        let add_bos = Self::infer_add_bos(&text);
+        Self { text, add_bos }
+    }
+
+    fn infer_add_bos(text: &str) -> AddBos {
+        let trimmed = text.trim_start();
+        if trimmed.starts_with("<|begin_of_text|>") || trimmed.starts_with("<s>") {
+            return AddBos::Never;
+        }
+        AddBos::Always
+    }
+}
+
+struct StopDetector;
+
+impl StopDetector {
+    fn stop_index(text: &str) -> Option<usize> {
+        // Truncate when the model starts emitting a new chat turn or special delimiters.
+        // This helps keep base models from "continuing the conversation" by inventing new roles.
+        const MARKERS: [&str; 14] = [
+            "<|eot_id|>",
+            "<|end_of_text|>",
+            "<|im_end|>",
+            "<|im_start|>",
+            "<|start_header_id|>",
+            "\nUser:",
+            "\nSystem:",
+            "\nAssistant:",
+            " User:",
+            " System:",
+            " Assistant:",
+            "User:",
+            "System:",
+            "Assistant:",
+        ];
+
+        let mut best: Option<usize> = None;
+        for marker in MARKERS {
+            if let Some(idx) = text.find(marker) {
+                best = Some(best.map_or(idx, |best| best.min(idx)));
+            }
+        }
+        best
+    }
+}
+
 fn run_engine(rx: mpsc::Receiver<EngineRequest>, config: AgentdConfig) -> anyhow::Result<()> {
     send_logs_to_tracing(LogOptions::default());
     let backend = LlamaBackend::init().context("failed to init llama backend")?;
@@ -281,8 +334,7 @@ impl EngineState {
             .get_or_load_model(&model_name, ModelKind::Chat)
             .context("failed to load chat model")?;
 
-        let prompt = build_prompt_for_model(&model.model, &request.messages)
-            .unwrap_or_else(|_| build_prompt(&request.messages));
+        let prompt = self.compose_chat_prompt(&model_name, &model, &request.messages);
         let temperature = if request.temperature <= 0.0 {
             0.7
         } else {
@@ -294,8 +346,7 @@ impl EngineState {
             request.max_tokens
         };
 
-        generate_text(
-            &self.backend,
+        self.generate_text(
             &model.model,
             &prompt,
             ctx_size,
@@ -317,8 +368,7 @@ impl EngineState {
             .get_or_load_model(&model_name, ModelKind::Chat)
             .context("failed to load chat model")?;
 
-        let prompt = build_prompt_for_model(&model.model, &request.messages)
-            .unwrap_or_else(|_| build_prompt(&request.messages));
+        let prompt = self.compose_chat_prompt(&model_name, &model, &request.messages);
         let temperature = if request.temperature <= 0.0 {
             0.7
         } else {
@@ -330,17 +380,17 @@ impl EngineState {
             request.max_tokens
         };
 
-        let out = generate_text(
-            &self.backend,
-            &model.model,
-            &prompt,
-            ctx_size,
-            threads,
-            temperature,
-            max_tokens,
-            Some(events.clone()),
-        )
-        .context("generation failed")?;
+        let out = self
+            .generate_text(
+                &model.model,
+                &prompt,
+                ctx_size,
+                threads,
+                temperature,
+                max_tokens,
+                Some(events.clone()),
+            )
+            .context("generation failed")?;
 
         let _ = events.send(Ok(EngineChatStreamEvent::Done(out)));
         Ok(())
@@ -364,7 +414,7 @@ impl EngineState {
         request
             .input
             .iter()
-            .map(|text| embed_text(backend, &model.model, text, ctx_size, threads))
+            .map(|text| self.embed_text(backend, &model.model, text, ctx_size, threads))
             .collect()
     }
 
@@ -413,7 +463,7 @@ impl EngineState {
             return Ok(self.config.models_dir.join(candidate));
         }
 
-        let sanitized = sanitize_model_name(name);
+        let sanitized = Self::sanitize_model_name(name);
         let direct = self.config.models_dir.join(format!("{sanitized}.gguf"));
         if direct.exists() {
             return Ok(direct);
@@ -430,7 +480,7 @@ impl EngineState {
                     let Some(file_stem) = path.file_stem().and_then(|s| s.to_str()) else {
                         continue;
                     };
-                    let file_sanitized = sanitize_model_name(file_stem);
+                    let file_sanitized = Self::sanitize_model_name(file_stem);
                     if file_sanitized.contains(&sanitized) || sanitized.contains(&file_sanitized) {
                         return Ok(path);
                     }
@@ -443,160 +493,309 @@ impl EngineState {
             self.config.models_dir.display()
         ))
     }
-}
 
-fn sanitize_model_name(name: &str) -> String {
-    name.trim()
-        .replace(['/', '\\', ':', ' '], "-")
-        .replace("--", "-")
-}
+    fn sanitize_model_name(name: &str) -> String {
+        name.trim()
+            .replace(['/', '\\', ':', ' '], "-")
+            .replace("--", "-")
+    }
 
-fn build_prompt(messages: &[ChatMessage]) -> String {
-    let mut out = String::new();
-    for msg in messages {
-        let role = msg.role.trim().to_lowercase();
-        match role.as_str() {
-            "system" => {
-                out.push_str("System: ");
-                out.push_str(msg.content.trim());
-                out.push('\n');
-            }
-            "assistant" => {
-                out.push_str("Assistant: ");
-                out.push_str(msg.content.trim());
-                out.push('\n');
-            }
-            _ => {
-                out.push_str("User: ");
-                out.push_str(msg.content.trim());
-                out.push('\n');
+    fn compose_chat_prompt(
+        &self,
+        model_name: &str,
+        model: &LoadedModel,
+        messages: &[ChatMessage],
+    ) -> ChatPrompt {
+        match self.build_prompt_for_model(model_name, model, messages) {
+            Ok(prompt) => prompt,
+            Err(err) => {
+                warn!(
+                    model = %model_name,
+                    %err,
+                    "chat template unavailable; falling back to plain prompt"
+                );
+                ChatPrompt::new(Self::build_plain_prompt(messages))
             }
         }
     }
-    out.push_str("Assistant: ");
-    out
-}
 
-fn build_prompt_for_model(model: &LlamaModel, messages: &[ChatMessage]) -> anyhow::Result<String> {
-    let tmpl = model.chat_template(None)?;
-    let chat: Vec<LlamaChatMessage> = messages
-        .iter()
-        .map(|m| LlamaChatMessage::new(m.role.clone(), m.content.clone()))
-        .collect::<Result<_, _>>()?;
-    Ok(model.apply_chat_template(&tmpl, &chat, true)?)
-}
-
-fn generate_text(
-    backend: &LlamaBackend,
-    model: &LlamaModel,
-    prompt: &str,
-    ctx_size: u32,
-    threads: Option<u32>,
-    temperature: f32,
-    max_tokens: u32,
-    stream: Option<ChatStreamTx>,
-) -> anyhow::Result<String> {
-    let mut ctx_params = LlamaContextParams::default();
-    ctx_params = ctx_params.with_n_ctx(NonZeroU32::new(ctx_size));
-    if let Some(t) = threads {
-        ctx_params = ctx_params.with_n_threads(i32::try_from(t).unwrap_or(i32::MAX));
+    fn build_plain_prompt(messages: &[ChatMessage]) -> String {
+        let mut out = String::new();
+        for msg in messages {
+            let role = msg.role.trim().to_lowercase();
+            match role.as_str() {
+                "system" => {
+                    out.push_str("System: ");
+                    out.push_str(msg.content.trim());
+                    out.push('\n');
+                }
+                "assistant" => {
+                    out.push_str("Assistant: ");
+                    out.push_str(msg.content.trim());
+                    out.push('\n');
+                }
+                _ => {
+                    out.push_str("User: ");
+                    out.push_str(msg.content.trim());
+                    out.push('\n');
+                }
+            }
+        }
+        out.push_str("Assistant: ");
+        out
     }
 
-    let mut ctx = model
-        .new_context(backend, ctx_params)
-        .context("failed to create llama context")?;
+    fn build_prompt_for_model(
+        &self,
+        model_name: &str,
+        model: &LoadedModel,
+        messages: &[ChatMessage],
+    ) -> anyhow::Result<ChatPrompt> {
+        let chat: Vec<LlamaChatMessage> = messages
+            .iter()
+            .map(|m| LlamaChatMessage::new(m.role.clone(), m.content.clone()))
+            .collect::<Result<_, _>>()?;
 
-    let prompt_tokens = model
-        .str_to_token(prompt, AddBos::Always)
-        .context("tokenization failed")?;
-    if prompt_tokens.is_empty() {
-        return Ok(String::new());
+        if let Ok(tmpl) = model.model.chat_template(None) {
+            let prompt = model.model.apply_chat_template(&tmpl, &chat, true)?;
+            return Ok(ChatPrompt::new(prompt));
+        }
+
+        // The model doesn't embed a chat template (common for base models). Try a sane fallback.
+        let template = Self::infer_fallback_chat_template_name(model_name, &model.path);
+        warn!(
+            model = %model_name,
+            template,
+            path = %model.path.display(),
+            "model missing embedded chat template; using fallback template"
+        );
+        let fallback = LlamaChatTemplate::new(template)?;
+        let prompt = model.model.apply_chat_template(&fallback, &chat, true)?;
+        Ok(ChatPrompt::new(prompt))
     }
 
-    let mut batch = LlamaBatch::new(ctx_size as usize, 1);
-    batch
-        .add_sequence(&prompt_tokens, 0, false)
-        .context("failed to add prompt tokens to batch")?;
-    ctx.decode(&mut batch).context("decode failed")?;
-
-    let mut sampler = LlamaSampler::chain_simple([
-        LlamaSampler::temp(temperature),
-        LlamaSampler::top_k(40),
-        LlamaSampler::top_p(0.95, 1),
-        LlamaSampler::dist(0),
-    ]);
-
-    sampler.accept_many(prompt_tokens.iter());
-
-    let mut out = String::new();
-    let mut pos = i32::try_from(prompt_tokens.len()).unwrap_or_default();
-    let mut sample_logits_idx =
-        i32::try_from(prompt_tokens.len().saturating_sub(1)).unwrap_or_default();
-
-    for _ in 0..max_tokens {
-        let token = sampler.sample(&ctx, sample_logits_idx);
-        sampler.accept(token);
-
-        if token == model.token_eos() {
-            break;
+    fn infer_fallback_chat_template_name(model_name: &str, path: &Path) -> &'static str {
+        let mut hint = model_name.to_lowercase();
+        if let Some(file) = path.file_name().and_then(|s| s.to_str()) {
+            hint.push(' ');
+            hint.push_str(&file.to_lowercase());
         }
 
-        let piece = model
-            .token_to_str(token, Special::Tokenize)
-            .context("failed to decode token")?;
-        if let Some(tx) = stream.as_ref() {
-            let _ = tx.send(Ok(EngineChatStreamEvent::Token(piece.clone())));
+        if hint.contains("llama-3") || hint.contains("llama3") {
+            "llama3"
+        } else if hint.contains("llama-2") || hint.contains("llama2") {
+            "llama2"
+        } else {
+            "chatml"
         }
-        out.push_str(&piece);
+    }
 
-        batch.clear();
+    fn generate_text(
+        &self,
+        model: &LlamaModel,
+        prompt: &ChatPrompt,
+        ctx_size: u32,
+        threads: Option<u32>,
+        temperature: f32,
+        max_tokens: u64,
+        stream: Option<ChatStreamTx>,
+    ) -> anyhow::Result<String> {
+        let mut ctx_params = LlamaContextParams::default();
+        ctx_params = ctx_params.with_n_ctx(NonZeroU32::new(ctx_size));
+        if let Some(t) = threads {
+            ctx_params = ctx_params.with_n_threads(i32::try_from(t).unwrap_or(i32::MAX));
+        }
+
+        let mut ctx = model
+            .new_context(&self.backend, ctx_params)
+            .context("failed to create llama context")?;
+
+        let prompt_tokens = model
+            .str_to_token(&prompt.text, prompt.add_bos)
+            .context("tokenization failed")?;
+        if prompt_tokens.is_empty() {
+            return Ok(String::new());
+        }
+
+        let prompt_len = u32::try_from(prompt_tokens.len()).unwrap_or(ctx_size);
+        if prompt_len >= ctx_size {
+            return Err(anyhow!(
+                "prompt exceeds context window (prompt_tokens={prompt_len}, ctx_size={ctx_size})"
+            ));
+        }
+        let max_new_tokens = u64::from(ctx_size.saturating_sub(prompt_len));
+        let requested_max_tokens = max_tokens;
+        let max_tokens = requested_max_tokens.min(max_new_tokens);
+        if requested_max_tokens > max_tokens {
+            warn!(
+                requested_max_tokens,
+                max_tokens, ctx_size, prompt_len, "clamped max_tokens to fit context window"
+            );
+        }
+
+        let mut batch = LlamaBatch::new(ctx_size as usize, 1);
         batch
-            .add(token, pos, &[0], true)
-            .context("failed to add token to batch")?;
+            .add_sequence(&prompt_tokens, 0, false)
+            .context("failed to add prompt tokens to batch")?;
         ctx.decode(&mut batch).context("decode failed")?;
-        pos += 1;
-        // We decode a single token each step (with logits enabled), so logits will be available at
-        // token index 0 for the next sampling step.
-        sample_logits_idx = 0;
+
+        let mut sampler = LlamaSampler::chain_simple([
+            LlamaSampler::penalties(64, 1.1, 0.0, 0.0),
+            LlamaSampler::temp(temperature),
+            LlamaSampler::top_k(40),
+            LlamaSampler::top_p(0.95, 1),
+            LlamaSampler::dist(0),
+        ]);
+
+        sampler.accept_many(prompt_tokens.iter());
+
+        let mut out = String::new();
+        let mut utf8 = Utf8TokenDecoder::new();
+        let mut pos = i32::try_from(prompt_tokens.len()).unwrap_or_default();
+        let mut sample_logits_idx =
+            i32::try_from(prompt_tokens.len().saturating_sub(1)).unwrap_or_default();
+
+        for _ in 0..max_tokens {
+            let token = sampler.sample(&ctx, sample_logits_idx);
+            sampler.accept(token);
+
+            if token == model.token_eos() {
+                break;
+            }
+
+            let bytes = model
+                .token_to_bytes(token, Special::Tokenize)
+                .context("failed to decode token bytes")?;
+            let piece = utf8.push_bytes(&bytes);
+            if !piece.is_empty() {
+                if let Some(tx) = stream.as_ref() {
+                    let _ = tx.send(Ok(EngineChatStreamEvent::Token(piece.clone())));
+                }
+                out.push_str(&piece);
+            }
+
+            if let Some(stop_at) = StopDetector::stop_index(&out) {
+                out.truncate(stop_at);
+                break;
+            }
+
+            batch.clear();
+            batch
+                .add(token, pos, &[0], true)
+                .context("failed to add token to batch")?;
+            ctx.decode(&mut batch).context("decode failed")?;
+            pos += 1;
+            // We decode a single token each step (with logits enabled), so logits will be available at
+            // token index 0 for the next sampling step.
+            sample_logits_idx = 0;
+        }
+
+        let remaining = utf8.flush_lossy();
+        if !remaining.is_empty() {
+            if let Some(tx) = stream.as_ref() {
+                let _ = tx.send(Ok(EngineChatStreamEvent::Token(remaining.clone())));
+            }
+            out.push_str(&remaining);
+        }
+
+        Ok(out)
     }
 
-    Ok(out)
+    fn embed_text(
+        &self,
+        backend: &LlamaBackend,
+        model: &LlamaModel,
+        text: &str,
+        ctx_size: u32,
+        threads: Option<u32>,
+    ) -> anyhow::Result<Vec<f32>> {
+        let mut ctx_params = LlamaContextParams::default();
+        ctx_params = ctx_params
+            .with_n_ctx(NonZeroU32::new(ctx_size))
+            .with_embeddings(true);
+        if let Some(t) = threads {
+            ctx_params = ctx_params.with_n_threads(i32::try_from(t).unwrap_or(i32::MAX));
+        }
+
+        let mut ctx = model
+            .new_context(backend, ctx_params)
+            .context("failed to create llama context")?;
+
+        let tokens = model
+            .str_to_token(text, AddBos::Always)
+            .context("tokenization failed")?;
+        if tokens.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let mut batch = LlamaBatch::new(ctx_size as usize, 1);
+        batch
+            .add_sequence(&tokens, 0, false)
+            .context("failed to add tokens to batch")?;
+        ctx.encode(&mut batch).context("encode failed")?;
+
+        Ok(ctx
+            .embeddings_seq_ith(0)
+            .context("embeddings failed")?
+            .to_vec())
+    }
 }
 
-fn embed_text(
-    backend: &LlamaBackend,
-    model: &LlamaModel,
-    text: &str,
-    ctx_size: u32,
-    threads: Option<u32>,
-) -> anyhow::Result<Vec<f32>> {
-    let mut ctx_params = LlamaContextParams::default();
-    ctx_params = ctx_params
-        .with_n_ctx(NonZeroU32::new(ctx_size))
-        .with_embeddings(true);
-    if let Some(t) = threads {
-        ctx_params = ctx_params.with_n_threads(i32::try_from(t).unwrap_or(i32::MAX));
+struct Utf8TokenDecoder {
+    pending: Vec<u8>,
+}
+
+impl Utf8TokenDecoder {
+    fn new() -> Self {
+        Self {
+            pending: Vec::new(),
+        }
     }
 
-    let mut ctx = model
-        .new_context(backend, ctx_params)
-        .context("failed to create llama context")?;
+    fn push_bytes(&mut self, bytes: &[u8]) -> String {
+        self.pending.extend_from_slice(bytes);
 
-    let tokens = model
-        .str_to_token(text, AddBos::Always)
-        .context("tokenization failed")?;
-    if tokens.is_empty() {
-        return Ok(Vec::new());
+        let mut out = String::new();
+        loop {
+            match std::str::from_utf8(&self.pending) {
+                Ok(valid) => {
+                    out.push_str(valid);
+                    self.pending.clear();
+                    break;
+                }
+                Err(err) => {
+                    let valid_up_to = err.valid_up_to();
+                    if valid_up_to > 0 {
+                        // SAFETY: `valid_up_to` is guaranteed to be valid UTF-8.
+                        let valid =
+                            unsafe { std::str::from_utf8_unchecked(&self.pending[..valid_up_to]) };
+                        out.push_str(valid);
+                        self.pending.drain(..valid_up_to);
+                        continue;
+                    }
+
+                    if let Some(error_len) = err.error_len() {
+                        // Drop invalid byte(s) and emit a replacement character.
+                        self.pending.drain(..error_len);
+                        out.push('\u{FFFD}');
+                        continue;
+                    }
+
+                    // Incomplete sequence at the end; keep bytes for the next token.
+                    break;
+                }
+            }
+        }
+
+        out
     }
 
-    let mut batch = LlamaBatch::new(ctx_size as usize, 1);
-    batch
-        .add_sequence(&tokens, 0, false)
-        .context("failed to add tokens to batch")?;
-    ctx.encode(&mut batch).context("encode failed")?;
-
-    Ok(ctx
-        .embeddings_seq_ith(0)
-        .context("embeddings failed")?
-        .to_vec())
+    fn flush_lossy(&mut self) -> String {
+        if self.pending.is_empty() {
+            return String::new();
+        }
+        let out = String::from_utf8_lossy(&self.pending).to_string();
+        self.pending.clear();
+        out
+    }
 }

@@ -56,7 +56,7 @@ message ChatRequest {
   string model = 1;
   repeated ChatMessage messages = 2;
   float temperature = 3;
-  uint32 max_tokens = 4;
+  uint64 max_tokens = 4;
 }
 
 message ChatResponse {

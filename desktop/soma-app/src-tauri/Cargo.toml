@@ -30,7 +30,9 @@ tokio = { workspace = true }
 tonic = { workspace = true }
 tower = { version = "0.4", features = ["util"] }
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
-hyper-util = { version = "0.1", features = ["client", "http1", "tokio"] }
+derive_builder = { workspace = true }
+thiserror = { workspace = true }
+hyper = { version = "1", default-features = false, features = ["client", "http1"] }
 
 mime = { workspace = true }
 tracing = { workspace = true }

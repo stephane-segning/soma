@@ -73,6 +73,8 @@ cd backend
 RUST_LOG=info cargo run --release -p soma-agentd
 ```
 
+For local LLM chat with GGUF models (and “base vs instruct” behavior), see `docs/src/development/agentd-models.md`.
+
 ## 6. Simulate a Join Flow
 
 1. In Soma, enter or select the class the bot manages.

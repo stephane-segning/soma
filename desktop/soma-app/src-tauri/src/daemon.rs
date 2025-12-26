@@ -1,26 +1,33 @@
 use std::{fs, path::PathBuf, sync::Arc};
 
-use anyhow::{Context, Result};
-use hyper_util::rt::tokio::TokioIo;
+use anyhow::Context;
+use derive_builder::Builder;
 use soma_proto_build::daemon::{
     UploadBlobRequest, UploadBlobResponse, UpsertDocumentRequest, UpsertDocumentResponse,
     daemon_client::DaemonClient as GrpcDaemonClient,
 };
 use tauri::{AppHandle, Manager, Wry};
-use tokio::net::UnixStream;
 use tokio::sync::Mutex;
-use tonic::transport::{Channel, Endpoint, Uri};
-use tower::util::service_fn;
+use tonic::transport::{Channel, Endpoint};
 use tracing::info;
 
-pub struct DaemonApi {
-    socket_path: PathBuf,
-    blob_dir: PathBuf,
-    client: Mutex<Option<GrpcDaemonClient<Channel>>>,
+use crate::{error::AppError, transport::unix_connector};
+
+pub trait BlobSource: Send + Sync {
+    fn read_blob(&self, space_id: &str, cid: &str) -> Result<Option<Vec<u8>>, AppError>;
 }
 
-impl DaemonApi {
-    pub fn from_app(app: &AppHandle<Wry>) -> Result<Arc<Self>> {
+#[derive(Builder, Debug, Clone)]
+#[builder(pattern = "owned", build_fn(error = "anyhow::Error"))]
+pub struct DaemonConfig {
+    #[builder(setter(into))]
+    socket_path: PathBuf,
+    #[builder(setter(into))]
+    blob_dir: PathBuf,
+}
+
+impl DaemonConfig {
+    pub fn from_app(app: &AppHandle<Wry>) -> anyhow::Result<Self> {
         let socket_path = std::env::var_os("SOMA_DAEMON_SOCKET")
             .map(PathBuf::from)
             .or_else(|| {
@@ -33,29 +40,41 @@ impl DaemonApi {
         let blob_dir = std::env::var_os("SOMA_BLOB_DIR")
             .map(PathBuf::from)
             .unwrap_or_else(|| PathBuf::from("blobs"));
-        info!("Using soma-daemon socket at {:?}", socket_path);
-        info!("Assuming daemon blob directory at {:?}", blob_dir);
+
+        Ok(DaemonConfigBuilder::default()
+            .socket_path(socket_path)
+            .blob_dir(blob_dir)
+            .build()?)
+    }
+}
+
+pub struct DaemonApi {
+    config: DaemonConfig,
+    client: Mutex<Option<GrpcDaemonClient<Channel>>>,
+}
+
+impl DaemonApi {
+    pub fn from_app(app: &AppHandle<Wry>) -> anyhow::Result<Arc<Self>> {
+        let config = DaemonConfig::from_app(app)?;
+        info!("Using soma-daemon socket at {:?}", config.socket_path);
+        info!("Assuming daemon blob directory at {:?}", config.blob_dir);
         Ok(Arc::new(Self {
-            socket_path,
-            blob_dir,
+            config,
             client: Mutex::new(None),
         }))
     }
 
-    async fn client(&self) -> Result<GrpcDaemonClient<Channel>> {
+    async fn client(&self) -> Result<GrpcDaemonClient<Channel>, AppError> {
         let mut guard: tokio::sync::MutexGuard<'_, Option<GrpcDaemonClient<Channel>>> =
             self.client.lock().await;
         if let Some(client) = guard.clone() {
             return Ok(client);
         }
 
-        let path = self.socket_path.clone();
-        let endpoint = Endpoint::try_from("http://[::]:50051")?;
+        // Dummy endpoint is required by tonic; actual connection is via the Unix connector.
+        let endpoint = Endpoint::try_from("http://[::]:0")?;
         let channel = endpoint
-            .connect_with_connector(service_fn(move |_: Uri| {
-                let path = path.clone();
-                async move { UnixStream::connect(path).await.map(TokioIo::new) }
-            }))
+            .connect_with_connector(unix_connector(self.config.socket_path.clone()))
             .await
             .context("failed to connect to soma-daemon socket")?;
 
@@ -67,20 +86,25 @@ impl DaemonApi {
     pub async fn upsert_document(
         &self,
         req: UpsertDocumentRequest,
-    ) -> Result<UpsertDocumentResponse> {
+    ) -> Result<UpsertDocumentResponse, AppError> {
         let mut client = self.client().await?;
         let res = client.upsert_document(req).await?;
         Ok(res.into_inner())
     }
 
-    pub async fn upload_blob(&self, req: UploadBlobRequest) -> Result<UploadBlobResponse> {
+    pub async fn upload_blob(
+        &self,
+        req: UploadBlobRequest,
+    ) -> Result<UploadBlobResponse, AppError> {
         let mut client = self.client().await?;
         let res = client.upload_blob(req).await?;
         Ok(res.into_inner())
     }
+}
 
-    pub fn read_blob(&self, space_id: &str, cid: &str) -> Result<Option<Vec<u8>>> {
-        let path = self.blob_dir.join(space_id).join(cid);
+impl BlobSource for DaemonApi {
+    fn read_blob(&self, space_id: &str, cid: &str) -> Result<Option<Vec<u8>>, AppError> {
+        let path = self.config.blob_dir.join(space_id).join(cid);
         if !path.exists() {
             return Ok(None);
         }

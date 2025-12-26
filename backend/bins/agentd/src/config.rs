@@ -43,7 +43,7 @@ pub struct Args {
     pub embed_model_path: Option<PathBuf>,
 
     /// Context window size to allocate for inference.
-    #[arg(long, env = "SOMA_AGENTD_CTX_SIZE", default_value_t = 4096)]
+    #[arg(long, env = "SOMA_AGENTD_CTX_SIZE", default_value_t = 16_384)]
     pub ctx_size: u32,
 
     /// Optional inference thread count.

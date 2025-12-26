@@ -28,7 +28,7 @@ export async function streamChat(
 		messages,
 		model: options.model,
 		temperature: options.temperature,
-		max_tokens: options.maxTokens,
+		max_tokens: options.maxTokens ?? 256,
 	};
 	return invoke<StreamEvent>("agent_chat_stream", payload).catch((error) => ({
 		error: error instanceof Error ? error.message : String(error),

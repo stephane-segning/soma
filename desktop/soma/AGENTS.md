@@ -19,6 +19,7 @@ In this repo, **VDF** refers to a **cache-only peer role** (sometimes casually w
     - Crates: core domain, networking, storage, API, relay, rendezvous, BFF, and shared utilities.
 - `desktop/` – Electron/React applications and packaging.
     - `desktop/soma/` – main Soma desktop UI.
+    - `desktop/soma-app/` – Soma Tauri v2 app (migration target; Rust main process).
     - `desktop/tapia/` – Tapia typing companion app.
 - `docs/` – MkDocs documentation (`docs/src/` for markdown, `docs/mkdocs.yml` for navigation).
 - `proto/` – shared protocol definitions and codegen inputs.
@@ -41,7 +42,7 @@ Docs quickstart:
 ## Tech Stack
 
 - **Package manager**: `pnpm` (workspace at `desktop/pnpm-workspace.yaml`).
-- **Desktop apps**: Electron + React + TypeScript.
+- **Desktop apps**: Electron + React + TypeScript (`desktop/soma`, `desktop/tapia`), plus Tauri v2 + Rust main process (`desktop/soma-app`).
 - **Backends**: Rust.
 
 ## CI, Packaging, and Releases
@@ -272,7 +273,7 @@ Migrations are centralized in `backend/crates/storage/migrations` and embedded b
 
 ### Frontends (Desktop Apps)
 
-Shared frontend stack (both Soma and Tapia):
+Shared frontend stack (Soma, Soma-app, Tapia):
 
 - `pnpm` workspace under `desktop/`
 - `tailwindcss` v4 + `daisyui` v5
@@ -297,6 +298,15 @@ Soma (`desktop/soma`):
 - Uses DaisyUI with two themes.
 - Uses TanStack Query for optimistic UI flows.
 - Main process uses InversifyJS (`inversify` + `reflect-metadata`) for DI; container lives in `desktop/soma/src/main/container.ts`.
+
+Soma-app (`desktop/soma-app`) (Tauri v2):
+
+- Migration target for Soma UI; Rust main process lives under `desktop/soma-app/src-tauri`.
+- Renderer → main process uses `@tauri-apps/api/core` `invoke(...)` (no Electron preload bridge; no `window.api`).
+- Tauri command state must be registered via `.manage(...)` and accessed with `tauri::State<'_, T>`.
+- Desktop assumes `soma-daemon` is already running; do not start daemons from the renderer.
+- No local blob persistence/caching in the desktop app: uploads go to `soma-daemon`, and renderers should use `soma-blob://daemon/{space_id}/{cid}` URLs for blob references.
+- Local LLM chat runs via `soma-agentd` (gRPC over Unix socket); for model selection and “base vs instruct” behavior, see `docs/src/development/agentd-models.md`.
 
 Tapia (`desktop/tapia`):
 
@@ -351,6 +361,7 @@ This repo intentionally has multiple binaries. Each has a distinct goal and depl
 - Use modern TypeScript with `strict` type-checking.
 - Follow the existing component organization in `desktop/*/src` (feature-oriented structure rather than huge generic folders).
 - Use `kebab-case` for new `.ts`/`.tsx` filenames in both renderer and main process code.
+- Use CUIDs for identifiers; do not use UUIDs.
 - Prefer `@renderer/*` imports for renderer code (configured in `desktop/soma/tsconfig.web.json`) over deep relative paths.
 - Prefer function components with hooks over class components.
 - Use existing hooks and state containers before adding new global state mechanisms.
@@ -747,7 +758,7 @@ For how peers (`soma-daemon`, `soma-botd`) use mDNS, rendezvous, and relay clien
 - Keep public APIs narrow; avoid leaking internal types across crate boundaries unless necessary.
 - Prefer composition over inheritance-like patterns; wire behaviours together in the binaries (`bins/*`) rather than deeply coupling crates.
 
-### Desktop (Electron/React)
+### Desktop (Electron/React) — `desktop/soma`
 
 - Treat `desktop/soma` and `desktop/tapia` as separate products sharing a backend daemon.
 - Keep Electron main-process code (window management, protocol handlers, daemon connectivity checks) separate from renderer React code.
@@ -781,6 +792,17 @@ For how peers (`soma-daemon`, `soma-botd`) use mDNS, rendezvous, and relay clien
 - Local state:
     - UI state lives in React (components, hooks).
     - Persistent or shared state that mirrors daemon state should be derived from daemon APIs, not duplicated business logic in the UI.
+
+### Desktop (Tauri/React) — `desktop/soma-app`
+
+- Renderer integration uses `@tauri-apps/api/*` (no preload bridge). Treat Rust commands as controllers: keep them thin and delegate to service structs/traits.
+- State management:
+  - Register shared state with `.manage(...)` during app setup.
+  - Commands that need shared services should take `State<'_, ManagedState>` (or similar) parameters.
+- Do not add local file/blob storage in the desktop app. All blob writes go to `soma-daemon` (content-addressed), and the UI should store only blob references (CID, mime, size, name).
+- For local LLM chat:
+  - Prefer instruct/chat models for assistant UX; base models will “complete text” and can return unrelated continuations.
+  - See `docs/src/development/agentd-models.md` for exact run commands and troubleshooting.
 
 ### Server
 
