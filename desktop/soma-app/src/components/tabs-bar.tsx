@@ -11,53 +11,50 @@ function TabsBar(): React.JSX.Element {
 	const atMaxTabs = tabs.length >= 10;
 
 	return (
-		<div className="flex items-center gap-4">
-			<div className="no-scrollbar max-w-[calc(100vw-12rem)] overflow-x-auto">
-				<div className="tabs tabs-sm tabs-box min-w-max gap-1">
-					{tabs.map((tab) => {
-						const isActive = tab.id === activeId;
-						return (
-							<div
-								aria-selected={isActive}
-								className={cn(
-									"tab shadow-none [-webkit-app-region:no-drag]",
-									isActive && "tab-active",
-								)}
-								key={tab.id}
-								onClick={() => selectTab(tab.id)}
-								onKeyDown={(e) => {
-									if (e.key === "Enter" || e.key === " ") selectTab(tab.id);
+		<div className="flex min-w-0 items-center gap-2">
+			<div className="no-scrollbar flex flex-1 items-center gap-2 overflow-x-auto">
+				{tabs.map((tab) => {
+					const isActive = tab.id === activeId;
+					return (
+						<div
+							aria-selected={isActive}
+							className={cn(
+								"flex min-w-[8rem] items-center gap-2 rounded-lg px-3 py-2 text-sm transition [-webkit-app-region:no-drag]",
+								isActive
+									? "bg-primary/10 text-primary"
+									: "bg-base-200/60 text-base-content/70 hover:bg-base-200",
+							)}
+							key={tab.id}
+							onClick={() => selectTab(tab.id)}
+							onKeyDown={(e) => {
+								if (e.key === "Enter" || e.key === " ") selectTab(tab.id);
+							}}
+							role="tab"
+							tabIndex={0}
+						>
+							<span className="min-w-0 flex-1 truncate">{tab.title}</span>
+							<button
+								aria-label="Close tab"
+								className="btn btn-ghost btn-xs btn-circle [-webkit-app-region:no-drag]"
+								onClick={(e) => {
+									e.stopPropagation();
+									closeTab(tab.id);
 								}}
-								role="tab"
-								tabIndex={0}
+								type="button"
 							>
-								<span className="min-w-0 flex-1 truncate pl-2">
-									{tab.title}
-								</span>
-								<button
-									aria-label="Close tab"
-									className="btn btn-xs btn-circle btn-soft ml-4 [-webkit-app-region:no-drag]"
-									onClick={(e) => {
-										e.stopPropagation();
-										closeTab(tab.id);
-									}}
-									type="button"
-								>
-									<X className="size-3/4" />
-								</button>
-							</div>
-						);
-					})}
-				</div>
+								<X className="size-4" />
+							</button>
+						</div>
+					);
+				})}
 			</div>
-
 			<button
-				className="btn btn-soft btn-xs btn-circle btn-primary z-10 [-webkit-app-region:no-drag]"
+				className="btn btn-primary btn-sm btn-circle shrink-0 [-webkit-app-region:no-drag]"
 				disabled={atMaxTabs}
 				onClick={() => openTab()}
 				type="button"
 			>
-				<Plus className="size-4" />
+				<Plus className="size-5" />
 			</button>
 		</div>
 	);

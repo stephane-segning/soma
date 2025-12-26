@@ -9,6 +9,7 @@ import {
 	isPersistedTabsStateV1,
 	useTabsStore,
 } from "@soma/store/tabs";
+import { SpacesRail } from "@soma/components/spaces-rail";
 import { useEffect, useMemo } from "react";
 import { RouterProvider } from "react-router";
 import { createTabRouter } from "./router";
@@ -116,13 +117,26 @@ function TabbedApp(): React.JSX.Element | null {
 
 	if (!initialized || !activeTab || !router) return null;
 	return (
-		<div className="grid h-full w-full grid-cols-[minmax(0,1fr)_360px]">
-			<div className="min-h-0 min-w-0 overflow-auto" data-no-drag>
-				<RouterProvider key={activeTab.id} router={router} />
-			</div>
-			<aside className="sticky top-0" data-no-drag>
-				<ChatSidebar />
+		<div className="flex h-full w-full">
+			<aside
+				className="w-20 shrink-0 border-r border-base-300 bg-base-200/60"
+				data-no-drag
+			>
+				<SpacesRail />
 			</aside>
+			<div className="flex flex-1 overflow-hidden">
+				<div className="flex min-w-0 flex-1 overflow-hidden bg-base-100" data-no-drag>
+					<RouterProvider key={activeTab.id} router={router} />
+				</div>
+				<aside
+					className="w-96 shrink-0 border-l border-base-300 bg-base-100"
+					data-no-drag
+				>
+					<div className="h-full overflow-y-auto">
+						<ChatSidebar />
+					</div>
+				</aside>
+			</div>
 		</div>
 	);
 }

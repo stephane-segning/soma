@@ -1,0 +1,17 @@
+{
+  "name": "@soma/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@9.0.0",
+  "scripts": {
+    "dev:soma": "pnpm --filter soma-app run dev",
+    "dev:tapia": "pnpm --filter tapia-app run dev",
+    "typecheck": "pnpm --filter soma-app run typecheck && pnpm --filter tapia-app run typecheck",
+    "lint": "pnpm --filter soma-app run lint && pnpm --filter tapia-app run lint",
+    "format": "pnpm --filter soma-app run format && pnpm --filter tapia-app run format"
+  },
+  "workspaces": [
+    "soma-app",
+    "tapia-app"
+  ]
+}

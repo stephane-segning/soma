@@ -2,6 +2,7 @@ import "./styles/app.scss";
 import "./lib/logging";
 
 import { App } from "@soma/app.tsx";
+import { AppErrorBoundary } from "@soma/components/app-error-boundary";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
@@ -17,10 +18,12 @@ if (!rootElement) {
 
 createRoot(document.getElementById("root") as HTMLElement).render(
 	<StrictMode>
-		<I18nextProvider i18n={i18n}>
-			<QueryClientProvider client={queryClient}>
-				<App />
-			</QueryClientProvider>
-		</I18nextProvider>
+		<AppErrorBoundary>
+			<I18nextProvider i18n={i18n}>
+				<QueryClientProvider client={queryClient}>
+					<App />
+				</QueryClientProvider>
+			</I18nextProvider>
+		</AppErrorBoundary>
 	</StrictMode>,
 );
