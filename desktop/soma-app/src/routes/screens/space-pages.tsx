@@ -61,7 +61,7 @@ function Component(): React.JSX.Element {
 					</Link>
 				))}
 				{!pagesQuery.isLoading && (pagesQuery.data?.length ?? 0) === 0 && (
-					<div className="rounded-lg border border-base-300 border-dashed p-4 text-base-content/70 text-sm">
+					<div className="border border-base-300 border-dashed p-4 text-base-content/70 text-sm">
 						{t(
 							"space.pages.empty",
 							"Create your first page to start drafting content for this space.",

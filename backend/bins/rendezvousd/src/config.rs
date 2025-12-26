@@ -21,4 +21,3 @@ pub enum Command {
         path: Option<std::path::PathBuf>,
     },
 }
-

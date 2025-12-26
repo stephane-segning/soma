@@ -117,6 +117,8 @@ function Component(): React.JSX.Element {
 		<div className="flex flex-col gap-4 px-4">
 			<YooptaEditorWithTools
 				className="!w-full"
+				documentId={data.pageId}
+				spaceId={data.spaceId}
 				initialValue={contentValue}
 				key={`${data.spaceId}:${data.pageId}`}
 				onSave={handleSave}

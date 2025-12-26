@@ -3,7 +3,7 @@ use clap::Parser;
 use soma_core::{Error, SomaResult};
 
 use crate::config::{Args, Command};
-use soma_core::http::{HttpService, HttpServer};
+use soma_core::http::{HttpServer, HttpService};
 
 pub async fn run_from_cli() -> SomaResult<()> {
     match Args::parse().cmd {
@@ -17,7 +17,8 @@ pub async fn run_from_cli() -> SomaResult<()> {
                 async move { HttpServer::new(svc).run().await.map_err(Error::http) }
             });
 
-            let svc = tokio::spawn(async move { soma_relay::run(Default::default(), metrics).await });
+            let svc =
+                tokio::spawn(async move { soma_relay::run(Default::default(), metrics).await });
 
             tokio::select! {
                 res = http => res??,
@@ -37,9 +38,10 @@ pub async fn run_from_cli() -> SomaResult<()> {
                 async move { HttpServer::new(svc).run().await.map_err(Error::http) }
             });
 
-            let svc = tokio::spawn(
-                async move { soma_rendezvous::run(Default::default(), metrics).await },
-            );
+            let svc =
+                tokio::spawn(
+                    async move { soma_rendezvous::run(Default::default(), metrics).await },
+                );
 
             tokio::select! {
                 res = http => res??,
@@ -50,7 +52,9 @@ pub async fn run_from_cli() -> SomaResult<()> {
             }
         }
         Command::Bff(cfg) => {
-            let svc = BffHttpService { http_addr: cfg.http_addr };
+            let svc = BffHttpService {
+                http_addr: cfg.http_addr,
+            };
             HttpServer::new(svc).run().await?;
         }
     }

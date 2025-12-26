@@ -6,7 +6,7 @@ use tracing::info;
 use crate::config::{AgentdConfig, Args};
 use crate::engine::EngineHandle;
 use crate::grpc::AgentdService;
-use soma_socket::{GrpcUnixService, GrpcUnixServer};
+use soma_socket::{GrpcUnixServer, GrpcUnixService};
 use tonic::transport::{Server, server::Router as TonicRouter};
 
 pub async fn run_from_cli() -> SomaResult<()> {

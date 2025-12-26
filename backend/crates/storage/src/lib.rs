@@ -12,9 +12,7 @@ pub mod issuer;
 pub mod mailbox;
 pub mod membership;
 use crate::{
-    issuer::IssuerRepository,
-    mailbox::MailboxRepository,
-    membership::MembershipRepository,
+    issuer::IssuerRepository, mailbox::MailboxRepository, membership::MembershipRepository,
 };
 
 /// Abstraction over repositories needed by controllers/services.

@@ -2,8 +2,8 @@ use std::path::Path;
 
 use soma_core::SomaResult;
 use tokio::net::UnixListener;
-use tonic::transport::server::Router as TonicRouter;
 use tonic::transport::Server;
+use tonic::transport::server::Router as TonicRouter;
 use tracing::info;
 
 /// Serve a tonic gRPC router over a Unix Domain Socket, respecting a shutdown signal.

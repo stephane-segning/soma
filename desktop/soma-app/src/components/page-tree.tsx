@@ -236,7 +236,7 @@ function PageTreeList({
 
 	return (
 		<ul
-			className={`menu w-full rounded-box ${isOver ? "outline outline-1 outline-primary/40" : ""}`}
+			className={`menu w-full ${isOver ? "outline outline-1 outline-primary/40" : ""}`}
 			ref={setNodeRef}
 		>
 			{isLoading && (
@@ -362,7 +362,7 @@ function TreeItem({
 		</div>
 	) : (
 		<div
-			className={`group flex items-center gap-2 rounded ${isOver ? "bg-primary/10" : ""}`}
+			className={`group flex items-center gap-2 ${isOver ? "bg-primary/10" : ""}`}
 			ref={setRefs}
 			style={style}
 			{...attributes}

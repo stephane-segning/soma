@@ -11,7 +11,11 @@ pub struct Args {
     pub cmd: Option<Command>,
 
     /// Unix socket path for desktop IPC.
-    #[arg(long, env = "SOMA_DAEMON_SOCKET", default_value = "/tmp/soma-daemon.sock")]
+    #[arg(
+        long,
+        env = "SOMA_DAEMON_SOCKET",
+        default_value = "/tmp/soma-daemon.sock"
+    )]
     pub socket_path: PathBuf,
 
     /// Blob storage directory used by the daemon.

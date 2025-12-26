@@ -1,5 +1,5 @@
-use std::sync::Arc;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use clap::Parser;
 use soma_core::SomaResult;
@@ -20,8 +20,8 @@ use crate::{
     http::{self, BotInfo, BotState},
     metrics::BotMetrics,
 };
-use soma_peer::bootstrap::{PeerBootstrapper, PeerLauncher};
 use soma_net::NetIdentity;
+use soma_peer::bootstrap::{PeerBootstrapper, PeerLauncher};
 use soma_vdfs::fs::FsBlobStore;
 
 /// Build configuration from CLI args and run the bot runtime.

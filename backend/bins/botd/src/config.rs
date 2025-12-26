@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand, ValueEnum};
 use libp2p::Multiaddr;
-use std::{net::SocketAddr, path::PathBuf};
 use soma_net::IdentityManager;
+use std::{net::SocketAddr, path::PathBuf};
 
 /// CLI for soma-botd.
 #[derive(Debug, Parser)]

@@ -15,8 +15,8 @@ use tonic::{Request, Response, Status};
 use tracing::{info, warn};
 
 use libp2p::identity::Keypair;
-use soma_vdfs::fs::FsBlobStore;
 use soma_storage::RepositoryProvider;
+use soma_vdfs::fs::FsBlobStore;
 
 const MAX_UPLOAD_BYTES: usize = 8 * 1024 * 1024;
 /// Daemon shared state (peer id, command channel, listeners, event bus).

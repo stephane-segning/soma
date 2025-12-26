@@ -1,3 +1,6 @@
+import { invoke } from "@tauri-apps/api/core";
+import { createId } from "@paralleldrive/cuid2";
+
 type DraftRecord = {
 	spaceId: string;
 	documentId: string;
@@ -6,11 +9,20 @@ type DraftRecord = {
 	updatedAtMs: number;
 };
 
+type PageRecord = {
+	spaceId: string;
+	pageId: string;
+	title: string;
+	parentPageIds: string[];
+	createdAtMs: number;
+	updatedAtMs: number;
+};
+
 export async function getDraft(input: {
 	spaceId: string;
 	documentId: string;
 }): Promise<DraftRecord | null> {
-	return window.api.documents.getDraft(input);
+	return invoke<DraftRecord | null>("documents_get_draft", input).catch(() => null);
 }
 
 export async function upsertDraft(input: {
@@ -19,7 +31,8 @@ export async function upsertDraft(input: {
 	contentJson: string;
 	published: boolean;
 }): Promise<{ ok: true }> {
-	return window.api.documents.upsertDraft(input);
+	await invoke("documents_upsert_draft", input);
+	return { ok: true };
 }
 
 export async function queueDaemonSync(input: {
@@ -29,7 +42,11 @@ export async function queueDaemonSync(input: {
 	updatedAtMs: number;
 	published?: boolean;
 }): Promise<{ ok: true }> {
-	return window.api.documents.queueDaemonSync(input);
+	await invoke("documents_queue_daemon_sync", {
+		...input,
+		published: !!input.published,
+	});
+	return { ok: true };
 }
 
 export async function syncPublishedDocument(input: {
@@ -38,7 +55,10 @@ export async function syncPublishedDocument(input: {
 	contentJson: string;
 	updatedAtMs: number;
 }): Promise<{ ok: true; uploaded: number }> {
-	return window.api.daemon.syncPublishedDocument(input);
+	const result = await invoke<{ uploaded: number }>("documents_sync_published", input).catch(
+		() => ({ uploaded: 0 }),
+	);
+	return { ok: true, uploaded: result.uploaded };
 }
 
 export async function ensurePage(input: {
@@ -46,27 +66,32 @@ export async function ensurePage(input: {
 	pageId?: string;
 	title?: string;
 	parentPageIds?: string[];
-}) {
-	return window.api.documents.ensurePage(input);
+}): Promise<PageRecord> {
+	const payload = {
+		...input,
+		pageId: input.pageId && input.pageId.trim().length > 0 ? input.pageId : createId(),
+		title: input.title,
+		parentPageIds: input.parentPageIds ?? [],
+	};
+	return invoke<PageRecord>("documents_ensure_page", payload);
 }
 
-export async function listPages(input: { spaceId: string }) {
-	return window.api.documents.listPages(input);
+export async function listPages(input: { spaceId: string }): Promise<PageRecord[]> {
+	return invoke<PageRecord[]>("documents_list_pages", input).catch(() => []);
 }
 
 export async function updatePageTitle(input: {
 	spaceId: string;
 	pageId: string;
 	title: string;
-}) {
-	return window.api.documents.updatePageTitle(input);
+}): Promise<PageRecord | null> {
+	return invoke<PageRecord | null>("documents_update_page_title", input).catch(() => null);
 }
 
 export async function setPageParents(input: {
 	spaceId: string;
 	pageId: string;
 	parentPageIds: string[];
-}) {
-	return window.api.documents.setPageParents(input);
+}): Promise<PageRecord | null> {
+	return invoke<PageRecord | null>("documents_set_page_parents", input).catch(() => null);
 }
-

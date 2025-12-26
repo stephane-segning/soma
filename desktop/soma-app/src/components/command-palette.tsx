@@ -45,7 +45,7 @@ function CommandPaletteShell(): React.JSX.Element {
 					{
 						id: "welcome-card",
 						children: (
-							<div className="w-full rounded-lg border-indigo-500 border-indigo-500 border-t border-b bg-gradient-to-br from-primary via-warning to-success p-4">
+							<div className="w-full border-indigo-500 border-indigo-500 border-t border-b bg-gradient-to-br from-primary via-warning to-success p-4">
 								<h2 className="font-semibold text-lg text-white leading-tight">
 									Welcome 👋
 								</h2>
@@ -167,10 +167,7 @@ function CommandPaletteShell(): React.JSX.Element {
 		<CommandPalette
 			footer={
 				<div className="px-4 py-3 text-neutral-500 text-sm">
-					Press{" "}
-					<kbd className="rounded border border-neutral-400 px-1 py-0.5">
-						⌘K
-					</kbd>{" "}
+					Press <kbd className="border border-neutral-400 px-1 py-0.5">⌘K</kbd>{" "}
 					to toggle
 				</div>
 			}

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { useDebounce } from "react-use";
-import * as searchService from "../services/search-service";
+import { search as searchFN } from "../services/search-service";
 
 type SearchResult = {
 	id: string;
@@ -10,11 +10,11 @@ type SearchResult = {
 };
 
 function useSearchQuery(rawQuery: string) {
-	const [query, setQuery] = useState(() => rawQuery.trim());
+	const [query, setQuery] = useState(() => rawQuery?.trim?.());
 
 	useDebounce(
 		() => {
-			setQuery(rawQuery.trim);
+			setQuery(rawQuery?.trim?.());
 		},
 		150,
 		[rawQuery],
@@ -25,7 +25,7 @@ function useSearchQuery(rawQuery: string) {
 	return useQuery({
 		queryKey: ["search", query] as const,
 		enabled,
-		queryFn: async (): Promise<SearchResult[]> => searchService.search(query),
+		queryFn: async () => searchFN(query),
 	});
 }
 

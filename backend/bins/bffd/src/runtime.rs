@@ -1,9 +1,9 @@
 use clap::Parser;
 use soma_core::SomaResult;
-use soma_core::http::{HttpService, HttpServer};
-use soma_peer::{PeerConfig, PeerEvent};
-use soma_peer::bootstrap::{PeerBootstrapper, PeerLauncher};
+use soma_core::http::{HttpServer, HttpService};
 use soma_net::IdentityManager;
+use soma_peer::bootstrap::{PeerBootstrapper, PeerLauncher};
+use soma_peer::{PeerConfig, PeerEvent};
 use tracing::{info, warn};
 
 use crate::config::{Args, default_listen_addrs};
@@ -121,9 +121,8 @@ struct BffPeerBootstrap {
 impl PeerBootstrapper for BffPeerBootstrap {
     fn identity_path(&self) -> &std::path::Path {
         // Shared identity path for the optional BFF peer.
-        static PATH: once_cell::sync::Lazy<std::path::PathBuf> = once_cell::sync::Lazy::new(|| {
-            IdentityManager::from_env().default_identity_path("bff")
-        });
+        static PATH: once_cell::sync::Lazy<std::path::PathBuf> =
+            once_cell::sync::Lazy::new(|| IdentityManager::from_env().default_identity_path("bff"));
         &PATH
     }
 

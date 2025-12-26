@@ -46,6 +46,7 @@ async function getVideoSize(
 export const uploadToBlob = async (
 	file: File,
 	_type = "image",
+	context: { spaceId: string; docId?: string },
 ): Promise<MediaObject> => {
 	try {
 		const bytes = new Uint8Array(await file.arrayBuffer());
@@ -54,6 +55,8 @@ export const uploadToBlob = async (
 			bytes,
 			mime: file.type || "application/octet-stream",
 			fileName: file.name,
+			spaceId: context.spaceId,
+			docId: context.docId,
 		});
 
 		const { width, height } =
@@ -68,9 +71,9 @@ export const uploadToBlob = async (
 			width,
 			height,
 			url: staged.url,
-			asset_id: staged.blobId,
+			asset_id: staged.cid,
 			format: file.type || "application/octet-stream",
-			public_id: staged.blobId,
+			public_id: staged.cid,
 			version_id: String(staged.createdAtMs),
 			name: file.name,
 			bytes: staged.byteLength,

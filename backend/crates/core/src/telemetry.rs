@@ -11,4 +11,3 @@ pub fn init_tracing(default_filter: &str) {
         )
         .init();
 }
-

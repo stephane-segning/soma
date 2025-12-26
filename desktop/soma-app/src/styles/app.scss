@@ -1,5 +1,5 @@
 @use "tailwindcss/index.css";
-@use 'cmdk';
+//@use 'cmdk';
 
 @plugin "daisyui" {
   themes: lemonade --default, dark;
@@ -11,6 +11,16 @@
 
 @utility h-content {
   @apply min-h-[calc(100vh-3em)]
+}
+
+html, body, #root {
+  background: transparent !important;
+
+  @apply m-0;
+}
+
+#root {
+  @apply overflow-hidden border-none rounded-xl;
 }
 
 .tab {
@@ -25,4 +35,12 @@
       @apply btn-error;
     }
   }
+}
+
+@utility grid-max-content {
+  @apply grid-cols-[auto_max-content];
+}
+
+*[data-tauri-drag-region] {
+  app-region: drag;
 }

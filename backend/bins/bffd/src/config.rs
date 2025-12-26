@@ -35,4 +35,3 @@ pub fn default_listen_addrs() -> Vec<Multiaddr> {
             .expect("valid ws multiaddr"),
     ]
 }
-

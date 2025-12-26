@@ -7,9 +7,9 @@ function Component(): React.JSX.Element {
 	const { spaceId, pageId } = useParams();
 
 	return (
-		<div className="flex h-content w-full bg-base-100">
-			<aside className="sticky top-0 flex w-72 flex-col border-base-300 border-r bg-base-200/40">
-				<div className="border-base-300 border-b bg-base-200/60 backdrop-blur">
+		<div className="flex h-content w-full">
+			<aside className="sticky top-0 flex w-72 flex-col border-base-300 border-r">
+				<div className="border-base-300 border-b backdrop-blur">
 					<div className="px-3 py-3">
 						<Link
 							className="btn btn-ghost btn-sm w-full justify-start"

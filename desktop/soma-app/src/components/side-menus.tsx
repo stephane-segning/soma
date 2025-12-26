@@ -1,6 +1,6 @@
 function SideMenus() {
 	return (
-		<ul className="menu menu-xs w-full max-w-xs rounded-box bg-base-200">
+		<ul className="menu menu-xs w-full max-w-xs bg-base-200">
 			<li>
 				<a>
 					<svg

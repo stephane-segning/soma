@@ -10,24 +10,12 @@ export type StreamEvent = {
 };
 
 /**
- * Start a streaming chat request via IPC and return an observable of streamed events.
- * The observable is constructed entirely in the renderer to keep preload thin.
+ * Chat via daemon/agent; expects soma-daemon to forward to the agent service.
  */
-export function streamChat(messages: ChatMessage[]): Promise<StreamEvent> {
-	const channel = window.api.agent.chatStream({ messages, maxTokens: 10_000 });
+import { invoke } from "@tauri-apps/api/core";
 
-	return new Promise<StreamEvent>((resolve, _reject) => {
-		const handler = (
-			_event: Electron.IpcRendererEvent,
-			message: { channel: string; payload: StreamEvent },
-		) => {
-			if (message.channel !== channel) return;
-			resolve(message.payload);
-		};
-
-		window.electron.ipcRenderer.on("ipc:main-event", handler);
-		return () => {
-			window.electron.ipcRenderer.removeListener("ipc:main-event", handler);
-		};
-	});
+export async function streamChat(messages: ChatMessage[]): Promise<StreamEvent> {
+	return invoke<StreamEvent>("agent_chat_stream", { messages }).catch((error) => ({
+		error: error instanceof Error ? error.message : String(error),
+	}));
 }

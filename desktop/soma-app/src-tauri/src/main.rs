@@ -3,5 +3,7 @@
 
 fn main() {
     let _ = fix_path_env::fix();
-    soma_app_lib::run()
+    if let Err(error) = soma_app_lib::AppEntrypoint::new().run() {
+        eprintln!("failed to start Soma app: {error}");
+    }
 }

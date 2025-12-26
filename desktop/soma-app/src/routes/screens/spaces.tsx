@@ -35,7 +35,7 @@ function Component(): React.JSX.Element {
 						<div className="flex items-center justify-between">
 							<div className="flex items-center gap-4">
 								<div className="avatar placeholder">
-									<div className="w-12 rounded-full bg-base-200 text-base-content">
+									<div className="w-12 bg-base-200 text-base-content">
 										<span>PS</span>
 									</div>
 								</div>

@@ -33,4 +33,3 @@ pub struct BffArgs {
     #[arg(long, env = "HTTP_ADDR", default_value = "0.0.0.0:8083")]
     pub http_addr: SocketAddr,
 }
-

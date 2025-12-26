@@ -14,4 +14,3 @@ async fn main() -> SomaResult<()> {
     soma_core::telemetry::init_tracing("info");
     runtime::run_from_cli().await
 }
-

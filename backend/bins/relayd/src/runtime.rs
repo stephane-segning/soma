@@ -1,7 +1,7 @@
 use clap::Parser;
-use tracing::info;
-use soma_core::http::{HttpService, HttpServer};
+use soma_core::http::{HttpServer, HttpService};
 use soma_net::IdentityManager;
+use tracing::info;
 
 use crate::config::{Args, Command};
 

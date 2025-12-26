@@ -46,7 +46,19 @@ export function useChatConversation(
 				];
 			});
 
-			const stream$ = streamChat(history);
+			const result = await streamChat(history);
+			if (result.error) {
+				throw new Error(result.error);
+			}
+			setMessages((prev) => {
+				const next = [...prev];
+				const idx = assistantIdxRef.current ?? next.length - 1;
+				next[idx] = {
+					role: "assistant",
+					content: result.token ?? "",
+				};
+				return next;
+			});
 			return null;
 		},
 		onSettled: () => {

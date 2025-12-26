@@ -74,6 +74,8 @@ type Props = {
 	initialValue?: YooptaContentValue;
 	onValueChange?: (value: YooptaContentValue) => void;
 	onSave?: () => void;
+	spaceId: string;
+	documentId: string;
 };
 
 function YooptaEditorWithTools({
@@ -84,6 +86,8 @@ function YooptaEditorWithTools({
 	initialValue,
 	onValueChange,
 	onSave,
+	spaceId,
+	documentId,
 }: Props): React.JSX.Element {
 	const handleSaveShortcut = useCallback(
 		(event: KeyboardEvent) => {
@@ -192,7 +196,10 @@ function YooptaEditorWithTools({
 					renders: asPluginRenders({ image: renderManagedImage }),
 					options: {
 						async onUpload(file) {
-							const data = await uploadToBlob(file, "image");
+							const data = await uploadToBlob(file, "image", {
+								spaceId,
+								docId: documentId,
+							});
 							return {
 								src: data.secure_url,
 								alt: file.name,
@@ -205,14 +212,20 @@ function YooptaEditorWithTools({
 					renders: asPluginRenders({ video: renderManagedVideo }),
 					options: {
 						onUpload: async (file) => {
-							const data = await uploadToBlob(file, "video");
+							const data = await uploadToBlob(file, "video", {
+								spaceId,
+								docId: documentId,
+							});
 							return {
 								src: data.secure_url,
 								sizes: { width: data.width, height: data.height },
 							};
 						},
 						onUploadPoster: async (file) => {
-							const image = await uploadToBlob(file, "image");
+							const image = await uploadToBlob(file, "image", {
+								spaceId,
+								docId: documentId,
+							});
 							return image.secure_url;
 						},
 					},
@@ -221,7 +234,10 @@ function YooptaEditorWithTools({
 					renders: asPluginRenders({ file: renderManagedFile }),
 					options: {
 						onUpload: async (file) => {
-							const response = await uploadToBlob(file, "auto");
+							const response = await uploadToBlob(file, "auto", {
+								spaceId,
+								docId: documentId,
+							});
 							return {
 								src: response.secure_url,
 								format: response.format,

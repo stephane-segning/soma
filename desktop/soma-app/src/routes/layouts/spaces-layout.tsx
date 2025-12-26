@@ -5,12 +5,12 @@ function Component(): React.JSX.Element {
 	const { t } = useTranslation("common");
 
 	return (
-		<div className="flex h-content w-full overflow-hidden rounded-box border border-base-300 bg-base-200/60">
+		<div className="flex h-content w-full overflow-hidden border border-base-300 bg-base-200/60">
 			<aside className="w-64 border-base-300 border-r bg-base-200">
 				<div className="sticky top-0 border-base-300 border-b bg-base-200/80 px-4 py-4">
 					<div className="flex items-center gap-3">
 						<div className="avatar placeholder">
-							<div className="w-10 rounded-full bg-base-300 text-base-content">
+							<div className="w-10 bg-base-300 text-base-content">
 								<span>SD</span>
 							</div>
 						</div>

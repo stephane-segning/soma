@@ -133,7 +133,11 @@ pub async fn deliver_for_peer(
     let _ = repos.mailbox_repo().requeue_expired_leases(now_secs).await;
 
     let subject = peer.to_string();
-    let entries = match repos.mailbox_repo().list_due_for_subject(i64::MAX, &subject, 50).await {
+    let entries = match repos
+        .mailbox_repo()
+        .list_due_for_subject(i64::MAX, &subject, 50)
+        .await
+    {
         Ok(entries) => entries,
         Err(err) => {
             warn!(%err, "failed to list mailbox entries for peer");

@@ -15,9 +15,7 @@ pub struct IdentityManager {
 impl IdentityManager {
     /// Create a manager that uses `SOMA_DATA_DIR` when present, otherwise `./data`.
     pub fn from_env() -> Self {
-        let base_dir = env::var("SOMA_DATA_DIR")
-            .ok()
-            .map(PathBuf::from);
+        let base_dir = env::var("SOMA_DATA_DIR").ok().map(PathBuf::from);
         Self { base_dir }
     }
 

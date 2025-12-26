@@ -4,6 +4,8 @@ use soma_membership::{JoinPolicy, build_join_decider};
 use soma_net::{IdentityManager, NetIdentity};
 use soma_peer::{PeerCommand, PeerConfig, join::JoinDecider};
 use soma_proto_build::daemon;
+use soma_socket::{GrpcUnixServer, GrpcUnixService};
+use soma_storage::RepositoryProvider;
 use soma_vdfs::BlobProvider;
 use std::sync::Arc;
 use std::time::Duration;
@@ -11,16 +13,14 @@ use tokio::{
     signal,
     sync::{Mutex, broadcast},
 };
-use tracing::info;
-use soma_socket::{GrpcUnixServer, GrpcUnixService};
 use tonic::transport::{Server, server::Router as TonicRouter};
-use soma_storage::RepositoryProvider;
+use tracing::info;
 
 use crate::config::{Args, Command, DaemonConfig};
 use crate::dispatch::build_dispatcher;
 use crate::grpc::{DaemonService, DaemonState};
-use soma_vdfs::fs::FsBlobStore;
 use soma_peer::bootstrap::{PeerBootstrapper, PeerLauncher};
+use soma_vdfs::fs::FsBlobStore;
 use std::path::{Path, PathBuf};
 
 /// Build configuration from CLI args and run the daemon runtime.
@@ -100,9 +100,7 @@ pub async fn run(config: DaemonConfig) -> SomaResult<()> {
         socket_path: socket_path.clone(),
         svc: grpc_service,
     };
-    let grpc_task = tokio::spawn(async move {
-        GrpcUnixServer::new(grpc_service).run().await
-    });
+    let grpc_task = tokio::spawn(async move { GrpcUnixServer::new(grpc_service).run().await });
     let peer_task = peer.task;
     let mut peer_events = peer.events;
 
@@ -200,12 +198,8 @@ fn spawn_mailbox_sweeper(state: Arc<DaemonState>) {
     tokio::spawn(async move {
         loop {
             tokio::time::sleep(Duration::from_secs(5 * 60)).await;
-            soma_membership::outbox::sweep_due(
-                &state.repos,
-                &state.peer_id,
-                &state.peer_commands,
-            )
-            .await;
+            soma_membership::outbox::sweep_due(&state.repos, &state.peer_id, &state.peer_commands)
+                .await;
         }
     });
 }
