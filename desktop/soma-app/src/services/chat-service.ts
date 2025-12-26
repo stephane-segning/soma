@@ -14,8 +14,23 @@ export type StreamEvent = {
  */
 import { invoke } from "@tauri-apps/api/core";
 
-export async function streamChat(messages: ChatMessage[]): Promise<StreamEvent> {
-	return invoke<StreamEvent>("agent_chat_stream", { messages }).catch((error) => ({
+export type ChatOptions = {
+	model?: string;
+	temperature?: number;
+	maxTokens?: number;
+};
+
+export async function streamChat(
+	messages: ChatMessage[],
+	options: ChatOptions = {},
+): Promise<StreamEvent> {
+	const payload = {
+		messages,
+		model: options.model,
+		temperature: options.temperature,
+		max_tokens: options.maxTokens,
+	};
+	return invoke<StreamEvent>("agent_chat_stream", payload).catch((error) => ({
 		error: error instanceof Error ? error.message : String(error),
 	}));
 }

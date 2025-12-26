@@ -127,13 +127,19 @@ impl AppStateStore for FileStateStore {
 pub struct ManagedState {
     pub store: std::sync::Arc<dyn AppStateStore>,
     pub daemon: std::sync::Arc<crate::daemon::DaemonApi>,
+    pub agent: std::sync::Arc<crate::agent::AgentApi>,
 }
 
 impl ManagedState {
     pub fn new(
         store: std::sync::Arc<dyn AppStateStore>,
         daemon: std::sync::Arc<crate::daemon::DaemonApi>,
+        agent: std::sync::Arc<crate::agent::AgentApi>,
     ) -> Self {
-        Self { store, daemon }
+        Self {
+            store,
+            daemon,
+            agent,
+        }
     }
 }

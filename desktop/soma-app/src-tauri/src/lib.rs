@@ -1,3 +1,4 @@
+mod agent;
 mod application;
 mod bootstrap;
 mod commands;

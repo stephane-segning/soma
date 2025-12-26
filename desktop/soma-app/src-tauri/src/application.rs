@@ -5,6 +5,7 @@ use tauri_plugin_deep_link::DeepLinkExt;
 use tracing::info;
 
 use crate::{
+    agent::AgentApi,
     bootstrap::{Bootstrapper, MainBootstrap},
     commands::{AppCommandHandler, CommandHandler, CommandState},
     daemon::DaemonApi,
@@ -85,7 +86,8 @@ impl SomaApp {
         builder
             .setup(move |app| {
                 let daemon = DaemonApi::from_app(&app.handle())?;
-                let managed_state = Arc::new(ManagedState::new(state_store.clone(), daemon));
+                let agent = AgentApi::from_app(&app.handle())?;
+                let managed_state = ManagedState::new(state_store.clone(), daemon, agent);
                 let command_handler: Arc<dyn CommandHandler> =
                     Arc::new(AppCommandHandler::new(managed_state.clone()));
                 let command_state = CommandState::new(command_handler);
@@ -117,7 +119,8 @@ impl SomaApp {
                 crate::commands::documents_set_page_parents,
                 crate::commands::settings_get_last_route,
                 crate::commands::settings_get,
-                crate::commands::settings_set
+                crate::commands::settings_set,
+                crate::commands::agent_chat_stream
             ])
             .run(context)
     }

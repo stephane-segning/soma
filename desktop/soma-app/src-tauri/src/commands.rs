@@ -14,11 +14,11 @@ pub trait CommandHandler: Send + Sync + 'static {
 }
 
 pub struct AppCommandHandler {
-    state: Arc<ManagedState>,
+    state: ManagedState,
 }
 
 impl AppCommandHandler {
-    pub fn new(state: Arc<ManagedState>) -> Self {
+    pub fn new(state: ManagedState) -> Self {
         Self { state }
     }
 }
@@ -188,6 +188,64 @@ pub struct BlobStageResult {
     size: u64,
     mime: String,
     name: String,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ChatMessage {
+    pub role: String,
+    pub content: String,
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ChatStreamEvent {
+    pub token: Option<String>,
+    pub done: bool,
+    pub error: Option<String>,
+}
+
+#[tauri::command]
+pub async fn agent_chat_stream(
+    state: State<'_, ManagedState>,
+    messages: Vec<ChatMessage>,
+    model: Option<String>,
+    temperature: Option<f32>,
+    max_tokens: Option<u32>,
+) -> Result<ChatStreamEvent, String> {
+    if messages.is_empty() {
+        return Ok(ChatStreamEvent {
+            token: None,
+            done: true,
+            error: Some("no messages provided".to_string()),
+        });
+    }
+
+    let req = soma_proto_build::agent::ChatRequest {
+        messages: messages
+            .into_iter()
+            .map(|m| soma_proto_build::agent::ChatMessage {
+                role: m.role,
+                content: m.content,
+            })
+            .collect(),
+        temperature: temperature.unwrap_or(0.7),
+        max_tokens: max_tokens.unwrap_or(1024),
+        model: model.unwrap_or_default(),
+    };
+
+    match state.agent.chat(req).await {
+        Ok(res) => Ok(ChatStreamEvent {
+            token: Some(res.content),
+            done: true,
+            error: None,
+        }),
+        Err(err) => Ok(ChatStreamEvent {
+            token: None,
+            done: true,
+            error: Some(err.to_string()),
+        }),
+    }
 }
 
 fn doc_cache() -> &'static Mutex<DocCache> {
