@@ -13,8 +13,11 @@ use prost::Message;
 use soma_core::SomaResult;
 use soma_net::NetIdentity;
 use soma_proto_build::spaceroom;
-use soma_vdfs::{BLOB_PROTOCOL, BlobProvider, BlobRequest, BlobResponse, MAX_BLOB_MESSAGE_BYTES};
-use std::collections::{HashMap, HashSet};
+use soma_vdfs::{
+    BLOB_PROTOCOL, BlobProvider, BlobRange, BlobRequest, BlobResponse, BlobWriteInit,
+    BlobWriteStream, DEFAULT_BLOB_CHUNK_BYTES, MAX_BLOB_MESSAGE_BYTES,
+};
+use std::collections::{HashMap, HashSet, hash_map::Entry};
 use std::io;
 use std::sync::Arc;
 use std::time::Duration;
@@ -31,6 +34,7 @@ const JOIN_DECISION_PROTOCOL: &str = "/soma/join-decision/1";
 const MAX_JOIN_MESSAGE_BYTES: usize = 16 * 1024;
 const MAX_JOIN_DECISION_MESSAGE_BYTES: usize = 64 * 1024;
 const AGENT_PROTOCOL: &str = "/soma/0.1.0";
+const BLOB_CHUNK_BYTES: usize = DEFAULT_BLOB_CHUNK_BYTES;
 
 /// Commands sent to the peer runtime.
 #[derive(Debug)]
@@ -150,7 +154,7 @@ pub enum PeerEvent {
         size: u64,
         name: Option<String>,
     },
-    /// Emitted when we receive a blob response over the network.
+    /// Emitted when we receive and persist a blob fetched over the network.
     BlobResponseReceived {
         cid: String,
         size: u64,
@@ -166,6 +170,13 @@ pub struct PeerHandle {
     pub commands: mpsc::Sender<PeerCommand>,
     pub events: mpsc::Receiver<PeerEvent>,
     pub task: JoinHandle<SomaResult<()>>,
+}
+
+struct BlobDownloadState {
+    writer: Box<dyn BlobWriteStream>,
+    total_size: u64,
+    next_offset: u64,
+    chunk_size: u32,
 }
 
 /// Spawn a peer with ping + identify + optional mdns + rendezvous discovery.
@@ -377,6 +388,7 @@ async fn run_swarm(
     let mut requested_reservations = HashSet::new();
     let mut outbound_join_requests: HashMap<_, (PeerId, String, String)> = HashMap::new();
     let mut outbound_join_decisions: HashMap<_, (PeerId, String)> = HashMap::new();
+    let mut blob_downloads: HashMap<(String, String), BlobDownloadState> = HashMap::new();
 
     loop {
         tokio::select! {
@@ -411,7 +423,12 @@ async fn run_swarm(
                             swarm.add_peer_address(target, addr.clone());
                             let _ = swarm.dial(addr.clone());
                         }
-                        let mut request = BlobRequest { cid, space_id: String::new() };
+                        let mut request = BlobRequest {
+                            cid,
+                            space_id: String::new(),
+                            offset: 0,
+                            length: BLOB_CHUNK_BYTES as u32,
+                        };
                         if let Some(space) = space_id {
                             request.space_id = space;
                         }
@@ -576,9 +593,26 @@ async fn run_swarm(
                     SwarmEvent::Behaviour(AppEvent::Blob(evt)) => match evt {
                         reqres::Event::Message { peer, message, .. } => match message {
                             reqres::Message::Request { request, channel, .. } => {
+                                let requested_len = if request.length == 0 {
+                                    BLOB_CHUNK_BYTES
+                                } else {
+                                    request.length as usize
+                                };
+                                let clamped_len = requested_len
+                                    .min(MAX_BLOB_MESSAGE_BYTES.saturating_sub(1024));
+                                let range = BlobRange {
+                                    offset: request.offset,
+                                    length: Some(clamped_len),
+                                };
+
                                 if let Some(provider) = blob_provider.as_ref() {
                                     let res = provider
-                                        .get(&request.cid, (!request.space_id.is_empty()).then_some(request.space_id.as_str()))
+                                        .get(
+                                            &request.cid,
+                                            (!request.space_id.is_empty())
+                                                .then_some(request.space_id.as_str()),
+                                            range,
+                                        )
                                         .await;
                                     let response = res.unwrap_or_else(|| BlobResponse {
                                         cid: request.cid,
@@ -587,6 +621,8 @@ async fn run_swarm(
                                         data: Vec::new(),
                                         found: false,
                                         space_id: request.space_id,
+                                        offset: request.offset,
+                                        eof: true,
                                     });
                                     let _ = swarm.behaviour_mut().blob.send_response(channel, response);
                                 } else {
@@ -597,6 +633,8 @@ async fn run_swarm(
                                         data: Vec::new(),
                                         found: false,
                                         space_id: request.space_id,
+                                        offset: request.offset,
+                                        eof: true,
                                     };
                                     let _ = swarm.behaviour_mut().blob.send_response(channel, response);
                                     let _ = event_tx.try_send(PeerEvent::ConnectionError {
@@ -606,13 +644,51 @@ async fn run_swarm(
                                 }
                             }
                             reqres::Message::Response { response, .. } => {
-                                let stored = if response.found {
-                                    if let Some(provider) = blob_provider.as_ref() {
+                                if !response.found {
+                                    let _ = event_tx.try_send(PeerEvent::BlobResponseReceived {
+                                        cid: response.cid.clone(),
+                                        size: response.size,
+                                        found: false,
+                                        stored: false,
+                                    });
+                                    continue;
+                                }
+
+                                let space_id = response.space_id.clone();
+                                if space_id.is_empty() {
+                                    let _ = event_tx.try_send(PeerEvent::ConnectionError {
+                                        peer: Some(peer),
+                                        error: "blob response missing space_id".into(),
+                                    });
+                                    let _ = event_tx.try_send(PeerEvent::BlobResponseReceived {
+                                        cid: response.cid.clone(),
+                                        size: response.size,
+                                        found: true,
+                                        stored: false,
+                                    });
+                                    continue;
+                                }
+
+                                let chunk_len = response.data.len() as u64;
+                                if chunk_len == 0 {
+                                    let _ = event_tx.try_send(PeerEvent::ConnectionError {
+                                        peer: Some(peer),
+                                        error: "blob response with empty chunk".into(),
+                                    });
+                                    continue;
+                                }
+
+                                // Fast path: entire blob fits in one message.
+                                let is_single_chunk = response.offset == 0
+                                    && chunk_len == response.size
+                                    && chunk_len as usize <= MAX_BLOB_MESSAGE_BYTES;
+
+                                if is_single_chunk {
+                                    let stored = if let Some(provider) = blob_provider.as_ref() {
                                         match provider
                                             .put(
                                                 &response.cid,
-                                                (!response.space_id.is_empty())
-                                                    .then_some(response.space_id.as_str()),
+                                                Some(space_id.as_str()),
                                                 &response.data,
                                                 &response.mime,
                                             )
@@ -629,16 +705,146 @@ async fn run_swarm(
                                         }
                                     } else {
                                         false
+                                    };
+                                    let _ = event_tx.try_send(PeerEvent::BlobResponseReceived {
+                                        cid: response.cid.clone(),
+                                        size: response.size,
+                                        found: true,
+                                        stored,
+                                    });
+                                    continue;
+                                }
+
+                                // Streaming path for large blobs.
+                                if let Some(provider) = blob_provider.as_ref() {
+                                    let key = (space_id.clone(), response.cid.clone());
+                                    if let Entry::Vacant(entry) = blob_downloads.entry(key.clone()) {
+                                        match provider
+                                            .open_streaming_put(
+                                                &response.cid,
+                                                Some(space_id.as_str()),
+                                                response.size,
+                                            )
+                                            .await
+                                        {
+                                            Ok(Some(BlobWriteInit::AlreadyPresent)) => {
+                                                let _ = event_tx.try_send(PeerEvent::BlobResponseReceived {
+                                                    cid: response.cid.clone(),
+                                                    size: response.size,
+                                                    found: true,
+                                                    stored: true,
+                                                });
+                                                continue;
+                                            }
+                                            Ok(Some(BlobWriteInit::Started(writer))) => {
+                                                entry.insert(BlobDownloadState {
+                                                    writer,
+                                                    total_size: response.size,
+                                                    next_offset: 0,
+                                                    chunk_size: BLOB_CHUNK_BYTES as u32,
+                                                });
+                                            }
+                                            Ok(None) => {
+                                                let _ = event_tx.try_send(PeerEvent::ConnectionError {
+                                                    peer: Some(peer),
+                                                    error: "blob provider does not support streaming writes".into(),
+                                                });
+                                                let _ = event_tx.try_send(PeerEvent::BlobResponseReceived {
+                                                    cid: response.cid.clone(),
+                                                    size: response.size,
+                                                    found: true,
+                                                    stored: false,
+                                                });
+                                                continue;
+                                            }
+                                            Err(err) => {
+                                                let _ = event_tx.try_send(PeerEvent::ConnectionError {
+                                                    peer: Some(peer),
+                                                    error: format!("failed to begin streaming blob write: {err}"),
+                                                });
+                                                let _ = event_tx.try_send(PeerEvent::BlobResponseReceived {
+                                                    cid: response.cid.clone(),
+                                                    size: response.size,
+                                                    found: true,
+                                                    stored: false,
+                                                });
+                                                continue;
+                                            }
+                                        }
+                                    }
+
+                                    if let Some(state) = blob_downloads.get_mut(&key) {
+                                        if state.next_offset != response.offset {
+                                            if let Some(writer) = blob_downloads.remove(&key).map(|s| s.writer) {
+                                                let _ = writer.abort().await;
+                                            }
+                                            let _ = event_tx.try_send(PeerEvent::ConnectionError {
+                                                peer: Some(peer),
+                                                error: "received out-of-order blob chunk".into(),
+                                            });
+                                            let _ = event_tx.try_send(PeerEvent::BlobResponseReceived {
+                                                cid: response.cid.clone(),
+                                                size: response.size,
+                                                found: true,
+                                                stored: false,
+                                            });
+                                            continue;
+                                        }
+
+                                        if let Err(err) = state.writer.write_chunk(response.offset, &response.data).await {
+                                            if let Some(writer) = blob_downloads.remove(&key).map(|s| s.writer) {
+                                                let _ = writer.abort().await;
+                                            }
+                                            let _ = event_tx.try_send(PeerEvent::ConnectionError {
+                                                peer: Some(peer),
+                                                error: format!("failed to persist blob chunk: {err}"),
+                                            });
+                                            let _ = event_tx.try_send(PeerEvent::BlobResponseReceived {
+                                                cid: response.cid.clone(),
+                                                size: response.size,
+                                                found: true,
+                                                stored: false,
+                                            });
+                                            continue;
+                                        }
+
+                                        state.next_offset += chunk_len;
+                                        let done = state.next_offset >= state.total_size || response.eof;
+                                        if done {
+                                            if let Some(state) = blob_downloads.remove(&key) {
+                                                let stored = state.writer.finish().await.unwrap_or(false);
+                                                let _ = event_tx.try_send(PeerEvent::BlobResponseReceived {
+                                                    cid: response.cid.clone(),
+                                                    size: response.size,
+                                                    found: true,
+                                                    stored,
+                                                });
+                                            }
+                                        } else {
+                                            let next_len = state
+                                                .chunk_size
+                                                .min(MAX_BLOB_MESSAGE_BYTES.saturating_sub(1024) as u32);
+                                            let next_request = BlobRequest {
+                                                cid: response.cid.clone(),
+                                                space_id: space_id.clone(),
+                                                offset: state.next_offset,
+                                                length: next_len,
+                                            };
+                                            let _ = swarm.behaviour_mut().blob.send_request(&peer, next_request);
+                                        }
                                     }
                                 } else {
-                                    false
-                                };
-                                let _ = event_tx.try_send(PeerEvent::BlobResponseReceived {
-                                    cid: response.cid.clone(),
-                                    size: response.size,
-                                    found: response.found,
-                                    stored,
-                                });
+                                    let _ = event_tx.try_send(PeerEvent::ConnectionError {
+                                        peer: Some(peer),
+                                        error: "blob response but no provider attached".into(),
+                                    });
+                                    let _ = event_tx.try_send(PeerEvent::BlobResponseReceived {
+                                        cid: response.cid.clone(),
+                                        size: response.size,
+                                        found: true,
+                                        stored: false,
+                                    });
+                                }
                             }
                         },
                         reqres::Event::OutboundFailure { peer, error, .. } => {
