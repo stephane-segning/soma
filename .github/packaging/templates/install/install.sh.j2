@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-DAEMONS_VERSION="$version"
-DAEMONS_TAG="daemons-v$version"
-DESKTOP_VERSION="$desktop_version"
-DESKTOP_TAG="desktop-v$desktop_version"
+BUNDLE_VERSION="$bundle_version"
+BUNDLE_TAG="bundle-$bundle_version"
 REPO="$repo"
 
 os="$(uname -s | tr '[:upper:]' '[:lower:]')"
@@ -27,23 +25,35 @@ base="https://github.com/$REPO/releases/download"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
-curl -fsSL "$base/$DAEMONS_TAG/SHA256SUMS-$OS-$ARCH.txt" -o "$tmp/SHA256SUMS-daemons.txt"
-curl -fsSL "$base/$DAEMONS_TAG/soma-daemon-$version-$OS-$ARCH.tar.gz" -o "$tmp/soma-daemon.tar.gz"
-curl -fsSL "$base/$DAEMONS_TAG/soma-agentd-$version-$OS-$ARCH.tar.gz" -o "$tmp/soma-agentd.tar.gz"
-
-if command -v sha256sum >/dev/null 2>&1; then
-  (cd "$tmp" && sha256sum -c SHA256SUMS-daemons.txt)
-elif command -v shasum >/dev/null 2>&1; then
-  (cd "$tmp" && shasum -a 256 -c SHA256SUMS-daemons.txt)
-else
-  echo "WARN: no sha256sum/shasum available; skipping checksum verification" >&2
+if [ "$OS" = "macos" ]; then
+  PKG="soma-bundle-$BUNDLE_VERSION-macos-$ARCH.pkg"
+  URL="$base/$BUNDLE_TAG/$PKG"
+  curl -fsSL "$URL" -o "$tmp/$PKG"
+  echo "Downloaded $PKG"
+  sudo installer -pkg "$tmp/$PKG" -target /
+  # Clear quarantine on the installed unsigned app (dev distribution).
+  xattr -dr com.apple.quarantine "/Applications/soma-app.app" 2>/dev/null || true
+  xattr -cr "/Applications/soma-app.app" 2>/dev/null || true
+  echo "Installed bundle package (includes soma-daemon, soma-agentd, and soma-app)"
+elif [ "$OS" = "linux" ]; then
+  DEB="soma-bundle-$BUNDLE_VERSION-linux-$ARCH.deb"
+  RPM="soma-bundle-$BUNDLE_VERSION-linux-$ARCH.rpm"
+  if command -v dpkg >/dev/null 2>&1; then
+    URL="$base/$BUNDLE_TAG/$DEB"
+    curl -fsSL "$URL" -o "$tmp/$DEB"
+    echo "Downloaded $DEB"
+    sudo dpkg -i "$tmp/$DEB"
+    echo "Installed bundle package (includes soma-daemon, soma-agentd, and soma-app AppImage)"
+  elif command -v rpm >/dev/null 2>&1; then
+    URL="$base/$BUNDLE_TAG/$RPM"
+    curl -fsSL "$URL" -o "$tmp/$RPM"
+    echo "Downloaded $RPM"
+    sudo rpm -Uvh "$tmp/$RPM"
+    echo "Installed bundle package (includes soma-daemon, soma-agentd, and soma-app AppImage)"
+  else
+    echo "No supported package manager found (need dpkg or rpm)" >&2
+    exit 1
+  fi
 fi
 
-tar -xzf "$tmp/soma-daemon.tar.gz" -C "$tmp"
-tar -xzf "$tmp/soma-agentd.tar.gz" -C "$tmp"
-
-install -m 0755 "$tmp/soma-daemon" $install_prefix/bin/soma-daemon
-install -m 0755 "$tmp/soma-agentd" $install_prefix/bin/soma-agentd
-
-echo "Installed soma-daemon and soma-agentd to $install_prefix/bin"
-echo "Desktop installer is available at: $base/$DESKTOP_TAG/"
+echo "Release page: https://github.com/$REPO/releases/tag/$BUNDLE_TAG"

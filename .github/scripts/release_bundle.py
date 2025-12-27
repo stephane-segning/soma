@@ -163,7 +163,7 @@ def main() -> int:
     run(["tar", "-xzf", daemon_tgz, "-C", staging])
     run(["tar", "-xzf", agent_tgz, "-C", staging])
 
-    # Resolve desktop artifact name for this OS/arch (prefer native bundles: macOS .app, Linux .AppImage).
+    # Resolve desktop artifact name for this OS/arch (Linux AppImage; macOS tar.gz containing a .app).
     desktop_asset = None
     for ext in ("AppImage", "tar.gz", "app", "zip"):
         try:
@@ -180,6 +180,10 @@ def main() -> int:
         raise RuntimeError(
             f"desktop artifact not found for {platform_os}-{platform_arch} ({desktop_version}); expected .AppImage (linux) or .app/.tar.gz bundle (macOS)"
         )
+
+    # Download desktop artifact into staging so we can embed it into the bundle OS package.
+    desktop_path = os.path.join(staging, desktop_asset["name"])
+    download(desktop_asset["url"], token, desktop_path)
 
     docker_images = os.environ.get("DOCKER_IMAGES", "").strip()
 
@@ -265,6 +269,16 @@ def main() -> int:
         shutil.copy2(systemd_path, os.path.join(pkgroot, "usr", "lib", "systemd", "system", "soma-daemon.service"))
         shutil.copy2(systemd_agent_path, os.path.join(pkgroot, "usr", "lib", "systemd", "system", "soma-agentd.service"))
 
+        # Embed the desktop AppImage.
+        if not desktop_asset["name"].endswith(".AppImage"):
+            raise RuntimeError(f"unexpected linux desktop artifact (expected .AppImage): {desktop_asset['name']}")
+        desktop_dst = os.path.join(pkgroot, "usr", "local", "bin", "soma-app.AppImage")
+        shutil.copy2(desktop_path, desktop_dst)
+        link_path = os.path.join(pkgroot, "usr", "local", "bin", "soma-app")
+        if os.path.lexists(link_path):
+            os.remove(link_path)
+        os.symlink("soma-app.AppImage", link_path)
+
         deb_out = os.path.join(platform_out, f"{name_base}.deb")
         rpm_out = os.path.join(platform_out, f"{name_base}.rpm")
         for fmt, outp, arch in (("deb", deb_out, platform_arch), ("rpm", rpm_out, rpm_arch)):
@@ -282,7 +296,7 @@ def main() -> int:
                     "-a",
                     arch,
                     "--description",
-                    "Soma bundle (daemon + agentd)",
+                    "Soma bundle (daemon + agentd + desktop app)",
                     "--url",
                     pages_url,
                     "--prefix",
@@ -296,21 +310,6 @@ def main() -> int:
             )
             produced.append(outp)
 
-        # Zip bundle (with service + README).
-        zip_out = os.path.join(platform_out, f"{name_base}.zip")
-        run(
-            [
-                "zip",
-                "-j",
-                zip_out,
-                os.path.join(staging, "soma-daemon"),
-                os.path.join(staging, "soma-agentd"),
-                systemd_agent_path,
-                systemd_path,
-                os.path.join(staging, "README.md"),
-            ]
-        )
-        produced.append(zip_out)
     else:
         pkg_root = os.path.join(platform_out, "pkgroot")
         if os.path.exists(pkg_root):
@@ -318,6 +317,7 @@ def main() -> int:
         os.makedirs(os.path.join(pkg_root, "usr", "local", "bin"), exist_ok=True)
         os.makedirs(os.path.join(pkg_root, "usr", "local", "share", "soma"), exist_ok=True)
         os.makedirs(os.path.join(pkg_root, "Library", "LaunchDaemons"), exist_ok=True)
+        os.makedirs(os.path.join(pkg_root, "Applications"), exist_ok=True)
 
         shutil.copy2(os.path.join(staging, "soma-daemon"), os.path.join(pkg_root, "usr", "local", "bin", "soma-daemon"))
         shutil.copy2(os.path.join(staging, "soma-agentd"), os.path.join(pkg_root, "usr", "local", "bin", "soma-agentd"))
@@ -325,12 +325,26 @@ def main() -> int:
         shutil.copy2(plist_path, os.path.join(pkg_root, "Library", "LaunchDaemons", "digital.camer.soma.daemon.plist"))
         shutil.copy2(plist_agent_path, os.path.join(pkg_root, "Library", "LaunchDaemons", "digital.camer.soma.agentd.plist"))
 
+        # Embed the desktop .app (downloaded as a tar.gz in the desktop release).
+        app_name = "soma-app.app"
+        if desktop_asset["name"].endswith(".tar.gz"):
+            run(["tar", "-xzf", desktop_path, "-C", staging])
+            staged_app = os.path.join(staging, app_name)
+        elif desktop_asset["name"].endswith(".app"):
+            staged_app = desktop_path
+        else:
+            raise RuntimeError(f"unexpected macOS desktop artifact (expected .tar.gz or .app): {desktop_asset['name']}")
+
+        if not os.path.isdir(staged_app):
+            raise RuntimeError(f"expected .app bundle not found after extract: {staged_app}")
+        shutil.copytree(staged_app, os.path.join(pkg_root, "Applications", app_name), dirs_exist_ok=True)
+
         pkg_out = os.path.join(platform_out, f"{name_base}.pkg")
         run(
             [
                 "pkgbuild",
                 "--identifier",
-                "digital.camer.soma.daemon",
+                "digital.camer.soma.bundle",
                 "--version",
                 bundle_version,
                 "--root",
@@ -342,26 +356,7 @@ def main() -> int:
         )
         produced.append(pkg_out)
 
-        zip_out = os.path.join(platform_out, f"{name_base}.zip")
-        run(
-            [
-                "zip",
-                "-j",
-                zip_out,
-                os.path.join(staging, "soma-daemon"),
-                os.path.join(staging, "soma-agentd"),
-                plist_agent_path,
-                plist_path,
-                os.path.join(staging, "README.md"),
-            ]
-        )
-        produced.append(zip_out)
-
-    # Best-effort: also download the matching desktop installer into the output dir (not packaged).
-    if desktop_asset is not None:
-        desktop_path = os.path.join(platform_out, desktop_asset["name"])
-        download(desktop_asset["url"], token, desktop_path)
-        produced.append(desktop_path)
+    # Desktop is embedded into the OS package; do not ship a standalone desktop artifact as part of the bundle release.
 
     outputs = {
         "bundle_version": bundle_version,

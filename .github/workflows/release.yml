@@ -83,7 +83,7 @@ jobs:
           makeLatest: ${{ steps.meta.outputs.make_latest }}
           draft: false
           body: |
-            Soma bundle packages (daemon + agentd + pointers to desktop + docker images).
+            Soma bundle packages (daemon + agentd + desktop app + docker images).
 
             Use `install.sh` from the matching OS/arch package directory, or see the GitHub Pages docs.
 
