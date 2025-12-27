@@ -64,10 +64,6 @@ runs:
             export LIBRARY_PATH="/usr/aarch64-linux-gnu/lib:${LIBRARY_PATH:-}"
           fi
         fi
-        if [ "${{ runner.os }}" = "Linux" ]; then
-          export PROTOC=/usr/bin/protoc
-          export PROTOC_INCLUDE=/usr/include
-        fi
         cargo build --release --target "${{ inputs.target }}" ${{ inputs.args }}
 
     - name: Cargo build (cross)
