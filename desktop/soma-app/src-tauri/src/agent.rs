@@ -29,6 +29,7 @@ impl AgentConfig {
     }
 }
 
+#[derive(Debug)]
 pub struct AgentApi {
     config: AgentConfig,
     client: Mutex<Option<AgentClient<Channel>>>,

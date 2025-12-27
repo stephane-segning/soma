@@ -1,16 +1,18 @@
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::{Mutex, OnceLock};
 
+use crate::handlers::handler::SomaHandler;
+use crate::handlers::remember::{RememberHandler, RememberRouteParams};
+use crate::{error::AppError, state::ManagedState};
 use anyhow;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use soma_proto_build::daemon::{
-    CreateSpaceRequest, DeleteSpaceRequest, GetSpaceRequest, ListSpacesRequest,
-    UpdateSpaceRequest, UploadBlobRequest, UpsertDocumentRequest,
+    CreateSpaceRequest, DeleteSpaceRequest, GetSpaceRequest, ListSpacesRequest, UpdateSpaceRequest,
+    UploadBlobRequest, UpsertDocumentRequest,
 };
+use tauri::ipc::IpcResponse;
 use tauri::{AppHandle, State};
-
-use crate::{error::AppError, state::ManagedState};
 
 type CmdResult<T> = Result<T, String>;
 
@@ -20,29 +22,6 @@ pub trait CommandHandler: Send + Sync + 'static {
 
 pub struct AppCommandHandler {
     state: ManagedState,
-}
-
-impl AppCommandHandler {
-    pub fn new(state: ManagedState) -> Self {
-        Self { state }
-    }
-}
-
-impl CommandHandler for AppCommandHandler {
-    fn remember_route(&self, app: &AppHandle, route: String) -> anyhow::Result<()> {
-        self.state.store.persist_route(app, route)
-    }
-}
-
-#[derive(Clone)]
-pub struct CommandState {
-    handler: Arc<dyn CommandHandler>,
-}
-
-impl CommandState {
-    pub fn new(handler: Arc<dyn CommandHandler>) -> Self {
-        Self { handler }
-    }
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -66,12 +45,18 @@ pub struct SpacesListResponse {
 #[tauri::command]
 pub async fn remember_route(
     app: tauri::AppHandle,
-    state: State<'_, CommandState>,
-    route: String,
+    state: State<'_, SomaHandler>,
+    request: tauri::ipc::Request<'_>,
 ) -> Result<(), String> {
+    let tauri::ipc::InvokeBody::Json(data) = request.body() else {
+        return Err("awaiting a json".to_string());
+    };
+
+    let body: RememberRouteParams =
+        serde_json::from_value(data.clone()).expect("failed to deserialize");
+
     state
-        .handler
-        .remember_route(&app, route)
+        .remember_route(body)
         .map_err(|error| error.to_string())
 }
 
@@ -202,10 +187,7 @@ pub async fn spaces_create(
 }
 
 #[tauri::command]
-pub async fn spaces_get(
-    state: State<'_, ManagedState>,
-    space_id: String,
-) -> CmdResult<SpaceDto> {
+pub async fn spaces_get(state: State<'_, ManagedState>, space_id: String) -> CmdResult<SpaceDto> {
     let payload = GetSpaceRequest { space_id };
     state
         .daemon
@@ -251,10 +233,7 @@ pub async fn spaces_update(
 }
 
 #[tauri::command]
-pub async fn spaces_delete(
-    state: State<'_, ManagedState>,
-    space_id: String,
-) -> CmdResult<bool> {
+pub async fn spaces_delete(state: State<'_, ManagedState>, space_id: String) -> CmdResult<bool> {
     let payload = DeleteSpaceRequest { space_id };
     state
         .daemon

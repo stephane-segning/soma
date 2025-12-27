@@ -1,6 +1,7 @@
 use std::{fs, path::PathBuf, sync::OnceLock};
 
-use anyhow::{Context, Result};
+use crate::error::AppResult;
+use anyhow::Context;
 use derive_builder::Builder;
 use tauri::{AppHandle, Manager, Wry};
 
@@ -11,7 +12,7 @@ pub struct AppPaths {
 }
 
 impl AppPaths {
-    pub fn from_app(app: &AppHandle<Wry>) -> Result<Self> {
+    pub fn from_app(app: &AppHandle<Wry>) -> AppResult<Self> {
         let data_dir = app
             .path()
             .app_data_dir()
@@ -41,7 +42,7 @@ impl AppPaths {
     }
 }
 
-pub fn ensure_app_paths(lock: &OnceLock<AppPaths>, app: &AppHandle<Wry>) -> Result<AppPaths> {
+pub fn ensure_app_paths(lock: &OnceLock<AppPaths>, app: &AppHandle<Wry>) -> AppResult<AppPaths> {
     if let Some(paths) = lock.get() {
         return Ok(paths.clone());
     }

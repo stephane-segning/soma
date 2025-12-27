@@ -3,11 +3,11 @@ use std::{
     sync::{Arc, OnceLock},
 };
 
+use crate::error::AppResult;
+use crate::paths::{ensure_app_paths, AppPaths};
 use anyhow::Result;
 use tauri::{AppHandle, Wry};
 use tracing::{debug, info, warn};
-
-use crate::paths::{AppPaths, ensure_app_paths};
 
 pub trait Bootstrapper: Send + Sync {
     fn init(self: Arc<Self>, app: &AppHandle<Wry>) -> Result<()>;
@@ -24,7 +24,7 @@ impl MainBootstrap {
         }
     }
 
-    fn ensure_paths(&self, app: &AppHandle<Wry>) -> Result<AppPaths> {
+    fn ensure_paths(&self, app: &AppHandle<Wry>) -> AppResult<AppPaths> {
         ensure_app_paths(&self.paths, app)
     }
 

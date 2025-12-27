@@ -4,10 +4,11 @@ use tauri::{Manager, Wry};
 use tauri_plugin_deep_link::DeepLinkExt;
 use tracing::info;
 
+use crate::handlers::handler::SomaHandlerBuilder;
 use crate::{
     agent::AgentApi,
     bootstrap::{Bootstrapper, MainBootstrap},
-    commands::{AppCommandHandler, CommandHandler, CommandState},
+    commands::{AppCommandHandler, CommandHandler},
     daemon::DaemonApi,
     protocol::{BlobProtocol, ProtocolRegistrar},
     state::{AppStateStore, FileStateStore, ManagedState},
@@ -95,16 +96,21 @@ impl SomaApp {
 
         builder
             .setup(move |app| {
+                let handle = app.handle();
+
                 let daemon = DaemonApi::from_app(&app.handle())?;
                 let agent = AgentApi::from_app(&app.handle())?;
-                let managed_state = ManagedState::new(state_store.clone(), daemon, agent);
-                let command_handler: Arc<dyn CommandHandler> =
-                    Arc::new(AppCommandHandler::new(managed_state.clone()));
-                let command_state = CommandState::new(command_handler);
-                app.manage(managed_state);
-                app.manage(command_state);
 
-                let handle = app.handle();
+                let managed_state =
+                    ManagedState::new(state_store.clone(), daemon, agent, Arc::new(handle.clone()));
+
+                let soma_handler = SomaHandlerBuilder::default()
+                    .state(managed_state.clone())
+                    .build()?;
+
+                app.manage(managed_state);
+                app.manage(soma_handler);
+
                 bootstrapper.clone().init(&handle)?;
                 window_controller.clone().create_or_restore(&handle)?;
 

@@ -45,6 +45,7 @@ impl DaemonConfig {
     }
 }
 
+#[derive(Debug)]
 pub struct DaemonApi {
     config: DaemonConfig,
     client: Mutex<Option<GrpcDaemonClient<Channel>>>,

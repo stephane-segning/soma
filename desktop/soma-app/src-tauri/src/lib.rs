@@ -9,5 +9,6 @@ mod protocol;
 mod state;
 mod transport;
 mod window;
+mod handlers;
 
 pub use application::AppEntrypoint;

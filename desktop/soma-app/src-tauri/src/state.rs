@@ -1,15 +1,15 @@
+use crate::error::AppResult;
+use crate::paths::{ensure_app_paths, AppPaths};
+use anyhow::Context;
+use derive_builder::Builder;
+use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use std::{
     fs,
     io::Write,
     sync::{Mutex, OnceLock},
 };
-
-use anyhow::{Context, Result};
-use derive_builder::Builder;
-use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Wry};
-
-use crate::paths::{AppPaths, ensure_app_paths};
 
 #[derive(Builder, Clone, Debug, Serialize, Deserialize, Default)]
 pub struct WindowBounds {
@@ -26,9 +26,9 @@ pub struct AppSnapshot {
 }
 
 pub trait AppStateStore: Send + Sync + 'static {
-    fn load(&self, app: &AppHandle<Wry>) -> Result<AppSnapshot>;
-    fn persist_route(&self, app: &AppHandle<Wry>, route: String) -> Result<()>;
-    fn persist_window(&self, app: &AppHandle<Wry>, bounds: WindowBounds) -> Result<()>;
+    fn load(&self, app: &AppHandle<Wry>) -> AppResult<AppSnapshot>;
+    fn persist_route(&self, app: &AppHandle<Wry>, route: String) -> AppResult<()>;
+    fn persist_window(&self, app: &AppHandle<Wry>, bounds: WindowBounds) -> AppResult<()>;
 }
 
 pub struct FileStateStore {
@@ -46,11 +46,11 @@ impl Default for FileStateStore {
 }
 
 impl FileStateStore {
-    fn ensure_paths(&self, app: &AppHandle<Wry>) -> Result<AppPaths> {
+    fn ensure_paths(&self, app: &AppHandle<Wry>) -> AppResult<AppPaths> {
         ensure_app_paths(&self.paths, app)
     }
 
-    fn load_from_disk(&self, paths: &AppPaths) -> Result<AppSnapshot> {
+    fn load_from_disk(&self, paths: &AppPaths) -> AppResult<AppSnapshot> {
         if !paths.state_file().exists() {
             return Ok(AppSnapshot::default());
         }
@@ -64,7 +64,7 @@ impl FileStateStore {
         Ok(snapshot)
     }
 
-    fn write_snapshot(&self, paths: &AppPaths, snapshot: &AppSnapshot) -> Result<()> {
+    fn write_snapshot(&self, paths: &AppPaths, snapshot: &AppSnapshot) -> AppResult<()> {
         let serialized = serde_json::to_vec_pretty(snapshot)
             .context("failed to serialize app state snapshot")?;
         let mut file = fs::File::create(paths.state_file())
@@ -75,7 +75,7 @@ impl FileStateStore {
         Ok(())
     }
 
-    fn read_or_cached_snapshot(&self, paths: &AppPaths) -> Result<AppSnapshot> {
+    fn read_or_cached_snapshot(&self, paths: &AppPaths) -> AppResult<AppSnapshot> {
         let cached = self.snapshot.lock().expect("state mutex poisoned").clone();
         if cached.last_route.is_some() || cached.window.is_some() {
             return Ok(cached);
@@ -97,12 +97,12 @@ impl FileStateStore {
 }
 
 impl AppStateStore for FileStateStore {
-    fn load(&self, app: &AppHandle<Wry>) -> Result<AppSnapshot> {
+    fn load(&self, app: &AppHandle<Wry>) -> AppResult<AppSnapshot> {
         let paths = self.ensure_paths(app)?;
         self.read_or_cached_snapshot(&paths)
     }
 
-    fn persist_route(&self, app: &AppHandle<Wry>, route: String) -> Result<()> {
+    fn persist_route(&self, app: &AppHandle<Wry>, route: String) -> AppResult<()> {
         let paths = self.ensure_paths(app)?;
         let normalized = Self::normalize_route(route);
         let mut snapshot = self.snapshot.lock().expect("state mutex poisoned").clone();
@@ -113,7 +113,7 @@ impl AppStateStore for FileStateStore {
         Ok(())
     }
 
-    fn persist_window(&self, app: &AppHandle<Wry>, bounds: WindowBounds) -> Result<()> {
+    fn persist_window(&self, app: &AppHandle<Wry>, bounds: WindowBounds) -> AppResult<()> {
         let paths = self.ensure_paths(app)?;
         let mut snapshot = self.snapshot.lock().expect("state mutex poisoned").clone();
         snapshot.window = Some(bounds);
@@ -126,21 +126,24 @@ impl AppStateStore for FileStateStore {
 
 #[derive(Builder, Clone)]
 pub struct ManagedState {
-    pub store: std::sync::Arc<dyn AppStateStore>,
-    pub daemon: std::sync::Arc<crate::daemon::DaemonApi>,
-    pub agent: std::sync::Arc<crate::agent::AgentApi>,
+    pub app: Arc<AppHandle<Wry>>,
+    pub store: Arc<dyn AppStateStore>,
+    pub daemon: Arc<crate::daemon::DaemonApi>,
+    pub agent: Arc<crate::agent::AgentApi>,
 }
 
 impl ManagedState {
     pub fn new(
-        store: std::sync::Arc<dyn AppStateStore>,
-        daemon: std::sync::Arc<crate::daemon::DaemonApi>,
-        agent: std::sync::Arc<crate::agent::AgentApi>,
+        store: Arc<dyn AppStateStore>,
+        daemon: Arc<crate::daemon::DaemonApi>,
+        agent: Arc<crate::agent::AgentApi>,
+        app: Arc<AppHandle<Wry>>,
     ) -> Self {
         Self {
             store,
             daemon,
             agent,
+            app,
         }
     }
 }
