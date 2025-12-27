@@ -1,14 +1,24 @@
+import { consoleForwardPlugin } from "@0xbigboss/vite-console-forward-plugin";
 import react from "@vitejs/plugin-react";
 import basex from "base-x";
 import { defineConfig } from "vite";
 import { ViteMinifyPlugin } from "vite-plugin-minify";
+import topLevelAwait from "vite-plugin-top-level-await";
+import wasm from "vite-plugin-wasm";
 import tsconfigPaths from "vite-tsconfig-paths";
 
 const host = process.env.TAURI_DEV_HOST as string;
 
 // https://vite.dev/config/
 export default defineConfig(async () => ({
-	plugins: [react(), tsconfigPaths(), ViteMinifyPlugin({})],
+	plugins: [
+		react(),
+		tsconfigPaths(),
+		ViteMinifyPlugin({}),
+		consoleForwardPlugin({}),
+		wasm(),
+		topLevelAwait(),
+	],
 
 	// Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
 	//
@@ -32,6 +42,6 @@ export default defineConfig(async () => ({
 		},
 	},
 	build: {
-		chunkSizeWarningLimit: 2_000, // 2KB
+		chunkSizeWarningLimit: 5_000, // 2KB
 	},
 }));
