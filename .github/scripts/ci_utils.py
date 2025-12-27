@@ -3,7 +3,7 @@
 Small CI helper utilities to keep workflow bash clean.
 
 Usage:
-  python .github/scripts/ci_utils.py workspace-version --path backend/Cargo.toml
+  python .github/scripts/ci_utils.py workspace-version --path Cargo.toml
   python .github/scripts/ci_utils.py desktop-version --path desktop/soma-app/package.json
 """
 

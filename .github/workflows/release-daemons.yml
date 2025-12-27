@@ -45,9 +45,9 @@ jobs:
           if [ -n "${{ inputs.version }}" ]; then
             VERSION="${{ inputs.version }}"
           else
-            VERSION="$(python3 .github/scripts/ci_utils.py workspace-version --path backend/Cargo.toml)"
+            VERSION="$(python3 .github/scripts/ci_utils.py workspace-version --path Cargo.toml)"
             if [ -z "$VERSION" ]; then
-              echo "Failed to resolve backend workspace version from backend/Cargo.toml" >&2
+              echo "Failed to resolve backend workspace version from Cargo.toml" >&2
               exit 1
             fi
           fi
@@ -115,9 +115,9 @@ jobs:
       - name: Build soma-daemon + soma-agentd
         uses: ./.github/actions/cargo-cross-build
         with:
-          working_directory: backend
+          working_directory: .
           target: ${{ matrix.target }}
-          args: --locked -p soma-daemon -p soma-agentd
+          args: --locked --release -p soma-daemon -p soma-agentd
 
       - name: Package artifacts
         id: pkg
@@ -126,8 +126,8 @@ jobs:
           set -euo pipefail
           OUT="artifacts/daemons/${{ matrix.os }}-${{ matrix.arch }}"
           mkdir -p "$OUT"
-          DAEMON="backend/target/${{ matrix.target }}/prod/soma-daemon"
-          AGENT="backend/target/${{ matrix.target }}/prod/soma-agentd"
+          DAEMON="target/${{ matrix.target }}/release/soma-daemon"
+          AGENT="target/${{ matrix.target }}/release/soma-agentd"
           cp "$DAEMON" "$OUT/soma-daemon"
           cp "$AGENT" "$OUT/soma-agentd"
           SUMS="SHA256SUMS-${{ matrix.os }}-${{ matrix.arch }}.txt"

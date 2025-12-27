@@ -71,7 +71,7 @@ runs:
       run: |
         set -euo pipefail
         PKG="${{ inputs.app }}"
-        VERSION="$(node -p "require('./desktop/' + PKG + '/package.json').version")"
+        VERSION="$(node -p "require(`./desktop/${PKG}/package.json`).version")"
         echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
     - name: Build app (Tauri)

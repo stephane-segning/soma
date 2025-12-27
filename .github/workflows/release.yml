@@ -15,7 +15,7 @@ on:
         description: Mark the GitHub Release as prerelease
         required: false
         type: boolean
-        default: false
+        default: true
       daemons_version:
         description: Daemons release version (without leading v). If empty, resolves latest daemons-v* via API.
         required: false
