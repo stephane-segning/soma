@@ -101,7 +101,6 @@ pub async fn documents_queue_daemon_sync(
         .daemon
         .upsert_document(payload)
         .await
-        .map(|_| ())
         .map(|_| {
             persist_draft_record(DraftRecord {
                 space_id,
