@@ -1,28 +1,18 @@
 use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
 
+use crate::error::AppResult;
 use crate::handlers::handler::SomaHandler;
 use crate::handlers::remember::{RememberHandler, RememberRouteParams};
 use crate::{error::AppError, state::ManagedState};
-use anyhow;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use soma_proto_build::daemon::{
     CreateSpaceRequest, DeleteSpaceRequest, GetSpaceRequest, ListSpacesRequest, UpdateSpaceRequest,
     UploadBlobRequest, UpsertDocumentRequest,
 };
-use tauri::ipc::IpcResponse;
 use tauri::{AppHandle, State};
-
-type CmdResult<T> = Result<T, String>;
-
-pub trait CommandHandler: Send + Sync + 'static {
-    fn remember_route(&self, app: &AppHandle, route: String) -> anyhow::Result<()>;
-}
-
-pub struct AppCommandHandler {
-    state: ManagedState,
-}
+use tracing::{debug, info};
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -44,20 +34,18 @@ pub struct SpacesListResponse {
 
 #[tauri::command]
 pub async fn remember_route(
-    app: tauri::AppHandle,
     state: State<'_, SomaHandler>,
     request: tauri::ipc::Request<'_>,
-) -> Result<(), String> {
+) -> AppResult<()> {
     let tauri::ipc::InvokeBody::Json(data) = request.body() else {
-        return Err("awaiting a json".to_string());
+        return Err(AppError::BadRequest(
+            "Request body was not JSON".to_string(),
+        ));
     };
 
-    let body: RememberRouteParams =
-        serde_json::from_value(data.clone()).expect("failed to deserialize");
-
-    state
-        .remember_route(body)
-        .map_err(|error| error.to_string())
+    let body: RememberRouteParams = serde_json::from_value(data.clone())?;
+    debug!("Remember route: {:?}", body);
+    state.remember_route(body)
 }
 
 #[tauri::command]
@@ -68,7 +56,7 @@ pub async fn documents_upsert_draft(
     content_json: String,
     published: bool,
     updated_at_ms: i64,
-) -> CmdResult<()> {
+) -> AppResult<()> {
     let payload = UpsertDocumentRequest {
         space_id: space_id.clone(),
         document_id: document_id.clone(),
@@ -81,7 +69,6 @@ pub async fn documents_upsert_draft(
         .upsert_document(payload)
         .await
         .map(|_| ())
-        .map_err(AppError::into_cmd_error)
         .map(|_| {
             persist_draft_record(DraftRecord {
                 space_id,
@@ -101,7 +88,7 @@ pub async fn documents_queue_daemon_sync(
     content_json: String,
     updated_at_ms: i64,
     published: Option<bool>,
-) -> CmdResult<()> {
+) -> AppResult<()> {
     let payload = UpsertDocumentRequest {
         space_id: space_id.clone(),
         document_id: document_id.clone(),
@@ -115,7 +102,6 @@ pub async fn documents_queue_daemon_sync(
         .upsert_document(payload)
         .await
         .map(|_| ())
-        .map_err(AppError::into_cmd_error)
         .map(|_| {
             persist_draft_record(DraftRecord {
                 space_id,
@@ -133,7 +119,7 @@ pub async fn spaces_list(
     limit: Option<u32>,
     offset: Option<u32>,
     q: Option<String>,
-) -> CmdResult<SpacesListResponse> {
+) -> AppResult<SpacesListResponse> {
     let payload = ListSpacesRequest {
         limit: limit.unwrap_or(50),
         offset: offset.unwrap_or(0),
@@ -159,7 +145,6 @@ pub async fn spaces_list(
             offset: res.offset,
             next_offset: res.next_offset,
         })
-        .map_err(AppError::into_cmd_error)
 }
 
 #[tauri::command]
@@ -167,7 +152,7 @@ pub async fn spaces_create(
     state: State<'_, ManagedState>,
     space_id: Option<String>,
     display_name: Option<String>,
-) -> CmdResult<SpaceDto> {
+) -> AppResult<SpaceDto> {
     let payload = CreateSpaceRequest {
         space_id: space_id.unwrap_or_default(),
         display_name: display_name.clone().unwrap_or_default(),
@@ -183,26 +168,20 @@ pub async fn spaces_create(
             owner_peer_id: res.owner_peer_id,
             created_at: chrono::Utc::now().timestamp(),
         })
-        .map_err(AppError::into_cmd_error)
 }
 
 #[tauri::command]
-pub async fn spaces_get(state: State<'_, ManagedState>, space_id: String) -> CmdResult<SpaceDto> {
+pub async fn spaces_get(state: State<'_, ManagedState>, space_id: String) -> AppResult<SpaceDto> {
     let payload = GetSpaceRequest { space_id };
-    state
-        .daemon
-        .get_space(payload)
-        .await
-        .map(|res| {
-            let space = res.space.unwrap_or_default();
-            SpaceDto {
-                space_id: space.space_id,
-                display_name: space.display_name,
-                owner_peer_id: space.owner_peer_id,
-                created_at: space.created_at,
-            }
-        })
-        .map_err(AppError::into_cmd_error)
+    state.daemon.get_space(payload).await.map(|res| {
+        let space = res.space.unwrap_or_default();
+        SpaceDto {
+            space_id: space.space_id,
+            display_name: space.display_name,
+            owner_peer_id: space.owner_peer_id,
+            created_at: space.created_at,
+        }
+    })
 }
 
 #[tauri::command]
@@ -210,37 +189,31 @@ pub async fn spaces_update(
     state: State<'_, ManagedState>,
     space_id: String,
     display_name: Option<String>,
-) -> CmdResult<SpaceDto> {
+) -> AppResult<SpaceDto> {
     let payload = UpdateSpaceRequest {
         space_id,
         display_name: display_name.unwrap_or_default(),
     };
 
-    state
-        .daemon
-        .update_space(payload)
-        .await
-        .map(|res| {
-            let space = res.space.unwrap_or_default();
-            SpaceDto {
-                space_id: space.space_id,
-                display_name: space.display_name,
-                owner_peer_id: space.owner_peer_id,
-                created_at: space.created_at,
-            }
-        })
-        .map_err(AppError::into_cmd_error)
+    state.daemon.update_space(payload).await.map(|res| {
+        let space = res.space.unwrap_or_default();
+        SpaceDto {
+            space_id: space.space_id,
+            display_name: space.display_name,
+            owner_peer_id: space.owner_peer_id,
+            created_at: space.created_at,
+        }
+    })
 }
 
 #[tauri::command]
-pub async fn spaces_delete(state: State<'_, ManagedState>, space_id: String) -> CmdResult<bool> {
+pub async fn spaces_delete(state: State<'_, ManagedState>, space_id: String) -> AppResult<bool> {
     let payload = DeleteSpaceRequest { space_id };
     state
         .daemon
         .delete_space(payload)
         .await
         .map(|res| res.deleted)
-        .map_err(AppError::into_cmd_error)
 }
 
 #[tauri::command]
@@ -250,7 +223,7 @@ pub async fn documents_sync_published(
     document_id: String,
     content_json: String,
     updated_at_ms: i64,
-) -> CmdResult<i32> {
+) -> AppResult<i32> {
     let payload = UpsertDocumentRequest {
         space_id: space_id.clone(),
         document_id: document_id.clone(),
@@ -263,7 +236,6 @@ pub async fn documents_sync_published(
         .upsert_document(payload)
         .await
         .map(|_| 1)
-        .map_err(AppError::into_cmd_error)
         .map(|uploaded| {
             persist_draft_record(DraftRecord {
                 space_id,
@@ -284,7 +256,7 @@ pub async fn blobs_stage(
     bytes: Vec<u8>,
     mime: String,
     file_name: Option<String>,
-) -> CmdResult<BlobStageResult> {
+) -> AppResult<BlobStageResult> {
     let space = space_id.clone();
     let payload = UploadBlobRequest {
         space_id: space_id.clone(),
@@ -293,11 +265,7 @@ pub async fn blobs_stage(
         name: file_name.unwrap_or_else(|| "blob".to_string()),
         doc_id: doc_id.unwrap_or_default(),
     };
-    let res = state
-        .daemon
-        .upload_blob(payload)
-        .await
-        .map_err(AppError::into_cmd_error)?;
+    let res = state.daemon.upload_blob(payload).await?;
 
     Ok(BlobStageResult {
         cid: res.cid.clone(),

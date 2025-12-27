@@ -7,6 +7,6 @@ pub struct RememberRouteParams {
     pub route: String,
 }
 
-pub trait RememberHandler {
+pub trait RememberHandler : Send + Sync + 'static {
     fn remember_route(&self, route: RememberRouteParams) -> AppResult<()>;
 }

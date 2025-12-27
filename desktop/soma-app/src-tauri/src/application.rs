@@ -8,7 +8,6 @@ use crate::handlers::handler::SomaHandlerBuilder;
 use crate::{
     agent::AgentApi,
     bootstrap::{Bootstrapper, MainBootstrap},
-    commands::{AppCommandHandler, CommandHandler},
     daemon::DaemonApi,
     protocol::{BlobProtocol, ProtocolRegistrar},
     state::{AppStateStore, FileStateStore, ManagedState},
