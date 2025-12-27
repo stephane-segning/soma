@@ -59,6 +59,9 @@ runs:
         corepack enable
         corepack prepare pnpm@9.0.0 --activate
 
+    - name: Setup protoc
+      uses: ./.github/actions/setup-protoc
+
     - name: Install dependencies
       shell: bash
       working-directory: ${{ inputs.project_dir }}
@@ -81,9 +84,6 @@ runs:
         CSC_IDENTITY_AUTO_DISCOVERY: "false"
       run: |
         set -euo pipefail
-        export PROTOC=/usr/bin/protoc
-        export PROTOC_INCLUDE=/usr/include
-        
         PKG="${{ inputs.app }}"
         ARCH="${{ inputs.arch }}"
         if [ -n "$ARCH" ]; then

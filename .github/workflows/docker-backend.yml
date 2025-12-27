@@ -52,15 +52,16 @@ jobs:
           set -euo pipefail
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            musl-tools build-essential pkg-config perl protobuf-compiler libprotobuf-dev
+            musl-tools build-essential pkg-config perl
           rustup target add ${{ matrix.target }}
+
+      - name: Setup protoc
+        uses: ./.github/actions/setup-protoc
 
       - name: Build backend binaries (musl)
         shell: bash
         run: |
           set -euo pipefail
-          export PROTOC=/usr/bin/protoc
-          export PROTOC_INCLUDE=/usr/include
           export ${{ matrix.linker_env }}=musl-gcc
           cargo build --release --locked --target "${{ matrix.target }}" \
             -p soma-botd \

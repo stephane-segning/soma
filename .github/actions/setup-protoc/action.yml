@@ -1,0 +1,52 @@
+name: setup-protoc
+description: Install protoc and expose PROTOC/PROTOC_INCLUDE for Linux/macOS runners.
+
+inputs:
+  install_proto_deps:
+    description: Install system protobuf build deps (true/false)
+    required: false
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - name: Install protoc (Linux)
+      if: runner.os == 'Linux' && inputs.install_proto_deps == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends \
+          protobuf-compiler \
+          libprotobuf-dev
+        echo "PROTOC=/usr/bin/protoc" >> "$GITHUB_ENV"
+        echo "PROTOC_INCLUDE=/usr/include" >> "$GITHUB_ENV"
+
+    - name: Install protoc (macOS)
+      if: runner.os == 'macOS' && inputs.install_proto_deps == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        brew update
+        brew install protobuf
+        PREFIX="$(brew --prefix)"
+        echo "PROTOC=${PREFIX}/bin/protoc" >> "$GITHUB_ENV"
+        echo "PROTOC_INCLUDE=${PREFIX}/include" >> "$GITHUB_ENV"
+
+    - name: Export protoc vars if already present
+      shell: bash
+      run: |
+        set -euo pipefail
+        if [ -z "${PROTOC:-}" ] && command -v protoc >/dev/null 2>&1; then
+          echo "PROTOC=$(command -v protoc)" >> "$GITHUB_ENV"
+        fi
+        if [ -z "${PROTOC_INCLUDE:-}" ]; then
+          if [ -d /usr/include/google/protobuf ]; then
+            echo "PROTOC_INCLUDE=/usr/include" >> "$GITHUB_ENV"
+          elif [ "$(uname)" = "Darwin" ]; then
+            PREFIX="${PREFIX:-$(brew --prefix 2>/dev/null || true)}"
+            if [ -n "$PREFIX" ] && [ -d "$PREFIX/include/google/protobuf" ]; then
+              echo "PROTOC_INCLUDE=$PREFIX/include" >> "$GITHUB_ENV"
+            fi
+          fi
+        fi
