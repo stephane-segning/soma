@@ -29,16 +29,11 @@ pub struct DaemonConfig {
 }
 
 impl DaemonConfig {
-    pub fn from_app(app: &AppHandle<Wry>) -> anyhow::Result<Self> {
+    pub fn from_app() -> anyhow::Result<Self> {
         let socket_path = std::env::var_os("SOMA_DAEMON_SOCKET")
             .map(PathBuf::from)
-            .or_else(|| {
-                app.path()
-                    .app_data_dir()
-                    .ok()
-                    .map(|p| p.join("soma-daemon.sock"))
-            })
-            .unwrap_or_else(|| PathBuf::from("soma-daemon.sock"));
+            .unwrap_or_else(|| PathBuf::from("/tmp/soma-daemon.sock"));
+        
         let blob_dir = std::env::var_os("SOMA_BLOB_DIR")
             .map(PathBuf::from)
             .unwrap_or_else(|| PathBuf::from("blobs"));
@@ -56,8 +51,8 @@ pub struct DaemonApi {
 }
 
 impl DaemonApi {
-    pub fn from_app(app: &AppHandle<Wry>) -> anyhow::Result<Arc<Self>> {
-        let config = DaemonConfig::from_app(app)?;
+    pub fn from_app(_app: &AppHandle<Wry>) -> anyhow::Result<Arc<Self>> {
+        let config = DaemonConfig::from_app()?;
         info!("Using soma-daemon socket at {:?}", config.socket_path);
         info!("Assuming daemon blob directory at {:?}", config.blob_dir);
         Ok(Arc::new(Self {

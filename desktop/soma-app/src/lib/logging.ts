@@ -1,19 +1,26 @@
 import { debug, error, info, trace, warn } from "@tauri-apps/plugin-log";
 
-console.log = (...args: string[]) =>
-	info(`[ui] ${args.map((o) => String(o)).join(",")}`);
+function forwardConsole(
+	fnName: "log" | "debug" | "info" | "warn" | "error",
+	logger: (message: string) => Promise<void>,
+) {
+	const original = console[fnName];
+	console[fnName] = (...messages: unknown[]) => {
+		original(...messages);
+		logger(
+			messages
+				.map((i) =>
+					typeof i === "string" || typeof i === "undefined"
+						? i
+						: JSON.stringify(i),
+				)
+				.join(" "),
+		);
+	};
+}
 
-console.trace = (...args: string[]) =>
-	trace(`[ui] ${args.map((o) => String(o)).join(",")}`);
-
-console.info = (...args: string[]) =>
-	info(`[ui] ${args.map((o) => String(o)).join(",")}`);
-
-console.debug = (...args: string[]) =>
-	debug(`[ui] ${args.map((o) => String(o)).join(",")}`);
-
-console.error = (...args: string[]) =>
-	error(`[ui] ${args.map((o) => String(o)).join(",")}`);
-
-console.warn = (...args: string[]) =>
-	warn(`[ui] ${args.map((o) => String(o)).join(",")}`);
+forwardConsole("log", trace);
+forwardConsole("debug", debug);
+forwardConsole("info", info);
+forwardConsole("warn", warn);
+forwardConsole("error", error);

@@ -22,6 +22,7 @@ impl AgentConfig {
         let socket_path = std::env::var_os("SOMA_AGENTD_SOCKET")
             .map(PathBuf::from)
             .unwrap_or_else(|| PathBuf::from("/tmp/soma-agentd.sock"));
+        
         Ok(AgentConfigBuilder::default()
             .socket_path(socket_path)
             .build()?)

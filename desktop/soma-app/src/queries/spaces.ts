@@ -4,7 +4,15 @@ import * as spacesService from "../services/spaces-service";
 function useSpacesQuery() {
 	return useQuery({
 		queryKey: ["spaces"] as const,
-		queryFn: async () => spacesService.listSpaces(),
+		queryFn: async () => {
+			console.log("one.1:");
+			const res = await spacesService.listSpaces().catch((err) => {
+				console.error(`one.3: ${err?.message}`, err);
+				throw err;
+			});
+			console.log("one.2:", res);
+			return res;
+		},
 	});
 }
 

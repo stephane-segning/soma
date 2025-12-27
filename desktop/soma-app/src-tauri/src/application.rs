@@ -32,7 +32,15 @@ impl SomaAppBuilder {
         let builder = tauri::Builder::default()
             .plugin(
                 tauri_plugin_log::Builder::new()
-                    .level(tauri_plugin_log::log::LevelFilter::Info)
+                    .level(tauri_plugin_log::log::LevelFilter::Trace)
+                    .target(tauri_plugin_log::Target::new(
+                        tauri_plugin_log::TargetKind::Stdout,
+                    ))
+                    .target(tauri_plugin_log::Target::new(
+                        tauri_plugin_log::TargetKind::LogDir {
+                            file_name: Some("logs".to_string()),
+                        },
+                    ))
                     .build(),
             )
             .plugin(tauri_plugin_opener::init())
