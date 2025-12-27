@@ -52,7 +52,14 @@ runs:
           libayatana-appindicator3-dev \
           librsvg2-dev \
           patchelf \
-          xdg-utils
+          xdg-utils \
+          desktop-file-utils \
+          shared-mime-info
+        # Ensure xdg-mime is discoverable (linuxdeploy needs it).
+        if ! command -v xdg-mime >/dev/null 2>&1; then
+          echo "xdg-mime still missing after install" >&2
+          exit 1
+        fi
 
     - name: Enable corepack (pnpm)
       shell: bash

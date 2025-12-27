@@ -165,7 +165,7 @@ def main() -> int:
 
     # Resolve desktop artifact name for this OS/arch (prefer native bundles: macOS .app, Linux .AppImage).
     desktop_asset = None
-    for ext in ("AppImage", "app", "tar.gz", "zip"):
+    for ext in ("AppImage", "tar.gz", "app", "zip"):
         try:
             desktop_asset = find_asset(
                 rel_desktop,
@@ -178,7 +178,7 @@ def main() -> int:
             continue
     if desktop_asset is None:
         raise RuntimeError(
-            f"desktop artifact not found for {platform_os}-{platform_arch} ({desktop_version}); expected .AppImage (linux) or .app (macOS)"
+            f"desktop artifact not found for {platform_os}-{platform_arch} ({desktop_version}); expected .AppImage (linux) or .app/.tar.gz bundle (macOS)"
         )
 
     docker_images = os.environ.get("DOCKER_IMAGES", "").strip()

@@ -134,13 +134,24 @@ jobs:
               continue
             fi
             name="$(basename "$f")"
-            if [[ "$name" == *.* ]]; then
-              suffix="${name#*.}" # preserve multi-part extensions like .tar.gz
-              base="soma-desktop-${VERSION}-${{ matrix.os }}-${{ matrix.arch }}.${suffix}"
+            if [[ "$name" == *.tar.gz ]]; then
+              suffix="tar.gz"
+            elif [[ "$name" == *.AppImage ]]; then
+              suffix="AppImage"
+            elif [[ "$name" == *.app ]]; then
+              suffix="app"
+            elif [[ "$name" == *.* ]]; then
+              suffix="${name##*.}"
             else
-              base="soma-desktop-${VERSION}-${{ matrix.os }}-${{ matrix.arch }}"
+              suffix=""
             fi
-            out="${OUT_DIR}/${base}"
+
+            if [ -n "$suffix" ]; then
+              out="${OUT_DIR}/soma-desktop-${VERSION}-${{ matrix.os }}-${{ matrix.arch }}.${suffix}"
+            else
+              out="${OUT_DIR}/soma-desktop-${VERSION}-${{ matrix.os }}-${{ matrix.arch }}"
+            fi
+
             mv "$f" "$out"
             RENAMED+=("$out")
           done
