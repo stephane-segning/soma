@@ -81,6 +81,9 @@ runs:
         CSC_IDENTITY_AUTO_DISCOVERY: "false"
       run: |
         set -euo pipefail
+        export PROTOC=/usr/bin/protoc
+        export PROTOC_INCLUDE=/usr/include
+        
         PKG="${{ inputs.app }}"
         ARCH="${{ inputs.arch }}"
         if [ -n "$ARCH" ]; then

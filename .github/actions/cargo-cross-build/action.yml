@@ -81,7 +81,7 @@ runs:
           export PROTOC=/usr/bin/protoc
           export PROTOC_INCLUDE=/usr/include
         fi
-        cargo build --target "${{ inputs.target }}" ${{ inputs.args }}
+        cargo build --release --target "${{ inputs.target }}" ${{ inputs.args }}
 
     - name: Cargo build (cross)
       if: ${{ inputs.use_cross == 'true' }}

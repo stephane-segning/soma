@@ -62,7 +62,7 @@ jobs:
           export PROTOC=/usr/bin/protoc
           export PROTOC_INCLUDE=/usr/include
           export ${{ matrix.linker_env }}=musl-gcc
-          cargo build --locked --target "${{ matrix.target }}" \
+          cargo build --release --locked --target "${{ matrix.target }}" \
             -p soma-botd \
             -p soma-relayd \
             -p soma-rendezvousd \
@@ -75,11 +75,11 @@ jobs:
           set -euo pipefail
           OUT="dist/backend/linux-${{ matrix.arch }}"
           mkdir -p "$OUT"
-          cp target/${{ matrix.target }}/prod/soma-botd "$OUT/"
-          cp target/${{ matrix.target }}/prod/soma-relayd "$OUT/"
-          cp target/${{ matrix.target }}/prod/soma-rendezvousd "$OUT/"
-          cp target/${{ matrix.target }}/prod/soma-bffd "$OUT/"
-          cp target/${{ matrix.target }}/prod/soma-serverd "$OUT/"
+          cp target/${{ matrix.target }}/release/soma-botd "$OUT/"
+          cp target/${{ matrix.target }}/release/soma-relayd "$OUT/"
+          cp target/${{ matrix.target }}/release/soma-rendezvousd "$OUT/"
+          cp target/${{ matrix.target }}/release/soma-bffd "$OUT/"
+          cp target/${{ matrix.target }}/release/soma-serverd "$OUT/"
           (cd "$OUT" && shasum -a 256 soma-* > SHA256SUMS.txt 2>/dev/null || sha256sum soma-* > SHA256SUMS.txt)
 
       - name: Upload artifacts
