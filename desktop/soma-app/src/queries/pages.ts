@@ -43,8 +43,7 @@ function useUpdatePageTitleMutation() {
 			spaceId: string;
 			pageId: string;
 			title: string;
-		}): Promise<PageRecord | null> =>
-			documentsService.updatePageTitle(input),
+		}): Promise<PageRecord | null> => documentsService.updatePageTitle(input),
 		onSuccess: (data, variables) => {
 			if (data) {
 				void queryClient.invalidateQueries({
@@ -66,8 +65,7 @@ function useSetPageParentsMutation() {
 			spaceId: string;
 			pageId: string;
 			parentPageIds: string[];
-		}): Promise<PageRecord | null> =>
-			documentsService.setPageParents(input),
+		}): Promise<PageRecord | null> => documentsService.setPageParents(input),
 		onSuccess: (_data, variables) => {
 			void queryClient.invalidateQueries({
 				queryKey: ["pages", variables.spaceId],

@@ -1,9 +1,6 @@
+import { useCreateSpaceMutation, useSpacesQuery } from "@soma/queries/spaces";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
-import {
-	useCreateSpaceMutation,
-	useSpacesQuery,
-} from "@soma/queries/spaces";
 
 function Component(): React.JSX.Element {
 	const { t } = useTranslation("common");
@@ -29,7 +26,6 @@ function Component(): React.JSX.Element {
 					</div>
 					<button
 						className="btn btn-primary btn-sm"
-						type="button"
 						disabled={createSpace.isPending}
 						onClick={async () => {
 							try {
@@ -41,6 +37,7 @@ function Component(): React.JSX.Element {
 								// ignore errors for now
 							}
 						}}
+						type="button"
 					>
 						{t("spaces.createCta", "Create new space")}
 					</button>
@@ -74,8 +71,8 @@ function Component(): React.JSX.Element {
 
 				{spaces.map((space) => (
 					<Link
-						key={space.spaceId}
 						className="card border border-base-300 bg-base-100 shadow-sm transition hover:border-primary/40"
+						key={space.spaceId}
 						to={`/spaces/${space.spaceId}/pages`}
 					>
 						<div className="card-body">
@@ -99,7 +96,7 @@ function Component(): React.JSX.Element {
 												? t("spaces.ownerLabel", {
 														defaultValue: "Owner: {{owner}}",
 														owner: space.ownerPeerId,
-												  })
+													})
 												: t("spaces.ownerUnknown", "Owner unknown")}
 										</div>
 									</div>

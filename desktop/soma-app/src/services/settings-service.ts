@@ -17,8 +17,9 @@ export async function setSetting(key: string, value: unknown): Promise<void> {
 }
 
 export async function getLastRoute(): Promise<string> {
-	const bootstrapRoute = (window as unknown as { __SOMA_INITIAL_ROUTE__?: string })
-		.__SOMA_INITIAL_ROUTE__;
+	const bootstrapRoute = (
+		window as unknown as { __SOMA_INITIAL_ROUTE__?: string }
+	).__SOMA_INITIAL_ROUTE__;
 	if (typeof bootstrapRoute === "string" && bootstrapRoute.trim().length > 0) {
 		return normalizeRoute(bootstrapRoute);
 	}

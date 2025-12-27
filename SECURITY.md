@@ -16,14 +16,14 @@ Include, when possible:
 
 - A clear description of the issue and impact.
 - Steps to reproduce or a proof-of-concept.
-- Affected component(s) (e.g. `soma-daemon`, `soma-botd`, `desktop/soma`) and version/commit.
+- Affected component(s) (e.g. `soma-daemon`, `soma-botd`, `desktop/soma-app`) and version/commit.
 - Any relevant logs, configs, or payloads (sanitize secrets).
 
 ## Scope
 
 In scope:
 
-- Desktop apps: `desktop/soma`, `desktop/tapia`
+- Desktop apps: `desktop/soma-app`, `desktop/tapia-app` (legacy Electron app remains in `desktop/tapia`)
 - Desktop backends: `backend/bins/daemon` (`soma-daemon`), `backend/bins/agentd` (`soma-agentd`)
 - Server backends: `backend/bins/botd`, `backend/bins/relayd`, `backend/bins/rendezvousd`, `backend/bins/bffd`, `backend/bins/serverd`
 - Protocols and storage: `proto/`, `backend/crates/*`
@@ -44,4 +44,3 @@ Out of scope:
 
 - Threat model (repo docs): `docs/src/security/threat-model.md`
 - SBOM notes (repo docs): `docs/src/security/sbom.md`
-

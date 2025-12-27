@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
 import { useSpacesQuery } from "@soma/queries/spaces";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 
 function currentSpaceId(hash: string): string | null {
@@ -35,8 +35,9 @@ function SpacesRail(): React.JSX.Element {
 			)}
 			{spaces.map((space) => {
 				const isActive = space.spaceId === activeSpaceId;
-				const initials =
-					(space.displayName || space.spaceId || "?").slice(0, 2).toUpperCase();
+				const initials = (space.displayName || space.spaceId || "?")
+					.slice(0, 2)
+					.toUpperCase();
 				return (
 					<Link
 						className="group"
@@ -51,7 +52,7 @@ function SpacesRail(): React.JSX.Element {
 									: "bg-base-200 ring-transparent hover:ring-base-300",
 							].join(" ")}
 						>
-							<div className="flex h-full items-center justify-center text-sm font-semibold">
+							<div className="flex h-full items-center justify-center font-semibold text-sm">
 								{initials}
 							</div>
 						</div>
@@ -60,7 +61,7 @@ function SpacesRail(): React.JSX.Element {
 			})}
 
 			<Link
-				className="flex size-12 items-center justify-center rounded-2xl bg-base-200 text-lg font-bold ring-2 ring-dashed ring-base-300 transition hover:bg-base-300"
+				className="flex size-12 items-center justify-center rounded-2xl bg-base-200 font-bold text-lg ring-2 ring-base-300 ring-dashed transition hover:bg-base-300"
 				to="/spaces"
 			>
 				+

@@ -59,9 +59,9 @@ Examples:
 
 Desktop UX stages blobs locally and only uploads them to the daemon when the document is synced/published:
 
-- Renderer stages blobs via `window.api.blobs.stage(...)` (`desktop/soma/src/renderer/src/lib/blob.ts`)
-- Main process persists staged bytes under `soma-blob://local/<blobId>` (`desktop/soma/src/main/services/documents-service.ts`)
-- On publish/sync, staged blobs are migrated to daemon CAS via `Daemon/UploadBlob` and a local “blob id → cid” mapping is recorded (`desktop/soma/src/main/services/main-ipc-controller.ts`)
+- Renderer stages blobs via Tauri commands (Rust main process) and keeps a local handle.
+- Main process persists staged bytes under a local `soma-blob://local/<blobId>` URL scheme for renderer access.
+- On publish/sync, staged blobs are migrated to daemon CAS via `Daemon/UploadBlob` and a local “blob id → cid” mapping is recorded.
 
 Daemon API:
 

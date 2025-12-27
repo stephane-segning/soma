@@ -42,7 +42,7 @@ jobs:
           if [ -n "${{ inputs.version }}" ]; then
             VERSION="${{ inputs.version }}"
           else
-            VERSION="$(python3 .github/scripts/ci_utils.py desktop-version --path desktop/soma/package.json)"
+            VERSION="$(python3 .github/scripts/ci_utils.py desktop-version --path desktop/soma-app/package.json)"
           fi
           if [ -n "${{ inputs.tag }}" ]; then
             TAG="${{ inputs.tag }}"
@@ -81,7 +81,7 @@ jobs:
             runs_on: ubuntu-latest
           - os: linux
             arch: arm64
-            runs_on: ubuntu-latest
+            runs_on: ubuntu-24.04-arm
           - os: macos
             arch: amd64
             runs_on: macos-15-intel
@@ -105,8 +105,8 @@ jobs:
         id: package
         uses: ./.github/actions/package-desktop
         with:
-          project_dir: desktop
-          app: soma
+          project_dir: .
+          app: soma-app
           arch: ${{ matrix.arch == 'amd64' && 'x64' || 'arm64' }}
           artifact_dir: artifacts/desktop/${{ matrix.os }}-${{ matrix.arch }}
 
@@ -128,13 +128,18 @@ jobs:
           RENAMED=()
           for f in "${FILES[@]}"; do
             [ -n "$f" ] || continue
-            if [ ! -f "$f" ]; then
+            if [ ! -e "$f" ]; then
               echo "WARN: artifact path not found: $f"
               ls -la "$(dirname "$f")"
               continue
             fi
-            ext="${f##*.}"
-            base="soma-desktop-${VERSION}-${{ matrix.os }}-${{ matrix.arch }}.${ext}"
+            name="$(basename "$f")"
+            if [[ "$name" == *.* ]]; then
+              suffix="${name#*.}" # preserve multi-part extensions like .tar.gz
+              base="soma-desktop-${VERSION}-${{ matrix.os }}-${{ matrix.arch }}.${suffix}"
+            else
+              base="soma-desktop-${VERSION}-${{ matrix.os }}-${{ matrix.arch }}"
+            fi
             out="${OUT_DIR}/${base}"
             mv "$f" "$out"
             RENAMED+=("$out")

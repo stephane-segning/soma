@@ -5,8 +5,8 @@ This section lists the major building blocks in the repo and how they relate.
 ## Level 1: System decomposition
 
 - **Desktop apps** (`desktop/`)
-  - `desktop/soma`: main UI.
-  - `desktop/tapia`: typing companion UI.
+  - `desktop/soma-app`: main UI.
+  - `desktop/tapia-app`: typing companion UI (Tauri).
 - **Backend workspace** (`backend/`)
   - Binaries under `backend/bins/*` (daemons/services).
   - Shared crates under `backend/crates/*` (peer runtime, storage, networking, metrics, …).

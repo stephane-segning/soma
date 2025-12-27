@@ -4,7 +4,7 @@ This page documents a few “follow the bytes” flows across the repo so you ca
 
 ## 1) Desktop app ↔ daemon (local IPC)
 
-- Desktop apps live under `desktop/` (Soma: `desktop/soma`, Tapia: `desktop/tapia`).
+- Desktop apps live under `desktop/` (Soma: `desktop/soma-app`, Tapia: `desktop/tapia-app`).
 - The local daemon is `soma-daemon` (`backend/bins/daemon`) and exposes gRPC over a Unix socket (`SOMA_DAEMON_SOCKET`).
 - Protos: `proto/daemon/v1/daemon.proto` (compiled by `backend/crates/proto-build`).
 
@@ -91,7 +91,7 @@ The desktop renderer initiates a streaming chat request via Electron IPC. The ma
 
 Relevant code (desktop side):
 
-- Renderer: `desktop/soma/src/renderer/src/services/chat-service.ts`
+- Renderer: `desktop/soma-app/src/renderer/src/services/chat-service.ts`
 - Agent engine: `backend/bins/agentd/src/engine.rs`
 
 ```mermaid

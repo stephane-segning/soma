@@ -17,10 +17,9 @@ In this repo, **VDF** refers to a **cache-only peer role** (sometimes casually w
     - Desktop peer/agent binaries: `soma-daemon` (Unix socket; no Axum), `soma-agentd` (desktop-only companion).
     - Server peer/infra binaries: `soma-botd`, `soma-relayd`, `soma-rendezvousd`, `soma-bffd`, `soma-serverd`.
     - Crates: core domain, networking, storage, API, relay, rendezvous, BFF, and shared utilities.
-- `desktop/` – Electron/React applications and packaging.
-    - `desktop/soma/` – main Soma desktop UI.
-    - `desktop/soma-app/` – Soma Tauri v2 app (migration target; Rust main process).
-    - `desktop/tapia/` – Tapia typing companion app.
+- `desktop/` – Desktop applications and packaging.
+    - `desktop/soma-app/` – Soma Tauri v2 app (main/only Soma desktop UI; Rust main process).
+    - `desktop/tapia-app/` – Tapia Tauri v2 app (main Tapia UI; Rust main process). Legacy Electron app remains under `desktop/tapia` but is not the primary target.
 - `docs/` – MkDocs documentation (`docs/src/` for markdown, `docs/mkdocs.yml` for navigation).
 - `proto/` – shared protocol definitions and codegen inputs.
 - `deploy/` – Helm charts and infrastructure manifests.
@@ -30,7 +29,7 @@ In this repo, **VDF** refers to a **cache-only peer role** (sometimes casually w
 When in doubt, place:
 
 - shared Rust logic under an appropriate `backend/crates/*`.
-- UI logic under `desktop/soma` or `desktop/tapia`.
+- UI logic under `desktop/soma-app` or `desktop/tapia-app` (legacy Electron code remains in `desktop/tapia` but should not be extended).
 - long-lived infra logic under `backend/crates/*`.
 - user-facing docs under `docs/src/`.
 
@@ -41,8 +40,8 @@ Docs quickstart:
 
 ## Tech Stack
 
-- **Package manager**: `pnpm` (workspace at `desktop/pnpm-workspace.yaml`).
-- **Desktop apps**: Electron + React + TypeScript (`desktop/soma`, `desktop/tapia`), plus Tauri v2 + Rust main process (`desktop/soma-app`).
+- **Package manager**: `pnpm` (workspace at `pnpm-workspace.yaml`).
+- **Desktop apps**: Tauri v2 + React (`desktop/soma-app`, `desktop/tapia-app`).
 - **Backends**: Rust.
 
 ## CI, Packaging, and Releases
@@ -278,43 +277,34 @@ Shared frontend stack (Soma, Soma-app, Tapia):
 - `pnpm` workspace under `desktop/`
 - `tailwindcss` v4 + `daisyui` v5
 - `@headlessui/react` for accessible unstyled primitives
-- `class-variance-authority` + `tailwind-merge` (see `desktop/soma/src/renderer/src/lib/cn.ts` for the shared `cn` helper)
+- `class-variance-authority` + `tailwind-merge`
 - `floating-ui`
 - `use-debounce`
 - `composed-offset-position`
 - Motion for React (`motion`, https://github.com/motiondivision/motion)
 - Routing: `react-router` core (prefer memory/hash routers for Electron; not `react-router-dom`)
-- i18n: `react-i18next` + `i18next` with `i18next-chained-backend`, `i18next-http-backend`, `i18next-resources-to-backend`, `i18next-browser-languagedetector`; shared instance at `desktop/soma/src/renderer/src/lib/i18n.ts`
+- i18n: `react-i18next` + `i18next` with `i18next-chained-backend`, `i18next-http-backend`, `i18next-resources-to-backend`, `i18next-browser-languagedetector`
 - Command palette + hotkeys: `react-hotkeys-hook` and `react-cmdk`
 
-Soma (`desktop/soma`):
-
-- Uses a client to call the Soma peer/daemon over its Unix socket API.
-- Uses Yoopta for rich text editing (`@yoopta/editor` + `@yoopta/*` tools/plugins).
-- Renderer routes live under `desktop/soma/src/renderer/src/routes/`:
-  - `routes/router.tsx` defines route objects using `react-router` + `createHashRouter`.
-  - `routes/layouts/*` are shell routes that render an `<Outlet />` and shared UI.
-  - `routes/screens/*` are leaf “pages” that render screen content.
-- Uses DaisyUI with two themes.
-- Uses TanStack Query for optimistic UI flows.
-- Main process uses InversifyJS (`inversify` + `reflect-metadata`) for DI; container lives in `desktop/soma/src/main/container.ts`.
+Legacy Electron app (`desktop/soma`): removed/retired in favor of the Tauri app; do not add new code here.
 
 Soma-app (`desktop/soma-app`) (Tauri v2):
 
-- Migration target for Soma UI; Rust main process lives under `desktop/soma-app/src-tauri`.
+- Main Soma UI; Rust main process lives under `desktop/soma-app/src-tauri`.
 - Renderer → main process uses `@tauri-apps/api/core` `invoke(...)` (no Electron preload bridge; no `window.api`).
 - Tauri command state must be registered via `.manage(...)` and accessed with `tauri::State<'_, T>`.
 - Desktop assumes `soma-daemon` is already running; do not start daemons from the renderer.
 - No local blob persistence/caching in the desktop app: uploads go to `soma-daemon`, and renderers should use `soma-blob://daemon/{space_id}/{cid}` URLs for blob references.
 - Local LLM chat runs via `soma-agentd` (gRPC over Unix socket); for model selection and “base vs instruct” behavior, see `docs/src/development/agentd-models.md`.
 
-Tapia (`desktop/tapia`):
+Tapia (`desktop/tapia-app`):
 
 - Uses a client to call the Soma peer/daemon over its Unix socket API (e.g., saving leaderboard state).
 - Uses `simple-keyboard`.
 - Needs “text segmentation + cursor ranges” and a “diff/comparison engine”; choose stable, mature packages from the JavaScript package registry (common candidates: `graphemer` / `grapheme-splitter`, and `diff-match-patch` / `diff`).
 - Uses Motion for micro-interactions (cursor movement/layout animations, color transitions, correct/incorrect feedback).
 - Uses XState for state machines.
+- Legacy Electron app remains in `desktop/tapia` but is not the primary target.
 
 ## Binaries and Responsibilities
 
@@ -322,7 +312,7 @@ This repo intentionally has multiple binaries. Each has a distinct goal and depl
 
 ### Desktop vs Server (rule of thumb)
 
-- **Desktop**: `soma-daemon`, `soma-agentd`, `soma` (UI), `tapia` (UI) — **no Axum**.
+- **Desktop**: `soma-daemon`, `soma-agentd`, `soma-app` (UI), `tapia-app` (UI) — **no Axum**.
 - **Server**: `soma-botd`, `soma-relayd`, `soma-rendezvousd`, `soma-bffd`, `soma-serverd` — **Axum + metrics**.
 
 ### Desktop / Peer Backends (`backend/`)
@@ -362,7 +352,7 @@ This repo intentionally has multiple binaries. Each has a distinct goal and depl
 - Follow the existing component organization in `desktop/*/src` (feature-oriented structure rather than huge generic folders).
 - Use `kebab-case` for new `.ts`/`.tsx` filenames in both renderer and main process code.
 - Use CUIDs for identifiers; do not use UUIDs.
-- Prefer `@renderer/*` imports for renderer code (configured in `desktop/soma/tsconfig.web.json`) over deep relative paths.
+- Prefer `@renderer/*` imports for renderer code (configured per app tsconfig) over deep relative paths.
 - Prefer function components with hooks over class components.
 - Use existing hooks and state containers before adding new global state mechanisms.
 - Keep side effects (I/O, daemon calls) in dedicated hooks or services, not inside presentational components.
@@ -403,11 +393,13 @@ This repo intentionally has multiple binaries. Each has a distinct goal and depl
   ```bash
   cd desktop
   pnpm install
-  pnpm --filter soma run typecheck
-  pnpm --filter soma run lint
+  pnpm --filter soma-app run typecheck
+  pnpm --filter soma-app run lint
   ```
 
-  and similarly for `desktop/tapia` (use `--filter tapia`).
+  and similarly for `desktop/tapia-app` (use `--filter tapia-app`).
+
+- Build desktop apps from the repo root (Tauri runs the frontend build): `pnpm --filter soma-app tauri build -b app` on macOS or `pnpm --filter soma-app tauri build -b appimage` on Linux (replace `soma-app` with `tapia-app` as needed).
 
 - Keep unit tests small and focused; integration tests should run against local daemons where feasible.
 
@@ -415,7 +407,7 @@ This repo intentionally has multiple binaries. Each has a distinct goal and depl
 
 - For end-to-end checks:
     - Run `soma-daemon` from `backend/`.
-    - Start `desktop/soma` or `desktop/tapia` in dev mode.
+    - Start `desktop/soma-app` or `desktop/tapia-app` in dev mode.
     - Exercise join flows, class navigation, and basic messaging.
 
 ## Docker Images (Backend) and Docker Testing
@@ -760,38 +752,7 @@ For how peers (`soma-daemon`, `soma-botd`) use mDNS, rendezvous, and relay clien
 
 ### Desktop (Electron/React) — `desktop/soma`
 
-- Treat `desktop/soma` and `desktop/tapia` as separate products sharing a backend daemon.
-- Keep Electron main-process code (window management, protocol handlers, daemon connectivity checks) separate from renderer React code.
-- Renderer code must **never** start `soma-daemon`. If the desktop app manages the daemon lifecycle, do it in Electron main (as a child process) and keep all daemon access over the Unix socket (`SOMA_DAEMON_SOCKET`).
-- Route all network operations through the local daemon; do not introduce direct server calls from the UI unless explicitly required.
-- Main-process DI uses Inversify with typed tokens in `src/main/tokens.ts`; resolve dependencies via the container using these symbols (see `src/main/container.ts`).
-- Main-process persistence:
-  - `DbService` wraps SQLite via `better-sqlite3` against `userData/soma.db`.
-  - `AppSettingsService` builds on DbService for app settings: window bounds, last route, and namespaced key-value storage (IndexedDB clone).
-- Main-process structure follows DRY/SOLID and applies patterns:
-  - **Facade**: `SomaElectronApp` is the lifecycle facade; it orchestrates startup/shutdown and delegates to bootstrap + window controllers.
-  - **Delegation**: `MainBootstrapService` owns one-time app initialization (DB/settings + IPC + shortcuts), while `MainWindowController` owns window lifecycle/state restore. Keep logic in these services instead of growing `app.ts`.
-- Renderer integration (IPC + settings):
-  - Renderer must communicate with main via the preload bridge (`desktop/soma/src/preload/index.ts`): `window.api` (RPC-like helpers) and `window.ipc.sendToMain` (fire-and-forget events).
-  - Do **not** expose RxJS `Observable`s (or any function/class instances) from preload: contextBridge serialization does not preserve prototypes/functions, so `subscribe`-style APIs will break.
-  - Prefer a Renderer MVC-ish split:
-    - Services under `desktop/soma/src/renderer/src/services/*` are the only place that may call `window.api` / `window.ipc`.
-    - Hooks under `desktop/soma/src/renderer/src/hooks/*` wrap services (TanStack Query hooks for request/response; RxJS streams created in-renderer for realtime).
-    - UI components should depend on hooks (e.g. `const [setLastRoute] = useSetLastRoute()`) and avoid direct `window.api` usage.
-  - Router last route:
-    - Read: `await window.api.getLastRoute()` (or `getLastRoute` service/hook wrapper)
-    - Persist: `const [setLastRoute] = useSetLastRoute(); setLastRoute(route)` → handled in main (`router:set-last-route`) and persisted to settings + route-store file.
-  - App settings (unstructured JSON) are written from renderer → main via IPC events (handled by `AppStateSyncService` → `AppSettingsService`):
-    - Set a setting:
-      - `window.ipc.sendToMain('settings:set', { key: 'ui:theme', value: 'dark' })`
-    - Namespaced key-value (IndexedDB clone style):
-      - `window.ipc.sendToMain('settings:kv:set', { namespace: 'idb', key: 'some-key', value: { any: 'json' } })`
-      - `window.ipc.sendToMain('settings:kv:delete', { namespace: 'idb', key: 'some-key' })`
-  - Window bounds persistence is automatic in main (`AppStateSyncService` listens to `move`/`resize` and calls `AppSettingsService.setWindowBounds`).
-  - Reading arbitrary settings/KV from renderer is not implemented yet (only last route has a read API); add IPC handlers in `MainIpcController` if needed.
-- Local state:
-    - UI state lives in React (components, hooks).
-    - Persistent or shared state that mirrors daemon state should be derived from daemon APIs, not duplicated business logic in the UI.
+- Legacy Electron app (removed). Do not add new code; all Soma desktop work lives in `desktop/soma-app` (Tauri).
 
 ### Desktop (Tauri/React) — `desktop/soma-app`
 

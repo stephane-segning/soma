@@ -38,7 +38,7 @@ RUST_LOG=info cargo run --release -p soma-daemon
 ## 3. Start Soma (Electron UI)
 
 ```bash
-cd desktop/soma
+cd desktop/soma-app
 pnpm dev
 ```
 
@@ -48,11 +48,11 @@ pnpm dev
 ## 4. Start Tapia (optional)
 
 ```bash
-cd desktop/tapia
-pnpm dev
+cd desktop/tapia-app
+pnpm tauri dev
 ```
 
-Tapia is a typing companion app; it can be developed independently, but it can also reuse daemon APIs for shared state.
+Tapia is a typing companion app; it can be developed independently, but it can also reuse daemon APIs for shared state. The legacy Electron app under `desktop/tapia` remains in the repo but is no longer the primary target.
 
 ## 5. Launch a Bot (Optional but Recommended)
 

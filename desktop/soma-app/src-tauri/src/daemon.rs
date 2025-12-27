@@ -8,7 +8,7 @@ use soma_proto_build::daemon::{
     UpdateSpaceRequest, UpdateSpaceResponse, UploadBlobRequest, UploadBlobResponse,
     UpsertDocumentRequest, UpsertDocumentResponse, daemon_client::DaemonClient as GrpcDaemonClient,
 };
-use tauri::{AppHandle, Manager, Wry};
+use tauri::{AppHandle, Wry};
 use tokio::sync::Mutex;
 use tonic::transport::{Channel, Endpoint};
 use tracing::info;
@@ -33,7 +33,7 @@ impl DaemonConfig {
         let socket_path = std::env::var_os("SOMA_DAEMON_SOCKET")
             .map(PathBuf::from)
             .unwrap_or_else(|| PathBuf::from("/tmp/soma-daemon.sock"));
-        
+
         let blob_dir = std::env::var_os("SOMA_BLOB_DIR")
             .map(PathBuf::from)
             .unwrap_or_else(|| PathBuf::from("blobs"));

@@ -118,7 +118,6 @@ function Component(): React.JSX.Element {
 			<YooptaEditorWithTools
 				className="!w-full"
 				documentId={data.pageId}
-				spaceId={data.spaceId}
 				initialValue={contentValue}
 				key={`${data.spaceId}:${data.pageId}`}
 				onSave={handleSave}
@@ -133,6 +132,7 @@ function Component(): React.JSX.Element {
 					}
 				}}
 				placeholder="Start writing…"
+				spaceId={data.spaceId}
 			/>
 		</div>
 	);

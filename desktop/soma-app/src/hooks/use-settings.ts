@@ -10,4 +10,3 @@ export function useSetLastRoute(): [(route: string) => void] {
 	}, []);
 	return [set];
 }
-

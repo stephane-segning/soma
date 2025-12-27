@@ -1,15 +1,15 @@
 name: package-desktop
-description: Build and package the Soma desktop Electron app for the runner OS/arch.
+description: Build and package a Tauri desktop app (Soma or Tapia) for the runner OS/arch.
 
 inputs:
   project_dir:
     description: Desktop workspace root
     required: false
-    default: desktop
+    default: .
   app:
-    description: Workspace app to build (soma or tapia)
+    description: Workspace app to build (soma-app or tapia-app)
     required: false
-    default: soma
+    default: soma-app
   arch:
     description: Target architecture for packaging (x64 or arm64). Defaults to host arch.
     required: false
@@ -35,6 +35,24 @@ runs:
       with:
         node-version: "24"
 
+    - name: Setup Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: ${{ runner.os == 'Linux' && (inputs.arch == 'arm64' && 'aarch64-unknown-linux-gnu' || 'x86_64-unknown-linux-gnu') || runner.os == 'macOS' && (inputs.arch == 'arm64' && 'aarch64-apple-darwin' || 'x86_64-apple-darwin') || '' }}
+
+    - name: Install Tauri dependencies (Linux)
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        set -euo pipefail
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends \
+          libgtk-3-dev \
+          libwebkit2gtk-4.1-dev \
+          libayatana-appindicator3-dev \
+          librsvg2-dev \
+          patchelf
+
     - name: Enable corepack (pnpm)
       shell: bash
       run: |
@@ -52,10 +70,11 @@ runs:
       working-directory: ${{ inputs.project_dir }}
       run: |
         set -euo pipefail
-        VERSION="$(node -p "require('./${{ inputs.app }}/package.json').version")"
+        PKG="${{ inputs.app }}"
+        VERSION="$(node -p "require('./desktop/' + PKG + '/package.json').version")"
         echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
-    - name: Build app
+    - name: Build app (Tauri)
       shell: bash
       working-directory: ${{ inputs.project_dir }}
       env:
@@ -64,30 +83,18 @@ runs:
         set -euo pipefail
         PKG="${{ inputs.app }}"
         ARCH="${{ inputs.arch }}"
-        if [ -z "$ARCH" ]; then
-          case "$(uname -m)" in
-            x86_64|amd64) ARCH="x64" ;;
-            aarch64|arm64) ARCH="arm64" ;;
-            *) echo "Unsupported host arch: $(uname -m)" >&2; exit 1 ;;
+        if [ -n "$ARCH" ]; then
+          case "$ARCH" in
+            x64|arm64|amd64) ;; # host arch should match runner
+            *) echo "Unsupported arch input: $ARCH (expected x64, amd64, or arm64)" >&2; exit 1 ;;
           esac
         fi
-        case "$ARCH" in
-          x64|arm64) ;;
-          *) echo "Unsupported arch input: $ARCH (expected x64 or arm64)" >&2; exit 1 ;;
+        case "${RUNNER_OS}" in
+          "macOS") BUNDLES="app" ;;
+          "Linux") BUNDLES="appimage" ;;
+          *) echo "Unsupported runner OS: ${RUNNER_OS}" >&2; exit 1 ;;
         esac
-
-        # Build renderer/main first.
-        pnpm --filter "$PKG" run build
-
-        # Produce OS-native artifacts (mac: zip; linux: deb/rpm/zip).
-        if [ "${RUNNER_OS}" = "Linux" ]; then
-          pnpm --filter "$PKG" exec electron-builder --linux deb rpm zip --"$ARCH"
-        elif [ "${RUNNER_OS}" = "macOS" ]; then
-          pnpm --filter "$PKG" exec electron-builder --mac zip --"$ARCH"
-        else
-          echo "Unsupported runner OS: ${RUNNER_OS}"
-          exit 1
-        fi
+        pnpm --filter "$PKG" tauri build -b "$BUNDLES"
 
     - id: collect
       name: Collect artifacts
@@ -97,9 +104,9 @@ runs:
         set -euo pipefail
         mkdir -p "${{ inputs.artifact_dir }}"
 
-        DIST="./${{ inputs.app }}/dist"
-        if [ ! -d "$DIST" ]; then
-          echo "Expected dist directory at $DIST"
+        BUNDLE_DIR="./target/release/bundle"
+        if [ ! -d "$BUNDLE_DIR" ]; then
+          echo "Expected bundle directory at $BUNDLE_DIR"
           exit 1
         fi
 
@@ -109,21 +116,20 @@ runs:
         OUTS_FILE="$RUNNER_TEMP/desktop-artifacts.txt"
         : > "$OUTS_FILE"
 
-        # Use globs instead of find-grouping to avoid shell parsing issues across runners.
-        for f in \
-          "$DIST"/*.deb "$DIST"/*.rpm "$DIST"/*.AppImage \
-          "$DIST"/*.zip
-        do
-          [ -e "$f" ] || continue
+        OUTS_FILE="$RUNNER_TEMP/desktop-artifacts.txt"
+        : > "$OUTS_FILE"
+
+        while IFS= read -r f; do
+          [ -n "$f" ] || continue
           base="$(basename "$f")"
           out="$ARTIFACT_DIR_ABS/${base}"
-          cp "$f" "$out"
+          cp -R "$f" "$out"
           printf '%s\n' "$out" >> "$OUTS_FILE"
-        done
+        done < <(find "$BUNDLE_DIR" -maxdepth 3 -type f -name '*.AppImage' -print; find "$BUNDLE_DIR" -maxdepth 3 -type d -name '*.app' -print)
 
         if [ ! -s "$OUTS_FILE" ]; then
-          echo "No artifacts found in $DIST"
-          find "$DIST" -maxdepth 1 -type f -print
+          echo "No artifacts found in $BUNDLE_DIR"
+          find "$BUNDLE_DIR" -maxdepth 3 -type f -print
           exit 1
         fi
 

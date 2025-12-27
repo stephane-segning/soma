@@ -163,19 +163,23 @@ def main() -> int:
     run(["tar", "-xzf", daemon_tgz, "-C", staging])
     run(["tar", "-xzf", agent_tgz, "-C", staging])
 
-    # Resolve desktop artifact name for this OS/arch (best-effort: .deb/.dmg/.zip/.AppImage).
+    # Resolve desktop artifact name for this OS/arch (prefer native bundles: macOS .app, Linux .AppImage).
     desktop_asset = None
-    for ext in ("deb", "dmg", "zip", "AppImage", "rpm", "pkg"):
+    for ext in ("AppImage", "app", "tar.gz", "zip"):
         try:
             desktop_asset = find_asset(
                 rel_desktop,
-                rf"soma-desktop-{re.escape(desktop_version)}-{platform_os}-{platform_arch}\.{re.escape(ext)}",
+                rf"soma-desktop-{re.escape(desktop_version)}-{platform_os}-{platform_arch}\.{re.escape(ext)}"
+                if ext != "app"
+                else rf"soma-desktop-{re.escape(desktop_version)}-{platform_os}-{platform_arch}\.app",
             )
             break
         except Exception:
             continue
     if desktop_asset is None:
-        log(f"[warn] no desktop artifact found for {platform_os}-{platform_arch} ({desktop_version}); continuing without bundling desktop binary")
+        raise RuntimeError(
+            f"desktop artifact not found for {platform_os}-{platform_arch} ({desktop_version}); expected .AppImage (linux) or .app (macOS)"
+        )
 
     docker_images = os.environ.get("DOCKER_IMAGES", "").strip()
 

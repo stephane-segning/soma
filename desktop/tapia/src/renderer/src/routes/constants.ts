@@ -1,3 +1,3 @@
-const DEFAULT_SPACE_ID = 'practice'
+const DEFAULT_SPACE_ID = "practice";
 
-export { DEFAULT_SPACE_ID }
+export { DEFAULT_SPACE_ID };
