@@ -17,7 +17,10 @@ export type AiInputProps = {
 	disabled?: boolean;
 	rows?: number;
 	className?: string;
-	textareaProps?: Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "value" | "onChange">;
+	textareaProps?: Omit<
+		TextareaHTMLAttributes<HTMLTextAreaElement>,
+		"value" | "onChange"
+	>;
 };
 
 export function AiInput({
@@ -71,7 +74,12 @@ export function AiInput({
 	);
 
 	return (
-		<div className={cn("relative rounded-2xl border border-base-300/80 bg-base-100 shadow-inner", className)}>
+		<div
+			className={cn(
+				"relative rounded-2xl border border-base-300/80 bg-base-100 shadow-inner",
+				className,
+			)}
+		>
 			<div className="px-4 pb-3 pt-3">
 				<textarea
 					value={value}

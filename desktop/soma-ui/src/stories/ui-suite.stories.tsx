@@ -1,6 +1,14 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useMemo, useState } from "react";
-import { Activity, Bold, Italic, Link as LinkIcon, MessageCircle, Shield, Zap } from "react-feather";
+import {
+	Activity,
+	Bold,
+	Italic,
+	Link as LinkIcon,
+	MessageCircle,
+	Shield,
+	Zap,
+} from "react-feather";
 import { CommandPalette } from "../components/overlays/command-palette";
 import { BubbleToolbar } from "../components/overlays/bubble-toolbar";
 import { NotificationDrawer } from "../components/overlays/notification-drawer";
@@ -10,7 +18,11 @@ import { PolymorphButton } from "../components/actions/polymorph-button";
 import { LauncherCard } from "../components/cards/launcher-card";
 import { PresenceStack } from "../components/presence/presence-stack";
 import { ShortcutRow } from "../components/primitives/shortcut-row";
-import { StreakMeter, TimerPill, XpMeter } from "../components/progress/streak-meter";
+import {
+	StreakMeter,
+	TimerPill,
+	XpMeter,
+} from "../components/progress/streak-meter";
 import { RosterItem } from "../components/lists/roster-item";
 
 const meta: Meta = {
@@ -27,9 +39,28 @@ export const Suite: Story = {
 		const [drawerOpen, setDrawerOpen] = useState(true);
 		const commands = useMemo(
 			() => [
-				{ id: "new-doc", title: "New document", subtitle: "Create in current space", shortcut: "⌘N", icon: <Activity size={14} />, group: "Actions" },
-				{ id: "invite", title: "Invite peer", subtitle: "Send join link", icon: <Shield size={14} />, group: "Spaces" },
-				{ id: "message", title: "Open messages", subtitle: "Jump to inbox", icon: <MessageCircle size={14} />, group: "Navigation" },
+				{
+					id: "new-doc",
+					title: "New document",
+					subtitle: "Create in current space",
+					shortcut: "⌘N",
+					icon: <Activity size={14} />,
+					group: "Actions",
+				},
+				{
+					id: "invite",
+					title: "Invite peer",
+					subtitle: "Send join link",
+					icon: <Shield size={14} />,
+					group: "Spaces",
+				},
+				{
+					id: "message",
+					title: "Open messages",
+					subtitle: "Jump to inbox",
+					icon: <MessageCircle size={14} />,
+					group: "Navigation",
+				},
 			],
 			[],
 		);
@@ -41,7 +72,16 @@ export const Suite: Story = {
 						title="Soma Workspace"
 						subtitle="libp2p · synced"
 						status="online"
-						actions={<PolymorphButton size="sm" variant="outline" leadingIcon={<Zap size={14} />} onClick={() => setPaletteOpen(true)}>Command</PolymorphButton>}
+						actions={
+							<PolymorphButton
+								size="sm"
+								variant="outline"
+								leadingIcon={<Zap size={14} />}
+								onClick={() => setPaletteOpen(true)}
+							>
+								Command
+							</PolymorphButton>
+						}
 					/>
 
 					<SplitPane
@@ -60,8 +100,19 @@ export const Suite: Story = {
 									icon={<MessageCircle size={16} />}
 									badge="beta"
 								/>
-								<RosterItem id="r1" title="Dr. Rivera" subtitle="Owner · expires in 30d" role="Owner" status="approved" />
-								<RosterItem id="r2" title="Join requests" subtitle="Awaiting review" status="pending" />
+								<RosterItem
+									id="r1"
+									title="Dr. Rivera"
+									subtitle="Owner · expires in 30d"
+									role="Owner"
+									status="approved"
+								/>
+								<RosterItem
+									id="r2"
+									title="Join requests"
+									subtitle="Awaiting review"
+									status="pending"
+								/>
 							</div>
 						}
 						right={
@@ -100,7 +151,12 @@ export const Suite: Story = {
 					open
 					anchor={{ x: 420, y: 360 }}
 					actions={[
-						{ id: "bold", icon: <Bold size={14} />, label: "Bold", active: true },
+						{
+							id: "bold",
+							icon: <Bold size={14} />,
+							label: "Bold",
+							active: true,
+						},
 						{ id: "italic", icon: <Italic size={14} />, label: "Italic" },
 						{ id: "link", icon: <LinkIcon size={14} />, label: "Link" },
 					]}
@@ -110,8 +166,18 @@ export const Suite: Story = {
 					open={drawerOpen}
 					onClose={() => setDrawerOpen(false)}
 					items={[
-						{ id: "1", title: "New join request", body: "Tapia is requesting to join Space Alpha", time: "just now" },
-						{ id: "2", title: "Blob cached", body: "Fetched cid Qm123 from peer", time: "2m ago" },
+						{
+							id: "1",
+							title: "New join request",
+							body: "Tapia is requesting to join Space Alpha",
+							time: "just now",
+						},
+						{
+							id: "2",
+							title: "Blob cached",
+							body: "Fetched cid Qm123 from peer",
+							time: "2m ago",
+						},
 					]}
 				/>
 			</div>

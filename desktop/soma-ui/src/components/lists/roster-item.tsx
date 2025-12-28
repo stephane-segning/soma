@@ -21,7 +21,15 @@ const statusTone = {
 	rejected: { label: "Rejected", tone: "danger" as const },
 };
 
-export function RosterItem({ title, subtitle, role, status = "pending", actions, onMore, avatar }: RosterItemProps) {
+export function RosterItem({
+	title,
+	subtitle,
+	role,
+	status = "pending",
+	actions,
+	onMore,
+	avatar,
+}: RosterItemProps) {
 	const badge = statusTone[status];
 	return (
 		<motion.div
@@ -36,7 +44,9 @@ export function RosterItem({ title, subtitle, role, status = "pending", actions,
 					<div className="text-sm font-semibold">{title}</div>
 					{role ? <StatusBadge label={role} tone="info" /> : null}
 				</div>
-				{subtitle ? <div className="text-xs text-base-content/60">{subtitle}</div> : null}
+				{subtitle ? (
+					<div className="text-xs text-base-content/60">{subtitle}</div>
+				) : null}
 			</div>
 			{badge ? <StatusBadge label={badge.label} tone={badge.tone} /> : null}
 			{actions}

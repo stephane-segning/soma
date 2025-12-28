@@ -11,7 +11,12 @@ export type DockProps = {
 
 export function Dock({ apps, activeAppId, onSelectApp, className }: DockProps) {
 	return (
-		<div className={cn("glass-panel flex items-center gap-3 rounded-3xl px-3 py-2 shadow-2xl", className)}>
+		<div
+			className={cn(
+				"glass-panel flex items-center gap-3 rounded-3xl px-3 py-2 shadow-2xl",
+				className,
+			)}
+		>
 			{apps.map((app) => {
 				const isActive = app.id === activeAppId;
 				return (

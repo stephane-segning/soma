@@ -22,7 +22,9 @@ export function DesktopShell({
 	className,
 }: DesktopShellProps) {
 	return (
-		<div className={`relative h-screen w-screen overflow-hidden bg-base-200 text-base-content ${className ?? ""}`}>
+		<div
+			className={`relative h-screen w-screen overflow-hidden bg-base-200 text-base-content ${className ?? ""}`}
+		>
 			<div className="absolute inset-0">
 				<div className="absolute inset-0 bg-gradient-to-br from-base-200 via-base-300/60 to-base-100" />
 				<div className="absolute inset-0 wallpaper-grid opacity-40" />
@@ -54,7 +56,11 @@ export function DesktopShell({
 				) : null}
 			</div>
 
-			{overlays ? <div className="pointer-events-none absolute inset-0 z-30">{overlays}</div> : null}
+			{overlays ? (
+				<div className="pointer-events-none absolute inset-0 z-30">
+					{overlays}
+				</div>
+			) : null}
 		</div>
 	);
 }

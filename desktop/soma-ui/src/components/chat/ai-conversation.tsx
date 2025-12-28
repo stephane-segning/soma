@@ -8,7 +8,11 @@ export type AiConversationProps = {
 	className?: string;
 };
 
-export function AiConversation({ messages, autoScroll = true, className }: AiConversationProps) {
+export function AiConversation({
+	messages,
+	autoScroll = true,
+	className,
+}: AiConversationProps) {
 	const endRef = useRef<HTMLDivElement | null>(null);
 
 	useEffect(() => {

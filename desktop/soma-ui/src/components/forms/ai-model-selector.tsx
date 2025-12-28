@@ -83,10 +83,16 @@ export function AiModelSelector({
 									>
 										<div className="flex w-full items-center justify-between">
 											<span className="text-sm font-semibold">{opt.label}</span>
-											{opt.hint ? <span className="text-[11px] text-base-content/60">{opt.hint}</span> : null}
+											{opt.hint ? (
+												<span className="text-[11px] text-base-content/60">
+													{opt.hint}
+												</span>
+											) : null}
 										</div>
 										{opt.description ? (
-											<p className="text-xs text-base-content/70">{opt.description}</p>
+											<p className="text-xs text-base-content/70">
+												{opt.description}
+											</p>
 										) : null}
 									</button>
 								);

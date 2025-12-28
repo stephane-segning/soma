@@ -18,7 +18,10 @@ type Story = StoryObj;
 export const OverlayShowcase: Story = {
 	render: function OverlayStory() {
 		const [modalOpen, setModalOpen] = useState(false);
-		const [menuState, setMenuState] = useState<{ open: boolean; position: OverlayPosition }>({
+		const [menuState, setMenuState] = useState<{
+			open: boolean;
+			position: OverlayPosition;
+		}>({
 			open: false,
 			position: { x: 0, y: 0 },
 		});
@@ -28,19 +31,29 @@ export const OverlayShowcase: Story = {
 				className="relative min-h-[360px] rounded-2xl bg-base-200 p-6"
 				onContextMenu={(event) => {
 					event.preventDefault();
-					setMenuState({ open: true, position: { x: event.clientX, y: event.clientY } });
+					setMenuState({
+						open: true,
+						position: { x: event.clientX, y: event.clientY },
+					});
 				}}
 			>
 				<div className="space-y-3">
 					<h3 className="text-lg font-semibold">Overlays</h3>
 					<p className="text-sm text-base-content/70">
-						Modal + context menu + Daisy-themed toasts. Right-click anywhere in this panel.
+						Modal + context menu + Daisy-themed toasts. Right-click anywhere in
+						this panel.
 					</p>
 					<div className="flex gap-3">
-						<PolymorphButton variant="primary" onClick={() => setModalOpen(true)}>
+						<PolymorphButton
+							variant="primary"
+							onClick={() => setModalOpen(true)}
+						>
 							Open modal
 						</PolymorphButton>
-						<PolymorphButton variant="secondary" onClick={() => notify.success("Saved to clipboard!")}>
+						<PolymorphButton
+							variant="secondary"
+							onClick={() => notify.success("Saved to clipboard!")}
+						>
 							Trigger toast
 						</PolymorphButton>
 					</div>
@@ -53,7 +66,12 @@ export const OverlayShowcase: Story = {
 					position={menuState.position}
 					onClose={() => setMenuState((state) => ({ ...state, open: false }))}
 					items={[
-						{ id: "copy", label: "Copy", icon: <Copy size={14} />, shortcut: "⌘C" },
+						{
+							id: "copy",
+							label: "Copy",
+							icon: <Copy size={14} />,
+							shortcut: "⌘C",
+						},
 						{ id: "more", label: "More", icon: <MoreVertical size={14} /> },
 						{
 							id: "danger",
@@ -78,7 +96,10 @@ export const OverlayShowcase: Story = {
 					onClose={() => setModalOpen(false)}
 					actions={
 						<div className="flex gap-2">
-							<PolymorphButton variant="ghost" onClick={() => setModalOpen(false)}>
+							<PolymorphButton
+								variant="ghost"
+								onClick={() => setModalOpen(false)}
+							>
 								Close
 							</PolymorphButton>
 							<PolymorphButton
@@ -95,10 +116,12 @@ export const OverlayShowcase: Story = {
 				>
 					<div className="space-y-2">
 						<p className="text-sm text-base-content/70">
-							Use this as a base for global overlays across Soma + Tapia. Content is left-aligned and uses glassmorphism.
+							Use this as a base for global overlays across Soma + Tapia.
+							Content is left-aligned and uses glassmorphism.
 						</p>
 						<p className="text-xs text-base-content/50">
-							Animations rely on the Motion library; adjust MotionConfig in Storybook preview to tweak defaults.
+							Animations rely on the Motion library; adjust MotionConfig in
+							Storybook preview to tweak defaults.
 						</p>
 					</div>
 				</Modal>

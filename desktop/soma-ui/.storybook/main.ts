@@ -6,25 +6,25 @@ const config: StorybookConfig = {
 	addons: [
 		"@storybook/addon-links",
 		"@storybook/addon-essentials",
-		"@storybook/addon-interactions"
+		"@storybook/addon-interactions",
 	],
 	framework: {
 		name: "@storybook/react-vite",
-		options: {}
+		options: {},
 	},
 	docs: {
-		autodocs: "tag"
+		autodocs: "tag",
 	},
 	async viteFinal(config) {
 		config.resolve = config.resolve || {};
 		config.resolve.alias = {
 			...(config.resolve.alias || {}),
 			"@soma-ui": path.resolve(__dirname, "../src"),
-			"@soma-ui/*": path.resolve(__dirname, "../src/*")
+			"@soma-ui/*": path.resolve(__dirname, "../src/*"),
 		};
 
 		return config;
-	}
+	},
 };
 
 export default config;

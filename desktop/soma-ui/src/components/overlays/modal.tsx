@@ -12,7 +12,14 @@ export type ModalProps = {
 	onClose?: () => void;
 };
 
-export function Modal({ open, title, description, children, actions, onClose }: ModalProps) {
+export function Modal({
+	open,
+	title,
+	description,
+	children,
+	actions,
+	onClose,
+}: ModalProps) {
 	useHotkeys(
 		"esc",
 		(event) => {
@@ -45,14 +52,22 @@ export function Modal({ open, title, description, children, actions, onClose }: 
 						>
 							<div className="flex items-start gap-4">
 								<div className="flex-1 space-y-2">
-									{title ? <h2 className="text-xl font-semibold">{title}</h2> : null}
-									{description ? (
-										<p className="text-sm text-base-content/70">{description}</p>
+									{title ? (
+										<h2 className="text-xl font-semibold">{title}</h2>
 									) : null}
-									{children ? <div className="pt-2 text-base-content/90">{children}</div> : null}
+									{description ? (
+										<p className="text-sm text-base-content/70">
+											{description}
+										</p>
+									) : null}
+									{children ? (
+										<div className="pt-2 text-base-content/90">{children}</div>
+									) : null}
 								</div>
 							</div>
-							{actions ? <div className="mt-6 flex justify-end gap-2">{actions}</div> : null}
+							{actions ? (
+								<div className="mt-6 flex justify-end gap-2">{actions}</div>
+							) : null}
 						</motion.div>
 					</motion.div>
 				) : null}

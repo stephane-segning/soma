@@ -1,6 +1,14 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useMemo, useState } from "react";
-import { Calendar, Cpu, Disc, Folder, MessageCircle, Play, Zap } from "react-feather";
+import {
+	Calendar,
+	Cpu,
+	Disc,
+	Folder,
+	MessageCircle,
+	Play,
+	Zap,
+} from "react-feather";
 import { useLocation } from "react-router";
 import { DesktopArea } from "../components/layout/desktop-area";
 import { DesktopShell } from "../components/layout/desktop-shell";
@@ -30,16 +38,52 @@ export default meta;
 type Story = StoryObj<typeof DesktopShell>;
 
 const initialIcons: DesktopIcon[] = [
-	{ id: "notes", label: "Notes", hint: "Workspace docs", icon: <Folder size={18} /> },
-	{ id: "music", label: "Synth Lab", hint: "Sound toys", icon: <Disc size={18} /> },
-	{ id: "chat", label: "Messages", hint: "DMs + mentions", icon: <MessageCircle size={18} /> },
-	{ id: "energy", label: "Energy", hint: "System status", icon: <Zap size={18} /> },
+	{
+		id: "notes",
+		label: "Notes",
+		hint: "Workspace docs",
+		icon: <Folder size={18} />,
+	},
+	{
+		id: "music",
+		label: "Synth Lab",
+		hint: "Sound toys",
+		icon: <Disc size={18} />,
+	},
+	{
+		id: "chat",
+		label: "Messages",
+		hint: "DMs + mentions",
+		icon: <MessageCircle size={18} />,
+	},
+	{
+		id: "energy",
+		label: "Energy",
+		hint: "System status",
+		icon: <Zap size={18} />,
+	},
 ];
 
 const initialApps: RunningApp[] = [
-	{ id: "notes", title: "Notes", icon: <Folder size={16} />, status: "running" },
-	{ id: "chat", title: "Messages", icon: <MessageCircle size={16} />, status: "attention", badge: "3" },
-	{ id: "music", title: "Synth Lab", icon: <Disc size={16} />, status: "sleeping" },
+	{
+		id: "notes",
+		title: "Notes",
+		icon: <Folder size={16} />,
+		status: "running",
+	},
+	{
+		id: "chat",
+		title: "Messages",
+		icon: <MessageCircle size={16} />,
+		status: "attention",
+		badge: "3",
+	},
+	{
+		id: "music",
+		title: "Synth Lab",
+		icon: <Disc size={16} />,
+		status: "sleeping",
+	},
 ];
 
 export const Default: Story = {
@@ -47,7 +91,9 @@ export const Default: Story = {
 		const [icons, setIcons] = useState(initialIcons);
 		const [apps, setApps] = useState(initialApps);
 		const [startOpen, setStartOpen] = useState(false);
-		const [activeAppId, setActiveAppId] = useState<string | undefined>(initialApps[0]?.id);
+		const [activeAppId, setActiveAppId] = useState<string | undefined>(
+			initialApps[0]?.id,
+		);
 		const [showModal, setShowModal] = useState(false);
 
 		const location = useLocation();
@@ -58,7 +104,9 @@ export const Default: Story = {
 						<Calendar size={12} />
 						Today
 					</div>
-					<div className="badge badge-outline border-base-300/80 bg-base-100/60">14:32</div>
+					<div className="badge badge-outline border-base-300/80 bg-base-100/60">
+						14:32
+					</div>
 				</div>
 			),
 			[],
@@ -69,15 +117,30 @@ export const Default: Story = {
 				wallpaper={<AuroraWallpaper />}
 				leftColumn={
 					<div className="space-y-3">
-						<LauncherCard title="Workspace" description="Spaces and docs" icon={<Folder size={14} />} badge="active" />
-						<LauncherCard title="Studio" description="Audio + media lab" icon={<Disc size={14} />} />
-						<LauncherCard title="Messages" description="DMs and activity" icon={<MessageCircle size={14} />} />
+						<LauncherCard
+							title="Workspace"
+							description="Spaces and docs"
+							icon={<Folder size={14} />}
+							badge="active"
+						/>
+						<LauncherCard
+							title="Studio"
+							description="Audio + media lab"
+							icon={<Disc size={14} />}
+						/>
+						<LauncherCard
+							title="Messages"
+							description="DMs and activity"
+							icon={<MessageCircle size={14} />}
+						/>
 						<div className="surface-card p-4">
 							<div className="flex items-center justify-between">
 								<div className="text-sm font-semibold">You</div>
 								<StatusBadge label="Online" tone="success" />
 							</div>
-							<p className="mt-2 text-xs text-base-content/60">Path: {location.pathname}</p>
+							<p className="mt-2 text-xs text-base-content/60">
+								Path: {location.pathname}
+							</p>
 						</div>
 					</div>
 				}
@@ -94,7 +157,11 @@ export const Default: Story = {
 									<div className="text-sm font-semibold">Parallel Dreams</div>
 									<div className="text-xs text-base-content/60">Soma Sound</div>
 								</div>
-								<PolymorphButton variant="ghost" size="sm" leadingIcon={<Play size={14} />}>
+								<PolymorphButton
+									variant="ghost"
+									size="sm"
+									leadingIcon={<Play size={14} />}
+								>
 									Play
 								</PolymorphButton>
 							</div>
@@ -126,8 +193,21 @@ export const Default: Story = {
 						onSelectApp={(appId) => setActiveAppId(appId)}
 					/>
 				}
-				dock={<Dock apps={apps} activeAppId={activeAppId} onSelectApp={(appId) => setActiveAppId(appId)} />}
-				overlays={<Modal open={showModal} title="App opened" description="This modal mimics a native overlay." onClose={() => setShowModal(false)} />}
+				dock={
+					<Dock
+						apps={apps}
+						activeAppId={activeAppId}
+						onSelectApp={(appId) => setActiveAppId(appId)}
+					/>
+				}
+				overlays={
+					<Modal
+						open={showModal}
+						title="App opened"
+						description="This modal mimics a native overlay."
+						onClose={() => setShowModal(false)}
+					/>
+				}
 			>
 				<div className="space-y-4">
 					<WindowChrome
@@ -135,7 +215,12 @@ export const Default: Story = {
 						subtitle="libp2p · synced"
 						status="online"
 						actions={
-							<PolymorphButton size="sm" variant="outline" onClick={() => notify.success("Summoned a quick toast")} leadingIcon={<Zap size={14} />}>
+							<PolymorphButton
+								size="sm"
+								variant="outline"
+								onClick={() => notify.success("Summoned a quick toast")}
+								leadingIcon={<Zap size={14} />}
+							>
 								Command
 							</PolymorphButton>
 						}
@@ -153,7 +238,11 @@ export const Default: Story = {
 									if (!apps.find((app) => app.id === item.id)) {
 										setApps((prev) => [
 											...prev,
-											{ id: item.id, title: item.label, icon: item.icon ?? <Cpu size={16} /> },
+											{
+												id: item.id,
+												title: item.label,
+												icon: item.icon ?? <Cpu size={16} />,
+											},
 										]);
 									}
 								}}
@@ -179,7 +268,8 @@ export const Default: Story = {
 									</PolymorphButton>
 								</div>
 								<div className="text-xs text-base-content/60">
-									Drag icons, right-click for context menus, or launch commands from the chrome.
+									Drag icons, right-click for context menus, or launch commands
+									from the chrome.
 								</div>
 							</div>
 						}

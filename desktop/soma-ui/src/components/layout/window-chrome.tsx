@@ -41,13 +41,19 @@ export function WindowChrome({
 		>
 			<div className="flex items-center gap-3">
 				<div className="flex items-center gap-1.5">
-					<span className={cn("h-2.5 w-2.5 rounded-full", statusTone[status])} />
-					<span className="text-xs text-base-content/70 capitalize">{status}</span>
+					<span
+						className={cn("h-2.5 w-2.5 rounded-full", statusTone[status])}
+					/>
+					<span className="text-xs text-base-content/70 capitalize">
+						{status}
+					</span>
 				</div>
 				<div className="h-6 w-px bg-base-300/70" />
 				<div className="flex flex-col leading-tight">
 					<span className="text-sm font-semibold">{title}</span>
-					{subtitle ? <span className="text-xs text-base-content/60">{subtitle}</span> : null}
+					{subtitle ? (
+						<span className="text-xs text-base-content/60">{subtitle}</span>
+					) : null}
 				</div>
 			</div>
 

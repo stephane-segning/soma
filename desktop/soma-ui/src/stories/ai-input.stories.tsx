@@ -35,15 +35,29 @@ export const Default: Story = {
 							value={model}
 							onChange={setModel}
 							options={[
-								{ id: "gpt-4o", label: "GPT-4o", description: "Balanced reasoning + speed" },
-								{ id: "gpt-4o-mini", label: "GPT-4o mini", description: "Cheaper + fast" },
-								{ id: "agent", label: "Agent", description: "Local agent via agentd", hint: "Local" },
+								{
+									id: "gpt-4o",
+									label: "GPT-4o",
+									description: "Balanced reasoning + speed",
+								},
+								{
+									id: "gpt-4o-mini",
+									label: "GPT-4o mini",
+									description: "Cheaper + fast",
+								},
+								{
+									id: "agent",
+									label: "Agent",
+									description: "Local agent via agentd",
+									hint: "Local",
+								},
 							]}
 						/>
 					}
 				/>
 				<div className="text-sm text-base-content/60">
-					Hint: this is a reusable AI input bar with attachments, mic, model selector, and send CTA.
+					Hint: this is a reusable AI input bar with attachments, mic, model
+					selector, and send CTA.
 				</div>
 			</div>
 		);
@@ -70,9 +84,23 @@ export const WithPreset: Story = {
 						value={model}
 						onChange={setModel}
 						options={[
-							{ id: "agent", label: "Agent", description: "Desktop agent via agentd", hint: "Local" },
-							{ id: "gpt-4o", label: "GPT-4o", description: "Balanced reasoning" },
-							{ id: "whisper", label: "Whisper", description: "Transcription / voice", hint: "Audio" },
+							{
+								id: "agent",
+								label: "Agent",
+								description: "Desktop agent via agentd",
+								hint: "Local",
+							},
+							{
+								id: "gpt-4o",
+								label: "GPT-4o",
+								description: "Balanced reasoning",
+							},
+							{
+								id: "whisper",
+								label: "Whisper",
+								description: "Transcription / voice",
+								hint: "Audio",
+							},
 						]}
 						className="min-w-[160px]"
 					/>

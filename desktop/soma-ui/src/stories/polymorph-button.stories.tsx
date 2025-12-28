@@ -51,9 +51,24 @@ export const Sizes: Story = {
 export const IconOnly: Story = {
 	render: () => (
 		<div className="flex flex-wrap gap-3">
-			<PolymorphButton iconOnly variant="primary" leadingIcon={<Zap size={16} />} aria-label="Zap" />
-			<PolymorphButton iconOnly variant="outline" leadingIcon={<Shield size={16} />} aria-label="Shield" />
-			<PolymorphButton iconOnly variant="danger" leadingIcon={<Trash2 size={16} />} aria-label="Delete" />
+			<PolymorphButton
+				iconOnly
+				variant="primary"
+				leadingIcon={<Zap size={16} />}
+				aria-label="Zap"
+			/>
+			<PolymorphButton
+				iconOnly
+				variant="outline"
+				leadingIcon={<Shield size={16} />}
+				aria-label="Shield"
+			/>
+			<PolymorphButton
+				iconOnly
+				variant="danger"
+				leadingIcon={<Trash2 size={16} />}
+				aria-label="Delete"
+			/>
 		</div>
 	),
 };

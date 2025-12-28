@@ -18,7 +18,12 @@ export type BubbleToolbarProps = {
 	className?: string;
 };
 
-export function BubbleToolbar({ open, anchor, actions, className }: BubbleToolbarProps) {
+export function BubbleToolbar({
+	open,
+	anchor,
+	actions,
+	className,
+}: BubbleToolbarProps) {
 	return (
 		<OverlayPortal>
 			<AnimatePresence>
@@ -31,7 +36,12 @@ export function BubbleToolbar({ open, anchor, actions, className }: BubbleToolba
 						className="pointer-events-auto fixed z-50"
 						style={{ top: anchor.y, left: anchor.x }}
 					>
-						<div className={cn("glass-panel flex items-center gap-1 rounded-xl p-1 shadow-2xl", className)}>
+						<div
+							className={cn(
+								"glass-panel flex items-center gap-1 rounded-xl p-1 shadow-2xl",
+								className,
+							)}
+						>
 							{actions.map((action) => (
 								<button
 									key={action.id}

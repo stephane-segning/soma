@@ -1,68 +1,75 @@
 @import "tailwindcss";
 
-@plugin 'tailwind-scrollbar';
+@plugin "tailwind-scrollbar";
 
 @plugin "daisyui" {
-    themes: lemonade --default, dark;
+	themes:
+		lemonade --default,
+		dark;
 }
 
 @theme {
-    --animate-caret: blink 1s steps(11) infinite 2s;
+	--animate-caret: blink 1s steps(11) infinite 2s;
 
-    @keyframes blink {
-        0% {
-            opacity: 1;
-        }
-        0.1% {
-            opacity: 1;
-        }
-        50% {
-            opacity: 1;
-        }
-        50.1% {
-            opacity: 0;
-        }
-        100% {
-            opacity: 0;
-        }
-    }
+	@keyframes blink {
+		0% {
+			opacity: 1;
+		}
+		0.1% {
+			opacity: 1;
+		}
+		50% {
+			opacity: 1;
+		}
+		50.1% {
+			opacity: 0;
+		}
+		100% {
+			opacity: 0;
+		}
+	}
 }
 
 :root {
-    font-family: "Space Grotesk", "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
-    background-color: #0f172a;
+	font-family:
+		"Space Grotesk", "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+	background-color: #0f172a;
 }
 
 body {
-    margin: 0;
-    @apply bg-base-200 text-base-content antialiased;
+	margin: 0;
+	@apply bg-base-200 text-base-content antialiased;
 }
 
 @utility glass-panel {
-    @apply border border-base-300/70 bg-base-100/70 backdrop-blur-xl shadow-2xl;
+	@apply border border-base-300/70 bg-base-100/70 backdrop-blur-xl shadow-2xl;
 }
 
 @utility surface-card {
-    @apply bg-base-100/80 border border-base-300/60 shadow-xl rounded-2xl;
+	@apply bg-base-100/80 border border-base-300/60 shadow-xl rounded-2xl;
 }
 
 @utility wallpaper-grid {
-    background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.08) 1px, transparent 0);
-    background-size: 32px 32px;
+	background-image: radial-gradient(
+		circle at 1px 1px,
+		rgba(255, 255, 255, 0.08) 1px,
+		transparent 0
+	);
+	background-size: 32px 32px;
 }
 
 .react-hot-toast {
-    @apply text-sm;
+	@apply text-sm;
 }
 
 .react-hot-toast .toast-icon {
-    @apply text-base-content;
+	@apply text-base-content;
 }
 
 .react-hot-toast .toast-success {
-    @apply bg-success text-success-content;
+	@apply bg-success text-success-content;
 }
 
 .react-hot-toast .toast-error {
-    @apply bg-error text-error-content;
+	@apply bg-error text-error-content;
 }

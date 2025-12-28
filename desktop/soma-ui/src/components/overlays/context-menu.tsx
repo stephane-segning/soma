@@ -22,13 +22,22 @@ export type ContextMenuProps = {
 	className?: string;
 };
 
-export function ContextMenu({ open, position, items, onClose, className }: ContextMenuProps) {
+export function ContextMenu({
+	open,
+	position,
+	items,
+	onClose,
+	className,
+}: ContextMenuProps) {
 	return (
 		<OverlayPortal>
 			<AnimatePresence>
 				{open ? (
 					<>
-						<div className="pointer-events-auto fixed inset-0 z-40" onMouseDown={onClose} />
+						<div
+							className="pointer-events-auto fixed inset-0 z-40"
+							onMouseDown={onClose}
+						/>
 						<motion.div
 							initial={{ opacity: 0, scale: 0.96 }}
 							animate={{ opacity: 1, scale: 1 }}
@@ -38,7 +47,12 @@ export function ContextMenu({ open, position, items, onClose, className }: Conte
 							className="pointer-events-auto fixed z-50 origin-top-left"
 							onMouseDown={(event) => event.stopPropagation()}
 						>
-							<div className={cn("glass-panel min-w-48 rounded-xl p-2 backdrop-blur-xl", className)}>
+							<div
+								className={cn(
+									"glass-panel min-w-48 rounded-xl p-2 backdrop-blur-xl",
+									className,
+								)}
+							>
 								{items.map((item) => (
 									<button
 										key={item.id}
@@ -53,13 +67,17 @@ export function ContextMenu({ open, position, items, onClose, className }: Conte
 											item.tone === "danger"
 												? "hover:bg-error hover:text-error-content"
 												: "hover:bg-base-200",
-											item.disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer",
+											item.disabled
+												? "opacity-50 cursor-not-allowed"
+												: "cursor-pointer",
 										)}
 									>
 										<span className="text-base-content/70">{item.icon}</span>
 										<span className="flex-1">{item.label}</span>
 										{item.shortcut ? (
-											<span className="text-xs text-base-content/60">{item.shortcut}</span>
+											<span className="text-xs text-base-content/60">
+												{item.shortcut}
+											</span>
 										) : null}
 									</button>
 								))}

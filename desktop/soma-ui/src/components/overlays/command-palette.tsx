@@ -107,7 +107,9 @@ export function CommandPalette({
 									placeholder={placeholder}
 									className="h-9 flex-1 bg-transparent text-sm outline-none"
 								/>
-								<span className="text-[10px] uppercase text-base-content/50">Esc</span>
+								<span className="text-[10px] uppercase text-base-content/50">
+									Esc
+								</span>
 							</div>
 
 							<div className="mt-3 max-h-80 overflow-auto pr-1">
@@ -131,13 +133,19 @@ export function CommandPalette({
 														{item.icon ?? <Search size={14} />}
 													</span>
 													<div className="flex-1">
-														<div className="text-sm font-semibold">{item.title}</div>
+														<div className="text-sm font-semibold">
+															{item.title}
+														</div>
 														{item.subtitle ? (
-															<div className="text-xs text-base-content/60">{item.subtitle}</div>
+															<div className="text-xs text-base-content/60">
+																{item.subtitle}
+															</div>
 														) : null}
 													</div>
 													{item.shortcut ? (
-														<span className="text-[11px] text-base-content/60">{item.shortcut}</span>
+														<span className="text-[11px] text-base-content/60">
+															{item.shortcut}
+														</span>
 													) : null}
 												</button>
 											))}

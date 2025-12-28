@@ -27,13 +27,21 @@ export function Taskbar({
 	className,
 }: TaskbarProps) {
 	return (
-		<div className={cn("glass-panel mx-auto mb-4 mt-2 flex w-full max-w-6xl items-center gap-2 rounded-2xl px-3 py-2", className)}>
+		<div
+			className={cn(
+				"glass-panel mx-auto mb-4 mt-2 flex w-full max-w-6xl items-center gap-2 rounded-2xl px-3 py-2",
+				className,
+			)}
+		>
 			<PolymorphButton
 				size="sm"
 				variant="primary"
 				leadingIcon={<Grid size={14} />}
 				onClick={onStart}
-				className={cn(startOpen && "ring-2 ring-offset-2 ring-primary/50 ring-offset-base-200")}
+				className={cn(
+					startOpen &&
+						"ring-2 ring-offset-2 ring-primary/50 ring-offset-base-200",
+				)}
 			>
 				Start
 			</PolymorphButton>
@@ -56,13 +64,21 @@ export function Taskbar({
 								{app.icon ?? <Square size={14} />}
 							</span>
 							<div className="min-w-[120px] text-left">
-								<div className="line-clamp-1 text-sm font-medium">{app.title}</div>
+								<div className="line-clamp-1 text-sm font-medium">
+									{app.title}
+								</div>
 								<div className="text-xs text-base-content/60">
-									{app.status === "sleeping" ? "Sleeping" : app.status === "attention" ? "Attention" : "Running"}
+									{app.status === "sleeping"
+										? "Sleeping"
+										: app.status === "attention"
+											? "Attention"
+											: "Running"}
 								</div>
 							</div>
 							{app.badge ? (
-								<span className="badge badge-sm badge-primary border-none">{app.badge}</span>
+								<span className="badge badge-sm badge-primary border-none">
+									{app.badge}
+								</span>
 							) : null}
 							<div className="absolute inset-x-2 -bottom-1">
 								<motion.div
@@ -95,7 +111,11 @@ export function Taskbar({
 
 			<div className="flex items-center gap-3">
 				{tray}
-				<PolymorphButton size="sm" variant="ghost" leadingIcon={<Maximize2 size={14} />}>
+				<PolymorphButton
+					size="sm"
+					variant="ghost"
+					leadingIcon={<Maximize2 size={14} />}
+				>
 					Show desktop
 				</PolymorphButton>
 			</div>

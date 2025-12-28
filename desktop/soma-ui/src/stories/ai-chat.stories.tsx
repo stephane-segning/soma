@@ -18,12 +18,21 @@ type Story = StoryObj;
 export const WithThinking: Story = {
 	render: function ChatStory() {
 		const [messages, setMessages] = useState<ChatMessage[]>([
-			{ id: "u1", role: "user", content: "How does blob caching work in Soma?" },
+			{
+				id: "u1",
+				role: "user",
+				content: "How does blob caching work in Soma?",
+			},
 			{
 				id: "a1",
 				role: "assistant",
-				content: "Blobs are content-addressed; bots cache CIDs and validate bytes before serving.",
-				thinking: { status: "complete", durationLabel: "3 seconds", content: "Step-by-step reasoning goes here." },
+				content:
+					"Blobs are content-addressed; bots cache CIDs and validate bytes before serving.",
+				thinking: {
+					status: "complete",
+					durationLabel: "3 seconds",
+					content: "Step-by-step reasoning goes here.",
+				},
 			},
 			{ id: "u2", role: "user", content: "Show me a summary of the steps." },
 		]);
@@ -35,7 +44,16 @@ export const WithThinking: Story = {
 			const timer = setTimeout(() => {
 				setMessages((prev) =>
 					prev.map((m) =>
-						m.id === "a2" ? { ...m, thinking: { ...m.thinking, status: "complete", durationLabel: "2 seconds" } } : m,
+						m.id === "a2"
+							? {
+									...m,
+									thinking: {
+										...m.thinking,
+										status: "complete",
+										durationLabel: "2 seconds",
+									},
+								}
+							: m,
 					),
 				);
 			}, 1500);
@@ -60,7 +78,11 @@ export const WithThinking: Story = {
 									id: "a2",
 									role: "assistant",
 									content: "Here is your answer.",
-									thinking: { status: "thinking", content: "Thinking through the steps...", durationLabel: "..." },
+									thinking: {
+										status: "thinking",
+										content: "Thinking through the steps...",
+										durationLabel: "...",
+									},
 								},
 							]);
 							setInput("");
@@ -71,7 +93,11 @@ export const WithThinking: Story = {
 								value={model}
 								onChange={setModel}
 								options={[
-									{ id: "gpt-4o", label: "GPT-4o", description: "Reasoning + speed" },
+									{
+										id: "gpt-4o",
+										label: "GPT-4o",
+										description: "Reasoning + speed",
+									},
 									{ id: "agent", label: "Agentd", description: "Local agent" },
 								]}
 							/>
@@ -102,7 +128,8 @@ export const ToolsAndSources: Story = {
 			{
 				id: "a1",
 				role: "assistant",
-				content: "The agent reported two errors related to blob validation. No retries occurred.",
+				content:
+					"The agent reported two errors related to blob validation. No retries occurred.",
 			},
 		];
 		return (
@@ -123,7 +150,11 @@ export const StreamingThinking: Story = {
 				id: "a1",
 				role: "assistant",
 				content: "",
-				thinking: { status: "thinking", content: "Considering onboarding flow...", durationLabel: "..." },
+				thinking: {
+					status: "thinking",
+					content: "Considering onboarding flow...",
+					durationLabel: "...",
+				},
 			},
 		]);
 
@@ -134,9 +165,14 @@ export const StreamingThinking: Story = {
 						m.id === "a1"
 							? {
 									...m,
-									content: "- Install daemon\n- Join a space\n- Sync docs and blobs",
-									thinking: { status: "complete", durationLabel: "4 seconds", content: m.thinking?.content },
-							  }
+									content:
+										"- Install daemon\n- Join a space\n- Sync docs and blobs",
+									thinking: {
+										status: "complete",
+										durationLabel: "4 seconds",
+										content: m.thinking?.content,
+									},
+								}
 							: m,
 					),
 				);

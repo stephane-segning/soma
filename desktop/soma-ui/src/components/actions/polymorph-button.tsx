@@ -2,7 +2,13 @@ import { motion, type HTMLMotionProps } from "motion/react";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "../../utils/cn";
 
-type Variant = "primary" | "secondary" | "ghost" | "outline" | "danger" | "success";
+type Variant =
+	| "primary"
+	| "secondary"
+	| "ghost"
+	| "outline"
+	| "danger"
+	| "success";
 type Size = "xs" | "sm" | "md" | "lg";
 
 export type PolymorphButtonProps = {
@@ -70,7 +76,9 @@ export function PolymorphButton({
 		>
 			{loading ? <span className="loading loading-spinner loading-xs" /> : null}
 			{leadingIcon}
-			{children ? <span className={cn(iconOnly && "sr-only")}>{children}</span> : null}
+			{children ? (
+				<span className={cn(iconOnly && "sr-only")}>{children}</span>
+			) : null}
 			{trailingIcon}
 		</motion.button>
 	);

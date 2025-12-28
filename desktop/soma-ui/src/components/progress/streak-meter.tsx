@@ -8,7 +8,11 @@ export type StreakMeterProps = {
 	label?: string;
 };
 
-export function StreakMeter({ value, max = 7, label = "Streak" }: StreakMeterProps) {
+export function StreakMeter({
+	value,
+	max = 7,
+	label = "Streak",
+}: StreakMeterProps) {
 	const clamped = Math.min(max, Math.max(0, value));
 	const pct = Math.round((clamped / max) * 100);
 	return (
@@ -18,7 +22,9 @@ export function StreakMeter({ value, max = 7, label = "Streak" }: StreakMeterPro
 					<Zap size={16} className="text-warning" />
 					{label}
 				</span>
-				<span className="text-base-content/70">{clamped}/{max}</span>
+				<span className="text-base-content/70">
+					{clamped}/{max}
+				</span>
 			</div>
 			<div className="mt-3 h-2 rounded-full bg-base-200">
 				<motion.div
@@ -46,7 +52,9 @@ export function XpMeter({ value, max, label = "XP" }: XpMeterProps) {
 					<Zap size={16} className="text-primary" />
 					{label}
 				</span>
-				<span className="text-base-content/70">{value} / {max}</span>
+				<span className="text-base-content/70">
+					{value} / {max}
+				</span>
 			</div>
 			<div className="mt-3 h-2 rounded-full bg-base-200">
 				<motion.div
@@ -73,7 +81,12 @@ const timerAccent = {
 	danger: "text-error bg-error/15 border-error/30",
 };
 
-export function TimerPill({ label = "Timer", timecode, accent = "primary", className }: TimerPillProps) {
+export function TimerPill({
+	label = "Timer",
+	timecode,
+	accent = "primary",
+	className,
+}: TimerPillProps) {
 	return (
 		<div
 			className={cn(
@@ -83,7 +96,9 @@ export function TimerPill({ label = "Timer", timecode, accent = "primary", class
 			)}
 		>
 			<span>{label}</span>
-			<span className="rounded bg-base-100/60 px-2 py-0.5 text-xs">{timecode}</span>
+			<span className="rounded bg-base-100/60 px-2 py-0.5 text-xs">
+				{timecode}
+			</span>
 		</div>
 	);
 }

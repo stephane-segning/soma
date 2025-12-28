@@ -1,16 +1,16 @@
 import {
-	DndContext,
-	PointerSensor,
 	closestCenter,
+	DndContext,
+	type DragEndEvent,
+	PointerSensor,
 	useSensor,
 	useSensors,
-	type DragEndEvent,
 } from "@dnd-kit/core";
 import {
-	SortableContext,
-	rectSortingStrategy,
-	useSortable,
 	arrayMove,
+	rectSortingStrategy,
+	SortableContext,
+	useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { AnimatePresence, motion } from "motion/react";
@@ -81,7 +81,9 @@ export function DesktopArea({
 		[orderedItems],
 	);
 
-	const currentMenuItem = menuState.itemId ? iconsById[menuState.itemId] ?? null : null;
+	const currentMenuItem = menuState.itemId
+		? (iconsById[menuState.itemId] ?? null)
+		: null;
 	const menuItems =
 		contextMenuItems?.(currentMenuItem ?? null) ??
 		(currentMenuItem
@@ -101,7 +103,7 @@ export function DesktopArea({
 						label: "View details",
 						shortcut: "⌘I",
 					},
-			  ]
+				]
 			: [
 					{
 						id: "new-shortcut",
@@ -117,13 +119,13 @@ export function DesktopArea({
 						id: "wallpaper",
 						label: "Change wallpaper",
 					},
-			  ]);
+				]);
 
 	const openMenu = (itemId: string | null, event: React.MouseEvent) => {
 		event.preventDefault();
 		const position = { x: event.clientX, y: event.clientY };
 		setMenuState({ open: true, itemId, position });
-		onContextMenu?.(itemId ? iconsById[itemId] ?? null : null, position);
+		onContextMenu?.(itemId ? (iconsById[itemId] ?? null) : null, position);
 	};
 
 	return (
@@ -134,8 +136,15 @@ export function DesktopArea({
 			)}
 			onContextMenu={(event) => openMenu(null, event)}
 		>
-			<DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-				<SortableContext items={orderedItems.map((item) => item.id)} strategy={rectSortingStrategy}>
+			<DndContext
+				sensors={sensors}
+				collisionDetection={closestCenter}
+				onDragEnd={handleDragEnd}
+			>
+				<SortableContext
+					items={orderedItems.map((item) => item.id)}
+					strategy={rectSortingStrategy}
+				>
 					<div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
 						{orderedItems.map((item) => (
 							<DesktopIconTile
@@ -204,8 +213,12 @@ function DesktopIconTile({
 			<div className="grid h-14 w-14 place-items-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 text-primary">
 				{item.icon ?? <Folder size={20} />}
 			</div>
-			<div className="text-sm font-medium text-base-content/90">{item.label}</div>
-			{item.hint ? <div className="text-xs text-base-content/60">{item.hint}</div> : null}
+			<div className="text-sm font-medium text-base-content/90">
+				{item.label}
+			</div>
+			{item.hint ? (
+				<div className="text-xs text-base-content/60">{item.hint}</div>
+			) : null}
 		</motion.button>
 	);
 }

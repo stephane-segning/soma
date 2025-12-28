@@ -8,9 +8,22 @@ const meta: Meta<typeof AiModelSelector> = {
 	parameters: { layout: "padded" },
 	args: {
 		options: [
-			{ id: "gpt-4o", label: "GPT-4o", description: "Balanced reasoning and speed" },
-			{ id: "gpt-4o-mini", label: "GPT-4o mini", description: "Cheaper + fast" },
-			{ id: "agent", label: "Agent", description: "Local agent via agentd", hint: "Local" },
+			{
+				id: "gpt-4o",
+				label: "GPT-4o",
+				description: "Balanced reasoning and speed",
+			},
+			{
+				id: "gpt-4o-mini",
+				label: "GPT-4o mini",
+				description: "Cheaper + fast",
+			},
+			{
+				id: "agent",
+				label: "Agent",
+				description: "Local agent via agentd",
+				hint: "Local",
+			},
 		],
 		value: "gpt-4o",
 	},

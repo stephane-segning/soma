@@ -68,7 +68,7 @@ export function SplitPane({
 				className={cn("overflow-hidden", isHorizontal ? "h-full" : "")}
 				style={isHorizontal ? { width: `${size}%` } : { height: `${size}%` }}
 			>
-				{isHorizontal ? left ?? top : top ?? left}
+				{isHorizontal ? (left ?? top) : (top ?? left)}
 			</div>
 			<button
 				type="button"
@@ -86,7 +86,9 @@ export function SplitPane({
 					)}
 				/>
 			</button>
-			<div className="flex-1 overflow-hidden">{isHorizontal ? right ?? bottom : bottom ?? right}</div>
+			<div className="flex-1 overflow-hidden">
+				{isHorizontal ? (right ?? bottom) : (bottom ?? right)}
+			</div>
 		</div>
 	);
 }

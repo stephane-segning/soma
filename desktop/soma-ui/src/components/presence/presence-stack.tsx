@@ -21,20 +21,29 @@ const indicatorTone = {
 	offline: "bg-base-400",
 };
 
-export function PresenceStack({ avatars, limit = 5, className }: PresenceStackProps) {
+export function PresenceStack({
+	avatars,
+	limit = 5,
+	className,
+}: PresenceStackProps) {
 	const visible = avatars.slice(0, limit);
 	const remaining = avatars.length - visible.length;
 
 	return (
 		<div className={cn("flex -space-x-2 items-center", className)}>
 			{visible.map((avatar) => (
-				<div key={avatar.id} className="relative h-9 w-9 rounded-full border-2 border-base-100 bg-base-200 text-xs font-semibold text-base-content/80 shadow-sm">
+				<div
+					key={avatar.id}
+					className="relative h-9 w-9 rounded-full border-2 border-base-100 bg-base-200 text-xs font-semibold text-base-content/80 shadow-sm"
+				>
 					{avatar.element ? (
 						avatar.element
 					) : (
 						<div
 							className="flex h-full w-full items-center justify-center rounded-full"
-							style={{ backgroundColor: avatar.color ?? "var(--fallback-b1, #e5e7eb)" }}
+							style={{
+								backgroundColor: avatar.color ?? "var(--fallback-b1, #e5e7eb)",
+							}}
 						>
 							{avatar.label.slice(0, 2).toUpperCase()}
 						</div>
