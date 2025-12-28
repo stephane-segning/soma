@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::error::AppResult;
-use crate::paths::{ensure_app_paths, AppPaths};
+use crate::paths::{AppPaths, ensure_app_paths};
 use anyhow::Result;
 use tauri::{AppHandle, Wry};
 use tracing::{debug, info, warn};

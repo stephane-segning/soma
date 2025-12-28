@@ -1,15 +1,19 @@
 use async_trait::async_trait;
 use libp2p::{PeerId, identity::Keypair};
+use prost::Message;
 use prost_types::Timestamp;
 use rand::random;
 use soma_common::sign_membership_capability;
 use soma_core::{Error, SomaResult};
 use soma_membership::{create_space, role_to_str};
 use soma_proto_build::spaceroom;
-use soma_storage::{RepositoryProvider, membership::SpaceMembership};
-use std::{collections::HashSet, sync::Arc, time::{SystemTime, UNIX_EPOCH}};
-use prost::Message;
 use soma_proto_build::spaceroom::SpaceRole;
+use soma_storage::{RepositoryProvider, membership::SpaceMembership};
+use std::{
+    collections::HashSet,
+    sync::Arc,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 #[derive(Debug, Clone)]
 pub struct SpaceRecord {
@@ -59,12 +63,12 @@ pub struct DefaultSpaceManager {
 }
 
 impl DefaultSpaceManager {
-    pub fn new(
-        repos: Arc<dyn RepositoryProvider>,
-        signer: Keypair,
-        peer_id: PeerId,
-    ) -> Self {
-        Self { repos, signer, peer_id }
+    pub fn new(repos: Arc<dyn RepositoryProvider>, signer: Keypair, peer_id: PeerId) -> Self {
+        Self {
+            repos,
+            signer,
+            peer_id,
+        }
     }
 
     fn normalize_display_name(name: Option<String>) -> Option<String> {
@@ -83,10 +87,7 @@ impl DefaultSpaceManager {
         display_name: Option<String>,
     ) -> SomaResult<()> {
         let now = SystemTime::now();
-        let now_secs = now
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs() as i64;
+        let now_secs = now.duration_since(UNIX_EPOCH).unwrap_or_default().as_secs() as i64;
         let mut membership_cap = spaceroom::MembershipCapability {
             space_id: Some(spaceroom::SpaceId {
                 value: space_id.to_string(),
@@ -140,14 +141,7 @@ impl SpaceManager for DefaultSpaceManager {
     ) -> SomaResult<(Vec<SpaceRecord>, Option<u32>)> {
         let repo = self.repos.membership_repo();
         let rows = repo
-            .list_spaces(
-                None,
-                query.as_deref(),
-                None,
-                None,
-                limit,
-                offset,
-            )
+            .list_spaces(None, query.as_deref(), None, None, limit, offset)
             .await?;
 
         let memberships = repo
@@ -195,9 +189,7 @@ impl SpaceManager for DefaultSpaceManager {
             .ok_or_else(|| Error::service("space not found"))?;
 
         let peer_id = self.peer_id.to_string();
-        let membership = repo
-            .get_membership(space_id, &peer_id)
-            .await?;
+        let membership = repo.get_membership(space_id, &peer_id).await?;
 
         let is_owner = space
             .owner_peer_id

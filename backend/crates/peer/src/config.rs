@@ -3,8 +3,8 @@ use libp2p::Multiaddr;
 use std::{path::PathBuf, sync::Arc};
 
 use crate::{
-    join::{default_join_decider, JoinDecider},
     BlobProvider,
+    join::{JoinDecider, default_join_decider},
 };
 use soma_net::IdentityManager;
 

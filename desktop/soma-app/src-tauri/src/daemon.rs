@@ -4,19 +4,20 @@ use anyhow::Context;
 use derive_builder::Builder;
 use soma_proto_build::daemon::{
     CreateSpaceRequest, CreateSpaceResponse, DeleteSpaceRequest, DeleteSpaceResponse,
-    GetSpaceRequest, GetSpaceResponse, ListSpacesRequest, ListSpacesResponse,
-    UpdateSpaceRequest, UpdateSpaceResponse, UploadBlobRequest, UploadBlobResponse,
-    UpsertDocumentRequest, UpsertDocumentResponse, daemon_client::DaemonClient as GrpcDaemonClient,
+    GetSpaceRequest, GetSpaceResponse, ListSpacesRequest, ListSpacesResponse, UpdateSpaceRequest,
+    UpdateSpaceResponse, UploadBlobRequest, UploadBlobResponse, UpsertDocumentRequest,
+    UpsertDocumentResponse, daemon_client::DaemonClient as GrpcDaemonClient,
 };
 use tauri::{AppHandle, Wry};
 use tokio::sync::Mutex;
 use tonic::transport::{Channel, Endpoint};
 use tracing::info;
 
+use crate::error::AppResult;
 use crate::{error::AppError, transport::unix_connector};
 
 pub trait BlobSource: Send + Sync {
-    fn read_blob(&self, space_id: &str, cid: &str) -> Result<Option<Vec<u8>>, AppError>;
+    fn read_blob(&self, space_id: &str, cid: &str) -> AppResult<Option<Vec<u8>>>;
 }
 
 #[derive(Builder, Debug, Clone)]
@@ -24,8 +25,6 @@ pub trait BlobSource: Send + Sync {
 pub struct DaemonConfig {
     #[builder(setter(into))]
     socket_path: PathBuf,
-    #[builder(setter(into))]
-    blob_dir: PathBuf,
 }
 
 impl DaemonConfig {
@@ -34,13 +33,8 @@ impl DaemonConfig {
             .map(PathBuf::from)
             .unwrap_or_else(|| PathBuf::from("/tmp/soma-daemon.sock"));
 
-        let blob_dir = std::env::var_os("SOMA_BLOB_DIR")
-            .map(PathBuf::from)
-            .unwrap_or_else(|| PathBuf::from("blobs"));
-
         Ok(DaemonConfigBuilder::default()
             .socket_path(socket_path)
-            .blob_dir(blob_dir)
             .build()?)
     }
 }
@@ -55,7 +49,7 @@ impl DaemonApi {
     pub fn from_app(_app: &AppHandle<Wry>) -> anyhow::Result<Arc<Self>> {
         let config = DaemonConfig::from_app()?;
         info!("Using soma-daemon socket at {:?}", config.socket_path);
-        info!("Assuming daemon blob directory at {:?}", config.blob_dir);
+
         Ok(Arc::new(Self {
             config,
             client: Mutex::new(None),
@@ -143,11 +137,8 @@ impl DaemonApi {
 }
 
 impl BlobSource for DaemonApi {
-    fn read_blob(&self, space_id: &str, cid: &str) -> Result<Option<Vec<u8>>, AppError> {
-        let path = self.config.blob_dir.join(space_id).join(cid);
-        if !path.exists() {
-            return Ok(None);
-        }
-        Ok(Some(fs::read(path)?))
+    fn read_blob(&self, _space_id: &str, _cid: &str) -> AppResult<Option<Vec<u8>>> {
+        // TODO: the daemon should itself return the position of the blob if present, and try downloading if not present
+        todo!("Not yet implemented")
     }
 }

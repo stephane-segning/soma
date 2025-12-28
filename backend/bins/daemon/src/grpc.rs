@@ -14,9 +14,9 @@ use tokio_stream::{StreamExt as TokioStreamExt, wrappers::BroadcastStream};
 use tonic::{Request, Response, Status};
 use tracing::{info, warn};
 
+use crate::services::space::SpaceManager;
 use soma_storage::RepositoryProvider;
 use soma_vdfs::fs::FsBlobStore;
-use crate::services::space::SpaceManager;
 
 const MAX_UPLOAD_BYTES: usize = 8 * 1024 * 1024;
 /// Daemon shared state (peer id, command channel, listeners, event bus).
@@ -460,10 +460,7 @@ impl daemon::daemon_server::Daemon for DaemonService {
             })?;
 
         Ok(Response::new(daemon::ListSpacesResponse {
-            spaces: spaces
-                .into_iter()
-                .map(map_space_record)
-                .collect(),
+            spaces: spaces.into_iter().map(map_space_record).collect(),
             limit,
             offset,
             next_offset,
@@ -560,9 +557,7 @@ impl daemon::daemon_server::Daemon for DaemonService {
                 Status::internal("failed to delete space")
             })?;
 
-        Ok(Response::new(daemon::DeleteSpaceResponse {
-            deleted,
-        }))
+        Ok(Response::new(daemon::DeleteSpaceResponse { deleted }))
     }
 }
 

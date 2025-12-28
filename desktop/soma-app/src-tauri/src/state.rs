@@ -1,5 +1,5 @@
 use crate::error::AppResult;
-use crate::paths::{ensure_app_paths, AppPaths};
+use crate::paths::{AppPaths, ensure_app_paths};
 use anyhow::Context;
 use derive_builder::Builder;
 use serde::{Deserialize, Serialize};

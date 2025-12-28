@@ -4,11 +4,15 @@ use tauri::{Manager, Wry};
 use tauri_plugin_deep_link::DeepLinkExt;
 use tracing::info;
 
-use crate::handlers::handler::SomaHandlerBuilder;
 use crate::{
     agent::AgentApi,
     bootstrap::{Bootstrapper, MainBootstrap},
     daemon::DaemonApi,
+    handlers::{
+        agent::AgentController, blobs::BlobsController, documents::DocumentsController,
+        remember::RememberController, search::SearchController, settings::SettingsController,
+        spaces::SpacesController,
+    },
     protocol::{BlobProtocol, ProtocolRegistrar},
     state::{AppStateStore, FileStateStore, ManagedState},
     window::{MainWindowController, WindowController},
@@ -103,12 +107,22 @@ impl SomaApp {
                 let managed_state =
                     ManagedState::new(state_store.clone(), daemon, agent, Arc::new(handle.clone()));
 
-                let soma_handler = SomaHandlerBuilder::default()
-                    .state(managed_state.clone())
-                    .build()?;
+                let remember_controller = RememberController::new(managed_state.clone());
+                let documents_controller = DocumentsController::new(managed_state.clone());
+                let spaces_controller = SpacesController::new(managed_state.clone());
+                let blobs_controller = BlobsController::new(managed_state.clone());
+                let agent_controller = AgentController::new(managed_state.clone());
+                let settings_controller = SettingsController::new(managed_state.clone());
+                let search_controller = SearchController::new();
 
                 app.manage(managed_state);
-                app.manage(soma_handler);
+                app.manage(remember_controller);
+                app.manage(documents_controller);
+                app.manage(spaces_controller);
+                app.manage(blobs_controller);
+                app.manage(agent_controller);
+                app.manage(settings_controller);
+                app.manage(search_controller);
 
                 bootstrapper.clone().init(&handle)?;
                 window_controller.clone().create_or_restore(&handle)?;
