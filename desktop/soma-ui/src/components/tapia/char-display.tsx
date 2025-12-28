@@ -4,8 +4,8 @@ import { memo, useEffect, useMemo, useRef } from "react";
 import { cn } from "../../utils/cn";
 
 export type CharDisplayProps = {
-	shouldText: string;
-	isText: string;
+	shouldGraphemes: string[];
+	isGraphemes: string[];
 	className?: string;
 };
 
@@ -23,33 +23,20 @@ function SingleChar({ char, className }: SingleCharProps) {
 	);
 }
 
-const segmenter =
-	typeof Intl !== "undefined" && (Intl as any).Segmenter
-		? new (Intl as any).Segmenter(undefined, { granularity: "grapheme" })
-		: null;
-
-const toGraphemes = (value: string) =>
-	segmenter
-		? Array.from(
-				segmenter.segment(value),
-				({ segment }: any) => segment as string,
-			)
-		: Array.from(value);
-
 export const CharDisplay = memo(function CharDisplay({
-	shouldText,
-	isText,
+	shouldGraphemes,
+	isGraphemes,
 	className,
 }: CharDisplayProps) {
-	const expected = useMemo(() => toGraphemes(shouldText), [shouldText]);
-	const actual = useMemo(() => toGraphemes(isText), [isText]);
+	const expected = shouldGraphemes;
+	const actual = isGraphemes;
 
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const innerRef = useRef<HTMLDivElement | null>(null);
 	const cursorRef = useRef<HTMLSpanElement | null>(null);
 
 	const cells = useMemo(() => {
-		const lastIndex = actual.length - 1;
+		const lastIndex = Math.max(actual.length - 1, 0);
 		return expected.map((char, index) => {
 			const hasUserChar = index < actual.length;
 			const userChar = actual[index];
@@ -123,7 +110,7 @@ export const CharDisplay = memo(function CharDisplay({
 			const nextScrollLeft = Math.max(0, Math.min(target, maxScroll));
 			container.scrollTo({ left: nextScrollLeft, behavior: "smooth" });
 		}
-	}, [actual, cells]);
+	}, [actual.length, cells]);
 
 	return (
 		<div
