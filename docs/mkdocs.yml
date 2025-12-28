@@ -52,6 +52,7 @@ nav:
       - Database & Migrations: development/database.md
       - justfile: development/justfile.md
       - Peer Events: development/peer-events.md
+      - Tauri Apps (commands): development/tauri-commands.md
       - Agentd IPC: development/agentd-ipc.md
       - Local LLMs (agentd models): development/agentd-models.md
       - Daemon Testing (grpcurl): development/daemon-grpcurl.md

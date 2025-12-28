@@ -293,6 +293,11 @@ Soma-app (`desktop/soma-app`) (Tauri v2):
 - Main Soma UI; Rust main process lives under `desktop/soma-app/src-tauri`.
 - Renderer → main process uses `@tauri-apps/api/core` `invoke(...)` (no Electron preload bridge; no `window.api`).
 - Tauri command state must be registered via `.manage(...)` and accessed with `tauri::State<'_, T>`.
+- Command boundary convention (shared with Tapia):
+  - Commands accept `tauri::ipc::Request<'_>` and manually deserialize params via `tauri_command_utils::parse_params(...)`.
+  - Each command delegates to a managed “category controller” under `desktop/*/src-tauri/src/handlers/*` (e.g. `DocumentsController`, `SpacesController`), with one `Params` struct per method (`#[derive(Deserialize)]`, `camelCase`).
+  - Do not define app-local `AppError`/`AppResult`; they are provided by `desktop/tauri-command-utils` and re-exported from each app’s `src/error.rs`.
+  - `tauri-command-utils` features control which `AppError` variants are compiled (`bad-request`, `json-error`, `io`, `anyhow`, `daemon`, `agent`); apps should enable only what they use.
 - Desktop assumes `soma-daemon` is already running; do not start daemons from the renderer.
 - No local blob persistence/caching in the desktop app: uploads go to `soma-daemon`, and renderers should use `soma-blob://daemon/{space_id}/{cid}` URLs for blob references.
 - Local LLM chat runs via `soma-agentd` (gRPC over Unix socket); for model selection and “base vs instruct” behavior, see `docs/src/development/agentd-models.md`.
@@ -304,6 +309,7 @@ Tapia (`desktop/tapia-app`):
 - Needs “text segmentation + cursor ranges” and a “diff/comparison engine”; choose stable, mature packages from the JavaScript package registry (common candidates: `graphemer` / `grapheme-splitter`, and `diff-match-patch` / `diff`).
 - Uses Motion for micro-interactions (cursor movement/layout animations, color transitions, correct/incorrect feedback).
 - Uses XState for state machines.
+- Uses the same Tauri command/controller conventions as Soma-app (see above), including shared `desktop/tauri-command-utils` for `AppError/AppResult` + `parse_params`.
 - Legacy Electron app remains in `desktop/tapia` but is not the primary target.
 
 ## Binaries and Responsibilities
