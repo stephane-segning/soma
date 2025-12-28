@@ -12,11 +12,11 @@ build-daemons:
 
 # Run the desktop soma-daemon peer for local development
 run-daemon:
-	export SOMA_DATA_DIR=$PWD/.data && cargo run -p soma-daemon -- --socket-path /tmp/soma-daemon.sock --db-path $SOMA_DATA_DIR/db/daemon.db --blob-dir $SOMA_DATA_DIR/blobs/daemon --listen-addrs /ip4/0.0.0.0/tcp/3000/ws
+	export SOMA_DATA_DIR="$PWD/.data" && export SOMA_LOGS_DIR="$SOMA_DATA_DIR/logs/daemon" && cargo run -p soma-daemon -- --socket-path /tmp/soma-daemon.sock --db-path $SOMA_DATA_DIR/db/daemon.db --blob-dir $SOMA_DATA_DIR/blobs/daemon --listen-addrs /ip4/0.0.0.0/tcp/3000/ws
 
 # Run the soma-agentd helper process
 run-agentd:
-    export SOMA_DATA_DIR=$PWD/.data && cargo run -p soma-agentd -- --socket-path /tmp/soma-agentd.sock --models-dir $SOMA_DATA_DIR/models --default-chat-model Meta-Llama-3-8B-Instruct.Q4_K_M.gguf
+    export SOMA_DATA_DIR="$PWD/.data" && export SOMA_LOGS_DIR="$SOMA_DATA_DIR/logs/agentd" && cargo run -p soma-agentd -- --socket-path /tmp/soma-agentd.sock --models-dir $SOMA_DATA_DIR/models --default-chat-model Meta-Llama-3-8B-Instruct.Q4_K_M.gguf
 
 #
 # Server binaries
@@ -28,7 +28,7 @@ build-servers:
 
 # Run soma-botd
 run-botd:
-    export SOMA_DATA_DIR=$PWD/.data && cargo run -p soma-botd -- --http-addr 127.0.0.1:0 --disable-mdns --listen-addrs /ip4/127.0.0.1/tcp/0
+    export SOMA_DATA_DIR=$PWD/.data && cargo run -p soma-botd -- --http-addr 127.0.0.1:0 --db-url sqlite://$SOMA_DATA_DIR/db/botd.db --blob-dir $SOMA_DATA_DIR/blobs/botd --listen-addrs /ip4/127.0.0.1/tcp/0
 
 # Run soma-relayd
 run-relayd:

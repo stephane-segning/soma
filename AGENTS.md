@@ -169,7 +169,7 @@ Specific services (all now live under `backend/`):
     - Metrics: `backend/bins/botd/src/event_handlers.rs` (`MetricsHandler`, handles **all** `PeerEventKind`s)
     - Logging: `backend/bins/botd/src/event_handlers.rs` (`LoggingHandler`, selected events only)
 - Prometheus metrics definitions/registration: `backend/bins/botd/src/metrics.rs`
-- Storage: SQLx AnyPool (Postgres or SQLite) via `soma_core::db::DbFactory`. Config via `--database-url` / `SOMA_DATABASE_URL` (defaults to `./botd.db` SQLite). Migrations are shared under `backend/crates/storage/migrations` and embedded at startup (`sqlx::migrate!("../../crates/storage/migrations")` in `runtime.rs`); startup fails if migration fails.
+- Storage: SQLx AnyPool (Postgres or SQLite) via `soma_core::db::DbFactory`. Config via `--db-path` / `SOMA_DATABASE_URL` (defaults to `./botd.db` SQLite). Migrations are shared under `backend/crates/storage/migrations` and embedded at startup (`sqlx::migrate!("../../crates/storage/migrations")` in `runtime.rs`); startup fails if migration fails.
 - Join decider: auto-approves only when the bot holds a valid issuer capability for the space (role/expiry enforced) and signs the membership capability with its libp2p identity key; otherwise the join is recorded for manual approval in storage.
 
 #### Operating modes (bot vs server-daemon)

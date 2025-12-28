@@ -18,7 +18,7 @@ pub struct Args {
 
     /// Database URL (postgres://... or sqlite file path/url). Defaults to ./botd.db (SQLite).
     #[arg(long, env = "SOMA_DATABASE_URL")]
-    pub database_url: Option<String>,
+    pub db_url: Option<String>,
 
     /// Listen multiaddrs for libp2p.
     #[arg(
@@ -68,7 +68,7 @@ pub enum Command {
 pub struct BotConfig {
     pub identity_path: PathBuf,
     pub blob_dir: PathBuf,
-    pub database_url: String,
+    pub db_url: String,
     pub http_addr: SocketAddr,
     pub listen_addrs: Vec<Multiaddr>,
     pub bootstrap_addrs: Vec<Multiaddr>,
@@ -85,8 +85,8 @@ impl BotConfig {
         Self {
             identity_path: idm.default_identity_path("bot"),
             blob_dir: args.blob_dir.clone(),
-            database_url: args
-                .database_url
+            db_url: args
+                .db_url
                 .as_deref()
                 .map(|s| s.to_string())
                 .unwrap_or_else(|| "./botd.db".into()),

@@ -56,9 +56,9 @@ pub async fn run(config: BotConfig, metrics: BotMetrics) -> SomaResult<()> {
     // DB: allow postgres or sqlite URL, default to sqlite file path.
     static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("../../crates/storage/migrations");
 
-    let db_scheme = db_scheme(&config.database_url);
-    info!(scheme = %db_scheme, url = %config.database_url, "configuring database");
-    let repos = soma_storage::bootstrap::connect_any(&config.database_url, &MIGRATOR).await?;
+    let db_scheme = db_scheme(&config.db_url);
+    info!(scheme = %db_scheme, url = %config.db_url, "configuring database");
+    let repos = soma_storage::bootstrap::connect_any(&config.db_url, &MIGRATOR).await?;
     let join_policy = if matches!(config.mode, Mode::Bot) {
         JoinPolicy::bot_auto()
     } else {
