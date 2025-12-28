@@ -1,6 +1,5 @@
 import { consoleForwardPlugin } from "@0xbigboss/vite-console-forward-plugin";
 import react from "@vitejs/plugin-react";
-import basex from "base-x";
 import { defineConfig } from "vite";
 import { ViteMinifyPlugin } from "vite-plugin-minify";
 import topLevelAwait from "vite-plugin-top-level-await";
