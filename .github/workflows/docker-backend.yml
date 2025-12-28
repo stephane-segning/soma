@@ -137,13 +137,13 @@ jobs:
         uses: extractions/setup-just@v3
 
       - name: Download amd64 artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: backend-bins-amd64
           path: dist/backend/linux-amd64
 
       - name: Download arm64 artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: backend-bins-arm64
           path: dist/backend/linux-arm64
