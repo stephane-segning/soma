@@ -6394,7 +6394,6 @@ dependencies = [
  "tauri-plugin-opener",
  "tauri-plugin-single-instance",
  "tauri-plugin-window-state",
- "thiserror 2.0.17",
  "tokio",
  "tonic",
  "tower",
@@ -7235,7 +7234,6 @@ dependencies = [
  "tauri-plugin-log",
  "tauri-plugin-opener",
  "tauri-plugin-single-instance",
- "thiserror 2.0.17",
  "tracing",
 ]
 
@@ -7350,10 +7348,12 @@ dependencies = [
 name = "tauri-command-utils"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "serde",
  "serde_json",
  "tauri",
  "thiserror 2.0.17",
+ "tonic",
 ]
 
 [[package]]

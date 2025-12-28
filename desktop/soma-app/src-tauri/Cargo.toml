@@ -31,7 +31,6 @@ tonic = { workspace = true }
 tower = { version = "0.5", features = ["util"] }
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
 derive_builder = { workspace = true }
-thiserror = { workspace = true }
 hyper = { version = "1", default-features = false, features = ["client", "http1"] }
 
 mime = { workspace = true }

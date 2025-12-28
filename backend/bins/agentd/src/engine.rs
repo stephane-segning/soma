@@ -27,6 +27,7 @@ pub struct ModelInfo {
     pub path: String,
     pub loaded: bool,
     pub kind: ModelKind,
+    pub size_bytes: Option<u64>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -307,11 +308,14 @@ impl EngineState {
                 continue;
             };
 
+            let size_bytes = std::fs::metadata(&path).map(|m| m.len()).ok();
+
             models.push(ModelInfo {
                 name,
                 kind,
                 path: path.display().to_string(),
                 loaded,
+                size_bytes,
             });
         }
 

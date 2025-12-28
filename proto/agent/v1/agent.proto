@@ -7,10 +7,13 @@ import "google/protobuf/empty.proto";
 // Local agent service (IPC over Unix domain socket).
 service Agent {
   rpc Status(google.protobuf.Empty) returns (StatusResponse);
+  rpc ListModels(google.protobuf.Empty) returns (ListModelsResponse);
   rpc InlineComplete(InlineCompleteRequest) returns (InlineCompleteResponse);
   rpc Chat(ChatRequest) returns (ChatResponse);
   rpc ChatStream(ChatRequest) returns (stream ChatStreamEvent);
   rpc Embed(EmbedRequest) returns (EmbedResponse);
+  rpc Rerank(RerankRequest) returns (RerankResponse);
+  rpc ResolveDrift(ResolveDriftRequest) returns (ResolveDriftResponse);
 }
 
 message StatusResponse {
@@ -31,6 +34,7 @@ message ModelInfo {
   ModelKind kind = 2;
   string path = 3;
   bool loaded = 4;
+  uint64 size_bytes = 5;
 }
 
 message InlineCompleteRequest {
@@ -86,3 +90,40 @@ message EmbedResponse {
   repeated EmbedVector embeddings = 2;
 }
 
+message ListModelsResponse {
+  repeated ModelInfo models = 1;
+}
+
+message RerankRequest {
+  string query = 1;
+  repeated RerankCandidate candidates = 2;
+  // Optional model override; defaults to StatusResponse.default_embed_model.
+  string model = 3;
+  // Optional cap; defaults to all candidates.
+  uint32 top_n = 4;
+}
+
+message RerankCandidate {
+  string id = 1;
+  string content = 2;
+}
+
+message RerankResult {
+  string id = 1;
+  double score = 2;
+  uint32 rank = 3;
+}
+
+message RerankResponse {
+  string model = 1;
+  repeated RerankResult results = 2;
+}
+
+message ResolveDriftRequest {
+  bytes left_update = 1;
+  bytes right_update = 2;
+}
+
+message ResolveDriftResponse {
+  bytes merged_update = 1;
+}

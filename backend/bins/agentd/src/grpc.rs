@@ -1,12 +1,14 @@
-use std::{pin::Pin, sync::Arc};
+use std::{cmp::Ordering, pin::Pin, sync::Arc};
 
 use futures::Stream;
 use soma_proto_build::agent;
 use tokio_stream::{StreamExt as TokioStreamExt, wrappers::UnboundedReceiverStream};
 use tonic::{Request, Response, Status};
+use yrs::{Doc, ReadTxn, StateVector, Transact, updates::decoder::Decode};
 
 use crate::engine::{
-    ChatMessage, ChatRequest, EmbedRequest, EngineChatStreamEvent, EngineHandle, ModelKind,
+    ChatMessage, ChatRequest, EmbedRequest, EngineChatStreamEvent, EngineHandle, EngineStatus,
+    ModelKind,
 };
 
 #[derive(Debug)]
@@ -33,26 +35,8 @@ impl agent::agent_server::Agent for AgentdService {
         &self,
         _request: Request<()>,
     ) -> Result<Response<agent::StatusResponse>, Status> {
-        let status = self
-            .state
-            .engine
-            .status()
-            .await
-            .map_err(|err| Status::internal(err.to_string()))?;
-
-        let models = status
-            .models
-            .into_iter()
-            .map(|m| agent::ModelInfo {
-                name: m.name,
-                kind: match m.kind {
-                    ModelKind::Chat => agent::ModelKind::Chat as i32,
-                    ModelKind::Embed => agent::ModelKind::Embed as i32,
-                },
-                path: m.path,
-                loaded: m.loaded,
-            })
-            .collect();
+        let status = self.status_inner().await?;
+        let models = status.models.into_iter().map(map_model_info).collect();
 
         Ok(Response::new(agent::StatusResponse {
             version: status.version,
@@ -60,6 +44,15 @@ impl agent::agent_server::Agent for AgentdService {
             default_embed_model: status.default_embed_model,
             models,
         }))
+    }
+
+    async fn list_models(
+        &self,
+        _request: Request<()>,
+    ) -> Result<Response<agent::ListModelsResponse>, Status> {
+        let status = self.status_inner().await?;
+        let models = status.models.into_iter().map(map_model_info).collect();
+        Ok(Response::new(agent::ListModelsResponse { models }))
     }
 
     async fn inline_complete(
