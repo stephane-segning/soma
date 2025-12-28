@@ -7,7 +7,8 @@ const meta: Meta<typeof CharDisplay> = {
 	component: CharDisplay,
 	parameters: { layout: "padded" },
 	args: {
-		shouldText: "I love keyboard ❤️!",
+		shouldText:
+			"I love keyboard ❤️! It's so wonderful to code when you're not hungry or afraid of a computer aha hahaha.",
 		isText: "I lovee b",
 	},
 };
@@ -29,7 +30,7 @@ export const LiveTyping: Story = {
 	render: (args) => {
 		const [value, setValue] = useState("keyv");
 		return (
-			<div className="space-y-3 p-8 bg-base-100">
+			<div className="space-y-3 p-8 bg-base-100 w-full">
 				<CharDisplay {...args} isText={value} />
 				<input
 					value={value}

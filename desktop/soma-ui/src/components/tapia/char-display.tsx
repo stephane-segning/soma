@@ -1,5 +1,6 @@
+/** biome-ignore-all lint/suspicious/noArrayIndexKey: idx iterate are safe here */
 import { motion } from "motion/react";
-import { memo, useMemo } from "react";
+import { memo, useEffect, useMemo, useRef } from "react";
 import { cn } from "../../utils/cn";
 
 export type CharDisplayProps = {
@@ -10,81 +11,131 @@ export type CharDisplayProps = {
 
 type SingleCharProps = {
 	char: string;
+	className?: string;
 };
 
-function SingleChar({ char }: SingleCharProps) {
+function SingleChar({ char, className }: SingleCharProps) {
 	if (char === " ") {
-		return <span className="w-8 block h-full" />;
+		return <span className={cn(className, "w-8 inline-block h-14")} />;
 	}
-	return char;
+	return (
+		<span className={cn(className, "inline-block align-baseline")}>{char}</span>
+	);
 }
+
+const segmenter =
+	typeof Intl !== "undefined" && (Intl as any).Segmenter
+		? new (Intl as any).Segmenter(undefined, { granularity: "grapheme" })
+		: null;
+
+const toGraphemes = (value: string) =>
+	segmenter
+		? Array.from(
+				segmenter.segment(value),
+				({ segment }: any) => segment as string,
+			)
+		: Array.from(value);
 
 export const CharDisplay = memo(function CharDisplay({
 	shouldText,
 	isText,
 	className,
 }: CharDisplayProps) {
-	const expected = useMemo(() => Array.from(shouldText), [shouldText]);
-	const actual = useMemo(() => Array.from(isText), [isText]);
+	const expected = useMemo(() => toGraphemes(shouldText), [shouldText]);
+	const actual = useMemo(() => toGraphemes(isText), [isText]);
 
-	const cells = useMemo(
-		() =>
-			expected.map((char, index) => {
-				const hasUserChar = index < actual.length;
-				const userChar = actual[index];
+	const containerRef = useRef<HTMLDivElement | null>(null);
+	const innerRef = useRef<HTMLDivElement | null>(null);
+	const cursorRef = useRef<HTMLSpanElement | null>(null);
 
-				if (!hasUserChar) {
-					return (
-						<span
-							key={index}
-							className="align-baseline leading-none text-base-content/80"
-						>
-							<SingleChar char={char} />
-						</span>
-					);
-				}
+	const cells = useMemo(() => {
+		const lastIndex = actual.length - 1;
+		return expected.map((char, index) => {
+			const hasUserChar = index < actual.length;
+			const userChar = actual[index];
+			const ref = index === lastIndex ? cursorRef : undefined;
+			const typerClass =
+				index === lastIndex
+					? "after:absolute after:bottom-0 after:right-0 after:h-14 after:w-[0.125em] after:animate-caret after:bg-black"
+					: undefined;
 
-				if (userChar === char) {
-					return (
-						<span
-							key={index}
-							className="align-baseline leading-none text-success"
-						>
-							<SingleChar char={char} />
-						</span>
-					);
-				}
-
+			if (!hasUserChar) {
 				return (
 					<span
 						key={index}
-						className="relative inline-flex min-w-[0.9ch] items-end justify-center align-baseline"
+						className="relative align-baseline leading-none text-base-content/80"
 					>
-						<motion.span
-							initial={{ y: -2, opacity: 0 }}
-							animate={{ y: -8, opacity: 1 }}
-							transition={{ duration: 0.18, ease: "easeOut" }}
-							className="pointer-events-none absolute bottom-3/6 left-1/2 -translate-x-1/2 leading-none text-success"
-						>
-							<SingleChar char={char} />
-						</motion.span>
-						<span className="leading-none text-error line-through">
-							<SingleChar char={userChar} />
-						</span>
+						<SingleChar char={char} />
 					</span>
 				);
-			}),
-		[actual, expected],
-	);
+			}
+
+			if (userChar === char) {
+				return (
+					<span
+						key={index}
+						ref={ref as React.RefObject<HTMLSpanElement>}
+						className={cn(
+							typerClass,
+							"relative align-baseline leading-none text-success",
+						)}
+					>
+						<SingleChar char={char} />
+					</span>
+				);
+			}
+
+			return (
+				<span
+					key={index}
+					ref={ref as React.RefObject<HTMLSpanElement>}
+					className={cn(
+						typerClass,
+						"relative inline-flex items-end justify-center align-baseline",
+					)}
+				>
+					<motion.span
+						initial={{ y: -2, opacity: 0 }}
+						animate={{ y: -8, opacity: 1 }}
+						transition={{ duration: 0.18, ease: "easeOut" }}
+						className="pointer-events-none absolute bottom-3/6 left-1/2 -translate-x-1/2 leading-none text-success"
+					>
+						<SingleChar char={char} />
+					</motion.span>
+					<SingleChar
+						char={userChar}
+						className="leading-none text-error line-through"
+					/>
+				</span>
+			);
+		});
+	}, [actual, expected]);
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: It's controlled via refs
+	useEffect(() => {
+		const container = containerRef.current;
+		const inner = innerRef.current;
+		const cursor = cursorRef.current;
+		if (container && cursor && inner) {
+			const target =
+				cursor.offsetLeft + cursor.clientWidth / 2 - container.clientWidth / 2;
+			const maxScroll = Math.max(0, inner.scrollWidth - container.clientWidth);
+			const nextScrollLeft = Math.max(0, Math.min(target, maxScroll));
+			container.scrollTo({ left: nextScrollLeft, behavior: "smooth" });
+		}
+	}, [actual, cells]);
 
 	return (
 		<div
-			className={cn(
-				"flex text-5xl font-bold flex-wrap gap-1 font-mono",
-				className,
-			)}
+			ref={containerRef}
+			className={cn("w-full overflow-x-auto h-30 scrollbar-none", className)}
 		>
-			{cells}
+			<div
+				ref={innerRef}
+				className="inline-flex flex-nowrap items-end gap-1 font-mono text-6xl font-bold py-1 min-h-full"
+			>
+				{cells}
+			</div>
 		</div>
 	);
 });

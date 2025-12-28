@@ -1,8 +1,32 @@
 @use "tailwindcss/index.css";
-//@use 'cmdk';
+@use 'cmdk';
+
+@plugin 'tailwind-scrollbar';
 
 @plugin "daisyui" {
   themes: lemonade --default, dark;
+}
+
+@theme {
+  --animate-caret: blink 1s steps(11) infinite 2s;
+
+  @keyframes blink {
+    0% {
+      opacity: 1;
+    }
+    0.1% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 1;
+    }
+    50.1% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
 }
 
 @utility no-scrollbar {
