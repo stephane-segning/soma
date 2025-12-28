@@ -26,7 +26,8 @@ members = [
     "backend/bins/serverd",
 
     "desktop/soma-app/src-tauri",
-    "desktop/tapia-app/src-tauri"
+    "desktop/tapia-app/src-tauri",
+    "desktop/tauri-command-utils"
 ]
 
 resolver = "3"
@@ -48,6 +49,8 @@ soma-vdfs = { path = "backend/crates/vdfs" }
 soma-socket = { path = "backend/crates/socket" }
 soma-metrics = { path = "backend/crates/metrics" }
 soma-proto-build = { path = "backend/crates/proto-build" }
+
+tauri-command-utils = { path = "desktop/tauri-command-utils" }
 
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1"

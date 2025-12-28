@@ -1,0 +1,15 @@
+[package]
+name = "tauri-command-utils"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[features]
+default = ["thiserror"]
+thiserror = ["dep:thiserror"]
+
+[dependencies]
+serde_json = { workspace = true }
+serde = { workspace = true }
+tauri = { workspace = true }
+thiserror = { workspace = true, optional = true }

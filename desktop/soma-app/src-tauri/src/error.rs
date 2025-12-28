@@ -43,3 +43,12 @@ impl serde::Serialize for AppError {
         serializer.serialize_str(self.to_string().as_ref())
     }
 }
+
+impl From<tauri_command_utils::CommandError> for AppError {
+    fn from(err: tauri_command_utils::CommandError) -> Self {
+        match err {
+            tauri_command_utils::CommandError::BadRequest(msg) => AppError::BadRequest(msg),
+            tauri_command_utils::CommandError::Json(e) => AppError::JSON(e),
+        }
+    }
+}

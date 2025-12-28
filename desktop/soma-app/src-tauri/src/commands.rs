@@ -1,8 +1,7 @@
-use serde::de::DeserializeOwned;
 use tauri::State;
 use tracing::debug;
 
-use crate::error::{AppError, AppResult};
+use crate::error::AppResult;
 use crate::handlers::agent::{AgentController, ChatParams, ChatStreamEvent};
 use crate::handlers::blobs::{BlobStageParams, BlobStageResult, BlobsController};
 use crate::handlers::documents::{
@@ -19,22 +18,7 @@ use crate::handlers::spaces::{
     SpaceDto, SpacesController, SpacesCreateParams, SpacesDeleteParams, SpacesGetParams,
     SpacesListParams, SpacesListResponse, SpacesUpdateParams,
 };
-
-fn parse_params<T: DeserializeOwned>(
-    request: &tauri::ipc::Request<'_>,
-    command: &'static str,
-) -> AppResult<T> {
-    let value = match request.body() {
-        tauri::ipc::InvokeBody::Json(data) => data.clone(),
-        _ => {
-            return Err(AppError::BadRequest(format!(
-                "{command}: request body must be JSON"
-            )));
-        }
-    };
-
-    serde_json::from_value(value).map_err(AppError::from)
-}
+use tauri_command_utils::parse_params;
 
 #[tauri::command]
 pub async fn remember_route(

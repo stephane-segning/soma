@@ -29,6 +29,7 @@ tracing = { workspace = true }
 tauri-plugin-deep-link = { workspace = true }
 tauri-plugin-log = { workspace = true }
 thiserror = { workspace = true }
+tauri-command-utils = { path = "../../tauri-command-utils" }
 
 [target."cfg(any(target_os = \"macos\", windows, target_os = \"linux\"))".dependencies]
 tauri-plugin-single-instance = { workspace = true }

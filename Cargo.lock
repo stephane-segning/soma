@@ -6388,6 +6388,7 @@ dependencies = [
  "soma-proto-build",
  "tauri",
  "tauri-build",
+ "tauri-command-utils",
  "tauri-plugin-deep-link",
  "tauri-plugin-log",
  "tauri-plugin-opener",
@@ -7229,6 +7230,7 @@ dependencies = [
  "serde_json",
  "tauri",
  "tauri-build",
+ "tauri-command-utils",
  "tauri-plugin-deep-link",
  "tauri-plugin-log",
  "tauri-plugin-opener",
@@ -7342,6 +7344,16 @@ dependencies = [
  "url",
  "uuid",
  "walkdir",
+]
+
+[[package]]
+name = "tauri-command-utils"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "tauri",
+ "thiserror 2.0.17",
 ]
 
 [[package]]
