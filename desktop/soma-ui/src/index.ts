@@ -27,4 +27,5 @@ export * from "./components/chat/ai-conversation";
 export * from "./components/chat/ai-thinking";
 export * from "./components/chat/ai-markdown";
 export * from "./components/chat/ai-chat";
+export * from "./components/tapia/char-display";
 export * from "./types";
