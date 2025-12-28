@@ -35,6 +35,6 @@ type Story = StoryObj<typeof AiModelSelector>;
 export const Default: Story = {
 	render: (args) => {
 		const [model, setModel] = useState(args.value);
-		return <AiModelSelector {...args} value={model} onChange={setModel} />;
+		return <AiModelSelector {...args} onChange={setModel} value={model} />;
 	},
 };

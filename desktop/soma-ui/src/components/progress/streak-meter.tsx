@@ -17,9 +17,9 @@ export function StreakMeter({
 	const pct = Math.round((clamped / max) * 100);
 	return (
 		<div className="rounded-2xl border border-base-300/60 bg-base-100/80 p-4 shadow">
-			<div className="flex items-center justify-between text-sm font-semibold">
+			<div className="flex items-center justify-between font-semibold text-sm">
 				<span className="flex items-center gap-2">
-					<Zap size={16} className="text-warning" />
+					<Zap className="text-warning" size={16} />
 					{label}
 				</span>
 				<span className="text-base-content/70">
@@ -28,9 +28,9 @@ export function StreakMeter({
 			</div>
 			<div className="mt-3 h-2 rounded-full bg-base-200">
 				<motion.div
-					initial={false}
 					animate={{ width: `${pct}%` }}
 					className="h-2 rounded-full bg-gradient-to-r from-warning to-error"
+					initial={false}
 				/>
 			</div>
 		</div>
@@ -47,9 +47,9 @@ export function XpMeter({ value, max, label = "XP" }: XpMeterProps) {
 	const pct = Math.min(100, Math.round((value / max) * 100));
 	return (
 		<div className="rounded-2xl border border-base-300/60 bg-base-100/80 p-4 shadow">
-			<div className="flex items-center justify-between text-sm font-semibold">
+			<div className="flex items-center justify-between font-semibold text-sm">
 				<span className="flex items-center gap-2">
-					<Zap size={16} className="text-primary" />
+					<Zap className="text-primary" size={16} />
 					{label}
 				</span>
 				<span className="text-base-content/70">
@@ -58,9 +58,9 @@ export function XpMeter({ value, max, label = "XP" }: XpMeterProps) {
 			</div>
 			<div className="mt-3 h-2 rounded-full bg-base-200">
 				<motion.div
-					initial={false}
 					animate={{ width: `${pct}%` }}
 					className="h-2 rounded-full bg-gradient-to-r from-primary to-secondary"
+					initial={false}
 				/>
 			</div>
 		</div>
@@ -90,7 +90,7 @@ export function TimerPill({
 	return (
 		<div
 			className={cn(
-				"flex items-center gap-2 rounded-full border px-3 py-1 text-sm font-semibold",
+				"flex items-center gap-2 rounded-full border px-3 py-1 font-semibold text-sm",
 				timerAccent[accent],
 				className,
 			)}

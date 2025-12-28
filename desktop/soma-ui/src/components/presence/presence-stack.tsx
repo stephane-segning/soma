@@ -30,11 +30,11 @@ export function PresenceStack({
 	const remaining = avatars.length - visible.length;
 
 	return (
-		<div className={cn("flex -space-x-2 items-center", className)}>
+		<div className={cn("flex items-center -space-x-2", className)}>
 			{visible.map((avatar) => (
 				<div
+					className="relative h-9 w-9 rounded-full border-2 border-base-100 bg-base-200 font-semibold text-base-content/80 text-xs shadow-sm"
 					key={avatar.id}
-					className="relative h-9 w-9 rounded-full border-2 border-base-100 bg-base-200 text-xs font-semibold text-base-content/80 shadow-sm"
 				>
 					{avatar.element ? (
 						avatar.element
@@ -51,7 +51,7 @@ export function PresenceStack({
 					{avatar.indicator ? (
 						<span
 							className={cn(
-								"absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-base-100",
+								"absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 rounded-full border-2 border-base-100",
 								indicatorTone[avatar.indicator],
 							)}
 						/>
@@ -59,7 +59,7 @@ export function PresenceStack({
 				</div>
 			))}
 			{remaining > 0 ? (
-				<div className="grid h-9 w-9 place-items-center rounded-full border-2 border-base-100 bg-base-200 text-xs font-semibold text-base-content/70 shadow-sm">
+				<div className="grid h-9 w-9 place-items-center rounded-full border-2 border-base-100 bg-base-200 font-semibold text-base-content/70 text-xs shadow-sm">
 					+{remaining}
 				</div>
 			) : null}

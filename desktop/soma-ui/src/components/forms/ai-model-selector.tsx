@@ -45,13 +45,13 @@ export function AiModelSelector({
 	const selected = options.find((opt) => opt.id === value) ?? options[0];
 
 	return (
-		<div ref={ref} className={cn("relative inline-flex", className)}>
+		<div className={cn("relative inline-flex", className)} ref={ref}>
 			<PolymorphButton
-				size={size}
-				variant="ghost"
-				trailingIcon={<ChevronDown size={14} />}
-				onClick={() => setOpen((state) => !state)}
 				disabled={disabled}
+				onClick={() => setOpen((state) => !state)}
+				size={size}
+				trailingIcon={<ChevronDown size={14} />}
+				variant="ghost"
 			>
 				{selected?.label ?? "Select model"}
 			</PolymorphButton>
@@ -59,30 +59,30 @@ export function AiModelSelector({
 			<AnimatePresence>
 				{open ? (
 					<motion.div
-						initial={{ opacity: 0, y: 4 }}
 						animate={{ opacity: 1, y: 0 }}
+						className="absolute top-full right-0 z-30 mt-1 w-72 overflow-hidden rounded-xl border border-base-300/70 bg-base-100 shadow-xl"
 						exit={{ opacity: 0, y: 4 }}
+						initial={{ opacity: 0, y: 4 }}
 						transition={{ duration: 0.12 }}
-						className="absolute right-0 top-full z-30 mt-1 w-72 overflow-hidden rounded-xl border border-base-300/70 bg-base-100 shadow-xl"
 					>
 						<div className="max-h-64 overflow-auto py-1">
 							{options.map((opt) => {
 								const active = opt.id === value;
 								return (
 									<button
-										key={opt.id}
-										type="button"
 										className={cn(
 											"flex w-full flex-col items-start gap-1 px-3 py-2 text-left transition",
 											active ? "bg-base-200/80" : "hover:bg-base-200/60",
 										)}
+										key={opt.id}
 										onClick={() => {
 											onChange(opt.id);
 											setOpen(false);
 										}}
+										type="button"
 									>
 										<div className="flex w-full items-center justify-between">
-											<span className="text-sm font-semibold">{opt.label}</span>
+											<span className="font-semibold text-sm">{opt.label}</span>
 											{opt.hint ? (
 												<span className="text-[11px] text-base-content/60">
 													{opt.hint}
@@ -90,7 +90,7 @@ export function AiModelSelector({
 											) : null}
 										</div>
 										{opt.description ? (
-											<p className="text-xs text-base-content/70">
+											<p className="text-base-content/70 text-xs">
 												{opt.description}
 											</p>
 										) : null}

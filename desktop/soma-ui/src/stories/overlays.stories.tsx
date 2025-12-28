@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { AlertTriangle, Copy, MoreVertical, Trash2 } from "react-feather";
-import { ContextMenu } from "../components/overlays/context-menu";
-import { DesktopToaster, notify } from "../components/overlays/toast";
-import { Modal } from "../components/overlays/modal";
-import type { OverlayPosition } from "../types";
 import { PolymorphButton } from "../components/actions/polymorph-button";
+import { ContextMenu } from "../components/overlays/context-menu";
+import { Modal } from "../components/overlays/modal";
+import { DesktopToaster, notify } from "../components/overlays/toast";
+import type { OverlayPosition } from "../types";
 
 const meta: Meta = {
 	title: "Desktop/Overlays",
@@ -38,21 +38,21 @@ export const OverlayShowcase: Story = {
 				}}
 			>
 				<div className="space-y-3">
-					<h3 className="text-lg font-semibold">Overlays</h3>
-					<p className="text-sm text-base-content/70">
+					<h3 className="font-semibold text-lg">Overlays</h3>
+					<p className="text-base-content/70 text-sm">
 						Modal + context menu + Daisy-themed toasts. Right-click anywhere in
 						this panel.
 					</p>
 					<div className="flex gap-3">
 						<PolymorphButton
-							variant="primary"
 							onClick={() => setModalOpen(true)}
+							variant="primary"
 						>
 							Open modal
 						</PolymorphButton>
 						<PolymorphButton
-							variant="secondary"
 							onClick={() => notify.success("Saved to clipboard!")}
+							variant="secondary"
 						>
 							Trigger toast
 						</PolymorphButton>
@@ -62,9 +62,6 @@ export const OverlayShowcase: Story = {
 				<DesktopToaster position="top-right" />
 
 				<ContextMenu
-					open={menuState.open}
-					position={menuState.position}
-					onClose={() => setMenuState((state) => ({ ...state, open: false }))}
 					items={[
 						{
 							id: "copy",
@@ -87,39 +84,42 @@ export const OverlayShowcase: Story = {
 							tone: "danger",
 						},
 					]}
+					onClose={() => setMenuState((state) => ({ ...state, open: false }))}
+					open={menuState.open}
+					position={menuState.position}
 				/>
 
 				<Modal
-					open={modalOpen}
-					title="Desktop overlay"
-					description="This modal uses Motion for entrance/exit and DaisyUI for styling."
-					onClose={() => setModalOpen(false)}
 					actions={
 						<div className="flex gap-2">
 							<PolymorphButton
-								variant="ghost"
 								onClick={() => setModalOpen(false)}
+								variant="ghost"
 							>
 								Close
 							</PolymorphButton>
 							<PolymorphButton
-								variant="primary"
 								onClick={() => {
 									notify.success("Changes saved");
 									setModalOpen(false);
 								}}
+								variant="primary"
 							>
 								Save
 							</PolymorphButton>
 						</div>
 					}
+					description="This modal uses Motion for entrance/exit and DaisyUI for styling."
+					onClose={() => setModalOpen(false)}
+					open={modalOpen}
+					title="Desktop overlay"
 				>
 					<div className="space-y-2">
-						<p className="text-sm text-base-content/70">
+						<p className="text-base-content/70 text-sm">
 							Use this as a base for global overlays across Soma + Tapia.
 							Content is left-aligned and uses glassmorphism.
 						</p>
-						<p className="text-xs text-base-content/50">
+						<p className="text-base-content/50 text-xs">
 							Animations rely on the Motion library; adjust MotionConfig in
 							Storybook preview to tweak defaults.
 						</p>

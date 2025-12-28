@@ -67,7 +67,20 @@ export const WithThinking: Story = {
 						<AiConversation messages={messages} />
 					</AiChat>
 					<AiInput
-						value={input}
+						modelSelector={
+							<AiModelSelector
+								onChange={setModel}
+								options={[
+									{
+										id: "gpt-4o",
+										label: "GPT-4o",
+										description: "Reasoning + speed",
+									},
+									{ id: "agent", label: "Agentd", description: "Local agent" },
+								]}
+								value={model}
+							/>
+						}
 						onChange={setInput}
 						onSend={() => {
 							if (!input.trim()) return;
@@ -88,20 +101,7 @@ export const WithThinking: Story = {
 							setInput("");
 							notify.success(`Sent with ${model}`);
 						}}
-						modelSelector={
-							<AiModelSelector
-								value={model}
-								onChange={setModel}
-								options={[
-									{
-										id: "gpt-4o",
-										label: "GPT-4o",
-										description: "Reasoning + speed",
-									},
-									{ id: "agent", label: "Agentd", description: "Local agent" },
-								]}
-							/>
-						}
+						value={input}
 					/>
 				</div>
 			</div>
@@ -134,7 +134,7 @@ export const ToolsAndSources: Story = {
 		];
 		return (
 			<div className="flex h-screen items-start justify-center bg-base-200 p-6">
-				<AiChat maxHeight="50vh" className="w-full max-w-3xl">
+				<AiChat className="w-full max-w-3xl" maxHeight="50vh">
 					<AiConversation messages={messages} />
 				</AiChat>
 			</div>
@@ -182,7 +182,7 @@ export const StreamingThinking: Story = {
 
 		return (
 			<div className="flex h-screen items-start justify-center bg-base-200 p-6">
-				<AiChat maxHeight="40vh" className="w-full max-w-2xl">
+				<AiChat className="w-full max-w-2xl" maxHeight="40vh">
 					<AiConversation messages={messages} />
 				</AiChat>
 			</div>

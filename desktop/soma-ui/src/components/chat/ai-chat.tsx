@@ -28,7 +28,7 @@ export function AiChat({
 				{children}
 			</div>
 			{footer ? (
-				<div className="border-t border-base-300/60 bg-base-100/80 p-3">
+				<div className="border-base-300/60 border-t bg-base-100/80 p-3">
 					{footer}
 				</div>
 			) : null}

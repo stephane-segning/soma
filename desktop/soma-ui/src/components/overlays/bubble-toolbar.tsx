@@ -29,12 +29,12 @@ export function BubbleToolbar({
 			<AnimatePresence>
 				{open ? (
 					<motion.div
-						initial={{ opacity: 0, scale: 0.95 }}
 						animate={{ opacity: 1, scale: 1 }}
-						exit={{ opacity: 0, scale: 0.95 }}
-						transition={{ duration: 0.12 }}
 						className="pointer-events-auto fixed z-50"
+						exit={{ opacity: 0, scale: 0.95 }}
+						initial={{ opacity: 0, scale: 0.95 }}
 						style={{ top: anchor.y, left: anchor.x }}
+						transition={{ duration: 0.12 }}
 					>
 						<div
 							className={cn(
@@ -44,14 +44,14 @@ export function BubbleToolbar({
 						>
 							{actions.map((action) => (
 								<button
-									key={action.id}
-									type="button"
-									onClick={action.onSelect}
+									aria-label={action.label}
 									className={cn(
 										"btn btn-ghost btn-xs grid h-9 w-9 place-items-center rounded-lg",
 										action.active && "bg-base-200 text-primary",
 									)}
-									aria-label={action.label}
+									key={action.id}
+									onClick={action.onSelect}
+									type="button"
 								>
 									{action.icon}
 								</button>

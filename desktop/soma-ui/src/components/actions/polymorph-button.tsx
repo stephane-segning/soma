@@ -1,4 +1,4 @@
-import { motion, type HTMLMotionProps } from "motion/react";
+import { type HTMLMotionProps, motion } from "motion/react";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "../../utils/cn";
 
@@ -68,8 +68,8 @@ export function PolymorphButton({
 
 	return (
 		<motion.button
-			type={type}
 			className={base}
+			type={type}
 			whileHover={{ y: iconOnly ? -2 : -1, scale: iconOnly ? 1.05 : 1.01 }}
 			whileTap={{ scale: 0.98 }}
 			{...props}

@@ -9,13 +9,14 @@ import {
 	Shield,
 	Zap,
 } from "react-feather";
-import { CommandPalette } from "../components/overlays/command-palette";
-import { BubbleToolbar } from "../components/overlays/bubble-toolbar";
-import { NotificationDrawer } from "../components/overlays/notification-drawer";
-import { WindowChrome } from "../components/layout/window-chrome";
-import { SplitPane } from "../components/layout/split-pane";
 import { PolymorphButton } from "../components/actions/polymorph-button";
 import { LauncherCard } from "../components/cards/launcher-card";
+import { SplitPane } from "../components/layout/split-pane";
+import { WindowChrome } from "../components/layout/window-chrome";
+import { RosterItem } from "../components/lists/roster-item";
+import { BubbleToolbar } from "../components/overlays/bubble-toolbar";
+import { CommandPalette } from "../components/overlays/command-palette";
+import { NotificationDrawer } from "../components/overlays/notification-drawer";
 import { PresenceStack } from "../components/presence/presence-stack";
 import { ShortcutRow } from "../components/primitives/shortcut-row";
 import {
@@ -23,7 +24,6 @@ import {
 	TimerPill,
 	XpMeter,
 } from "../components/progress/streak-meter";
-import { RosterItem } from "../components/lists/roster-item";
 
 const meta: Meta = {
 	title: "Showcase/UI Suite",
@@ -69,52 +69,52 @@ export const Suite: Story = {
 			<div className="min-h-screen bg-base-200 p-6">
 				<div className="mx-auto max-w-6xl space-y-6">
 					<WindowChrome
-						title="Soma Workspace"
-						subtitle="libp2p · synced"
-						status="online"
 						actions={
 							<PolymorphButton
-								size="sm"
-								variant="outline"
 								leadingIcon={<Zap size={14} />}
 								onClick={() => setPaletteOpen(true)}
+								size="sm"
+								variant="outline"
 							>
 								Command
 							</PolymorphButton>
 						}
+						status="online"
+						subtitle="libp2p · synced"
+						title="Soma Workspace"
 					/>
 
 					<SplitPane
-						orientation="horizontal"
 						left={
 							<div className="space-y-3 p-3">
 								<LauncherCard
-									title="Open Soma"
+									badge="active"
 									description="Desktop workspace"
 									icon={<Zap size={16} />}
-									badge="active"
+									title="Open Soma"
 								/>
 								<LauncherCard
-									title="Tapia practice"
+									badge="beta"
 									description="Keyboard drills and scoring"
 									icon={<MessageCircle size={16} />}
-									badge="beta"
+									title="Tapia practice"
 								/>
 								<RosterItem
 									id="r1"
-									title="Dr. Rivera"
-									subtitle="Owner · expires in 30d"
 									role="Owner"
 									status="approved"
+									subtitle="Owner · expires in 30d"
+									title="Dr. Rivera"
 								/>
 								<RosterItem
 									id="r2"
-									title="Join requests"
-									subtitle="Awaiting review"
 									status="pending"
+									subtitle="Awaiting review"
+									title="Join requests"
 								/>
 							</div>
 						}
+						orientation="horizontal"
 						right={
 							<div className="space-y-3 p-3">
 								<div className="flex flex-wrap items-center gap-3">
@@ -125,15 +125,15 @@ export const Suite: Story = {
 											{ id: "3", label: "TP", indicator: "online" },
 										]}
 									/>
-									<TimerPill timecode="24:16" label="Session" />
+									<TimerPill label="Session" timecode="24:16" />
 								</div>
 								<div className="grid gap-3 md:grid-cols-2">
 									<StreakMeter value={5} />
-									<XpMeter value={420} max={800} />
+									<XpMeter max={800} value={420} />
 								</div>
 								<div className="space-y-2">
-									<ShortcutRow label="Command palette" keys={["⌘", "K"]} />
-									<ShortcutRow label="Toggle mute" keys={["⇧", "M"]} />
+									<ShortcutRow keys={["⌘", "K"]} label="Command palette" />
+									<ShortcutRow keys={["⇧", "M"]} label="Toggle mute" />
 								</div>
 							</div>
 						}
@@ -141,15 +141,13 @@ export const Suite: Story = {
 				</div>
 
 				<CommandPalette
-					open={paletteOpen}
-					onOpen={() => setPaletteOpen(true)}
-					onClose={() => setPaletteOpen(false)}
 					items={commands}
+					onClose={() => setPaletteOpen(false)}
+					onOpen={() => setPaletteOpen(true)}
+					open={paletteOpen}
 				/>
 
 				<BubbleToolbar
-					open
-					anchor={{ x: 420, y: 360 }}
 					actions={[
 						{
 							id: "bold",
@@ -160,11 +158,11 @@ export const Suite: Story = {
 						{ id: "italic", icon: <Italic size={14} />, label: "Italic" },
 						{ id: "link", icon: <LinkIcon size={14} />, label: "Link" },
 					]}
+					anchor={{ x: 420, y: 360 }}
+					open
 				/>
 
 				<NotificationDrawer
-					open={drawerOpen}
-					onClose={() => setDrawerOpen(false)}
 					items={[
 						{
 							id: "1",
@@ -179,6 +177,8 @@ export const Suite: Story = {
 							time: "2m ago",
 						},
 					]}
+					onClose={() => setDrawerOpen(false)}
+					open={drawerOpen}
 				/>
 			</div>
 		);

@@ -1,7 +1,7 @@
 import { motion } from "motion/react";
+import type { ReactNode, TextareaHTMLAttributes } from "react";
 import { useMemo } from "react";
 import { ChevronDown, Mic, Paperclip, Send } from "react-feather";
-import type { TextareaHTMLAttributes, ReactNode } from "react";
 import { cn } from "../../utils/cn";
 import { PolymorphButton } from "../actions/polymorph-button";
 
@@ -43,27 +43,27 @@ export function AiInput({
 
 	const footer = useMemo(
 		() => (
-			<div className="flex items-center gap-2 text-sm text-base-content/70">
+			<div className="flex items-center gap-2 text-base-content/70 text-sm">
 				<PolymorphButton
-					iconOnly
-					size="sm"
-					variant="ghost"
-					leadingIcon={<Paperclip size={16} />}
-					onClick={onAttach}
 					aria-label="Attach"
 					disabled={disabled}
-				/>
-				<PolymorphButton
 					iconOnly
+					leadingIcon={<Paperclip size={16} />}
+					onClick={onAttach}
 					size="sm"
 					variant="ghost"
-					leadingIcon={<Mic size={16} />}
-					onClick={onVoice}
+				/>
+				<PolymorphButton
 					aria-label="Voice"
 					disabled={disabled}
+					iconOnly
+					leadingIcon={<Mic size={16} />}
+					onClick={onVoice}
+					size="sm"
+					variant="ghost"
 				/>
 				{modelSelector ?? (
-					<div className="ml-1 inline-flex items-center gap-1 rounded-lg bg-base-200/70 px-3 py-1 text-sm font-semibold text-base-content/80">
+					<div className="ml-1 inline-flex items-center gap-1 rounded-lg bg-base-200/70 px-3 py-1 font-semibold text-base-content/80 text-sm">
 						{modelLabel}
 						<ChevronDown size={14} />
 					</div>
@@ -80,9 +80,10 @@ export function AiInput({
 				className,
 			)}
 		>
-			<div className="px-4 pb-3 pt-3">
+			<div className="px-4 pt-3 pb-3">
 				<textarea
-					value={value}
+					className="w-full resize-none bg-transparent text-base text-base-content outline-none placeholder:text-base-content/50"
+					disabled={disabled}
 					onChange={(event) => onChange(event.target.value)}
 					onKeyDown={(event) => {
 						if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
@@ -93,24 +94,23 @@ export function AiInput({
 						onKeyDown?.(event);
 					}}
 					placeholder={placeholder}
-					disabled={disabled}
 					rows={rows}
-					className="w-full resize-none bg-transparent text-base text-base-content outline-none placeholder:text-base-content/50"
+					value={value}
 					{...restTextareaProps}
 				/>
 			</div>
 
-			<div className="flex items-center justify-between border-t border-base-200/80 px-4 py-3">
+			<div className="flex items-center justify-between border-base-200/80 border-t px-4 py-3">
 				{footer}
 				<motion.div whileHover={{ y: -1 }} whileTap={{ scale: 0.96 }}>
 					<PolymorphButton
+						aria-label="Send message"
+						disabled={!canSend}
 						iconOnly
-						size="lg"
-						variant="secondary"
 						leadingIcon={<Send size={16} />}
 						onClick={onSend}
-						disabled={!canSend}
-						aria-label="Send message"
+						size="lg"
+						variant="secondary"
 					/>
 				</motion.div>
 			</div>

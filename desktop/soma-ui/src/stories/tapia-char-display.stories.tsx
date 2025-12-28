@@ -19,8 +19,8 @@ export const Default: Story = {
 		);
 		const is = useGraphemes("I lovee b");
 		return (
-			<div className="space-y-3 p-8 bg-base-100">
-				<CharDisplay shouldGraphemes={should} isGraphemes={is} />
+			<div className="space-y-3 bg-base-100 p-8">
+				<CharDisplay isGraphemes={is} shouldGraphemes={should} />
 			</div>
 		);
 	},
@@ -34,13 +34,13 @@ export const LiveTyping: Story = {
 		);
 		const is = useGraphemes(value);
 		return (
-			<div className="space-y-3 p-8 bg-base-100 w-full">
-				<CharDisplay shouldGraphemes={should} isGraphemes={is} />
+			<div className="w-full space-y-3 bg-base-100 p-8">
+				<CharDisplay isGraphemes={is} shouldGraphemes={should} />
 				<input
-					value={value}
+					className="input input-bordered input-sm w-full max-w-xs"
 					onChange={(event) => setValue(event.target.value)}
 					placeholder="Type to compare"
-					className="input input-bordered input-sm w-full max-w-xs"
+					value={value}
 				/>
 			</div>
 		);

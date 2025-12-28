@@ -27,6 +27,7 @@ const withMemoryRouter: Decorator = (Story, context) => {
 		<MotionConfig reducedMotion="user">
 			<RouterProvider router={router} />
 			<Toaster
+				containerClassName="z-[70]"
 				position="bottom-right"
 				toastOptions={{
 					className:
@@ -35,7 +36,6 @@ const withMemoryRouter: Decorator = (Story, context) => {
 					success: { iconTheme: { primary: "#22c55e", secondary: "#ffffff" } },
 					error: { iconTheme: { primary: "#ef4444", secondary: "#ffffff" } },
 				}}
-				containerClassName="z-[70]"
 			/>
 		</MotionConfig>
 	);

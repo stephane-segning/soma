@@ -21,13 +21,13 @@ export function Dock({ apps, activeAppId, onSelectApp, className }: DockProps) {
 				const isActive = app.id === activeAppId;
 				return (
 					<motion.button
+						aria-label={app.title}
+						className="relative grid h-12 w-12 place-items-center rounded-2xl bg-base-200/70 text-base-content/90 shadow-inner"
 						key={app.id}
+						onClick={() => onSelectApp?.(app.id)}
+						type="button"
 						whileHover={{ y: -4, scale: 1.02 }}
 						whileTap={{ scale: 0.97 }}
-						onClick={() => onSelectApp?.(app.id)}
-						className="relative grid h-12 w-12 place-items-center rounded-2xl bg-base-200/70 text-base-content/90 shadow-inner"
-						aria-label={app.title}
-						type="button"
 					>
 						<span className="pointer-events-none text-xl">{app.icon}</span>
 						{app.badge ? (

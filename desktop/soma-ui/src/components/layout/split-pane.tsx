@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { cn } from "../../utils/cn";
 
 export type SplitPaneProps = {
@@ -57,12 +57,12 @@ export function SplitPane({
 
 	return (
 		<div
-			ref={containerRef}
 			className={cn(
 				"relative flex rounded-2xl border border-base-300/60 bg-base-100/60 shadow-inner backdrop-blur",
 				isHorizontal ? "flex-row" : "flex-col",
 				className,
 			)}
+			ref={containerRef}
 		>
 			<div
 				className={cn("overflow-hidden", isHorizontal ? "h-full" : "")}
@@ -71,13 +71,13 @@ export function SplitPane({
 				{isHorizontal ? (left ?? top) : (top ?? left)}
 			</div>
 			<button
-				type="button"
-				onMouseDown={startDrag}
+				aria-label="Resize pane"
 				className={cn(
 					"flex items-center justify-center bg-base-200/70 transition hover:bg-base-200",
 					isHorizontal ? "w-1 cursor-col-resize" : "h-1 cursor-row-resize",
 				)}
-				aria-label="Resize pane"
+				onMouseDown={startDrag}
+				type="button"
 			>
 				<span
 					className={cn(

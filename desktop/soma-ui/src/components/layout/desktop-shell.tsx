@@ -27,7 +27,7 @@ export function DesktopShell({
 		>
 			<div className="absolute inset-0">
 				<div className="absolute inset-0 bg-gradient-to-br from-base-200 via-base-300/60 to-base-100" />
-				<div className="absolute inset-0 wallpaper-grid opacity-40" />
+				<div className="wallpaper-grid absolute inset-0 opacity-40" />
 				{wallpaper}
 			</div>
 

@@ -16,7 +16,7 @@ type SingleCharProps = {
 
 function SingleChar({ char, className }: SingleCharProps) {
 	if (char === " ") {
-		return <span className={cn(className, "w-8 inline-block h-14")} />;
+		return <span className={cn(className, "inline-block h-14 w-8")} />;
 	}
 	return (
 		<span className={cn(className, "inline-block align-baseline")}>{char}</span>
@@ -49,8 +49,8 @@ export const CharDisplay = memo(function CharDisplay({
 			if (!hasUserChar) {
 				return (
 					<span
+						className="relative align-baseline text-base-content/80 leading-none"
 						key={index}
-						className="relative align-baseline leading-none text-base-content/80"
 					>
 						<SingleChar char={char} />
 					</span>
@@ -60,12 +60,12 @@ export const CharDisplay = memo(function CharDisplay({
 			if (userChar === char) {
 				return (
 					<span
-						key={index}
-						ref={ref as React.RefObject<HTMLSpanElement>}
 						className={cn(
 							typerClass,
-							"relative align-baseline leading-none text-success",
+							"relative align-baseline text-success leading-none",
 						)}
+						key={index}
+						ref={ref as React.RefObject<HTMLSpanElement>}
 					>
 						<SingleChar char={char} />
 					</span>
@@ -74,24 +74,24 @@ export const CharDisplay = memo(function CharDisplay({
 
 			return (
 				<span
-					key={index}
-					ref={ref as React.RefObject<HTMLSpanElement>}
 					className={cn(
 						typerClass,
 						"relative inline-flex items-end justify-center align-baseline",
 					)}
+					key={index}
+					ref={ref as React.RefObject<HTMLSpanElement>}
 				>
 					<motion.span
-						initial={{ y: -2, opacity: 0 }}
 						animate={{ y: -8, opacity: 1 }}
+						className="pointer-events-none absolute bottom-3/6 left-1/2 -translate-x-1/2 text-success leading-none"
+						initial={{ y: -2, opacity: 0 }}
 						transition={{ duration: 0.18, ease: "easeOut" }}
-						className="pointer-events-none absolute bottom-3/6 left-1/2 -translate-x-1/2 leading-none text-success"
 					>
 						<SingleChar char={char} />
 					</motion.span>
 					<SingleChar
 						char={userChar}
-						className="leading-none text-error line-through"
+						className="text-error leading-none line-through"
 					/>
 				</span>
 			);
@@ -114,12 +114,12 @@ export const CharDisplay = memo(function CharDisplay({
 
 	return (
 		<div
+			className={cn("scrollbar-none h-30 w-full overflow-x-auto", className)}
 			ref={containerRef}
-			className={cn("w-full overflow-x-auto h-30 scrollbar-none", className)}
 		>
 			<div
+				className="inline-flex min-h-full flex-nowrap items-end gap-1 py-1 font-bold font-mono text-6xl"
 				ref={innerRef}
-				className="inline-flex flex-nowrap items-end gap-1 font-mono text-6xl font-bold py-1 min-h-full"
 			>
 				{cells}
 			</div>

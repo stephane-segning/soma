@@ -29,19 +29,19 @@ export function Taskbar({
 	return (
 		<div
 			className={cn(
-				"glass-panel mx-auto mb-4 mt-2 flex w-full max-w-6xl items-center gap-2 rounded-2xl px-3 py-2",
+				"glass-panel mx-auto mt-2 mb-4 flex w-full max-w-6xl items-center gap-2 rounded-2xl px-3 py-2",
 				className,
 			)}
 		>
 			<PolymorphButton
-				size="sm"
-				variant="primary"
-				leadingIcon={<Grid size={14} />}
-				onClick={onStart}
 				className={cn(
 					startOpen &&
-						"ring-2 ring-offset-2 ring-primary/50 ring-offset-base-200",
+						"ring-2 ring-primary/50 ring-offset-2 ring-offset-base-200",
 				)}
+				leadingIcon={<Grid size={14} />}
+				onClick={onStart}
+				size="sm"
+				variant="primary"
 			>
 				Start
 			</PolymorphButton>
@@ -51,23 +51,23 @@ export function Taskbar({
 					const isActive = app.id === activeAppId;
 					return (
 						<motion.button
-							layout
-							key={app.id}
-							type="button"
-							onClick={() => onSelectApp?.(app.id)}
 							className={cn(
 								"relative flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition-colors",
 								isActive ? "bg-base-200 shadow-inner" : "hover:bg-base-200",
 							)}
+							key={app.id}
+							layout
+							onClick={() => onSelectApp?.(app.id)}
+							type="button"
 						>
 							<span className="grid h-8 w-8 place-items-center rounded-lg bg-base-300/60 text-base-content/80">
 								{app.icon ?? <Square size={14} />}
 							</span>
 							<div className="min-w-[120px] text-left">
-								<div className="line-clamp-1 text-sm font-medium">
+								<div className="line-clamp-1 font-medium text-sm">
 									{app.title}
 								</div>
-								<div className="text-xs text-base-content/60">
+								<div className="text-base-content/60 text-xs">
 									{app.status === "sleeping"
 										? "Sleeping"
 										: app.status === "attention"
@@ -82,26 +82,26 @@ export function Taskbar({
 							) : null}
 							<div className="absolute inset-x-2 -bottom-1">
 								<motion.div
-									layoutId="taskbar-indicator"
 									className={cn(
 										"h-0.5 rounded-full",
 										isActive ? "bg-primary" : "bg-base-content/30",
 									)}
+									layoutId="taskbar-indicator"
 								/>
 							</div>
 							{app.onClose ? (
 								<PolymorphButton
-									iconOnly
-									size="xs"
-									variant="ghost"
+									aria-label={`Close ${app.title}`}
 									className="ml-2"
+									iconOnly
+									leadingIcon={<Power size={14} />}
 									onClick={(event) => {
 										event.stopPropagation();
 										app.onClose?.();
 										onCloseApp?.(app.id);
 									}}
-									aria-label={`Close ${app.title}`}
-									leadingIcon={<Power size={14} />}
+									size="xs"
+									variant="ghost"
 								/>
 							) : null}
 						</motion.button>
@@ -112,9 +112,9 @@ export function Taskbar({
 			<div className="flex items-center gap-3">
 				{tray}
 				<PolymorphButton
+					leadingIcon={<Maximize2 size={14} />}
 					size="sm"
 					variant="ghost"
-					leadingIcon={<Maximize2 size={14} />}
 				>
 					Show desktop
 				</PolymorphButton>

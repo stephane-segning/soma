@@ -10,20 +10,20 @@ import {
 	Zap,
 } from "react-feather";
 import { useLocation } from "react-router";
+import { PolymorphButton } from "../components/actions/polymorph-button";
+import { LauncherCard } from "../components/cards/launcher-card";
 import { DesktopArea } from "../components/layout/desktop-area";
 import { DesktopShell } from "../components/layout/desktop-shell";
 import { Dock } from "../components/layout/dock";
+import { SplitPane } from "../components/layout/split-pane";
 import { Taskbar } from "../components/layout/taskbar";
 import { AuroraWallpaper } from "../components/layout/wallpaper";
 import { WindowChrome } from "../components/layout/window-chrome";
-import { SplitPane } from "../components/layout/split-pane";
-import { PolymorphButton } from "../components/actions/polymorph-button";
-import { LauncherCard } from "../components/cards/launcher-card";
-import { PresenceStack } from "../components/presence/presence-stack";
-import { TimerPill } from "../components/progress/streak-meter";
-import { StatusBadge } from "../components/presence/status-badge";
 import { Modal } from "../components/overlays/modal";
 import { notify } from "../components/overlays/toast";
+import { PresenceStack } from "../components/presence/presence-stack";
+import { StatusBadge } from "../components/presence/status-badge";
+import { TimerPill } from "../components/progress/streak-meter";
 import type { DesktopIcon, RunningApp } from "../types";
 
 const meta: Meta<typeof DesktopShell> = {
@@ -99,7 +99,7 @@ export const Default: Story = {
 		const location = useLocation();
 		const tray = useMemo(
 			() => (
-				<div className="flex items-center gap-2 text-xs text-base-content/70">
+				<div className="flex items-center gap-2 text-base-content/70 text-xs">
 					<div className="badge badge-outline gap-1 border-base-300/80 bg-base-100/60">
 						<Calendar size={12} />
 						Today
@@ -114,60 +114,74 @@ export const Default: Story = {
 
 		return (
 			<DesktopShell
-				wallpaper={<AuroraWallpaper />}
+				dock={
+					<Dock
+						activeAppId={activeAppId}
+						apps={apps}
+						onSelectApp={(appId) => setActiveAppId(appId)}
+					/>
+				}
 				leftColumn={
 					<div className="space-y-3">
 						<LauncherCard
-							title="Workspace"
+							badge="active"
 							description="Spaces and docs"
 							icon={<Folder size={14} />}
-							badge="active"
+							title="Workspace"
 						/>
 						<LauncherCard
-							title="Studio"
 							description="Audio + media lab"
 							icon={<Disc size={14} />}
+							title="Studio"
 						/>
 						<LauncherCard
-							title="Messages"
 							description="DMs and activity"
 							icon={<MessageCircle size={14} />}
+							title="Messages"
 						/>
 						<div className="surface-card p-4">
 							<div className="flex items-center justify-between">
-								<div className="text-sm font-semibold">You</div>
+								<div className="font-semibold text-sm">You</div>
 								<StatusBadge label="Online" tone="success" />
 							</div>
-							<p className="mt-2 text-xs text-base-content/60">
+							<p className="mt-2 text-base-content/60 text-xs">
 								Path: {location.pathname}
 							</p>
 						</div>
 					</div>
 				}
+				overlays={
+					<Modal
+						description="This modal mimics a native overlay."
+						onClose={() => setShowModal(false)}
+						open={showModal}
+						title="App opened"
+					/>
+				}
 				rightColumn={
 					<div className="space-y-3">
 						<div className="surface-card space-y-3 p-4">
 							<div className="flex items-center justify-between">
-								<h3 className="text-sm font-semibold">Now playing</h3>
-								<TimerPill timecode="14:32" label="Session" />
+								<h3 className="font-semibold text-sm">Now playing</h3>
+								<TimerPill label="Session" timecode="14:32" />
 							</div>
 							<div className="flex items-center gap-3 rounded-xl bg-base-200/60 p-3">
-								<Disc size={18} className="text-primary" />
+								<Disc className="text-primary" size={18} />
 								<div className="flex-1">
-									<div className="text-sm font-semibold">Parallel Dreams</div>
-									<div className="text-xs text-base-content/60">Soma Sound</div>
+									<div className="font-semibold text-sm">Parallel Dreams</div>
+									<div className="text-base-content/60 text-xs">Soma Sound</div>
 								</div>
 								<PolymorphButton
-									variant="ghost"
-									size="sm"
 									leadingIcon={<Play size={14} />}
+									size="sm"
+									variant="ghost"
 								>
 									Play
 								</PolymorphButton>
 							</div>
 						</div>
 						<div className="surface-card space-y-3 p-4">
-							<h3 className="text-sm font-semibold">Presence</h3>
+							<h3 className="font-semibold text-sm">Presence</h3>
 							<PresenceStack
 								avatars={[
 									{ id: "1", label: "SA", indicator: "online" },
@@ -175,7 +189,7 @@ export const Default: Story = {
 									{ id: "3", label: "TP", indicator: "online" },
 								]}
 							/>
-							<div className="flex flex-wrap gap-2 text-xs text-base-content/70">
+							<div className="flex flex-wrap gap-2 text-base-content/70 text-xs">
 								<StatusBadge label="Latency 12ms" tone="success" />
 								<StatusBadge label="Agent connected" tone="info" />
 								<StatusBadge label="Storage 58% free" tone="muted" />
@@ -185,53 +199,39 @@ export const Default: Story = {
 				}
 				taskbar={
 					<Taskbar
-						apps={apps}
 						activeAppId={activeAppId}
-						tray={tray}
-						startOpen={startOpen}
+						apps={apps}
+						onSelectApp={(appId) => setActiveAppId(appId)}
 						onStart={() => setStartOpen((state) => !state)}
-						onSelectApp={(appId) => setActiveAppId(appId)}
+						startOpen={startOpen}
+						tray={tray}
 					/>
 				}
-				dock={
-					<Dock
-						apps={apps}
-						activeAppId={activeAppId}
-						onSelectApp={(appId) => setActiveAppId(appId)}
-					/>
-				}
-				overlays={
-					<Modal
-						open={showModal}
-						title="App opened"
-						description="This modal mimics a native overlay."
-						onClose={() => setShowModal(false)}
-					/>
-				}
+				wallpaper={<AuroraWallpaper />}
 			>
 				<div className="space-y-4">
 					<WindowChrome
-						title="Soma OS shell"
-						subtitle="libp2p · synced"
-						status="online"
 						actions={
 							<PolymorphButton
+								leadingIcon={<Zap size={14} />}
+								onClick={() => notify.success("Summoned a quick toast")}
 								size="sm"
 								variant="outline"
-								onClick={() => notify.success("Summoned a quick toast")}
-								leadingIcon={<Zap size={14} />}
 							>
 								Command
 							</PolymorphButton>
 						}
+						status="online"
+						subtitle="libp2p · synced"
+						title="Soma OS shell"
 					/>
 					<SplitPane
-						orientation="horizontal"
 						initialSize={70}
 						left={
 							<DesktopArea
+								className="min-h-[420px]"
+								emptyHint="No icons yet. Right-click to add shortcuts."
 								items={icons}
-								onReorder={(next) => setIcons(next)}
 								onActivate={(item) => {
 									setShowModal(true);
 									setActiveAppId(item.id);
@@ -246,14 +246,14 @@ export const Default: Story = {
 										]);
 									}
 								}}
-								emptyHint="No icons yet. Right-click to add shortcuts."
-								className="min-h-[420px]"
+								onReorder={(next) => setIcons(next)}
 							/>
 						}
+						orientation="horizontal"
 						right={
 							<div className="space-y-3 rounded-2xl bg-base-100/60 p-4">
 								<div className="flex items-center justify-between">
-									<p className="text-sm font-semibold">Quick actions</p>
+									<p className="font-semibold text-sm">Quick actions</p>
 									<StatusBadge label="Live" tone="success" />
 								</div>
 								<div className="flex flex-wrap gap-2">
@@ -267,7 +267,7 @@ export const Default: Story = {
 										Settings
 									</PolymorphButton>
 								</div>
-								<div className="text-xs text-base-content/60">
+								<div className="text-base-content/60 text-xs">
 									Drag icons, right-click for context menus, or launch commands
 									from the chrome.
 								</div>

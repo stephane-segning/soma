@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "motion/react";
-import { type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { OverlayPortal } from "./overlay-portal";
 
@@ -35,28 +35,28 @@ export function Modal({
 			<AnimatePresence>
 				{open ? (
 					<motion.div
-						initial={{ opacity: 0 }}
 						animate={{ opacity: 1 }}
-						exit={{ opacity: 0 }}
-						transition={{ duration: 0.16 }}
 						className="pointer-events-auto fixed inset-0 z-40 flex items-center justify-center bg-neutral/40 backdrop-blur"
+						exit={{ opacity: 0 }}
+						initial={{ opacity: 0 }}
 						onClick={onClose}
+						transition={{ duration: 0.16 }}
 					>
 						<motion.div
-							initial={{ opacity: 0, y: 12 }}
 							animate={{ opacity: 1, y: 0 }}
-							exit={{ opacity: 0, y: 8 }}
-							transition={{ duration: 0.16, ease: "easeOut" }}
-							onClick={(event) => event.stopPropagation()}
 							className="glass-panel max-w-xl rounded-2xl p-6 shadow-2xl"
+							exit={{ opacity: 0, y: 8 }}
+							initial={{ opacity: 0, y: 12 }}
+							onClick={(event) => event.stopPropagation()}
+							transition={{ duration: 0.16, ease: "easeOut" }}
 						>
 							<div className="flex items-start gap-4">
 								<div className="flex-1 space-y-2">
 									{title ? (
-										<h2 className="text-xl font-semibold">{title}</h2>
+										<h2 className="font-semibold text-xl">{title}</h2>
 									) : null}
 									{description ? (
-										<p className="text-sm text-base-content/70">
+										<p className="text-base-content/70 text-sm">
 											{description}
 										</p>
 									) : null}

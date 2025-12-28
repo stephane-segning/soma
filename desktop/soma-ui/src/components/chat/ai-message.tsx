@@ -28,11 +28,11 @@ export function AiMessage({ message, className }: AiMessageProps) {
 			<div className="mt-0.5 text-base-content/60">{icon}</div>
 			<div className="flex-1 space-y-2">
 				<div className="flex items-center gap-2">
-					<span className="text-sm font-semibold capitalize">
+					<span className="font-semibold text-sm capitalize">
 						{message.role}
 					</span>
 					{message.meta ? (
-						<span className="text-xs text-base-content/60">{message.meta}</span>
+						<span className="text-base-content/60 text-xs">{message.meta}</span>
 					) : null}
 				</div>
 				{message.thinking ? (
@@ -43,8 +43,8 @@ export function AiMessage({ message, className }: AiMessageProps) {
 				) : null}
 				{message.content ? (
 					<AiMarkdown
-						content={message.content}
 						className="prose prose-sm max-w-none"
+						content={message.content}
 					/>
 				) : null}
 			</div>

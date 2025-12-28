@@ -39,13 +39,13 @@ export function ContextMenu({
 							onMouseDown={onClose}
 						/>
 						<motion.div
-							initial={{ opacity: 0, scale: 0.96 }}
 							animate={{ opacity: 1, scale: 1 }}
-							exit={{ opacity: 0, scale: 0.96 }}
-							transition={{ duration: 0.12 }}
-							style={{ top: position.y, left: position.x }}
 							className="pointer-events-auto fixed z-50 origin-top-left"
+							exit={{ opacity: 0, scale: 0.96 }}
+							initial={{ opacity: 0, scale: 0.96 }}
 							onMouseDown={(event) => event.stopPropagation()}
+							style={{ top: position.y, left: position.x }}
+							transition={{ duration: 0.12 }}
 						>
 							<div
 								className={cn(
@@ -55,27 +55,27 @@ export function ContextMenu({
 							>
 								{items.map((item) => (
 									<button
-										key={item.id}
-										type="button"
-										onClick={() => {
-											item.onSelect?.();
-											onClose?.();
-										}}
-										disabled={item.disabled}
 										className={cn(
 											"group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors",
 											item.tone === "danger"
 												? "hover:bg-error hover:text-error-content"
 												: "hover:bg-base-200",
 											item.disabled
-												? "opacity-50 cursor-not-allowed"
+												? "cursor-not-allowed opacity-50"
 												: "cursor-pointer",
 										)}
+										disabled={item.disabled}
+										key={item.id}
+										onClick={() => {
+											item.onSelect?.();
+											onClose?.();
+										}}
+										type="button"
 									>
 										<span className="text-base-content/70">{item.icon}</span>
 										<span className="flex-1">{item.label}</span>
 										{item.shortcut ? (
-											<span className="text-xs text-base-content/60">
+											<span className="text-base-content/60 text-xs">
 												{item.shortcut}
 											</span>
 										) : null}

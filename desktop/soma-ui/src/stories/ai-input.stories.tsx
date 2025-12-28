@@ -22,17 +22,8 @@ export const Default: Story = {
 		return (
 			<div className="space-y-4">
 				<AiInput
-					value={text}
-					onChange={setText}
-					onSend={() => {
-						notify.success("Message sent");
-						setText("");
-					}}
-					onAttach={() => notify.info("Attach clicked")}
-					onVoice={() => notify.info("Voice clicked")}
 					modelSelector={
 						<AiModelSelector
-							value={model}
 							onChange={setModel}
 							options={[
 								{
@@ -52,10 +43,19 @@ export const Default: Story = {
 									hint: "Local",
 								},
 							]}
+							value={model}
 						/>
 					}
+					onAttach={() => notify.info("Attach clicked")}
+					onChange={setText}
+					onSend={() => {
+						notify.success("Message sent");
+						setText("");
+					}}
+					onVoice={() => notify.info("Voice clicked")}
+					value={text}
 				/>
-				<div className="text-sm text-base-content/60">
+				<div className="text-base-content/60 text-sm">
 					Hint: this is a reusable AI input bar with attachments, mic, model
 					selector, and send CTA.
 				</div>
@@ -75,13 +75,9 @@ export const WithPreset: Story = {
 		return (
 			<AiInput
 				{...args}
-				value={text}
-				onChange={setText}
-				onSend={() => notify.success(`Sent: ${text}`)}
-				onVoice={() => notify.info("Voice listening")}
 				modelSelector={
 					<AiModelSelector
-						value={model}
+						className="min-w-[160px]"
 						onChange={setModel}
 						options={[
 							{
@@ -102,9 +98,13 @@ export const WithPreset: Story = {
 								hint: "Audio",
 							},
 						]}
-						className="min-w-[160px]"
+						value={model}
 					/>
 				}
+				onChange={setText}
+				onSend={() => notify.success(`Sent: ${text}`)}
+				onVoice={() => notify.info("Voice listening")}
+				value={text}
 			/>
 		);
 	},

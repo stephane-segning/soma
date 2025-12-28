@@ -137,9 +137,9 @@ export function DesktopArea({
 			onContextMenu={(event) => openMenu(null, event)}
 		>
 			<DndContext
-				sensors={sensors}
 				collisionDetection={closestCenter}
 				onDragEnd={handleDragEnd}
+				sensors={sensors}
 			>
 				<SortableContext
 					items={orderedItems.map((item) => item.id)}
@@ -148,8 +148,8 @@ export function DesktopArea({
 					<div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
 						{orderedItems.map((item) => (
 							<DesktopIconTile
-								key={item.id}
 								item={item}
+								key={item.id}
 								onActivate={() => onActivate?.(item)}
 								onContextMenu={(event) => openMenu(item.id, event)}
 							/>
@@ -157,12 +157,12 @@ export function DesktopArea({
 						<AnimatePresence>
 							{orderedItems.length === 0 ? (
 								<motion.div
-									initial={{ opacity: 0 }}
 									animate={{ opacity: 1 }}
+									className="col-span-full flex items-center justify-center rounded-xl border border-base-300/70 border-dashed bg-base-100/50 px-4 py-12"
 									exit={{ opacity: 0 }}
-									className="col-span-full flex items-center justify-center rounded-xl border border-dashed border-base-300/70 bg-base-100/50 px-4 py-12"
+									initial={{ opacity: 0 }}
 								>
-									<p className="text-sm text-base-content/60">{emptyHint}</p>
+									<p className="text-base-content/60 text-sm">{emptyHint}</p>
 								</motion.div>
 							) : null}
 						</AnimatePresence>
@@ -171,10 +171,10 @@ export function DesktopArea({
 			</DndContext>
 
 			<ContextMenu
-				open={menuState.open}
-				position={menuState.position}
 				items={menuItems}
 				onClose={() => setMenuState((state) => ({ ...state, open: false }))}
+				open={menuState.open}
+				position={menuState.position}
 			/>
 		</div>
 	);
@@ -198,26 +198,26 @@ function DesktopIconTile({
 	return (
 		<motion.button
 			layout
-			type="button"
 			ref={sortable.setNodeRef}
 			style={style}
+			type="button"
 			{...sortable.attributes}
 			{...sortable.listeners}
-			onContextMenu={onContextMenu}
 			className={cn(
 				"group flex h-28 w-full flex-col items-center justify-center gap-3 rounded-2xl bg-base-100/60 px-3 py-3 text-center shadow-inner transition hover:-translate-y-0.5 hover:bg-base-200/80 hover:shadow-lg",
 				"focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-base-200",
 			)}
+			onContextMenu={onContextMenu}
 			onDoubleClick={onActivate}
 		>
 			<div className="grid h-14 w-14 place-items-center rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 text-primary">
 				{item.icon ?? <Folder size={20} />}
 			</div>
-			<div className="text-sm font-medium text-base-content/90">
+			<div className="font-medium text-base-content/90 text-sm">
 				{item.label}
 			</div>
 			{item.hint ? (
-				<div className="text-xs text-base-content/60">{item.hint}</div>
+				<div className="text-base-content/60 text-xs">{item.hint}</div>
 			) : null}
 		</motion.button>
 	);

@@ -7,7 +7,7 @@ import { useMemo } from "react";
 export function useGraphemes(value: string) {
 	const segmenter = useMemo(
 		() =>
-			typeof Intl !== "undefined" && (Intl as any).Segmenter
+			(Intl as any)?.Segmenter
 				? new (Intl as any).Segmenter(undefined, { granularity: "grapheme" })
 				: null,
 		[],
@@ -16,7 +16,10 @@ export function useGraphemes(value: string) {
 	return useMemo(
 		() =>
 			segmenter
-				? Array.from(segmenter.segment(value), ({ segment }: any) => segment as string)
+				? Array.from(
+						segmenter.segment(value),
+						({ segment }: any) => segment as string,
+					)
 				: Array.from(value),
 		[segmenter, value],
 	);
