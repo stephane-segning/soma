@@ -11,7 +11,8 @@
     "format": "pnpm --filter soma-app run format && pnpm --filter tapia-app run format"
   },
   "workspaces": [
-    "soma-app",
-    "tapia-app"
+    "desktop/soma-app",
+    "desktop/tapia-app",
+    "desktop/soma-ui"
   ]
 }
