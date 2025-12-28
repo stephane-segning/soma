@@ -57,6 +57,7 @@ nav:
       - Local LLMs (agentd models): development/agentd-models.md
       - Daemon Testing (grpcurl): development/daemon-grpcurl.md
       - Backend Refactor Notes: development/backend-refactor-notes.md
+      - UI Components: development/ui-components.md
   - Security:
       - Threat Model: security/threat-model.md
       - SBOM: security/sbom.md

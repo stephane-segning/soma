@@ -36,7 +36,7 @@ When in doubt, place:
 Docs quickstart:
 
 - Local build: `cd docs && mkdocs build` (CI installs MkDocs; locally you may want a venv/pipx if `pip` is externally-managed).
-- Repo helper: `just build-docs` (writes to `./site`).
+- Repo helper: `just build-docs` (writes to `./site`). Storybook for `desktop/soma-ui` is also built into `site/storybook` after MkDocs.
 
 ## Tech Stack
 
