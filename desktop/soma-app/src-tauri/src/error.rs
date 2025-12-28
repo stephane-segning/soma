@@ -1,1 +1,2 @@
-pub use tauri_command_utils::{AppError, AppResult};
+pub type AppError = tauri_command_utils::AppError;
+pub type AppResult<T> = tauri_command_utils::AppResult<T>;

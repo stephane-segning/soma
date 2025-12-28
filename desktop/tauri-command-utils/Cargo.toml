@@ -5,7 +5,7 @@ edition = "2024"
 publish = false
 
 [features]
-default = ["thiserror", "bad-request", "json-error", "io", "anyhow", "daemon", "agent"]
+default = ["thiserror", "bad-request", "json-error"]
 thiserror = ["dep:thiserror"]
 bad-request = []
 json-error = []

@@ -2,7 +2,10 @@ use tauri::State;
 use tracing::debug;
 
 use crate::error::AppResult;
-use crate::handlers::agent::{AgentController, ChatParams, ChatStreamEvent};
+use crate::handlers::agent::{
+    AgentController, ChatParams, ChatStreamEvent, ModelInfoDto, RerankParams, RerankResultDto,
+    ResolveDriftParams, ResolveDriftResult,
+};
 use crate::handlers::blobs::{BlobStageParams, BlobStageResult, BlobsController};
 use crate::handlers::documents::{
     DocumentsController, DraftRecord, EnsurePageParams, GetDraftParams, ListPagesParams,
@@ -163,6 +166,31 @@ pub async fn agent_chat_stream(
 ) -> AppResult<ChatStreamEvent> {
     let params: ChatParams = parse_params(&request, "agent_chat_stream")?;
     controller.chat_stream(params).await
+}
+
+#[tauri::command]
+pub async fn agent_list_models(
+    controller: State<'_, AgentController>,
+) -> AppResult<Vec<ModelInfoDto>> {
+    controller.list_models().await
+}
+
+#[tauri::command]
+pub async fn agent_rerank(
+    controller: State<'_, AgentController>,
+    request: tauri::ipc::Request<'_>,
+) -> AppResult<Vec<RerankResultDto>> {
+    let params: RerankParams = parse_params(&request, "agent_rerank")?;
+    controller.rerank(params).await
+}
+
+#[tauri::command]
+pub async fn agent_resolve_drift(
+    controller: State<'_, AgentController>,
+    request: tauri::ipc::Request<'_>,
+) -> AppResult<ResolveDriftResult> {
+    let params: ResolveDriftParams = parse_params(&request, "agent_resolve_drift")?;
+    controller.resolve_drift(params).await
 }
 
 #[tauri::command]

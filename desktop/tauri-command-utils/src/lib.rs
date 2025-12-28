@@ -96,3 +96,26 @@ impl serde::Serialize for AppError {
         serializer.serialize_str(self.to_string().as_ref())
     }
 }
+
+#[cfg(not(feature = "thiserror"))]
+impl std::fmt::Display for AppError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            #[cfg(feature = "daemon")]
+            AppError::Daemon(msg) => write!(f, "daemon error: {msg}"),
+            #[cfg(feature = "agent")]
+            AppError::Agent(msg) => write!(f, "agent error: {msg}"),
+            #[cfg(feature = "io")]
+            AppError::Io(e) => write!(f, "io error: {e}"),
+            #[cfg(feature = "anyhow")]
+            AppError::Other(e) => write!(f, "unexpected error: {e}"),
+            #[cfg(feature = "bad-request")]
+            AppError::BadRequest(msg) => write!(f, "Bad request: {msg}"),
+            #[cfg(feature = "json-error")]
+            AppError::Json(e) => write!(f, "Serde Error: {e}"),
+        }
+    }
+}
+
+#[cfg(not(feature = "thiserror"))]
+impl std::error::Error for AppError {}

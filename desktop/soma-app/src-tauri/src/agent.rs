@@ -2,10 +2,16 @@ use std::{path::PathBuf, sync::Arc};
 
 use anyhow::Context;
 use derive_builder::Builder;
-use soma_proto_build::agent::{ChatRequest, ChatResponse, agent_client::AgentClient};
+use soma_proto_build::agent::{
+    ChatRequest, ChatResponse, ListModelsResponse, RerankRequest, RerankResponse,
+    ResolveDriftRequest, ResolveDriftResponse, StatusResponse, agent_client::AgentClient,
+};
 use tauri::AppHandle;
 use tokio::sync::Mutex;
-use tonic::transport::{Channel, Endpoint};
+use tonic::{
+    Code,
+    transport::{Channel, Endpoint},
+};
 use tracing::info;
 
 use crate::{error::AppError, transport::unix_connector};
@@ -64,6 +70,26 @@ impl AgentApi {
         Ok(client)
     }
 
+    pub async fn status(&self) -> Result<StatusResponse, AppError> {
+        let mut client = self.client().await?;
+        let res = client.status(()).await?;
+        Ok(res.into_inner())
+    }
+
+    pub async fn list_models(&self) -> Result<ListModelsResponse, AppError> {
+        let mut client = self.client().await?;
+        match client.list_models(()).await {
+            Ok(res) => Ok(res.into_inner()),
+            Err(status) if status.code() == Code::Unimplemented => {
+                let status_res = client.status(()).await?;
+                Ok(ListModelsResponse {
+                    models: status_res.into_inner().models,
+                })
+            }
+            Err(err) => Err(err.into()),
+        }
+    }
+
     pub async fn chat(&self, req: ChatRequest) -> Result<ChatResponse, AppError> {
         let mut client = self.client().await?;
         let res = client.chat(req).await?;
@@ -76,6 +102,21 @@ impl AgentApi {
     ) -> Result<tonic::Streaming<soma_proto_build::agent::ChatStreamEvent>, AppError> {
         let mut client = self.client().await?;
         let res = client.chat_stream(req).await?;
+        Ok(res.into_inner())
+    }
+
+    pub async fn rerank(&self, req: RerankRequest) -> Result<RerankResponse, AppError> {
+        let mut client = self.client().await?;
+        let res = client.rerank(req).await?;
+        Ok(res.into_inner())
+    }
+
+    pub async fn resolve_drift(
+        &self,
+        req: ResolveDriftRequest,
+    ) -> Result<ResolveDriftResponse, AppError> {
+        let mut client = self.client().await?;
+        let res = client.resolve_drift(req).await?;
         Ok(res.into_inner())
     }
 }
