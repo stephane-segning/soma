@@ -4,13 +4,14 @@ import { type ChatMessage, streamChat } from "../services/chat-service";
 
 type UseChatConversationOptions = {
 	systemPrompt?: string;
+	model?: string;
 };
 
 type UseChatConversationResult = {
 	messages: ChatMessage[];
 	visibleMessages: ChatMessage[];
 	isSending: boolean;
-	sendPrompt: (prompt: string) => void;
+	sendPrompt: (prompt: string, model?: string) => void;
 	appendMessage: (msg: ChatMessage) => void;
 };
 
@@ -31,7 +32,7 @@ export function useChatConversation(
 	const assistantIdxRef = useRef<number | null>(null);
 
 	const mutation = useMutation({
-		mutationFn: async (prompt: string) => {
+		mutationFn: async ({ prompt, model }: { prompt: string; model?: string }) => {
 			const history: ChatMessage[] = [
 				...messagesRef.current,
 				{ role: "user", content: prompt },
@@ -46,7 +47,9 @@ export function useChatConversation(
 				];
 			});
 
-			const result = await streamChat(history);
+			const result = await streamChat(history, {
+				model: model ?? options.model,
+			});
 			if (result.error) {
 				throw new Error(result.error);
 			}
@@ -81,10 +84,10 @@ export function useChatConversation(
 		},
 	});
 
-	const sendPrompt = (prompt: string) => {
+	const sendPrompt = (prompt: string, model?: string) => {
 		const trimmed = prompt.trim();
 		if (!trimmed || mutation.isPending) return;
-		mutation.mutate(trimmed);
+		mutation.mutate({ prompt: trimmed, model });
 	};
 
 	const appendMessage = (msg: ChatMessage) => {

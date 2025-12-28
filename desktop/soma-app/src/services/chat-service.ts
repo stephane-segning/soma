@@ -20,6 +20,14 @@ export type ChatOptions = {
 	maxTokens?: number;
 };
 
+export type AgentModel = {
+	name: string;
+	kind: "chat" | "embed" | "unknown";
+	path: string;
+	loaded: boolean;
+	sizeBytes?: number;
+};
+
 export async function streamChat(
 	messages: ChatMessage[],
 	options: ChatOptions = {},
@@ -33,4 +41,31 @@ export async function streamChat(
 	return invoke<StreamEvent>("agent_chat_stream", payload).catch((error) => ({
 		error: error instanceof Error ? error.message : String(error),
 	}));
+}
+
+export async function listModels(): Promise<AgentModel[]> {
+	const res = await invoke<{
+		models: {
+			name: string;
+			kind: string;
+			path: string;
+			loaded: boolean;
+			size_bytes?: number;
+		}[];
+	}>("agent_list_models");
+
+	return res.models.map((m) => ({
+		name: m.name,
+		kind: normalizeKind(m.kind),
+		path: m.path,
+		loaded: m.loaded,
+		sizeBytes: m.size_bytes,
+	}));
+}
+
+function normalizeKind(kind: string): AgentModel["kind"] {
+	const value = kind.toLowerCase();
+	if (value.includes("chat")) return "chat";
+	if (value.includes("embed")) return "embed";
+	return "unknown";
 }

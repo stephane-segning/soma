@@ -71,3 +71,9 @@ pub struct ExampleParams {
 - Soma command entrypoints: `desktop/soma-app/src-tauri/src/commands.rs`
 - Tapia command entrypoints: `desktop/tapia-app/src-tauri/src/commands.rs`
 - Shared parsing + errors: `desktop/tauri-command-utils/src/lib.rs`
+
+### Newly added (Soma)
+
+- `agent_list_models`: returns agentd model metadata for the chat UI select.
+- `agent_rerank`: forwards rerank requests (query + candidates) to agentd.
+- `agent_resolve_drift`: merges two Yjs updates (base64 → bytes) via agentd to fix drifted documents.

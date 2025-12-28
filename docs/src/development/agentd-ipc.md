@@ -43,6 +43,18 @@ To keep things fast:
   - store blobs in the blob pool and pass references (hash/path within the pool), or
   - use FD passing (`SCM_RIGHTS`) to hand off an open file descriptor where supported.
 
+## gRPC surface (UDS)
+
+Proto: `proto/agent/v1/agent.proto` (generated into `soma_proto_build::agent`).
+
+- `Status` / `ListModels`: version, defaults, and model metadata (name, kind chat/embed, path, loaded flag, size bytes).
+- `Chat` / `ChatStream` / `InlineComplete`: chat inference with optional model override.
+- `Embed`: embed one or more strings with optional model override.
+- `Rerank`: embeds `{query, candidates[]}` using the embed model and returns cosine-ranked `{id, score, rank}`; `top_n` limits output (0 = all).
+- `ResolveDrift`: merges two Yjs updates (bytes) and returns a merged update; use this when reconciling document drift.
+
+Keep the socket UDS-bound and mode 0600; treat all APIs as local-only IPC.
+
 ## Bidirectional Communication Patterns
 
 You have two common patterns; both are bidirectional at the transport level:

@@ -82,19 +82,13 @@ Why this helps:
 
 ## How `desktop/soma-app` chooses the model
 
-Right now, `desktop/soma-app` (Tauri) **does not explicitly set a model** unless you wire one in the UI.
+UI now lists agentd chat models and lets you pick one per session:
 
-- Renderer call site: `desktop/soma-app/src/hooks/use-chat-conversation.ts`
-- Renderer transport: `desktop/soma-app/src/services/chat-service.ts`
-- Tauri command: `desktop/soma-app/src-tauri/src/commands.rs` (`agent_chat_stream`)
+- Model list: `agent_list_models` Tauri command (IPC → agentd `ListModels`), wired via `desktop/soma-app/src/services/chat-service.ts`.
+- UI select: `desktop/soma-app/src/routes/chat-sidebar.tsx` shows a compact select (defaults to the first chat model, falls back to agentd default).
+- Chat invocation: `useChatConversation` passes the selected model to `agent_chat_stream`.
 
-Current behavior:
-
-- the renderer calls `invoke("agent_chat_stream", { model: undefined, ... })`
-- the Tauri command forwards `model: ""` (empty string) to agentd
-- agentd interprets empty string as “use `--default-chat-model`”
-
-So the model you run agentd with is the model the UI uses by default.
+If no model is selected or the select is empty, agentd still falls back to `--default-chat-model`.
 
 ## Tokens, context window, and why `max_tokens=16000` can fail
 
@@ -198,4 +192,3 @@ SOMA_AGENTD_CTX_SIZE=32768 cargo run -p soma-agentd -- \
   --models-dir "$HOME/dev/models" \
   --default-chat-model Qwen3VL-2B-Thinking-Q4_K_M.gguf
 ```
-

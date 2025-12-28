@@ -1,18 +1,40 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { twMerge } from "tailwind-merge";
 import { useChatConversation } from "../hooks/use-chat-conversation";
-import type { ChatMessage } from "../services/chat-service";
+import type { AgentModel, ChatMessage } from "../services/chat-service";
+import { listModels } from "../services/chat-service";
 
 function ChatSidebar(): React.JSX.Element {
 	const [draft, setDraft] = useState("");
-	const { visibleMessages, isSending, sendPrompt } = useChatConversation();
+	const [selectedModel, setSelectedModel] = useState<string>();
+	const modelsQuery = useQuery({
+		queryKey: ["agent", "models"],
+		queryFn: listModels,
+		staleTime: 5 * 60 * 1000,
+	});
+
+	const chatModels = useMemo(
+		() => modelsQuery.data?.filter((m) => m.kind === "chat") ?? [],
+		[modelsQuery.data],
+	);
+
+	useEffect(() => {
+		if (!selectedModel && chatModels.length > 0) {
+			setSelectedModel(chatModels[0].name);
+		}
+	}, [chatModels, selectedModel]);
+
+	const { visibleMessages, isSending, sendPrompt } = useChatConversation({
+		model: selectedModel,
+	});
 
 	const handleSend = (e: React.FormEvent) => {
 		e.preventDefault();
 		const prompt = draft.trim();
 		if (!prompt || isSending) return;
 		setDraft("");
-		sendPrompt(prompt);
+		sendPrompt(prompt, selectedModel);
 	};
 
 	return (
@@ -24,7 +46,15 @@ function ChatSidebar(): React.JSX.Element {
 						Ask the local agent (streaming).
 					</p>
 				</div>
-				<div className="badge badge-outline">Live</div>
+				<div className="flex items-center gap-2">
+					<ModelSelect
+						models={chatModels}
+						disabled={isSending || modelsQuery.isLoading}
+						onChange={(val) => setSelectedModel(val)}
+						value={selectedModel}
+					/>
+					<div className="badge badge-outline">Live</div>
+				</div>
 			</header>
 
 			<div className="card h-full min-h-0 bg-base-100 shadow">
@@ -76,6 +106,42 @@ function ChatBubble({ message }: { message: ChatMessage }): React.JSX.Element {
 				{message.content || "..."}
 			</div>
 		</div>
+	);
+}
+
+function ModelSelect({
+	models,
+	value,
+	onChange,
+	disabled,
+}: {
+	models: AgentModel[];
+	value?: string;
+	onChange: (val: string) => void;
+	disabled?: boolean;
+}): React.JSX.Element {
+	if (!models.length) {
+		return (
+			<div className="badge badge-ghost badge-sm text-xs" title="No chat models available">
+				No models
+			</div>
+		);
+	}
+
+	return (
+		<select
+			className="select select-bordered select-xs min-w-[8rem]"
+			disabled={disabled}
+			onChange={(e) => onChange(e.target.value)}
+			value={value}
+		>
+			{models.map((m) => (
+				<option key={m.name} value={m.name}>
+					{m.name}
+					{m.loaded ? "" : " (cold)"}
+				</option>
+			))}
+		</select>
 	);
 }
 
