@@ -1,5 +1,6 @@
 import { Resizable } from "re-resizable";
 import { type ReactNode, useMemo, useState } from "react";
+import { cn } from "../../utils/cn";
 
 export type DesktopShellProps = {
 	leftColumn?: ReactNode;
@@ -18,7 +19,31 @@ export type DesktopShellProps = {
 	className?: string;
 	initialLeftWidth?: number;
 	initialRightWidth?: number;
+	onLeftResizeStop?: (nextWidth: number) => void;
+	onRightResizeStop?: (nextWidth: number) => void;
 };
+
+function ResizeHandle() {
+	const [hover, setHover] = useState(false);
+
+	return (
+		<div
+			className={cn(
+				"flex h-full w-2.5 cursor-col-resize items-center justify-center rounded-md transition-all duration-150",
+				hover ? "bg-slate-400/20" : "bg-transparent",
+			)}
+			onMouseEnter={() => setHover(true)}
+			onMouseLeave={() => setHover(false)}
+		>
+			<span
+				className={cn(
+					"h-12 rounded-full bg-gray-600/80 transition-all duration-150",
+					hover ? "w-1.5" : "w-0.75",
+				)}
+			/>
+		</div>
+	);
+}
 
 export function DesktopShell({
 	leftColumn,
@@ -30,14 +55,13 @@ export function DesktopShell({
 	className,
 	initialLeftWidth = 240,
 	initialRightWidth = 260,
+	onLeftResizeStop,
+	onRightResizeStop,
 }: DesktopShellProps) {
 	const [leftOpen, setLeftOpen] = useState(true);
 	const [rightOpen, setRightOpen] = useState(true);
 	const [leftWidth, setLeftWidth] = useState(initialLeftWidth);
 	const [rightWidth, setRightWidth] = useState(initialRightWidth);
-	const [leftHover, setLeftHover] = useState(false);
-	const [rightHover, setRightHover] = useState(false);
-
 	const leftContent = useMemo(
 		() => (leftOpen ? leftColumn : null),
 		[leftOpen, leftColumn],
@@ -70,7 +94,7 @@ export function DesktopShell({
 					{overlays}
 				</div>
 			) : null}
-			<div className="relative z-10 flex h-full w-full flex-col gap-4 p-4 sm:p-6 lg:p-8">
+			<div className="relative z-10 flex h-full w-full flex-col gap-4 sm:p-6 lg:p-8">
 				{headerNode ? (
 					<div className="flex flex-col gap-2">{headerNode}</div>
 				) : null}
@@ -82,46 +106,15 @@ export function DesktopShell({
 									className="h-full"
 									enable={{ right: true }}
 									handleComponent={{
-										right: (
-											<div
-												onMouseEnter={() => setLeftHover(true)}
-												onMouseLeave={() => setLeftHover(false)}
-												style={{
-													width: "10px",
-													height: "100%",
-													display: "flex",
-													alignItems: "center",
-													justifyContent: "center",
-													background: leftHover
-														? "rgba(148,163,184,0.2)"
-														: "transparent",
-													cursor: "col-resize",
-													borderRadius: "6px",
-													transition: "all 120ms ease",
-												}}
-											>
-												<span
-													style={{
-														width: leftHover ? "6px" : "3px",
-														height: "48px",
-														borderRadius: "999px",
-														background: "rgba(107,114,128,0.8)",
-														transition: "all 120ms ease",
-													}}
-												/>
-											</div>
-										),
-									}}
-									handleStyles={{
-										right: {
-											cursor: "col-resize",
-											width: "10px",
-											background: "transparent",
-										},
+										right: <ResizeHandle />,
 									}}
 									maxWidth={420}
 									minWidth={80}
-									onResizeStop={(_, __, ref) => setLeftWidth(ref.offsetWidth)}
+									onResizeStop={(_, __, ref) => {
+										const next = ref.offsetWidth;
+										setLeftWidth(next);
+										onLeftResizeStop?.(next);
+									}}
 									size={{ width: leftWidth, height: "100%" }}
 								>
 									<div className="scrollbar-none relative h-full overflow-auto pr-2">
@@ -143,46 +136,15 @@ export function DesktopShell({
 									className="h-full"
 									enable={{ left: true }}
 									handleComponent={{
-										left: (
-											<div
-												onMouseEnter={() => setRightHover(true)}
-												onMouseLeave={() => setRightHover(false)}
-												style={{
-													width: "10px",
-													height: "100%",
-													display: "flex",
-													alignItems: "center",
-													justifyContent: "center",
-													background: rightHover
-														? "rgba(148,163,184,0.2)"
-														: "transparent",
-													cursor: "col-resize",
-													borderRadius: "6px",
-													transition: "all 120ms ease",
-												}}
-											>
-												<span
-													style={{
-														width: rightHover ? "6px" : "3px",
-														height: "48px",
-														borderRadius: "999px",
-														background: "rgba(107,114,128,0.8)",
-														transition: "all 120ms ease",
-													}}
-												/>
-											</div>
-										),
-									}}
-									handleStyles={{
-										left: {
-											cursor: "col-resize",
-											width: "10px",
-											background: "transparent",
-										},
+										left: <ResizeHandle />,
 									}}
 									maxWidth={400}
 									minWidth={180}
-									onResizeStop={(_, __, ref) => setRightWidth(ref.offsetWidth)}
+									onResizeStop={(_, __, ref) => {
+										const next = ref.offsetWidth;
+										setRightWidth(next);
+										onRightResizeStop?.(next);
+									}}
 									size={{ width: rightWidth, height: "100%" }}
 								>
 									<div className="scrollbar-none relative h-full overflow-auto pl-2">

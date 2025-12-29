@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { useEffect, useState } from "react";
 import { CheckCircle, Info, Menu, Sliders } from "react-feather";
 import { DesktopShell } from "../components/layout/desktop-shell";
 import { StatusBadge } from "../components/presence/status-badge";
@@ -225,6 +226,110 @@ export const ScrollableContent: Story = {
 							key={item}
 						>
 							{item} — filler content to demonstrate scrolling.
+						</div>
+					))}
+				</div>
+			</DesktopShell>
+		);
+	},
+};
+
+export const PersistentWidths: Story = {
+	render: function PersistentWidthsStory() {
+		const defaultLeft = 220;
+		const defaultRight = 240;
+		const [leftWidth, setLeftWidth] = useState(() => {
+			if (typeof window === "undefined") return defaultLeft;
+			const stored = Number.parseInt(
+				window.localStorage.getItem("desktop-shell-left") ?? "",
+				10,
+			);
+			return Number.isFinite(stored) ? stored : defaultLeft;
+		});
+		const [rightWidth, setRightWidth] = useState(() => {
+			if (typeof window === "undefined") return defaultRight;
+			const stored = Number.parseInt(
+				window.localStorage.getItem("desktop-shell-right") ?? "",
+				10,
+			);
+			return Number.isFinite(stored) ? stored : defaultRight;
+		});
+
+		useEffect(() => {
+			if (typeof window !== "undefined") {
+				window.localStorage.setItem(
+					"desktop-shell-left",
+					String(leftWidth),
+				);
+			}
+		}, [leftWidth]);
+
+		useEffect(() => {
+			if (typeof window !== "undefined") {
+				window.localStorage.setItem(
+					"desktop-shell-right",
+					String(rightWidth),
+				);
+			}
+		}, [rightWidth]);
+
+		return (
+			<DesktopShell
+				initialLeftWidth={leftWidth}
+				initialRightWidth={rightWidth}
+				onLeftResizeStop={setLeftWidth}
+				onRightResizeStop={setRightWidth}
+				header={({ toggleLeft, toggleRight }) => (
+					<div className="flex items-center justify-between">
+						<div className="flex items-center gap-2">
+							<button
+								type="button"
+								onClick={toggleLeft}
+								className="btn btn-ghost btn-xs rounded-full"
+								aria-label="Toggle navigation"
+							>
+								<Menu size={14} />
+							</button>
+							<h1 className="text-xl font-semibold">
+								Persistent widths
+							</h1>
+						</div>
+						<button
+							type="button"
+							onClick={toggleRight}
+							className="btn btn-ghost btn-xs rounded-full"
+							aria-label="Toggle info"
+						>
+							<Info size={14} />
+						</button>
+					</div>
+				)}
+				leftColumn={
+					<div className="space-y-2 text-sm">
+						<p className="font-semibold text-base-content/80">Navigation</p>
+						<ul className="space-y-1 text-base-content/70">
+							<li>Home</li>
+							<li>Documents</li>
+							<li>Settings</li>
+						</ul>
+					</div>
+				}
+				rightColumn={
+					<div className="space-y-2 text-sm">
+						<p className="font-semibold text-base-content/80">Info</p>
+						<div className="rounded-lg bg-base-200/60 p-3 text-xs text-base-content/70">
+							Resize sidebars; widths persist via localStorage.
+						</div>
+					</div>
+				}
+			>
+				<div className="space-y-2">
+					{Array.from({ length: 12 }, (_, idx) => (
+						<div
+							key={idx}
+							className="rounded border border-base-300/60 bg-base-100/90 p-3 text-sm text-base-content/80"
+						>
+							Content block {idx + 1}
 						</div>
 					))}
 				</div>
