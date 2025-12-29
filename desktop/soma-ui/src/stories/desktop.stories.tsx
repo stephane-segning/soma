@@ -164,3 +164,71 @@ export const WithHeaderAndFooter: Story = {
 		);
 	},
 };
+
+export const ScrollableContent: Story = {
+	render: function ScrollableStory() {
+		const items = Array.from({ length: 30 }, (_, idx) => `Row ${idx + 1}`);
+		return (
+			<DesktopShell
+				header={({ toggleLeft, toggleRight }) => (
+					<div className="flex items-center justify-between">
+						<div className="flex items-center gap-2">
+							<button
+								aria-label="Toggle navigation"
+								className="btn btn-ghost btn-xs rounded-full"
+								onClick={toggleLeft}
+								type="button"
+							>
+								<Menu size={14} />
+							</button>
+							<h1 className="font-semibold text-xl">Scrollable Main Area</h1>
+						</div>
+						<button
+							aria-label="Toggle info"
+							className="btn btn-ghost btn-xs rounded-full"
+							onClick={toggleRight}
+							type="button"
+						>
+							<Info size={14} />
+						</button>
+					</div>
+				)}
+				leftColumn={
+					<div className="space-y-2 text-sm">
+						<p className="font-semibold text-base-content/80">Navigation</p>
+						<ul className="space-y-1 text-base-content/70">
+							{new Array(100).fill(0).map((_, idx) => (
+								<li key={idx}>Section {idx}</li>
+							))}
+						</ul>
+					</div>
+				}
+				rightColumn={
+					<div className="space-y-2 text-sm">
+						<p className="font-semibold text-base-content/80">Info</p>
+						<div className="rounded-lg bg-base-200/60 p-3 text-base-content/70 text-xs">
+							Main column scrolls independently while sidebars stay fixed.
+						</div>
+
+						{new Array(50).fill(0).map((_, idx) => (
+							<div className="block" key={idx}>
+								Random {idx}
+							</div>
+						))}
+					</div>
+				}
+			>
+				<div className="space-y-2">
+					{items.map((item) => (
+						<div
+							className="rounded border border-base-300/60 bg-base-100/90 p-3 text-base-content/80 text-sm"
+							key={item}
+						>
+							{item} — filler content to demonstrate scrolling.
+						</div>
+					))}
+				</div>
+			</DesktopShell>
+		);
+	},
+};

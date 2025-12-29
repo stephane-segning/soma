@@ -63,20 +63,20 @@ export function DesktopShell({
 
 	return (
 		<div
-			className={`relative min-h-screen bg-base-100 text-base-content ${className ?? ""}`}
+			className={`relative h-screen w-screen overflow-hidden bg-base-100 text-base-content ${className ?? ""}`}
 		>
 			{overlays ? (
 				<div className="pointer-events-none absolute inset-0 z-20">
 					{overlays}
 				</div>
 			) : null}
-			<div className="relative z-10 mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6 lg:px-8">
+			<div className="relative z-10 flex h-full w-full flex-col gap-4 p-4 sm:p-6 lg:p-8">
 				{headerNode ? (
 					<div className="flex flex-col gap-2">{headerNode}</div>
 				) : null}
-				<div className="flex w-full items-start gap-4">
+				<div className="flex min-h-0 flex-1 items-start gap-4 overflow-hidden">
 					{leftColumn ? (
-						<div className="relative flex-shrink-0">
+						<div className="relative flex h-full shrink-0">
 							{leftOpen ? (
 								<Resizable
 									className="h-full"
@@ -124,7 +124,7 @@ export function DesktopShell({
 									onResizeStop={(_, __, ref) => setLeftWidth(ref.offsetWidth)}
 									size={{ width: leftWidth, height: "100%" }}
 								>
-									<div className="relative h-full overflow-auto pr-2">
+									<div className="scrollbar-none relative h-full overflow-auto pr-2">
 										<aside className="h-full pr-4">{leftContent}</aside>
 									</div>
 								</Resizable>
@@ -132,10 +132,12 @@ export function DesktopShell({
 						</div>
 					) : null}
 
-					<main className="min-h-[320px] flex-1 space-y-4">{children}</main>
+					<main className="max-h-full min-h-0 flex-1 space-y-4 overflow-auto">
+						{children}
+					</main>
 
 					{rightColumn ? (
-						<div className="relative flex-shrink-0">
+						<div className="relative h-full shrink-0">
 							{rightOpen ? (
 								<Resizable
 									className="h-full"
@@ -183,7 +185,7 @@ export function DesktopShell({
 									onResizeStop={(_, __, ref) => setRightWidth(ref.offsetWidth)}
 									size={{ width: rightWidth, height: "100%" }}
 								>
-									<div className="relative h-full overflow-auto pl-2">
+									<div className="scrollbar-none relative h-full overflow-auto pl-2">
 										<aside className="h-full pl-4">{rightContent}</aside>
 									</div>
 								</Resizable>
