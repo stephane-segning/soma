@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import * as spacesService from "../services/spaces-service";
-import { use, useMemo } from "react";
+import { useMemo } from "react";
 
 type UseSpaceAccessResult = {
 	isChecking: boolean;

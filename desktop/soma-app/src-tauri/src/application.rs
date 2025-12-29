@@ -33,7 +33,14 @@ impl SomaAppBuilder {
         let window_controller: Arc<dyn WindowController> =
             Arc::new(MainWindowController::new(state_store.clone()));
 
-        let builder = tauri::Builder::default()
+        let builder = tauri::Builder::default();
+
+        #[cfg(desktop)]
+        let builder = builder.plugin(tauri_plugin_single_instance::init(|_app, argv, _cwd| {
+            info!("another instance attempted to start with args: {argv:?}");
+        }));
+
+        let builder = builder
             .plugin(
                 tauri_plugin_log::Builder::new()
                     .level(tauri_plugin_log::log::LevelFilter::Trace)
@@ -47,15 +54,10 @@ impl SomaAppBuilder {
                     ))
                     .build(),
             )
+            .plugin(tauri_plugin_store::Builder::new().build())
             .plugin(tauri_plugin_opener::init())
             .plugin(tauri_plugin_window_state::Builder::new().build())
-            .plugin(tauri_plugin_opener::init())
             .plugin(tauri_plugin_deep_link::init());
-
-        #[cfg(desktop)]
-        let builder = builder.plugin(tauri_plugin_single_instance::init(|_app, argv, _cwd| {
-            info!("another instance attempted to start with args: {argv:?}");
-        }));
 
         Self {
             builder,
