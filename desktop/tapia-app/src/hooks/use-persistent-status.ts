@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
-import { useTauriStore } from "soma-ui";
+import { useTauriStore } from "soma-ui/hooks/use-tauri-store";
 
 const TAPIA_STORE_NAME = "tapia-settings.json";
 const STATUS_KEY = "lastStatus";

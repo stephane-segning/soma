@@ -17,9 +17,7 @@ import type { SlateElement } from "@yoopta/editor/dist/editor/types";
 import type { YooptaPlugin } from "@yoopta/editor/dist/plugins";
 import type { PluginElementRenderProps } from "@yoopta/editor/dist/plugins/types";
 import Embed from "@yoopta/embed";
-import File from "@yoopta/file";
 import { HeadingOne, HeadingThree, HeadingTwo } from "@yoopta/headings";
-import Image from "@yoopta/image";
 import Link from "@yoopta/link";
 import LinkTool, { DefaultLinkToolRender } from "@yoopta/link-tool";
 import { BulletedList, NumberedList, TodoList } from "@yoopta/lists";
@@ -34,9 +32,13 @@ import {
 import Paragraph from "@yoopta/paragraph";
 import Table from "@yoopta/table";
 import Toolbar, { DefaultToolbarRender } from "@yoopta/toolbar";
-import Video from "@yoopta/video";
 import type React from "react";
 import { useCallback, useEffect, useMemo } from "react";
+import {
+	YooptaFilePlugin,
+	YooptaImagePlugin,
+	YooptaVideoPlugin,
+} from "soma-ui/yoopta";
 import {
 	renderManagedAccordion,
 	renderManagedBlockquote,
@@ -192,7 +194,7 @@ function YooptaEditorWithTools({
 						embed: renderManagedEmbed,
 					}),
 				}),
-				Image.extend({
+				YooptaImagePlugin.extend({
 					renders: asPluginRenders({
 						image: renderManagedImage,
 					}),
@@ -210,7 +212,7 @@ function YooptaEditorWithTools({
 						},
 					},
 				}),
-				Video.extend({
+				YooptaVideoPlugin.extend({
 					renders: asPluginRenders({ video: renderManagedVideo }),
 					options: {
 						onUpload: async (file) => {
@@ -232,7 +234,7 @@ function YooptaEditorWithTools({
 						},
 					},
 				}),
-				File.extend({
+				YooptaFilePlugin.extend({
 					renders: asPluginRenders({ file: renderManagedFile }),
 					options: {
 						onUpload: async (file) => {

@@ -29,7 +29,7 @@ export function StreakMeter({
 			<div className="mt-3 h-2 rounded-full bg-base-200">
 				<motion.div
 					animate={{ width: `${pct}%` }}
-					className="h-2 rounded-full bg-gradient-to-r from-warning to-error"
+					className="h-2 rounded-full bg-linear-to-r from-warning to-error"
 					initial={false}
 				/>
 			</div>
@@ -59,7 +59,7 @@ export function XpMeter({ value, max, label = "XP" }: XpMeterProps) {
 			<div className="mt-3 h-2 rounded-full bg-base-200">
 				<motion.div
 					animate={{ width: `${pct}%` }}
-					className="h-2 rounded-full bg-gradient-to-r from-primary to-secondary"
+					className="h-2 rounded-full bg-linear-to-r from-primary to-secondary"
 					initial={false}
 				/>
 			</div>

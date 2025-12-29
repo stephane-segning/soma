@@ -1,18 +1,15 @@
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router";
 import { Activity, BarChart2, Clock, RefreshCw, Zap } from "react-feather";
-import {
-	DesktopArea,
-	DesktopShell,
-	PolymorphButton,
-	Taskbar,
-	WindowChrome,
-	type DesktopIcon,
-	type RunningApp,
-} from "soma-ui";
+import { Link } from "react-router";
+import { PolymorphButton } from "soma-ui/components/actions/polymorph-button";
+import { DesktopArea } from "soma-ui/components/layout/desktop-area";
+import { DesktopShell } from "soma-ui/components/layout/desktop-shell";
+import { Taskbar } from "soma-ui/components/layout/taskbar";
+import { WindowChrome } from "soma-ui/components/layout/window-chrome";
+import type { DesktopIcon, RunningApp } from "soma-ui/types";
 import { usePersistentStatus } from "../../hooks/use-persistent-status";
 
 type DeepLinkPayload = {
@@ -64,14 +61,17 @@ function IntakePage() {
 	const [error, setError] = useState<string | null>(null);
 
 	useEffect(() => {
-		const unlistenPromise = listen<DeepLinkPayload>("tapia://exercise", (event) => {
-			const payload = event.payload;
-			setIncoming(payload);
-			setStatus("Fetching exercise from link…");
-			setExercise(null);
-			setExerciseCid(null);
-			setError(null);
-		});
+		const unlistenPromise = listen<DeepLinkPayload>(
+			"tapia://exercise",
+			(event) => {
+				const payload = event.payload;
+				setIncoming(payload);
+				setStatus("Fetching exercise from link…");
+				setExercise(null);
+				setExerciseCid(null);
+				setError(null);
+			},
+		);
 
 		return () => {
 			void unlistenPromise.then((unlisten) => unlisten());
@@ -100,7 +100,8 @@ function IntakePage() {
 	const elapsedMs = startedAt ? (completedAt ?? Date.now()) - startedAt : 0;
 	const wpm =
 		elapsedMs > 0 && startedAt
-			? Math.round((correctCharacters / 5 / (elapsedMs / 1000)) * 60 * 100) / 100
+			? Math.round((correctCharacters / 5 / (elapsedMs / 1000)) * 60 * 100) /
+				100
 			: 0;
 
 	useEffect(() => {
@@ -150,7 +151,12 @@ function IntakePage() {
 			metrics,
 		}: {
 			active: ActiveExercise;
-			metrics: { wpm: number; accuracy: number; durationMs: number; completedAtMs: number };
+			metrics: {
+				wpm: number;
+				accuracy: number;
+				durationMs: number;
+				completedAtMs: number;
+			};
 		}) => {
 			const upload = await invoke<BlobUpload>("record_benchmark", {
 				spaceId: active.meta.spaceId,
@@ -227,13 +233,16 @@ function IntakePage() {
 		retry: 0,
 		onSuccess: () => setStatus("Ready to type"),
 		onError: (err) => {
-			const message = err instanceof Error ? err.message : "Failed to load exercise";
+			const message =
+				err instanceof Error ? err.message : "Failed to load exercise";
 			setError(message);
 			setStatus("Could not fetch exercise");
 		},
 	});
 
-	const fetchExercise = async (payload: DeepLinkPayload): Promise<RemoteExercise> => {
+	const fetchExercise = async (
+		payload: DeepLinkPayload,
+	): Promise<RemoteExercise> => {
 		const host = payload.host.replace(/\/+$/, "");
 		const candidates = [
 			`https://${host}/api/tapia/exercises/${payload.exerciseId}`,
@@ -247,8 +256,11 @@ function IntakePage() {
 		let lastError: Error | null = null;
 		for (const url of candidates) {
 			try {
-				const response = await fetch(url, { headers: { Accept: "application/json" } });
-				if (!response.ok) throw new Error(`request failed (${response.status})`);
+				const response = await fetch(url, {
+					headers: { Accept: "application/json" },
+				});
+				if (!response.ok)
+					throw new Error(`request failed (${response.status})`);
 				const data: unknown = await response.json();
 				const parsed = parseRemoteExercise(data);
 				return parsed;
@@ -265,7 +277,8 @@ function IntakePage() {
 			throw new Error("exercise payload must be an object");
 		}
 		const maybeMessage =
-			(data as Record<string, unknown>).message ?? (data as Record<string, unknown>).text;
+			(data as Record<string, unknown>).message ??
+			(data as Record<string, unknown>).text;
 		if (!maybeMessage || typeof maybeMessage !== "string") {
 			throw new Error("exercise payload is missing 'message' or 'text'");
 		}
@@ -298,8 +311,11 @@ function IntakePage() {
 			? Math.round((input.length / exercise.meta.length) * 100)
 			: 0;
 
-	const chromeStatus: "online" | "syncing" | "offline" =
-		error ? "offline" : incoming ? "online" : "syncing";
+	const chromeStatus: "online" | "syncing" | "offline" = error
+		? "offline"
+		: incoming
+			? "online"
+			: "syncing";
 
 	const shortcuts: DesktopIcon[] = useMemo(
 		() => [
@@ -356,7 +372,25 @@ function IntakePage() {
 	return (
 		<DesktopShell
 			className="relative"
-			header={({ hasLeft, hasRight, leftOpen, rightOpen, toggleLeft, toggleRight }) => (
+			footer={
+				<Taskbar
+					activeAppId="exercise"
+					apps={taskbarApps}
+					tray={
+						<span className="badge badge-ghost badge-sm border-none">
+							{status}
+						</span>
+					}
+				/>
+			}
+			header={({
+				hasLeft,
+				hasRight,
+				leftOpen,
+				rightOpen,
+				toggleLeft,
+				toggleRight,
+			}) => (
 				<div data-tauri-drag-region>
 					<WindowChrome
 						actions={
@@ -387,6 +421,8 @@ function IntakePage() {
 					/>
 				</div>
 			)}
+			initialLeftWidth={280}
+			initialRightWidth={320}
 			leftColumn={
 				<div className="space-y-3">
 					<p className="px-1 text-base-content/60 text-xs uppercase tracking-[0.1em]">
@@ -411,7 +447,10 @@ function IntakePage() {
 								label="Progress"
 								value={exercise ? `${progressPercent}%` : "—"}
 							/>
-							<StatChip label="Elapsed" value={`${Math.round(elapsedMs / 1000)}s`} />
+							<StatChip
+								label="Elapsed"
+								value={`${Math.round(elapsedMs / 1000)}s`}
+							/>
 						</div>
 					</div>
 					<div className="glass-panel rounded-2xl p-3">
@@ -420,7 +459,8 @@ function IntakePage() {
 							<div className="mt-3 space-y-1">
 								<p className="font-semibold">{incoming.host}</p>
 								<p className="text-base-content/70 text-sm">
-									Exercise <span className="font-semibold">{incoming.exerciseId}</span>
+									Exercise{" "}
+									<span className="font-semibold">{incoming.exerciseId}</span>
 								</p>
 							</div>
 						) : (
@@ -436,19 +476,6 @@ function IntakePage() {
 					</div>
 				</div>
 			}
-			footer={
-				<Taskbar
-					activeAppId="exercise"
-					apps={taskbarApps}
-					tray={
-						<span className="badge badge-ghost badge-sm border-none">
-							{status}
-						</span>
-					}
-				/>
-			}
-			initialLeftWidth={280}
-			initialRightWidth={320}
 		>
 			<div className="flex flex-col gap-4">
 				<section className="surface-card space-y-4 rounded-3xl p-5 shadow-xl lg:p-6">
@@ -457,19 +484,21 @@ function IntakePage() {
 							<p className="text-base-content/60 text-xs uppercase">
 								tapia:// deep link
 							</p>
-							<h1 className="text-2xl font-semibold leading-tight">
+							<h1 className="font-semibold text-2xl leading-tight">
 								Typing exercise intake
 							</h1>
 							<p className="text-base-content/70 text-sm">
-								Click a <code>tapia://&lt;host&gt;/&lt;cuid&gt;</code> link to fetch and
-								start an exercise. Benchmarks are saved to the daemon as blobs so they can be
-								dispatched in the active space.
+								Click a <code>tapia://&lt;host&gt;/&lt;cuid&gt;</code> link to
+								fetch and start an exercise. Benchmarks are saved to the daemon
+								as blobs so they can be dispatched in the active space.
 							</p>
 						</div>
 						<div className="glass-panel rounded-xl px-3 py-2 text-right">
 							<div className="flex items-center justify-between gap-2">
 								<div className="text-right">
-									<p className="text-base-content/60 text-xs uppercase">Status</p>
+									<p className="text-base-content/60 text-xs uppercase">
+										Status
+									</p>
 									<p className="font-semibold">{status}</p>
 								</div>
 								<Link className="btn btn-ghost btn-xs" to="/history">
@@ -499,17 +528,25 @@ function IntakePage() {
 							<div className="space-y-4">
 								<div className="grid grid-cols-2 gap-3 rounded-2xl border border-base-300/60 bg-base-100/70 p-3 shadow-inner">
 									<div>
-										<p className="text-base-content/60 text-xs uppercase">Space</p>
+										<p className="text-base-content/60 text-xs uppercase">
+											Space
+										</p>
 										<p className="font-semibold">{exercise.meta.spaceId}</p>
 									</div>
 									<div>
-										<p className="text-base-content/60 text-xs uppercase">Length</p>
-										<p className="font-semibold">{exercise.meta.length} chars</p>
+										<p className="text-base-content/60 text-xs uppercase">
+											Length
+										</p>
+										<p className="font-semibold">
+											{exercise.meta.length} chars
+										</p>
 									</div>
 									{exerciseCid ? (
 										<div className="col-span-2">
-											<p className="text-base-content/60 text-xs uppercase">Blob CID</p>
-											<p className="text-base-content/70 break-words text-sm">
+											<p className="text-base-content/60 text-xs uppercase">
+												Blob CID
+											</p>
+											<p className="break-words text-base-content/70 text-sm">
 												{exerciseCid}
 											</p>
 										</div>
@@ -530,7 +567,7 @@ function IntakePage() {
 								</label>
 
 								<div className="flex items-center justify-between">
-									<div className="flex items-center gap-3 text-sm text-base-content/70">
+									<div className="flex items-center gap-3 text-base-content/70 text-sm">
 										<BarChart2 size={16} />
 										<span>
 											{progressPercent}% progress • {wpm.toFixed(1)} WPM •{" "}
@@ -548,7 +585,7 @@ function IntakePage() {
 							</div>
 
 							<div className="glass-panel flex flex-col gap-3 rounded-2xl border border-base-300/60 bg-base-100/70 p-4 shadow-xl">
-								<p className="flex items-center gap-2 text-sm font-semibold">
+								<p className="flex items-center gap-2 font-semibold text-sm">
 									<Clock size={16} /> Prompt
 								</p>
 								<div className="rounded-2xl border border-base-300/60 bg-base-100 p-4 shadow-inner">
@@ -557,11 +594,12 @@ function IntakePage() {
 							</div>
 						</div>
 					) : (
-						<div className="rounded-2xl border border-dashed border-base-300/70 bg-base-100/80 p-6 text-base-content/70">
+						<div className="rounded-2xl border border-base-300/70 border-dashed bg-base-100/80 p-6 text-base-content/70">
 							<div className="flex items-center gap-3">
 								<Activity size={18} />
 								<p>
-									No exercise loaded yet. Trigger a <code>tapia://</code> link to pull one in.
+									No exercise loaded yet. Trigger a <code>tapia://</code> link
+									to pull one in.
 								</p>
 							</div>
 						</div>
@@ -575,7 +613,9 @@ function IntakePage() {
 function StatChip({ label, value }: { label: string; value: string }) {
 	return (
 		<div className="rounded-xl border border-base-300/70 bg-base-100/70 px-3 py-2">
-			<p className="text-base-content/60 text-[11px] uppercase tracking-wide">{label}</p>
+			<p className="text-[11px] text-base-content/60 uppercase tracking-wide">
+				{label}
+			</p>
 			<p className="font-semibold">{value}</p>
 		</div>
 	);

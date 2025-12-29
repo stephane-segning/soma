@@ -73,3 +73,58 @@ body {
 .react-hot-toast .toast-error {
 	@apply bg-error text-error-content;
 }
+
+.yoopta-video .yoopta-video-options {
+	opacity: 0;
+	transition: opacity 0.15s ease-in-out;
+}
+
+.yoopta-video:hover .yoopta-video-options {
+	opacity: 1;
+}
+
+.yoopta-image .yoopta-image-options {
+	opacity: 0;
+	transition: opacity 0.15s ease-in-out;
+}
+
+.yoopta-image:hover .yoopta-image-options {
+	opacity: 1;
+}
+
+.yoopta-image-inner {
+	@apply w-full relative;
+}
+
+.yoopta-image-input-root {
+	@apply min-w-85 bg-[#FFFFFF] flex flex-col z-50 p-2.5 rounded-md shadow-md border-solid border border-[#e5e7eb];
+}
+
+.yoopta-image-input-label {
+	@apply text-xs font-medium text-gray-500 block mb-1.25;
+}
+
+.yoopta-image-input-ui {
+	@apply text-sm font-medium text-gray-700 border-solid border border-[#e5e7eb] rounded-md py-[5px] px-[10px] w-full shadow-sm;
+}
+
+.yoopta-image-alt {
+	@apply absolute right-2 bottom-2 rounded bg-[#00000099];
+}
+
+.yoopta-image-alt-text {
+	@apply text-[#fff] py-[4px] px-[6px] text-[10px] cursor-pointer font-medium;
+}
+
+.yoopta-image-zoom-overlay {
+	@apply z-50 w-full h-full;
+}
+
+.yoopta-file .yoopta-extended-block-actions {
+	opacity: 0;
+	transition: opacity 0.15s ease-in-out;
+}
+
+.yoopta-file:hover .yoopta-extended-block-actions {
+	opacity: 1;
+}

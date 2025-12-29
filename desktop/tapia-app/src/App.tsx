@@ -1,8 +1,8 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState, useCallback } from "react";
-import { useTauriStore } from "soma-ui";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTauriStore } from "soma-ui/hooks/use-tauri-store";
 import "./App.css";
 
 type DeepLinkPayload = {
@@ -102,11 +102,14 @@ function App() {
 	const [error, setError] = useState<string | null>(null);
 
 	useEffect(() => {
-		const unlistenPromise = listen<DeepLinkPayload>("tapia://exercise", (event) => {
-			const payload = event.payload;
-			setIncoming(payload);
-			void bootstrapFromLink(payload);
-		});
+		const unlistenPromise = listen<DeepLinkPayload>(
+			"tapia://exercise",
+			(event) => {
+				const payload = event.payload;
+				setIncoming(payload);
+				void bootstrapFromLink(payload);
+			},
+		);
 
 		return () => {
 			void unlistenPromise.then((unlisten) => unlisten());
@@ -136,7 +139,8 @@ function App() {
 	const elapsedMs = startedAt ? (completedAt ?? Date.now()) - startedAt : 0;
 	const wpm =
 		elapsedMs > 0 && startedAt
-			? Math.round((correctCharacters / 5 / (elapsedMs / 1000)) * 60 * 100) / 100
+			? Math.round((correctCharacters / 5 / (elapsedMs / 1000)) * 60 * 100) /
+				100
 			: 0;
 
 	useEffect(() => {
@@ -188,13 +192,16 @@ function App() {
 			}
 			setStatus("Ready to type");
 		} catch (err) {
-			const message = err instanceof Error ? err.message : "Failed to load exercise";
+			const message =
+				err instanceof Error ? err.message : "Failed to load exercise";
 			setError(message);
 			setStatus("Could not fetch exercise");
 		}
 	};
 
-	const fetchExercise = async (payload: DeepLinkPayload): Promise<RemoteExercise> => {
+	const fetchExercise = async (
+		payload: DeepLinkPayload,
+	): Promise<RemoteExercise> => {
 		const host = payload.host.replace(/\/+$/, "");
 		const candidates = [
 			`https://${host}/api/tapia/exercises/${payload.exerciseId}`,
@@ -208,8 +215,11 @@ function App() {
 		let lastError: Error | null = null;
 		for (const url of candidates) {
 			try {
-				const response = await fetch(url, { headers: { Accept: "application/json" } });
-				if (!response.ok) throw new Error(`request failed (${response.status})`);
+				const response = await fetch(url, {
+					headers: { Accept: "application/json" },
+				});
+				if (!response.ok)
+					throw new Error(`request failed (${response.status})`);
 				const data: unknown = await response.json();
 				const parsed = parseRemoteExercise(data);
 				return parsed;
@@ -226,7 +236,8 @@ function App() {
 			throw new Error("exercise payload must be an object");
 		}
 		const maybeMessage =
-			(data as Record<string, unknown>).message ?? (data as Record<string, unknown>).text;
+			(data as Record<string, unknown>).message ??
+			(data as Record<string, unknown>).text;
 		if (!maybeMessage || typeof maybeMessage !== "string") {
 			throw new Error("exercise payload is missing 'message' or 'text'");
 		}
@@ -313,9 +324,9 @@ function App() {
 					<p className="eyebrow">tapia:// deep link</p>
 					<h1>Typing exercise intake</h1>
 					<p className="muted">
-						Click a <code>tapia://&lt;host&gt;/&lt;cuid&gt;</code> link to fetch and start an
-						exercise. Benchmarks are saved to the daemon as blobs so they can be dispatched
-						in the active space.
+						Click a <code>tapia://&lt;host&gt;/&lt;cuid&gt;</code> link to fetch
+						and start an exercise. Benchmarks are saved to the daemon as blobs
+						so they can be dispatched in the active space.
 					</p>
 				</div>
 				<div className="status">
@@ -335,7 +346,9 @@ function App() {
 						</span>
 					</div>
 				) : (
-					<p className="muted">Waiting for the OS to hand over a tapia:// link.</p>
+					<p className="muted">
+						Waiting for the OS to hand over a tapia:// link.
+					</p>
 				)}
 
 				{error ? <p className="error">{error}</p> : null}
@@ -366,10 +379,10 @@ function App() {
 						<label className="input-block">
 							<span className="eyebrow">Type the prompt</span>
 							<textarea
-								value={input}
 								onChange={(event) => setInput(event.target.value)}
 								placeholder={exercise.text.slice(0, 64)}
 								rows={5}
+								value={input}
 							/>
 						</label>
 

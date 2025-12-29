@@ -1,7 +1,12 @@
 import { defineConfig } from "tsup";
 
 export default defineConfig({
-	entry: ["src/index.ts"],
+	entry: [
+		"src/components/**/*.{ts,tsx}",
+		"src/hooks/**/*.{ts,tsx}",
+		"src/types.ts",
+		"src/yoopta/index.ts",
+	],
 	format: ["esm", "cjs"],
 	dts: true,
 	sourcemap: true,
@@ -9,5 +14,16 @@ export default defineConfig({
 	clean: false,
 	minify: false,
 	treeshake: true,
-	external: ["react", "react-dom", "react-router"],
+	external: [
+		"react",
+		"react-dom",
+		"react-router",
+		"@yoopta/editor",
+		"@floating-ui/react",
+		"@radix-ui/react-icons",
+		"@tauri-apps/api",
+		"@tauri-apps/plugin-dialog",
+		"slate",
+		"slate-react",
+	],
 });

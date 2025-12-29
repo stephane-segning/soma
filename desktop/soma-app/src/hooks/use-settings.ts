@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
-import { useTauriStore } from "soma-ui";
+import { useTauriStore } from "soma-ui/hooks/use-tauri-store";
 import {
 	LAST_ROUTE_KEY,
 	normalizeRoute,
