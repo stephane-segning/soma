@@ -34,6 +34,7 @@ function ResizeHandle() {
 			)}
 			onMouseEnter={() => setHover(true)}
 			onMouseLeave={() => setHover(false)}
+			role="none"
 		>
 			<span
 				className={cn(

@@ -28,7 +28,7 @@ export const OverlayShowcase: Story = {
 
 		return (
 			<div
-				className="relative min-h-[360px] rounded-2xl bg-base-200 p-6"
+				className="relative min-h-90 rounded-2xl bg-base-200 p-6"
 				onContextMenu={(event) => {
 					event.preventDefault();
 					setMenuState({
@@ -36,6 +36,7 @@ export const OverlayShowcase: Story = {
 						position: { x: event.clientX, y: event.clientY },
 					});
 				}}
+				role="menu"
 			>
 				<div className="space-y-3">
 					<h3 className="font-semibold text-lg">Overlays</h3>

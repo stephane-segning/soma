@@ -199,7 +199,7 @@ export const ScrollableContent: Story = {
 						<p className="font-semibold text-base-content/80">Navigation</p>
 						<ul className="space-y-1 text-base-content/70">
 							{new Array(100).fill(0).map((_, idx) => (
-								<li key={idx}>Section {idx}</li>
+								<li key={idx as any}>Section {idx}</li>
 							))}
 						</ul>
 					</div>
@@ -212,7 +212,7 @@ export const ScrollableContent: Story = {
 						</div>
 
 						{new Array(50).fill(0).map((_, idx) => (
-							<div className="block" key={idx}>
+							<div className="block" key={idx as any}>
 								Random {idx}
 							</div>
 						))}
@@ -257,53 +257,43 @@ export const PersistentWidths: Story = {
 
 		useEffect(() => {
 			if (typeof window !== "undefined") {
-				window.localStorage.setItem(
-					"desktop-shell-left",
-					String(leftWidth),
-				);
+				window.localStorage.setItem("desktop-shell-left", String(leftWidth));
 			}
 		}, [leftWidth]);
 
 		useEffect(() => {
 			if (typeof window !== "undefined") {
-				window.localStorage.setItem(
-					"desktop-shell-right",
-					String(rightWidth),
-				);
+				window.localStorage.setItem("desktop-shell-right", String(rightWidth));
 			}
 		}, [rightWidth]);
 
 		return (
 			<DesktopShell
-				initialLeftWidth={leftWidth}
-				initialRightWidth={rightWidth}
-				onLeftResizeStop={setLeftWidth}
-				onRightResizeStop={setRightWidth}
 				header={({ toggleLeft, toggleRight }) => (
 					<div className="flex items-center justify-between">
 						<div className="flex items-center gap-2">
 							<button
-								type="button"
-								onClick={toggleLeft}
-								className="btn btn-ghost btn-xs rounded-full"
 								aria-label="Toggle navigation"
+								className="btn btn-ghost btn-xs rounded-full"
+								onClick={toggleLeft}
+								type="button"
 							>
 								<Menu size={14} />
 							</button>
-							<h1 className="text-xl font-semibold">
-								Persistent widths
-							</h1>
+							<h1 className="font-semibold text-xl">Persistent widths</h1>
 						</div>
 						<button
-							type="button"
-							onClick={toggleRight}
-							className="btn btn-ghost btn-xs rounded-full"
 							aria-label="Toggle info"
+							className="btn btn-ghost btn-xs rounded-full"
+							onClick={toggleRight}
+							type="button"
 						>
 							<Info size={14} />
 						</button>
 					</div>
 				)}
+				initialLeftWidth={leftWidth}
+				initialRightWidth={rightWidth}
 				leftColumn={
 					<div className="space-y-2 text-sm">
 						<p className="font-semibold text-base-content/80">Navigation</p>
@@ -314,10 +304,12 @@ export const PersistentWidths: Story = {
 						</ul>
 					</div>
 				}
+				onLeftResizeStop={setLeftWidth}
+				onRightResizeStop={setRightWidth}
 				rightColumn={
 					<div className="space-y-2 text-sm">
 						<p className="font-semibold text-base-content/80">Info</p>
-						<div className="rounded-lg bg-base-200/60 p-3 text-xs text-base-content/70">
+						<div className="rounded-lg bg-base-200/60 p-3 text-base-content/70 text-xs">
 							Resize sidebars; widths persist via localStorage.
 						</div>
 					</div>
@@ -326,8 +318,8 @@ export const PersistentWidths: Story = {
 				<div className="space-y-2">
 					{Array.from({ length: 12 }, (_, idx) => (
 						<div
-							key={idx}
-							className="rounded border border-base-300/60 bg-base-100/90 p-3 text-sm text-base-content/80"
+							className="rounded border border-base-300/60 bg-base-100/90 p-3 text-base-content/80 text-sm"
+							key={idx as any}
 						>
 							Content block {idx + 1}
 						</div>
