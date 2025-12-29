@@ -25,7 +25,8 @@ members = [
     "backend/bins/serverd",
     "desktop/soma-app/src-tauri",
     "desktop/tapia-app/src-tauri",
-    "desktop/tauri-command-utils"
+    "desktop/tauri-command-utils",
+    "xtask"
 ]
 
 resolver = "3"
@@ -75,7 +76,7 @@ sha2 = "0.10"
 axum = { version = "0.8" }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal"] }
 
-tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }
+tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter", "json", "ansi", "serde_json"] }
 tracing-appender = { version = "0.2" }
 tracing = { version = "0", features = ["attributes", "async-await", "std"] }
 
@@ -91,6 +92,9 @@ ciborium = "0.2"
 llama-cpp-2 = "0.1.130"
 reqwest = { version = "0.12", default-features = false }
 yrs = "0.19"
+regex = "1.11"
+toml = "0.8"
+time = { version = "0.3", features = ["formatting", "macros"] }
 
 tauri = { version = "2", features = ["tray-icon", "tracing", "macos-private-api"] }
 tauri-plugin-opener = "2"

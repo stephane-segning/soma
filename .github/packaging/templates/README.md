@@ -1,6 +1,6 @@
 # Packaging templates
 
-Rendered by `.github/scripts/release_bundle.py` into the bundle staging dir.
+Rendered by `cargo xtask release bundle` into the bundle staging dir.
 
 Variables available to all templates (string.Template syntax: `$var`):
 - `name` – package name (e.g. `soma-daemon`)
@@ -25,7 +25,7 @@ Templates:
 - `readme/README.md.j2` – bundle README.
 
 How they are used:
-- `release_bundle.py` renders all templates into the bundle staging dir for each OS/arch matrix run.
+- `cargo xtask release bundle` renders all templates into the bundle staging dir for each OS/arch matrix run.
 - Linux deb/rpm/pkg contents include: binaries, README, install.sh, systemd units.
 - macOS pkg/dmg/zip contents include: binaries, README, install.sh, launchd plists.
 - Zip artifacts always include both services (daemon+agent) plus README/install.
@@ -33,4 +33,4 @@ How they are used:
 Conventions:
 - Binaries are expected at `$install_prefix/bin/soma-daemon` and `$install_prefix/bin/soma-agentd`.
 - Services are not auto-enabled; operators should `systemctl enable --now soma-daemon` (and `soma-agentd`) or load the LaunchDaemons via `launchctl`.
-- Update `ctx` in `release_bundle.py` when adding new template variables.
+- Update the template context in `xtask` when adding new template variables.

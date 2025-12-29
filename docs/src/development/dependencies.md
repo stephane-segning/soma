@@ -26,6 +26,10 @@ This keeps dependency upgrades simple, avoids version skew, and makes feature us
 
 Docs are built with MkDocs using the `bootstrap386` theme (CI installs these via `.github/actions/build-mkdocs/action.yml`).
 
+## Repo automation (`cargo xtask`)
+
+Repo automation lives in `xtask/` and is invoked via `cargo xtask ...` (wired through `.cargo/config.toml`). This is used by CI for version resolution and bundle packaging.
+
 Local install:
 
 ```bash

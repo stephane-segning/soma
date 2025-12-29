@@ -1,7 +1,18 @@
 import { TabsBar } from "@soma/components/tabs-bar.tsx";
 import { WindowControls } from "@soma/components/window-controls.tsx";
-import { ChatSidebar } from "@soma/routes/chat-sidebar";
-import { TabbedApp } from "@soma/routes/tabbed-app.tsx";
+import { lazy, Suspense } from "react";
+
+const ChatSidebar = lazy(() =>
+	import("@soma/routes/chat-sidebar").then((m) => ({
+		default: m.ChatSidebar,
+	})),
+);
+
+const TabbedApp = lazy(() =>
+	import("@soma/routes/tabbed-app").then((m) => ({
+		default: m.TabbedApp,
+	})),
+);
 
 function App() {
 	return (
@@ -27,11 +38,27 @@ function App() {
 			<div className="no-scrollbar flex-1 overflow-hidden">
 				<div className="flex h-full w-full">
 					<div className="flex min-w-0 flex-1 overflow-hidden bg-base-100">
-						<TabbedApp />
+						<Suspense
+							fallback={
+								<div className="flex h-full w-full items-center justify-center text-base-content/60 text-sm">
+									Loading tab…
+								</div>
+							}
+						>
+							<TabbedApp />
+						</Suspense>
 					</div>
 					<aside className="w-96 shrink-0 border-base-300 border-l bg-base-100">
 						<div className="h-full overflow-y-auto">
-							<ChatSidebar />
+							<Suspense
+								fallback={
+									<div className="p-4 text-base-content/70 text-sm">
+										Loading chat…
+									</div>
+								}
+							>
+								<ChatSidebar />
+							</Suspense>
 						</div>
 					</aside>
 				</div>

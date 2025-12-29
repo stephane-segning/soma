@@ -34,6 +34,9 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
       - name: Setup just
         uses: extractions/setup-just@v3
 
@@ -45,7 +48,7 @@ jobs:
           if [ -n "${{ inputs.version }}" ]; then
             VERSION="${{ inputs.version }}"
           else
-            VERSION="$(python3 .github/scripts/ci_utils.py workspace-version --path Cargo.toml)"
+            VERSION="$(cargo xtask version workspace --path Cargo.toml)"
             if [ -z "$VERSION" ]; then
               echo "Failed to resolve backend workspace version from Cargo.toml" >&2
               exit 1

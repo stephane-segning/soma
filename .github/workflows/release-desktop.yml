@@ -31,6 +31,9 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
       - name: Setup just
         uses: extractions/setup-just@v3
 
@@ -42,7 +45,7 @@ jobs:
           if [ -n "${{ inputs.version }}" ]; then
             VERSION="${{ inputs.version }}"
           else
-            VERSION="$(python3 .github/scripts/ci_utils.py desktop-version --path desktop/soma-app/package.json)"
+            VERSION="$(cargo xtask version desktop --path desktop/soma-app/package.json)"
           fi
           if [ -n "${{ inputs.tag }}" ]; then
             TAG="${{ inputs.tag }}"

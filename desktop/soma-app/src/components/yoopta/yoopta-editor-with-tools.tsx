@@ -193,7 +193,9 @@ function YooptaEditorWithTools({
 					}),
 				}),
 				Image.extend({
-					renders: asPluginRenders({ image: renderManagedImage }),
+					renders: asPluginRenders({
+						image: renderManagedImage,
+					}),
 					options: {
 						async onUpload(file) {
 							const data = await uploadToBlob(file, "image", {

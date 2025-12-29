@@ -82,7 +82,7 @@ runs:
       run: |
         set -euo pipefail
         PKG="${{ inputs.app }}"
-        VERSION="$(PKG="$PKG" node -p "require('./desktop/' + process.env.PKG + '/package.json').version")"
+        VERSION="$(cargo xtask version desktop --path "desktop/${PKG}/package.json")"
         echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
     - name: Build app (Tauri)

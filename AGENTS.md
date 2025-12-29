@@ -38,6 +38,16 @@ Docs quickstart:
 - Local build: `cd docs && mkdocs build` (CI installs MkDocs; locally you may want a venv/pipx if `pip` is externally-managed).
 - Repo helper: `just build-docs` (writes to `./site`). Storybook for `desktop/soma-ui` is also built into `site/storybook` after MkDocs.
 
+Repo automation (`xtask`):
+
+- `cargo xtask` is the preferred way to run CI-critical automation from the repo root (wired via `.cargo/config.toml`).
+- Version helpers:
+  - `cargo xtask version workspace --path Cargo.toml`
+  - `cargo xtask version desktop --path desktop/soma-app/package.json`
+- Bundle packaging (downloads published release assets and produces `.deb/.rpm` or `.pkg`):
+  - `cargo xtask release bundle --os <linux|macos> --arch <amd64|arm64>`
+  - Requires `GITHUB_REPOSITORY` + `GITHUB_TOKEN` (or `--repo/--token`), and platform tools (`fpm` on Linux, `pkgbuild` on macOS).
+
 ## Tech Stack
 
 - **Package manager**: `pnpm` (workspace at `pnpm-workspace.yaml`).
@@ -62,7 +72,7 @@ SBOM:
 - SBOMs are generated in CI using `anchore/sbom-action` (Syft). There is no `sbom/` scripts folder anymore.
 
 Packaging templates:
-- Templates live under `.github/packaging/templates/` and are rendered by `.github/scripts/release_bundle.py`.
+- Templates live under `.github/packaging/templates/` and are rendered by `cargo xtask release bundle`.
 - See `.github/packaging/templates/README.md` for the template variables and file list.
 
 ## Dependency Policy
@@ -420,6 +430,14 @@ This repo intentionally has multiple binaries. Each has a distinct goal and depl
     - Run `soma-daemon` from `backend/`.
     - Start `desktop/soma-app` or `desktop/tapia-app` in dev mode.
     - Exercise join flows, class navigation, and basic messaging.
+
+## Telemetry & Logging (Rust backends)
+
+Backends initialize tracing via `soma_core::telemetry::init_tracing(...)` (`backend/crates/core/src/telemetry.rs`).
+
+- `RUST_LOG`: sets the log filter (preferred); falls back to the binary-provided default (typically `info`).
+- `SOMA_LOG_FORMAT`: set to `json` (also accepts `structured`, `true`, `1`) to enable JSON logs; otherwise uses plain text.
+- `SOMA_LOGS_DIR`: when set, writes logs to a weekly-rotating file under this directory (created if missing). When unset, logs go to the process’ default writer (stdout/stderr depending on runtime).
 
 ## Docker Images (Backend) and Docker Testing
 

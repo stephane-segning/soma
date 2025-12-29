@@ -43,10 +43,8 @@ outputs:
 runs:
   using: composite
   steps:
-    - name: Setup Python
-      uses: actions/setup-python@v6
-      with:
-        python-version: "3.x"
+    - name: Setup Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
 
     - name: Install packaging deps (Linux)
       if: runner.os == 'Linux'
@@ -70,16 +68,25 @@ runs:
         BUNDLE_ARCH: ${{ inputs.bundle_arch }}
       run: |
         set -euo pipefail
-        python3 .github/scripts/release_bundle.py > "$RUNNER_TEMP/release_bundle.json"
-        python3 - <<'PY'
-        import json, os, pathlib
-        o=json.loads(pathlib.Path(os.environ["RUNNER_TEMP"]).joinpath("release_bundle.json").read_text(encoding="utf-8"))
-        out=os.environ["GITHUB_OUTPUT"]
-        with open(out,"a",encoding="utf-8") as f:
-            f.write(f"platform_out={o['platform_out']}\n")
-            f.write(f"staging_dir={o['staging_dir']}\n")
-            f.write("produced<<EOF\n")
-            for p in o["produced"]:
-                f.write(p + "\n")
-            f.write("EOF\n")
-        PY
+        if ! command -v jq >/dev/null 2>&1; then
+          echo "jq is required to parse xtask JSON output (not found on PATH)" >&2
+          exit 1
+        fi
+        JSON_PATH="$RUNNER_TEMP/release_bundle.json"
+        cargo xtask release bundle \
+          --os "$BUNDLE_OS" \
+          --arch "$BUNDLE_ARCH" \
+          --out-dir "$OUT_DIR" \
+          ${DAEMONS_VERSION:+--daemons-version "$DAEMONS_VERSION"} \
+          ${DESKTOP_VERSION:+--desktop-version "$DESKTOP_VERSION"} \
+          ${BUNDLE_VERSION:+--bundle-version "$BUNDLE_VERSION"} \
+          | tee "$JSON_PATH"
+        PLATFORM_OUT="$(jq -r '.platform_out' "$JSON_PATH")"
+        STAGING_DIR="$(jq -r '.staging_dir' "$JSON_PATH")"
+        {
+          echo "platform_out=${PLATFORM_OUT}"
+          echo "staging_dir=${STAGING_DIR}"
+          echo "produced<<EOF"
+          jq -r '.produced[]' "$JSON_PATH"
+          echo "EOF"
+        } >> "$GITHUB_OUTPUT"

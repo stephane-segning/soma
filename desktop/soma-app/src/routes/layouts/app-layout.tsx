@@ -1,7 +1,13 @@
-import { CommandPaletteShell } from "@soma/components/command-palette.tsx";
 import { RouterListener } from "@soma/components/router-listener";
 import { SpacesRail } from "@soma/components/spaces-rail";
 import { Outlet } from "react-router";
+import { lazy, Suspense } from "react";
+
+const CommandPaletteShell = lazy(() =>
+	import("@soma/components/command-palette").then((m) => ({
+		default: m.CommandPaletteShell,
+	})),
+);
 
 function Component(): React.JSX.Element {
 	return (
@@ -17,7 +23,9 @@ function Component(): React.JSX.Element {
 					</div>
 				</div>
 			</div>
-			<CommandPaletteShell />
+			<Suspense fallback={null}>
+				<CommandPaletteShell />
+			</Suspense>
 			<RouterListener />
 		</>
 	);
