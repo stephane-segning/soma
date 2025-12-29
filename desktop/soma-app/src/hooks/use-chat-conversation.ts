@@ -21,10 +21,12 @@ export function useChatConversation(
 	const [messages, setMessages] = useState<ChatMessage[]>(() => {
 		const systemPrompt =
 			options.systemPrompt ??
-			"You’re the Soma assistant. Keep replies concise and helpful.";
+			"You’re the Soma assistant. Keep replies short, concise and helpful.";
 		return [{ role: "system", content: systemPrompt }];
 	});
+
 	const messagesRef = useRef(messages);
+
 	useEffect(() => {
 		messagesRef.current = messages;
 	}, [messages]);
@@ -32,7 +34,13 @@ export function useChatConversation(
 	const assistantIdxRef = useRef<number | null>(null);
 
 	const mutation = useMutation({
-		mutationFn: async ({ prompt, model }: { prompt: string; model?: string }) => {
+		mutationFn: async ({
+			prompt,
+			model,
+		}: {
+			prompt: string;
+			model?: string;
+		}) => {
 			const history: ChatMessage[] = [
 				...messagesRef.current,
 				{ role: "user", content: prompt },

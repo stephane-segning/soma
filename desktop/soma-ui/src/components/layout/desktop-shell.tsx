@@ -95,11 +95,12 @@ export function DesktopShell({
 					{overlays}
 				</div>
 			) : null}
-			<div className="relative z-10 flex h-full w-full flex-col gap-4 sm:p-6 lg:p-8">
+
+			<div className="relative z-10 flex h-full w-full flex-col gap-4">
 				{headerNode ? (
 					<div className="flex flex-col gap-2">{headerNode}</div>
 				) : null}
-				<div className="flex min-h-0 flex-1 items-start gap-4 overflow-hidden">
+				<div className="flex min-h-0 flex-1 items-start overflow-hidden">
 					{leftColumn ? (
 						<div className="relative flex h-full shrink-0">
 							{leftOpen ? (
@@ -118,8 +119,8 @@ export function DesktopShell({
 									}}
 									size={{ width: leftWidth, height: "100%" }}
 								>
-									<div className="scrollbar-none relative h-full overflow-auto pr-2">
-										<aside className="h-full pr-4">{leftContent}</aside>
+									<div className="scrollbar-none relative h-full overflow-auto">
+										<aside className="h-full">{leftContent}</aside>
 									</div>
 								</Resizable>
 							) : null}
@@ -148,8 +149,8 @@ export function DesktopShell({
 									}}
 									size={{ width: rightWidth, height: "100%" }}
 								>
-									<div className="scrollbar-none relative h-full overflow-auto pl-2">
-										<aside className="h-full pl-4">{rightContent}</aside>
+									<div className="scrollbar-none relative h-full overflow-auto">
+										<aside className="h-full">{rightContent}</aside>
 									</div>
 								</Resizable>
 							) : (

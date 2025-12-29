@@ -17,11 +17,15 @@
 html, body, #root {
   background: transparent !important;
 
-  @apply m-0;
+  @apply m-0 shadow-none;
 }
 
 #root {
   @apply overflow-hidden border-none rounded-xl;
+}
+
+* {
+  @apply no-scrollbar;
 }
 
 .tab {

@@ -1,7 +1,7 @@
 import { PageTree } from "@soma/components/page-tree";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, NavLink, Outlet, useNavigate, useParams } from "react-router";
-import { useEffect, useState } from "react";
 import * as spacesService from "../../services/spaces-service";
 
 function Component(): React.JSX.Element {
@@ -12,6 +12,7 @@ function Component(): React.JSX.Element {
 
 	useEffect(() => {
 		let cancelled = false;
+
 		async function verifyAccess() {
 			if (!spaceId) {
 				navigate("/spaces");
@@ -26,6 +27,7 @@ function Component(): React.JSX.Element {
 				}
 			}
 		}
+
 		verifyAccess();
 		return () => {
 			cancelled = true;
@@ -33,7 +35,11 @@ function Component(): React.JSX.Element {
 	}, [navigate, spaceId]);
 
 	if (!accessChecked) {
-		return <div className="p-4 text-sm text-base-content/60">{t("space.loading", "Loading space…")}</div>;
+		return (
+			<div className="p-4 text-base-content/60 text-sm">
+				{t("space.loading", "Loading space…")}
+			</div>
+		);
 	}
 
 	return (

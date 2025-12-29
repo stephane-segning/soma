@@ -76,7 +76,7 @@ export function AiInput({
 	return (
 		<div
 			className={cn(
-				"relative rounded-2xl border border-base-300/80 bg-base-100 shadow-inner",
+				"relative rounded-md border border-base-300/80 bg-base-100 shadow-inner",
 				className,
 			)}
 		>

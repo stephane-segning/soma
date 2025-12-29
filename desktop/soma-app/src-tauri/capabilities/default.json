@@ -19,6 +19,8 @@
 		"log:allow-log",
 		"window-state:default",
 		"store:allow-load",
-		"store:default"
+		"store:default",
+		"dialog:allow-open",
+		"dialog:default"
 	]
 }

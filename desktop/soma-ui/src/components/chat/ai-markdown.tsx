@@ -1,4 +1,5 @@
-import { createElement, type ReactNode, useMemo } from "react";
+import { type ReactNode, useMemo } from "react";
+import * as jsxRuntime from "react/jsx-runtime";
 import rehypeReact from "rehype-react";
 import remarkGfm from "remark-gfm";
 import remarkParse from "remark-parse";
@@ -17,7 +18,7 @@ export function AiMarkdown({ content, className }: AiMarkdownProps) {
 			.use(remarkParse)
 			.use(remarkGfm)
 			.use(remarkRehype)
-			.use(rehypeReact, { createElement });
+			.use(rehypeReact, jsxRuntime);
 
 		const file = processor.processSync(content || "");
 		return file.result as ReactNode;

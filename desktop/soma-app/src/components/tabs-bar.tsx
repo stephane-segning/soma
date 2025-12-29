@@ -2,7 +2,16 @@ import { cn } from "@soma/lib/cn";
 import { useTabsStore } from "@soma/store/tabs";
 import { Plus, X } from "react-feather";
 
-function TabsBar(): React.JSX.Element {
+type TabsBarProps = {
+	leftOpen: boolean;
+	rightOpen: boolean;
+	toggleLeft: () => void;
+	toggleRight: () => void;
+	hasLeft: boolean;
+	hasRight: boolean;
+};
+
+function TabsBar({}: TabsBarProps): React.JSX.Element {
 	const tabs = useTabsStore((s) => s.tabs);
 	const activeId = useTabsStore((s) => s.activeId);
 	const selectTab = useTabsStore((s) => s.selectTab);

@@ -20,8 +20,7 @@
 		"types": ["vite/client"],
 		"baseUrl": ".",
 		"paths": {
-			"@soma-ui/*": ["src/*"],
-			"rehype-react": ["src/types/rehype-react"]
+			"@soma-ui/*": ["src/*"]
 		}
 	},
 	"include": ["src", ".storybook"],

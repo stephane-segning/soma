@@ -19,7 +19,7 @@ export function AiChat({
 	return (
 		<div
 			className={cn(
-				"flex flex-col rounded-2xl border border-base-300/60 bg-base-100/70 shadow-inner",
+				"flex flex-col rounded-md border border-base-300/60 bg-base-100/70",
 				className,
 			)}
 			style={{ maxHeight }}
@@ -27,6 +27,7 @@ export function AiChat({
 			<div className={cn("flex-1 overflow-auto p-4", contentClassName)}>
 				{children}
 			</div>
+
 			{footer ? (
 				<div className="border-base-300/60 border-t bg-base-100/80 p-3">
 					{footer}
