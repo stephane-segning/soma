@@ -7254,10 +7254,14 @@ checksum = "55937e1799185b12863d447f42597ed69d9928686b8d88a1df17376a097d8369"
 name = "tapia-app"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "derive_builder",
  "fix-path-env",
+ "hyper",
  "mime",
  "serde",
  "serde_json",
+ "soma-proto-build",
  "tauri",
  "tauri-build",
  "tauri-command-utils",
@@ -7265,7 +7269,11 @@ dependencies = [
  "tauri-plugin-log",
  "tauri-plugin-opener",
  "tauri-plugin-single-instance",
+ "tokio",
+ "tonic",
+ "tower",
  "tracing",
+ "url",
 ]
 
 [[package]]

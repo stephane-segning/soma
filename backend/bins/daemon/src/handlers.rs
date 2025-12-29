@@ -1,14 +1,18 @@
 use async_trait::async_trait;
+use soma_common::{verify_issuer_capability, verify_membership_capability};
 use soma_membership::apply_join_decision;
+use libp2p::PeerId;
 use soma_peer::PeerEvent;
 use soma_peer::events::{PeerEventHandler, PeerEventKind};
 use soma_proto_build::daemon;
+use std::time::SystemTime;
 use tracing::{info, warn};
 
 use crate::grpc::DaemonState;
 
 /// Logs connectivity-related events.
 pub struct LoggingHandler;
+pub struct IdentifyStoreHandler;
 
 #[async_trait]
 impl PeerEventHandler<DaemonState> for LoggingHandler {
@@ -52,6 +56,7 @@ impl PeerEventHandler<DaemonState> for LoggingHandler {
                 peer,
                 agent,
                 protocols,
+                ..
             } => {
                 info!(%peer, %agent, protocols, "daemon identify received");
             }
@@ -68,6 +73,29 @@ impl PeerEventHandler<DaemonState> for LoggingHandler {
                 info!(%relay, "daemon relay circuit established");
             }
             _ => {}
+        }
+    }
+}
+
+#[async_trait]
+impl PeerEventHandler<DaemonState> for IdentifyStoreHandler {
+    fn interests(&self) -> &'static [PeerEventKind] {
+        &[PeerEventKind::IdentifyReceived]
+    }
+
+    async fn handle(&self, ctx: &DaemonState, event: &PeerEvent) {
+        let PeerEvent::IdentifyReceived {
+            peer,
+            public_key,
+            ..
+        } = event
+        else {
+            return;
+        };
+
+        if let Some(pk) = public_key {
+            let mut map = ctx.identify_keys.lock().await;
+            map.insert(*peer, pk.clone());
         }
     }
 }
@@ -166,6 +194,69 @@ impl PeerEventHandler<DaemonState> for JoinDecisionPersistenceHandler {
         // Ignore placeholder "pending manual approval" responses.
         if decision.decision_id.starts_with("reject-pending") {
             return;
+        }
+
+        // Verify membership capability signature and basics against the sender.
+        let Some(cap) = decision.capability.as_ref() else {
+            warn!(peer = %from, "rejected join decision: missing capability");
+            return;
+        };
+
+        let pubkey = {
+            let map = ctx.identify_keys.lock().await;
+            map.get(from).cloned()
+        };
+        let Some(pubkey) = pubkey else {
+            warn!(peer = %from, "rejected join decision: missing sender public key");
+            return;
+        };
+
+        if let Err(err) =
+            verify_membership_capability(cap, &pubkey, &ctx.peer_id, SystemTime::now())
+        {
+            warn!(%err, peer = %from, "rejected join decision: capability verification failed");
+            return;
+        }
+
+        // If a delegated issuer capability is present, verify it when we can.
+        if let Some(issuer_cap) = cap.issuer_cap.as_ref() {
+            let owner_peer = issuer_cap
+                .owner_peer_id
+                .as_ref()
+                .map(|p| p.value.clone())
+                .unwrap_or_default();
+            let now = SystemTime::now();
+
+            if owner_peer == from.to_string() {
+                // Owner signed directly (no delegation).
+                if let Err(err) = verify_issuer_capability(issuer_cap, &pubkey, now) {
+                    warn!(%err, peer = %from, "rejected join decision: issuer capability invalid");
+                    return;
+                }
+            } else if let Ok(owner_id) = owner_peer.parse::<PeerId>() {
+                // Delegated: verify using cached Identify pubkey for the owner.
+                let map = ctx.identify_keys.lock().await;
+                if let Some(owner_pk) = map.get(&owner_id) {
+                    if let Err(err) = verify_issuer_capability(issuer_cap, owner_pk, now) {
+                        warn!(%err, peer = %from, owner = %owner_peer, "rejected join decision: issuer delegation invalid");
+                        return;
+                    }
+                } else {
+                    warn!(
+                        peer = %from,
+                        owner = %owner_peer,
+                        "rejected join decision: owner pubkey unavailable for issuer verification"
+                    );
+                    return;
+                }
+            } else {
+                warn!(
+                    peer = %from,
+                    owner_peer,
+                    "rejected join decision: malformed owner peer id"
+                );
+                return;
+            }
         }
 
         if let Err(err) = apply_join_decision(&ctx.repos, decision).await {

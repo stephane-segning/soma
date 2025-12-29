@@ -4,9 +4,10 @@ use anyhow::Context;
 use derive_builder::Builder;
 use soma_proto_build::daemon::{
     CreateSpaceRequest, CreateSpaceResponse, DeleteSpaceRequest, DeleteSpaceResponse,
-    GetSpaceRequest, GetSpaceResponse, ListSpacesRequest, ListSpacesResponse, UpdateSpaceRequest,
-    UpdateSpaceResponse, UploadBlobRequest, UploadBlobResponse, UpsertDocumentRequest,
-    UpsertDocumentResponse, daemon_client::DaemonClient as GrpcDaemonClient,
+    GetSpaceRequest, GetSpaceResponse, ListSpaceMembersRequest, ListSpaceMembersResponse,
+    ListSpacesRequest, ListSpacesResponse, UpdateSpaceRequest, UpdateSpaceResponse,
+    UploadBlobRequest, UploadBlobResponse, UpsertDocumentRequest, UpsertDocumentResponse,
+    daemon_client::DaemonClient as GrpcDaemonClient,
 };
 use tauri::{AppHandle, Wry};
 use tokio::sync::Mutex;
@@ -132,6 +133,15 @@ impl DaemonApi {
     ) -> Result<DeleteSpaceResponse, AppError> {
         let mut client = self.client().await?;
         let res = client.delete_space(req).await?;
+        Ok(res.into_inner())
+    }
+
+    pub async fn list_space_members(
+        &self,
+        req: ListSpaceMembersRequest,
+    ) -> Result<ListSpaceMembersResponse, AppError> {
+        let mut client = self.client().await?;
+        let res = client.list_space_members(req).await?;
         Ok(res.into_inner())
     }
 }

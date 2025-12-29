@@ -1,8 +1,13 @@
+use async_trait::async_trait;
 use clap::Parser;
 use soma_core::SomaResult;
 use soma_membership::{JoinPolicy, build_join_decider};
 use soma_net::{IdentityManager, NetIdentity};
-use soma_peer::{PeerCommand, PeerConfig, join::JoinDecider};
+use soma_peer::{
+    PeerCommand, PeerConfig, SpaceAuthorizer,
+    bootstrap::{PeerBootstrapper, PeerLauncher},
+    join::JoinDecider,
+};
 use soma_proto_build::daemon;
 use soma_socket::{GrpcUnixServer, GrpcUnixService};
 use soma_storage::RepositoryProvider;
@@ -20,7 +25,6 @@ use crate::config::{Args, Command, DaemonConfig};
 use crate::dispatch::build_dispatcher;
 use crate::grpc::{DaemonService, DaemonState};
 use crate::services::space::{DefaultSpaceManager, SpaceManager};
-use soma_peer::bootstrap::{PeerBootstrapper, PeerLauncher};
 use soma_vdfs::fs::FsBlobStore;
 use std::path::{Path, PathBuf};
 
@@ -97,6 +101,7 @@ pub async fn run(config: DaemonConfig) -> SomaResult<()> {
         signer: net_identity.keypair().clone(),
         blob_store,
         space_manager,
+        identify_keys: Mutex::new(std::collections::HashMap::new()),
     });
 
     ensure_default_space(&state.space_manager).await?;
@@ -176,6 +181,22 @@ struct DaemonPeerBootstrap {
     repos: Arc<dyn RepositoryProvider>,
 }
 
+#[derive(Clone)]
+struct StorageSpaceAuthorizer {
+    repos: Arc<dyn RepositoryProvider>,
+}
+
+#[async_trait]
+impl SpaceAuthorizer for StorageSpaceAuthorizer {
+    async fn can_read_space(&self, peer: &libp2p::PeerId, space_id: &str) -> bool {
+        let repo = self.repos.membership_repo();
+        repo.get_membership(space_id, &peer.to_string())
+            .await
+            .map(|m| m.is_some())
+            .unwrap_or(false)
+    }
+}
+
 impl PeerBootstrapper for DaemonPeerBootstrap {
     fn identity_path(&self) -> &Path {
         &self.identity_path
@@ -198,6 +219,11 @@ impl PeerBootstrapper for DaemonPeerBootstrap {
             .enable_mdns(self.enable_mdns)
             .join_decider(join_decider)
             .blob_provider(self.blob_provider.clone())
+            .space_authorizer(
+                Arc::new(StorageSpaceAuthorizer {
+                    repos: self.repos.clone(),
+                }) as Arc<dyn SpaceAuthorizer>,
+            )
             .build()
             .expect("peer config")
     }

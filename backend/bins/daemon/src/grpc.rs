@@ -29,6 +29,7 @@ pub struct DaemonState {
     pub signer: Keypair,
     pub blob_store: FsBlobStore,
     pub space_manager: Arc<dyn SpaceManager>,
+    pub identify_keys: Mutex<std::collections::HashMap<PeerId, libp2p::identity::PublicKey>>,
 }
 
 impl DaemonState {
@@ -40,6 +41,22 @@ impl DaemonState {
 #[derive(Clone)]
 pub struct DaemonService {
     pub state: Arc<DaemonState>,
+}
+
+impl DaemonService {
+    /// Ensure the daemon peer has membership for a space before serving requests.
+    async fn ensure_membership(&self, space_id: &str) -> Result<(), Status> {
+        let peer_id = self.state.peer_id.to_string();
+        let repo = self.state.repos.membership_repo();
+        match repo.get_membership(space_id, &peer_id).await {
+            Ok(Some(_)) => Ok(()),
+            Ok(None) => Err(Status::permission_denied("not a member of this space")),
+            Err(err) => {
+                warn!(%err, %space_id, %peer_id, "membership check failed");
+                Err(Status::internal("failed to verify membership"))
+            }
+        }
+    }
 }
 
 #[tonic::async_trait]
@@ -204,6 +221,7 @@ impl daemon::daemon_server::Daemon for DaemonService {
         if payload.space_id.is_empty() {
             return Err(Status::invalid_argument("space_id required"));
         }
+        self.ensure_membership(&payload.space_id).await?;
         if payload.data.is_empty() {
             return Err(Status::invalid_argument("data required"));
         }
@@ -312,6 +330,7 @@ impl daemon::daemon_server::Daemon for DaemonService {
         if payload.space_id.is_empty() {
             return Err(Status::invalid_argument("space_id required"));
         }
+        self.ensure_membership(&payload.space_id).await?;
         if payload.document_id.is_empty() {
             return Err(Status::invalid_argument("document_id required"));
         }

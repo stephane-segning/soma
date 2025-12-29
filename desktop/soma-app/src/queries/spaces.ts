@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as spacesService from "../services/spaces-service";
 
+type SpaceMember = spacesService.SpaceMember;
+
 function useSpacesQuery() {
 	return useQuery({
 		queryKey: ["spaces"] as const,
@@ -54,10 +56,21 @@ function useSpaceQuery(spaceId: string) {
 	});
 }
 
+function useSpaceMembersQuery(spaceId: string) {
+	return useQuery({
+		queryKey: ["spaces", spaceId, "members"] as const,
+		queryFn: async (): Promise<SpaceMember[]> =>
+			spacesService.listSpaceMembers(spaceId),
+		enabled: Boolean(spaceId),
+	});
+}
+
 export {
 	useSpacesQuery,
 	useCreateSpaceMutation,
 	useUpdateSpaceMutation,
 	useDeleteSpaceMutation,
 	useSpaceQuery,
+	useSpaceMembersQuery,
 };
+export type { SpaceMember };

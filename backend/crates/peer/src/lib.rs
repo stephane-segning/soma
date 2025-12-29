@@ -36,6 +36,12 @@ const MAX_JOIN_DECISION_MESSAGE_BYTES: usize = 64 * 1024;
 const AGENT_PROTOCOL: &str = "/soma/0.1.0";
 const BLOB_CHUNK_BYTES: usize = DEFAULT_BLOB_CHUNK_BYTES;
 
+/// Authorizes space-scoped reads (e.g., blob fetch) for remote peers.
+#[async_trait]
+pub trait SpaceAuthorizer: Send + Sync {
+    async fn can_read_space(&self, peer: &PeerId, space_id: &str) -> bool;
+}
+
 /// Commands sent to the peer runtime.
 #[derive(Debug)]
 pub enum PeerCommand {
@@ -91,6 +97,7 @@ pub enum PeerEvent {
         peer: PeerId,
         agent: String,
         protocols: usize,
+        public_key: Option<identity::PublicKey>,
     },
     MdnsDiscovered {
         peers: usize,
@@ -243,6 +250,7 @@ pub fn spawn_peer(mut config: PeerConfig) -> SomaResult<PeerHandle> {
             command_rx,
             event_tx,
             blob_provider,
+            config.space_authorizer.clone(),
         )
         .await
     });
@@ -377,6 +385,7 @@ async fn run_swarm(
     mut command_rx: mpsc::Receiver<PeerCommand>,
     event_tx: mpsc::Sender<PeerEvent>,
     blob_provider: Option<Arc<dyn BlobProvider>>,
+    space_authorizer: Option<Arc<dyn SpaceAuthorizer>>,
 ) -> SomaResult<()> {
     for addr in relay_addrs {
         if let Some(peer_id) = extract_peer_id(&addr) {
@@ -506,7 +515,8 @@ async fn run_swarm(
                     SwarmEvent::Behaviour(AppEvent::Relay(_)) => {}
                     SwarmEvent::Behaviour(AppEvent::Identify(identify::Event::Received { peer_id, info, .. })) => {
                         let agent = info.agent_version;
-                        let _ = event_tx.try_send(PeerEvent::IdentifyReceived { peer: peer_id, agent, protocols: info.protocols.len() });
+                        let public_key = Some(info.public_key);
+                        let _ = event_tx.try_send(PeerEvent::IdentifyReceived { peer: peer_id, agent, protocols: info.protocols.len(), public_key });
                     }
                     SwarmEvent::Behaviour(AppEvent::Identify(_)) => {}
                     SwarmEvent::Behaviour(AppEvent::Mdns(mdns::Event::Discovered(list))) => {
@@ -593,6 +603,46 @@ async fn run_swarm(
                     SwarmEvent::Behaviour(AppEvent::Blob(evt)) => match evt {
                         reqres::Event::Message { peer, message, .. } => match message {
                             reqres::Message::Request { request, channel, .. } => {
+                                // Enforce space-scoped authorization for blob reads when provided.
+                                if request.space_id.is_empty() {
+                                    let response = BlobResponse {
+                                        cid: request.cid,
+                                        mime: String::new(),
+                                        size: 0,
+                                        data: Vec::new(),
+                                        found: false,
+                                        space_id: request.space_id,
+                                        offset: request.offset,
+                                        eof: true,
+                                    };
+                                    let _ = swarm.behaviour_mut().blob.send_response(channel, response);
+                                    let _ = event_tx.try_send(PeerEvent::ConnectionError {
+                                        peer: Some(peer),
+                                        error: "blob request missing space_id".into(),
+                                    });
+                                    continue;
+                                }
+                                if let Some(authorizer) = space_authorizer.as_ref() {
+                                    if !authorizer.can_read_space(&peer, &request.space_id).await {
+                                        let response = BlobResponse {
+                                            cid: request.cid,
+                                            mime: String::new(),
+                                            size: 0,
+                                            data: Vec::new(),
+                                            found: false,
+                                            space_id: request.space_id,
+                                            offset: request.offset,
+                                            eof: true,
+                                        };
+                                        let _ = swarm.behaviour_mut().blob.send_response(channel, response);
+                                        let _ = event_tx.try_send(PeerEvent::ConnectionError {
+                                            peer: Some(peer),
+                                            error: "blob request denied (not a member)".into(),
+                                        });
+                                        continue;
+                                    }
+                                }
+
                                 let requested_len = if request.length == 0 {
                                     BLOB_CHUNK_BYTES
                                 } else {

@@ -56,6 +56,7 @@ pub async fn run_from_cli() -> SomaResult<()> {
                         peer,
                         agent,
                         protocols,
+                        ..
                     } => {
                         info!(%peer, %agent, protocols, "bff peer identify received");
                     }

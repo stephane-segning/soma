@@ -3,7 +3,7 @@ use libp2p::Multiaddr;
 use std::{path::PathBuf, sync::Arc};
 
 use crate::{
-    BlobProvider,
+    BlobProvider, SpaceAuthorizer,
     join::{JoinDecider, default_join_decider},
 };
 use soma_net::IdentityManager;
@@ -38,6 +38,9 @@ pub struct PeerConfig {
 
     #[builder(default)]
     pub blob_provider: Option<Arc<dyn BlobProvider>>,
+
+    #[builder(default)]
+    pub space_authorizer: Option<Arc<dyn SpaceAuthorizer>>,
 }
 
 impl PeerConfig {

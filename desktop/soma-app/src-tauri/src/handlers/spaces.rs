@@ -1,7 +1,8 @@
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use soma_proto_build::daemon::{
-    CreateSpaceRequest, DeleteSpaceRequest, GetSpaceRequest, ListSpacesRequest, UpdateSpaceRequest,
+    CreateSpaceRequest, DeleteSpaceRequest, GetSpaceRequest, ListSpaceMembersRequest,
+    ListSpacesRequest, UpdateSpaceRequest,
 };
 
 use crate::error::AppResult;
@@ -23,6 +24,15 @@ pub struct SpacesListResponse {
     pub limit: u32,
     pub offset: u32,
     pub next_offset: Option<u32>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SpaceMemberDto {
+    pub peer_id: String,
+    pub role: String,
+    pub expires_at: i64,
+    pub space_id: String,
 }
 
 #[derive(Clone)]
@@ -60,6 +70,31 @@ impl SpacesController {
                 limit: res.limit,
                 offset: res.offset,
                 next_offset: res.next_offset,
+            })
+    }
+
+    pub async fn list_members(
+        &self,
+        params: SpacesListMembersParams,
+    ) -> AppResult<Vec<SpaceMemberDto>> {
+        let payload = ListSpaceMembersRequest {
+            space_id: params.space_id,
+        };
+
+        self.state
+            .daemon
+            .list_space_members(payload)
+            .await
+            .map(|res| {
+                res.members
+                    .into_iter()
+                    .map(|member| SpaceMemberDto {
+                        peer_id: member.peer_id,
+                        role: member.role,
+                        expires_at: member.expires_at,
+                        space_id: member.space_id,
+                    })
+                    .collect()
             })
     }
 
@@ -132,6 +167,12 @@ pub struct SpacesListParams {
     pub limit: Option<u32>,
     pub offset: Option<u32>,
     pub q: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SpacesListMembersParams {
+    pub space_id: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]

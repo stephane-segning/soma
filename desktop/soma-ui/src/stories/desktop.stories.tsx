@@ -1,30 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { useMemo, useState } from "react";
-import {
-	Calendar,
-	Cpu,
-	Disc,
-	Folder,
-	MessageCircle,
-	Play,
-	Zap,
-} from "react-feather";
-import { useLocation } from "react-router";
-import { PolymorphButton } from "../components/actions/polymorph-button";
-import { LauncherCard } from "../components/cards/launcher-card";
-import { DesktopArea } from "../components/layout/desktop-area";
+import { CheckCircle, Info, Menu, Sliders } from "react-feather";
 import { DesktopShell } from "../components/layout/desktop-shell";
-import { Dock } from "../components/layout/dock";
-import { SplitPane } from "../components/layout/split-pane";
-import { Taskbar } from "../components/layout/taskbar";
-import { AuroraWallpaper } from "../components/layout/wallpaper";
-import { WindowChrome } from "../components/layout/window-chrome";
-import { Modal } from "../components/overlays/modal";
-import { notify } from "../components/overlays/toast";
-import { PresenceStack } from "../components/presence/presence-stack";
 import { StatusBadge } from "../components/presence/status-badge";
-import { TimerPill } from "../components/progress/streak-meter";
-import type { DesktopIcon, RunningApp } from "../types";
 
 const meta: Meta<typeof DesktopShell> = {
 	title: "Desktop/Shell",
@@ -37,243 +14,151 @@ const meta: Meta<typeof DesktopShell> = {
 export default meta;
 type Story = StoryObj<typeof DesktopShell>;
 
-const initialIcons: DesktopIcon[] = [
-	{
-		id: "notes",
-		label: "Notes",
-		hint: "Workspace docs",
-		icon: <Folder size={18} />,
-	},
-	{
-		id: "music",
-		label: "Synth Lab",
-		hint: "Sound toys",
-		icon: <Disc size={18} />,
-	},
-	{
-		id: "chat",
-		label: "Messages",
-		hint: "DMs + mentions",
-		icon: <MessageCircle size={18} />,
-	},
-	{
-		id: "energy",
-		label: "Energy",
-		hint: "System status",
-		icon: <Zap size={18} />,
-	},
-];
-
-const initialApps: RunningApp[] = [
-	{
-		id: "notes",
-		title: "Notes",
-		icon: <Folder size={16} />,
-		status: "running",
-	},
-	{
-		id: "chat",
-		title: "Messages",
-		icon: <MessageCircle size={16} />,
-		status: "attention",
-		badge: "3",
-	},
-	{
-		id: "music",
-		title: "Synth Lab",
-		icon: <Disc size={16} />,
-		status: "sleeping",
-	},
-];
-
-export const Default: Story = {
-	render: function DesktopStory() {
-		const [icons, setIcons] = useState(initialIcons);
-		const [apps, setApps] = useState(initialApps);
-		const [startOpen, setStartOpen] = useState(false);
-		const [activeAppId, setActiveAppId] = useState<string | undefined>(
-			initialApps[0]?.id,
-		);
-		const [showModal, setShowModal] = useState(false);
-
-		const location = useLocation();
-		const tray = useMemo(
-			() => (
-				<div className="flex items-center gap-2 text-base-content/70 text-xs">
-					<div className="badge badge-outline gap-1 border-base-300/80 bg-base-100/60">
-						<Calendar size={12} />
-						Today
-					</div>
-					<div className="badge badge-outline border-base-300/80 bg-base-100/60">
-						14:32
-					</div>
+export const Basic: Story = {
+	render: function BasicStory() {
+		return (
+			<DesktopShell>
+				<div className="space-y-2">
+					<h1 className="font-semibold text-xl">Basic layout</h1>
+					<p className="text-base-content/70 text-sm">
+						Use DesktopShell to wrap desktop screens with consistent padding and
+						max width.
+					</p>
 				</div>
-			),
-			[],
+			</DesktopShell>
 		);
+	},
+};
 
+export const WithSidebars: Story = {
+	render: function SidebarStory() {
 		return (
 			<DesktopShell
-				dock={
-					<Dock
-						activeAppId={activeAppId}
-						apps={apps}
-						onSelectApp={(appId) => setActiveAppId(appId)}
-					/>
-				}
-				leftColumn={
-					<div className="space-y-3">
-						<LauncherCard
-							badge="active"
-							description="Spaces and docs"
-							icon={<Folder size={14} />}
-							title="Workspace"
-						/>
-						<LauncherCard
-							description="Audio + media lab"
-							icon={<Disc size={14} />}
-							title="Studio"
-						/>
-						<LauncherCard
-							description="DMs and activity"
-							icon={<MessageCircle size={14} />}
-							title="Messages"
-						/>
-						<div className="surface-card p-4">
-							<div className="flex items-center justify-between">
-								<div className="font-semibold text-sm">You</div>
-								<StatusBadge label="Online" tone="success" />
-							</div>
-							<p className="mt-2 text-base-content/60 text-xs">
-								Path: {location.pathname}
-							</p>
+				header={({ toggleLeft, toggleRight }) => (
+					<div className="space-y-1">
+						<div className="flex items-center gap-2">
+							<button
+								aria-label="Toggle navigation"
+								className="btn btn-ghost btn-xs btn-circle"
+								onClick={toggleLeft}
+								type="button"
+							>
+								<Menu size={14} />
+							</button>
+							<button
+								aria-label="Toggle status"
+								className="btn btn-ghost btn-xs btn-circle"
+								onClick={toggleRight}
+								type="button"
+							>
+								<Info size={14} />
+							</button>
+							<h1 className="font-semibold text-2xl">Desktop Shell</h1>
 						</div>
+						<p className="text-base-content/70 text-sm">
+							A simple structured layout for desktop screens with optional
+							sidebars.
+						</p>
 					</div>
-				}
-				overlays={
-					<Modal
-						description="This modal mimics a native overlay."
-						onClose={() => setShowModal(false)}
-						open={showModal}
-						title="App opened"
-					/>
+				)}
+				leftColumn={
+					<div className="space-y-3 text-sm">
+						<p className="font-semibold text-base-content/80">Navigation</p>
+						<ul className="space-y-2 text-base-content/70">
+							<li>Overview</li>
+							<li>Work</li>
+							<li>Messages</li>
+						</ul>
+					</div>
 				}
 				rightColumn={
-					<div className="space-y-3">
-						<div className="surface-card space-y-3 p-4">
-							<div className="flex items-center justify-between">
-								<h3 className="font-semibold text-sm">Now playing</h3>
-								<TimerPill label="Session" timecode="14:32" />
-							</div>
-							<div className="flex items-center gap-3 rounded-xl bg-base-200/60 p-3">
-								<Disc className="text-primary" size={18} />
-								<div className="flex-1">
-									<div className="font-semibold text-sm">Parallel Dreams</div>
-									<div className="text-base-content/60 text-xs">Soma Sound</div>
-								</div>
-								<PolymorphButton
-									leadingIcon={<Play size={14} />}
-									size="sm"
-									variant="ghost"
-								>
-									Play
-								</PolymorphButton>
-							</div>
+					<div className="space-y-3 text-sm">
+						<p className="font-semibold text-base-content/80">Status</p>
+						<div className="space-y-2 text-base-content/70">
+							<StatusBadge label="Online" tone="success" />
+							<StatusBadge label="Syncing" tone="info" />
 						</div>
-						<div className="surface-card space-y-3 p-4">
-							<h3 className="font-semibold text-sm">Presence</h3>
-							<PresenceStack
-								avatars={[
-									{ id: "1", label: "SA", indicator: "online" },
-									{ id: "2", label: "JR", indicator: "away" },
-									{ id: "3", label: "TP", indicator: "online" },
-								]}
-							/>
-							<div className="flex flex-wrap gap-2 text-base-content/70 text-xs">
-								<StatusBadge label="Latency 12ms" tone="success" />
-								<StatusBadge label="Agent connected" tone="info" />
-								<StatusBadge label="Storage 58% free" tone="muted" />
-							</div>
+						<div className="flex items-start gap-2 rounded-lg bg-base-200/60 p-3 text-base-content/70 text-xs">
+							<Info className="text-base-content/60" size={14} />
+							<span>
+								Use this shell as a structured layout for desktop views.
+							</span>
 						</div>
 					</div>
 				}
-				taskbar={
-					<Taskbar
-						activeAppId={activeAppId}
-						apps={apps}
-						onSelectApp={(appId) => setActiveAppId(appId)}
-						onStart={() => setStartOpen((state) => !state)}
-						startOpen={startOpen}
-						tray={tray}
-					/>
-				}
-				wallpaper={<AuroraWallpaper />}
 			>
-				<div className="space-y-4">
-					<WindowChrome
-						actions={
-							<PolymorphButton
-								leadingIcon={<Zap size={14} />}
-								onClick={() => notify.success("Summoned a quick toast")}
-								size="sm"
-								variant="outline"
+				<div className="rounded-xl border border-base-300/60 bg-base-100/80 p-4">
+					<h2 className="font-semibold text-lg">Primary content</h2>
+					<p className="text-base-content/70 text-sm">
+						Use sidebars for navigation and status. Main content stays in the
+						center column.
+					</p>
+				</div>
+			</DesktopShell>
+		);
+	},
+};
+
+export const WithHeaderAndFooter: Story = {
+	render: function HeaderFooterStory() {
+		return (
+			<DesktopShell
+				footer={
+					<div className="flex items-center gap-3 rounded-lg border border-base-300/60 bg-base-100/80 p-3 text-base-content/80 text-sm">
+						<CheckCircle className="text-success" size={16} />
+						<span>All systems nominal. Last updated moments ago.</span>
+					</div>
+				}
+				header={({ toggleLeft, toggleRight }) => (
+					<div className="space-y-1">
+						<div className="flex items-center gap-2">
+							<button
+								aria-label="Toggle menu"
+								className="btn btn-ghost btn-xs rounded-full"
+								onClick={toggleLeft}
+								type="button"
 							>
-								Command
-							</PolymorphButton>
-						}
-						status="online"
-						subtitle="libp2p · synced"
-						title="Soma OS shell"
-					/>
-					<SplitPane
-						initialSize={70}
-						left={
-							<DesktopArea
-								className="min-h-[420px]"
-								emptyHint="No icons yet. Right-click to add shortcuts."
-								items={icons}
-								onActivate={(item) => {
-									setShowModal(true);
-									setActiveAppId(item.id);
-									if (!apps.find((app) => app.id === item.id)) {
-										setApps((prev) => [
-											...prev,
-											{
-												id: item.id,
-												title: item.label,
-												icon: item.icon ?? <Cpu size={16} />,
-											},
-										]);
-									}
-								}}
-								onReorder={(next) => setIcons(next)}
-							/>
-						}
-						orientation="horizontal"
-						right={
-							<div className="space-y-3 rounded-2xl bg-base-100/60 p-4">
-								<div className="flex items-center justify-between">
-									<p className="font-semibold text-sm">Quick actions</p>
-									<StatusBadge label="Live" tone="success" />
-								</div>
-								<div className="flex flex-wrap gap-2">
-									<PolymorphButton size="sm" variant="primary">
-										New doc
-									</PolymorphButton>
-									<PolymorphButton size="sm" variant="secondary">
-										Invite peer
-									</PolymorphButton>
-									<PolymorphButton size="sm" variant="ghost">
-										Settings
-									</PolymorphButton>
-								</div>
-								<div className="text-base-content/60 text-xs">
-									Drag icons, right-click for context menus, or launch commands
-									from the chrome.
-								</div>
-							</div>
-						}
-					/>
+								<Menu size={14} />
+							</button>
+							<button
+								aria-label="Toggle controls"
+								className="btn btn-ghost btn-xs rounded-full"
+								onClick={toggleRight}
+								type="button"
+							>
+								<Info size={14} />
+							</button>
+							<h1 className="font-semibold text-2xl">Dashboard</h1>
+						</div>
+						<p className="text-base-content/70 text-sm">
+							Summary view with optional footer actions.
+						</p>
+					</div>
+				)}
+				leftColumn={
+					<div className="space-y-2 text-sm">
+						<p className="font-semibold text-base-content/80">Menu</p>
+						<div className="flex items-center gap-2 rounded-lg border border-base-300/60 bg-base-100/80 p-2 text-base-content/70">
+							<Menu size={14} />
+							<span>Toggle me</span>
+						</div>
+					</div>
+				}
+				rightColumn={
+					<div className="space-y-2 text-sm">
+						<p className="font-semibold text-base-content/80">Controls</p>
+						<div className="flex items-center gap-2 rounded-lg border border-base-300/60 bg-base-100/80 p-2 text-base-content/70">
+							<Sliders size={14} />
+							<span>Resize with drag handle</span>
+						</div>
+					</div>
+				}
+			>
+				<div className="rounded-xl border border-base-300/60 bg-base-100/80 p-4">
+					<p className="text-base-content/80 text-sm">
+						This variant shows how to add a header and footer while keeping the
+						content area simple.
+					</p>
 				</div>
 			</DesktopShell>
 		);

@@ -301,6 +301,7 @@ Soma-app (`desktop/soma-app`) (Tauri v2):
 - Desktop assumes `soma-daemon` is already running; do not start daemons from the renderer.
 - No local blob persistence/caching in the desktop app: uploads go to `soma-daemon`, and renderers should use `soma-blob://daemon/{space_id}/{cid}` URLs for blob references.
 - Local LLM chat runs via `soma-agentd` (gRPC over Unix socket); for model selection and “base vs instruct” behavior, see `docs/src/development/agentd-models.md`.
+- Space members UI: `/spaces/:spaceId/members` simply lists the roster fetched via the daemon `ListSpaceMembers` RPC exposed as the `spaces_list_members` Tauri command (`desktop/soma-app/src/routes/screens/space-members.tsx` + `@soma/queries/spaces`). Keep it lightweight/read-only; no bespoke member page beyond this list.
 
 Tapia (`desktop/tapia-app`):
 

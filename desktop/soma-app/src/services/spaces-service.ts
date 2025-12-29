@@ -7,6 +7,13 @@ export type Space = {
 	createdAt: number;
 };
 
+export type SpaceMember = {
+	peerId: string;
+	role: string;
+	expiresAt: number;
+	spaceId: string;
+};
+
 export type ListSpacesResult = {
 	spaces: Space[];
 	limit: number;
@@ -40,6 +47,13 @@ export async function createSpace(input: {
 
 export async function getSpace(spaceId: string): Promise<Space> {
 	return invoke<Space>("spaces_get", { spaceId });
+}
+
+export async function listSpaceMembers(spaceId: string): Promise<SpaceMember[]> {
+	if (!spaceId) return [];
+	return invoke<SpaceMember[]>("spaces_list_members", { spaceId }).catch(
+		() => [],
+	);
 }
 
 export async function updateSpace(input: {

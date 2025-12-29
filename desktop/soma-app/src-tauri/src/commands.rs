@@ -18,8 +18,9 @@ use crate::handlers::settings::{
     SettingsController, SettingsGetParams, SettingsLastRouteParams, SettingsSetParams,
 };
 use crate::handlers::spaces::{
-    SpaceDto, SpacesController, SpacesCreateParams, SpacesDeleteParams, SpacesGetParams,
-    SpacesListParams, SpacesListResponse, SpacesUpdateParams,
+    SpaceDto, SpaceMemberDto, SpacesController, SpacesCreateParams, SpacesDeleteParams,
+    SpacesGetParams, SpacesListMembersParams, SpacesListParams, SpacesListResponse,
+    SpacesUpdateParams,
 };
 use tauri_command_utils::parse_params;
 
@@ -121,6 +122,15 @@ pub async fn spaces_list(
 ) -> AppResult<SpacesListResponse> {
     let params: SpacesListParams = parse_params(&request, "spaces_list")?;
     controller.list(params).await
+}
+
+#[tauri::command]
+pub async fn spaces_list_members(
+    controller: State<'_, SpacesController>,
+    request: tauri::ipc::Request<'_>,
+) -> AppResult<Vec<SpaceMemberDto>> {
+    let params: SpacesListMembersParams = parse_params(&request, "spaces_list_members")?;
+    controller.list_members(params).await
 }
 
 #[tauri::command]

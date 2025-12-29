@@ -1,6 +1,6 @@
-use std::path::Path;
-use log::{error, info};
 use crate::{Error, SomaResult};
+use log::{error, info};
+use std::path::Path;
 
 #[derive(Clone, Copy, Debug)]
 enum DbKind {

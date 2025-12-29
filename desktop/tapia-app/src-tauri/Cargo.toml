@@ -22,13 +22,21 @@ tauri-build = { workspace = true }
 [dependencies]
 tauri = { workspace = true }
 tauri-plugin-opener = { workspace = true }
+tauri-plugin-deep-link = { workspace = true }
+tauri-plugin-log = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 mime = { workspace = true }
 tracing = { workspace = true }
-tauri-plugin-deep-link = { workspace = true }
-tauri-plugin-log = { workspace = true }
-tauri-command-utils = { workspace = true, features = ["thiserror", "bad-request", "json-error"] }
+anyhow = { workspace = true }
+derive_builder = { workspace = true }
+hyper = { version = "1", default-features = false, features = ["client", "http1"] }
+soma-proto-build = { workspace = true }
+tauri-command-utils = { workspace = true, features = ["thiserror", "bad-request", "json-error", "daemon", "anyhow", "io"] }
+tokio = { workspace = true }
+tonic = { workspace = true }
+tower = "0.5"
+url = "2"
 
 [target."cfg(any(target_os = \"macos\", windows, target_os = \"linux\"))".dependencies]
 tauri-plugin-single-instance = { workspace = true }

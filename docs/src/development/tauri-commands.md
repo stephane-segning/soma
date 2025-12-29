@@ -77,3 +77,4 @@ pub struct ExampleParams {
 - `agent_list_models`: returns agentd model metadata for the chat UI select.
 - `agent_rerank`: forwards rerank requests (query + candidates) to agentd.
 - `agent_resolve_drift`: merges two Yjs updates (base64 → bytes) via agentd to fix drifted documents.
+- `spaces_list_members`: IPC wrapper over daemon `ListSpaceMembers` to return the space roster; used by the `/spaces/:spaceId/members` screen (read-only list, no custom member page beyond this).

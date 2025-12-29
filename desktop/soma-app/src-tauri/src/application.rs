@@ -155,6 +155,7 @@ impl SomaApp {
                 crate::commands::agent_resolve_drift,
                 crate::commands::search,
                 crate::commands::spaces_list,
+                crate::commands::spaces_list_members,
                 crate::commands::spaces_create,
                 crate::commands::spaces_get,
                 crate::commands::spaces_update,

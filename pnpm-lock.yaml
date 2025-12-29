@@ -209,6 +209,9 @@ importers:
       sass:
         specifier: ^1.97.1
         version: 1.97.1
+      tailwind-scrollbar:
+        specifier: ^4.0.2
+        version: 4.0.2(react@19.2.3)(tailwindcss@4.1.18)
       tailwindcss:
         specifier: ^4.1.18
         version: 4.1.18
@@ -251,6 +254,9 @@ importers:
       motion:
         specifier: ^12.23.26
         version: 12.23.26(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      re-resizable:
+        specifier: ^6.11.2
+        version: 6.11.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       react-feather:
         specifier: ^2.0.10
         version: 2.0.10(react@19.2.3)
