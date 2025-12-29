@@ -1,6 +1,3 @@
-use tauri::State;
-use tracing::debug;
-
 use crate::error::AppResult;
 use crate::handlers::agent::{
     AgentController, ChatParams, ChatStreamEvent, ModelInfoDto, RerankParams, RerankResultDto,
@@ -12,27 +9,14 @@ use crate::handlers::documents::{
     PageRecord, QueueDaemonSyncParams, SetPageParentsParams, SyncPublishedParams,
     UpdatePageTitleParams, UpsertDraftParams,
 };
-use crate::handlers::remember::{RememberController, RememberRouteParams};
 use crate::handlers::search::{SearchController, SearchParams, SearchResult};
-use crate::handlers::settings::{
-    SettingsController, SettingsGetParams, SettingsLastRouteParams, SettingsSetParams,
-};
 use crate::handlers::spaces::{
     SpaceDto, SpaceMemberDto, SpacesController, SpacesCreateParams, SpacesDeleteParams,
     SpacesGetParams, SpacesListMembersParams, SpacesListParams, SpacesListResponse,
     SpacesUpdateParams,
 };
+use tauri::State;
 use tauri_command_utils::parse_params;
-
-#[tauri::command]
-pub async fn remember_route(
-    controller: State<'_, RememberController>,
-    request: tauri::ipc::Request<'_>,
-) -> AppResult<()> {
-    let params: RememberRouteParams = parse_params(&request, "remember_route")?;
-    debug!("Remember route: {:?}", params);
-    controller.remember_route(params)
-}
 
 #[tauri::command]
 pub async fn documents_upsert_draft(
@@ -210,31 +194,4 @@ pub async fn search(
 ) -> AppResult<Vec<SearchResult>> {
     let params: SearchParams = parse_params(&request, "search")?;
     controller.search(params)
-}
-
-#[tauri::command]
-pub async fn settings_get_last_route(
-    controller: State<'_, SettingsController>,
-    request: tauri::ipc::Request<'_>,
-) -> AppResult<Option<String>> {
-    let _: SettingsLastRouteParams = parse_params(&request, "settings_get_last_route")?;
-    controller.get_last_route()
-}
-
-#[tauri::command]
-pub async fn settings_get(
-    controller: State<'_, SettingsController>,
-    request: tauri::ipc::Request<'_>,
-) -> AppResult<Option<serde_json::Value>> {
-    let params: SettingsGetParams = parse_params(&request, "settings_get")?;
-    controller.get(params)
-}
-
-#[tauri::command]
-pub async fn settings_set(
-    controller: State<'_, SettingsController>,
-    request: tauri::ipc::Request<'_>,
-) -> AppResult<()> {
-    let params: SettingsSetParams = parse_params(&request, "settings_set")?;
-    controller.set(params)
 }

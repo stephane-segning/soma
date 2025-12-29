@@ -8,7 +8,6 @@ use tauri::{AppHandle, Manager, Wry};
 #[derive(Builder, Clone, Debug)]
 pub struct AppPaths {
     data_dir: PathBuf,
-    state_file: PathBuf,
 }
 
 impl AppPaths {
@@ -27,14 +26,7 @@ impl AppPaths {
         )
         .context("failed to create state directory")?;
 
-        Ok(Self {
-            data_dir,
-            state_file,
-        })
-    }
-
-    pub fn state_file(&self) -> &PathBuf {
-        &self.state_file
+        Ok(Self { data_dir })
     }
 
     pub fn data_dir(&self) -> &PathBuf {

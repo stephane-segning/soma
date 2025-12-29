@@ -29,4 +29,5 @@ export * from "./components/primitives/shortcut-row";
 export * from "./components/progress/streak-meter";
 export * from "./components/tapia/char-display";
 export * from "./hooks/use-graphemes";
+export * from "./hooks/use-tauri-store";
 export * from "./types";

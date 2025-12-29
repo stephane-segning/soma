@@ -40,6 +40,7 @@ tauri-plugin-deep-link = { workspace = true }
 tauri-plugin-log = { workspace = true }
 tauri-command-utils = { workspace = true, features = ["thiserror", "bad-request", "json-error", "io", "anyhow", "daemon", "agent"] }
 tauri-plugin-store = "2"
+tauri-plugin-dialog = "2"
 
 [target."cfg(any(target_os = \"macos\", windows, target_os = \"linux\"))".dependencies]
 tauri-plugin-single-instance = { workspace = true }

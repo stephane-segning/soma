@@ -10,28 +10,21 @@ use crate::{
     daemon::DaemonApi,
     handlers::{
         agent::AgentController, blobs::BlobsController, documents::DocumentsController,
-        remember::RememberController, search::SearchController, settings::SettingsController,
-        spaces::SpacesController,
+        search::SearchController, spaces::SpacesController,
     },
     protocol::{BlobProtocol, ProtocolRegistrar},
-    state::{AppStateStore, FileStateStore, ManagedState},
-    window::{MainWindowController, WindowController},
+    state::{ManagedState},
 };
 
 pub struct SomaAppBuilder {
     builder: tauri::Builder<Wry>,
     bootstrapper: Arc<dyn Bootstrapper>,
-    window_controller: Arc<dyn WindowController>,
     protocol_registrars: Vec<Arc<dyn ProtocolRegistrar>>,
-    state_store: Arc<dyn AppStateStore>,
 }
 
 impl SomaAppBuilder {
     pub fn new() -> Self {
-        let state_store: Arc<dyn AppStateStore> = Arc::new(FileStateStore::default());
         let bootstrapper: Arc<dyn Bootstrapper> = Arc::new(MainBootstrap::new());
-        let window_controller: Arc<dyn WindowController> =
-            Arc::new(MainWindowController::new(state_store.clone()));
 
         let builder = tauri::Builder::default();
 
@@ -57,14 +50,13 @@ impl SomaAppBuilder {
             .plugin(tauri_plugin_store::Builder::new().build())
             .plugin(tauri_plugin_opener::init())
             .plugin(tauri_plugin_window_state::Builder::new().build())
-            .plugin(tauri_plugin_deep_link::init());
+            .plugin(tauri_plugin_deep_link::init())
+            .plugin(tauri_plugin_dialog::init());
 
         Self {
             builder,
             bootstrapper,
-            window_controller,
             protocol_registrars: vec![Arc::new(BlobProtocol::new())],
-            state_store,
         }
     }
 
@@ -72,9 +64,7 @@ impl SomaAppBuilder {
         SomaApp {
             builder: self.builder,
             bootstrapper: self.bootstrapper,
-            window_controller: self.window_controller,
             protocol_registrars: self.protocol_registrars,
-            state_store: self.state_store,
         }
     }
 }
@@ -82,9 +72,7 @@ impl SomaAppBuilder {
 pub struct SomaApp {
     builder: tauri::Builder<Wry>,
     bootstrapper: Arc<dyn Bootstrapper>,
-    window_controller: Arc<dyn WindowController>,
     protocol_registrars: Vec<Arc<dyn ProtocolRegistrar>>,
-    state_store: Arc<dyn AppStateStore>,
 }
 
 impl SomaApp {
@@ -96,8 +84,6 @@ impl SomaApp {
         }
 
         let bootstrapper = Arc::clone(&self.bootstrapper);
-        let window_controller = Arc::clone(&self.window_controller);
-        let state_store = Arc::clone(&self.state_store);
 
         builder
             .setup(move |app| {
@@ -105,29 +91,21 @@ impl SomaApp {
 
                 let daemon = DaemonApi::from_app(&app.handle())?;
                 let agent = AgentApi::from_app(&app.handle())?;
+                let managed_state = ManagedState::new(daemon, agent);
 
-                let managed_state =
-                    ManagedState::new(state_store.clone(), daemon, agent, Arc::new(handle.clone()));
-
-                let remember_controller = RememberController::new(managed_state.clone());
                 let documents_controller = DocumentsController::new(managed_state.clone());
                 let spaces_controller = SpacesController::new(managed_state.clone());
                 let blobs_controller = BlobsController::new(managed_state.clone());
                 let agent_controller = AgentController::new(managed_state.clone());
-                let settings_controller = SettingsController::new(managed_state.clone());
                 let search_controller = SearchController::new();
 
-                app.manage(managed_state);
-                app.manage(remember_controller);
                 app.manage(documents_controller);
                 app.manage(spaces_controller);
                 app.manage(blobs_controller);
                 app.manage(agent_controller);
-                app.manage(settings_controller);
                 app.manage(search_controller);
 
                 bootstrapper.clone().init(&handle)?;
-                window_controller.clone().create_or_restore(&handle)?;
 
                 if let Some(start_urls) = app.deep_link().get_current()? {
                     info!("app started from deep link: {start_urls:?}");
@@ -138,7 +116,6 @@ impl SomaApp {
                 Ok(())
             })
             .invoke_handler(tauri::generate_handler![
-                crate::commands::remember_route,
                 crate::commands::documents_upsert_draft,
                 crate::commands::documents_queue_daemon_sync,
                 crate::commands::documents_sync_published,
@@ -148,9 +125,6 @@ impl SomaApp {
                 crate::commands::documents_list_pages,
                 crate::commands::documents_update_page_title,
                 crate::commands::documents_set_page_parents,
-                crate::commands::settings_get_last_route,
-                crate::commands::settings_get,
-                crate::commands::settings_set,
                 crate::commands::agent_chat_stream,
                 crate::commands::agent_list_models,
                 crate::commands::agent_rerank,

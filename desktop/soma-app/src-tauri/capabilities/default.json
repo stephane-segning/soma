@@ -17,6 +17,8 @@
 		"core:event:allow-listen",
 		"log:default",
 		"log:allow-log",
-		"window-state:default"
+		"window-state:default",
+		"store:allow-load",
+		"store:default"
 	]
 }

@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
 import { twMerge } from "tailwind-merge";
 import { useChatConversation } from "../hooks/use-chat-conversation";
 import type { AgentModel, ChatMessage } from "../services/chat-service";
@@ -13,6 +13,8 @@ function ChatSidebar(): React.JSX.Element {
 		queryFn: listModels,
 		staleTime: 5 * 60 * 1000,
 	});
+
+	console.log({ models: modelsQuery.data });
 
 	const chatModels = useMemo(
 		() => modelsQuery.data?.filter((m) => m.kind === "chat") ?? [],
@@ -48,8 +50,8 @@ function ChatSidebar(): React.JSX.Element {
 				</div>
 				<div className="flex items-center gap-2">
 					<ModelSelect
-						models={chatModels}
 						disabled={isSending || modelsQuery.isLoading}
+						models={chatModels}
 						onChange={(val) => setSelectedModel(val)}
 						value={selectedModel}
 					/>
@@ -122,7 +124,10 @@ function ModelSelect({
 }): React.JSX.Element {
 	if (!models.length) {
 		return (
-			<div className="badge badge-ghost badge-sm text-xs" title="No chat models available">
+			<div
+				className="badge badge-ghost badge-sm text-xs"
+				title="No chat models available"
+			>
 				No models
 			</div>
 		);
