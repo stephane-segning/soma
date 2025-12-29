@@ -1,10 +1,40 @@
 import { PageTree } from "@soma/components/page-tree";
 import { useTranslation } from "react-i18next";
-import { Link, NavLink, Outlet, useParams } from "react-router";
+import { Link, NavLink, Outlet, useNavigate, useParams } from "react-router";
+import { useEffect, useState } from "react";
+import * as spacesService from "../../services/spaces-service";
 
 function Component(): React.JSX.Element {
 	const { t } = useTranslation("common");
 	const { spaceId, pageId } = useParams();
+	const navigate = useNavigate();
+	const [accessChecked, setAccessChecked] = useState(false);
+
+	useEffect(() => {
+		let cancelled = false;
+		async function verifyAccess() {
+			if (!spaceId) {
+				navigate("/spaces");
+				return;
+			}
+			try {
+				await spacesService.getSpace(spaceId);
+				if (!cancelled) setAccessChecked(true);
+			} catch {
+				if (!cancelled) {
+					navigate("/spaces");
+				}
+			}
+		}
+		verifyAccess();
+		return () => {
+			cancelled = true;
+		};
+	}, [navigate, spaceId]);
+
+	if (!accessChecked) {
+		return <div className="p-4 text-sm text-base-content/60">{t("space.loading", "Loading space…")}</div>;
+	}
 
 	return (
 		<div className="flex h-full w-full overflow-hidden">

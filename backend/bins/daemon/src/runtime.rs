@@ -219,11 +219,9 @@ impl PeerBootstrapper for DaemonPeerBootstrap {
             .enable_mdns(self.enable_mdns)
             .join_decider(join_decider)
             .blob_provider(self.blob_provider.clone())
-            .space_authorizer(
-                Arc::new(StorageSpaceAuthorizer {
-                    repos: self.repos.clone(),
-                }) as Arc<dyn SpaceAuthorizer>,
-            )
+            .space_authorizer(Arc::new(StorageSpaceAuthorizer {
+                repos: self.repos.clone(),
+            }) as Arc<dyn SpaceAuthorizer>)
             .build()
             .expect("peer config")
     }

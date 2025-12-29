@@ -11,8 +11,10 @@ pub mod bootstrap;
 pub mod issuer;
 pub mod mailbox;
 pub mod membership;
+pub mod peers;
 use crate::{
     issuer::IssuerRepository, mailbox::MailboxRepository, membership::MembershipRepository,
+    peers::PeerPublicKeyRepository,
 };
 
 /// Abstraction over repositories needed by controllers/services.
@@ -20,6 +22,7 @@ pub trait RepositoryProvider: Send + Sync {
     fn membership_repo(&self) -> Arc<dyn MembershipRepository>;
     fn issuer_repo(&self) -> Arc<dyn IssuerRepository>;
     fn mailbox_repo(&self) -> Arc<dyn MailboxRepository>;
+    fn peer_keys_repo(&self) -> Arc<dyn PeerPublicKeyRepository>;
     fn pool(&self) -> Pool;
 }
 
@@ -49,6 +52,10 @@ impl RepositoryFactory {
     pub fn mailbox(&self) -> mailbox::SqlMailboxRepository {
         mailbox::SqlMailboxRepository::new(self.pool.clone())
     }
+
+    pub fn peer_keys(&self) -> peers::SqlPeerPublicKeyRepository {
+        peers::SqlPeerPublicKeyRepository::new(self.pool.clone())
+    }
 }
 
 impl RepositoryProvider for RepositoryFactory {
@@ -62,6 +69,10 @@ impl RepositoryProvider for RepositoryFactory {
 
     fn mailbox_repo(&self) -> Arc<dyn MailboxRepository> {
         Arc::new(self.mailbox())
+    }
+
+    fn peer_keys_repo(&self) -> Arc<dyn PeerPublicKeyRepository> {
+        Arc::new(self.peer_keys())
     }
 
     fn pool(&self) -> Pool {
@@ -83,6 +94,10 @@ where
 
     fn mailbox_repo(&self) -> Arc<dyn MailboxRepository> {
         (**self).mailbox_repo()
+    }
+
+    fn peer_keys_repo(&self) -> Arc<dyn PeerPublicKeyRepository> {
+        (**self).peer_keys_repo()
     }
 
     fn pool(&self) -> Pool {

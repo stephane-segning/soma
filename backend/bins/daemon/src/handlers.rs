@@ -1,7 +1,8 @@
 use async_trait::async_trait;
+use futures::FutureExt;
+use libp2p::PeerId;
 use soma_common::{verify_issuer_capability, verify_membership_capability};
 use soma_membership::apply_join_decision;
-use libp2p::PeerId;
 use soma_peer::PeerEvent;
 use soma_peer::events::{PeerEventHandler, PeerEventKind};
 use soma_proto_build::daemon;
@@ -85,9 +86,7 @@ impl PeerEventHandler<DaemonState> for IdentifyStoreHandler {
 
     async fn handle(&self, ctx: &DaemonState, event: &PeerEvent) {
         let PeerEvent::IdentifyReceived {
-            peer,
-            public_key,
-            ..
+            peer, public_key, ..
         } = event
         else {
             return;
@@ -96,6 +95,18 @@ impl PeerEventHandler<DaemonState> for IdentifyStoreHandler {
         if let Some(pk) = public_key {
             let mut map = ctx.identify_keys.lock().await;
             map.insert(*peer, pk.clone());
+            let _ = ctx
+                .repos
+                .peer_keys_repo()
+                .upsert(
+                    &peer.to_string(),
+                    &pk.encode_protobuf(),
+                    SystemTime::now()
+                        .duration_since(SystemTime::UNIX_EPOCH)
+                        .unwrap_or_default()
+                        .as_secs() as i64,
+                )
+                .await;
         }
     }
 }
@@ -205,7 +216,17 @@ impl PeerEventHandler<DaemonState> for JoinDecisionPersistenceHandler {
         let pubkey = {
             let map = ctx.identify_keys.lock().await;
             map.get(from).cloned()
-        };
+        }
+        .or_else(|| {
+            ctx.repos
+                .peer_keys_repo()
+                .get(&from.to_string())
+                .now_or_never()
+                .and_then(|res| res.ok().flatten())
+                .and_then(|row| {
+                    libp2p::identity::PublicKey::try_decode_protobuf(&row.public_key).ok()
+                })
+        });
         let Some(pubkey) = pubkey else {
             warn!(peer = %from, "rejected join decision: missing sender public key");
             return;
@@ -234,19 +255,33 @@ impl PeerEventHandler<DaemonState> for JoinDecisionPersistenceHandler {
                     return;
                 }
             } else if let Ok(owner_id) = owner_peer.parse::<PeerId>() {
-                // Delegated: verify using cached Identify pubkey for the owner.
-                let map = ctx.identify_keys.lock().await;
-                if let Some(owner_pk) = map.get(&owner_id) {
-                    if let Err(err) = verify_issuer_capability(issuer_cap, owner_pk, now) {
-                        warn!(%err, peer = %from, owner = %owner_peer, "rejected join decision: issuer delegation invalid");
-                        return;
-                    }
-                } else {
+                // Delegated: verify using cached/stored pubkey for the owner.
+                let owner_pk = {
+                    let map = ctx.identify_keys.lock().await;
+                    map.get(&owner_id).cloned()
+                }
+                .or_else(|| {
+                    ctx.repos
+                        .peer_keys_repo()
+                        .get(&owner_id.to_string())
+                        .now_or_never()
+                        .and_then(|res| res.ok().flatten())
+                        .and_then(|row| {
+                            libp2p::identity::PublicKey::try_decode_protobuf(&row.public_key).ok()
+                        })
+                });
+
+                let Some(owner_pk) = owner_pk else {
                     warn!(
                         peer = %from,
                         owner = %owner_peer,
                         "rejected join decision: owner pubkey unavailable for issuer verification"
                     );
+                    return;
+                };
+
+                if let Err(err) = verify_issuer_capability(issuer_cap, &owner_pk, now) {
+                    warn!(%err, peer = %from, owner = %owner_peer, "rejected join decision: issuer delegation invalid");
                     return;
                 }
             } else {

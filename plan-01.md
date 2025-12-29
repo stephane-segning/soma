@@ -16,17 +16,17 @@ Non-goals (for now):
 
 ## Phase 0 — Define the security contract (1 short doc + invariants)
 
-1) Write a short security contract doc (new file under `docs/src/`):
-   - Title: “Space Authorization Model”
-   - Define “member” precisely: possession of a valid `MembershipCapability` for `space_id`:
-     - signed (non-empty `signed`)
-     - not expired (`expires_at` if present)
-     - subject matches the requester identity (libp2p `PeerId` on the secure channel)
-     - issuer is trusted:
-       - issuer == owner, OR
-       - issuer has a valid `IssuerCapability` delegation signed by owner for that space
-   - Define the invariant: **all reads** of space content require passing the membership check.
-   - Define the “server” surfaces: daemon (local), botd server-daemon (admin), libp2p (network).
+1) ~~Write a short security contract doc (new file under `docs/src/`):~~
+   - ~~Title: “Space Authorization Model”~~
+   - ~~Define “member” precisely: possession of a valid `MembershipCapability` for `space_id`:~~
+     - ~~signed (non-empty `signed`)~~
+     - ~~not expired (`expires_at` if present)~~
+     - ~~subject matches the requester identity (libp2p `PeerId` on the secure channel)~~
+     - ~~issuer is trusted:~~
+       - ~~issuer == owner, OR~~
+       - ~~issuer has a valid `IssuerCapability` delegation signed by owner for that space~~
+   - ~~Define the invariant: **all reads** of space content require passing the membership check.~~
+   - ~~Define the “server” surfaces: daemon (local), botd server-daemon (admin), libp2p (network).~~
 
 Acceptance criteria:
 - A reviewer can point to one place in code where “membership verification” happens and one place where every read path calls it.
@@ -55,9 +55,9 @@ Where to get keys:
        - verify issuer chain (owner → issuer cap → membership cap) using Identify pubkeys **(still TODO: add issuer delegation validation once owner pubkey is available)**
    - ~~If verification fails, do not persist membership; emit a warning event/log.~~
 
-4) Enforce verification when a bot/daemon decides joins (decider side):
-   - Ensure `decide_join_request(...)` only produces approvals whose membership cap is signed correctly and has appropriate expiry/role.
-   - If issuer delegation is used, ensure it is checked consistently before auto-approving.
+4) ~~Enforce verification when a bot/daemon decides joins (decider side):~~
+   - ~~Ensure `decide_join_request(...)` only produces approvals whose membership cap is signed correctly and has appropriate expiry/role.~~
+   - ~~If issuer delegation is used, ensure it is checked consistently before auto-approving (owner-signed issuer cap, space/delegate/role match, non-expired).~~
 
 Acceptance criteria:
 - A forged membership capability (bad signature / wrong subject / expired) is rejected and never written into `space_memberships`.

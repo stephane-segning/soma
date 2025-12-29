@@ -302,6 +302,79 @@ pub async fn decide_join_request(
         .unwrap_or(req.requested_role);
     let role = SpaceRole::try_from(role_i32).unwrap_or(SpaceRole::Student);
 
+    // Authorization: only the space owner or a delegated issuer can approve.
+    let is_owner = repos
+        .membership_repo()
+        .get_space(&req.space_id)
+        .await?
+        .and_then(|s| s.owner_peer_id)
+        .map(|owner| owner == issuer_peer_id.to_string())
+        .unwrap_or(false);
+
+    if !is_owner {
+        let issuer_cap_row = repos
+            .issuer_repo()
+            .get(&req.space_id, &issuer_peer_id.to_string())
+            .await?;
+        let Some(stored_cap) = issuer_cap_row else {
+            return Err(Error::service("issuer capability missing for this space"));
+        };
+        if let Some(exp) = stored_cap.expires_at {
+            if exp <= epoch_seconds(SystemTime::now()) {
+                return Err(Error::service("issuer capability expired"));
+            }
+        }
+        let bytes = stored_cap
+            .capability
+            .as_ref()
+            .ok_or_else(|| Error::service("issuer capability missing payload"))?;
+        let issuer_cap = IssuerCapability::decode(bytes.as_slice())
+            .map_err(|_| Error::service("issuer capability decode failed"))?;
+
+        // Ensure the capability is for this space and delegate.
+        let cap_space = issuer_cap
+            .space_id
+            .as_ref()
+            .map(|s| s.value.clone())
+            .unwrap_or_default();
+        if cap_space != req.space_id {
+            return Err(Error::service("issuer capability space mismatch"));
+        }
+        let cap_delegate = issuer_cap
+            .issuer_peer_id
+            .as_ref()
+            .map(|p| p.value.clone())
+            .unwrap_or_default();
+        if cap_delegate != issuer_peer_id.to_string() {
+            return Err(Error::service("issuer capability delegate mismatch"));
+        }
+
+        // Ensure signer matches owner recorded on the capability.
+        let cap_owner = issuer_cap
+            .owner_peer_id
+            .as_ref()
+            .map(|p| p.value.clone())
+            .unwrap_or_default();
+        let signed_by = issuer_cap
+            .signed
+            .as_ref()
+            .and_then(|s| s.signer_peer_id.as_ref())
+            .map(|p| p.value.clone())
+            .unwrap_or_default();
+        if cap_owner.is_empty() || signed_by != cap_owner {
+            return Err(Error::service(
+                "issuer capability signer does not match owner",
+            ));
+        }
+
+        // Enforce role allowance if specified.
+        if !issuer_cap.allowed_roles.is_empty() && !issuer_cap.allowed_roles.contains(&role_i32) {
+            return Err(Error::service(
+                "issuer capability does not allow requested role",
+            ));
+        }
+    }
+
     let now = SystemTime::now();
     let now_ts = Timestamp::from(now);
     let now_secs = epoch_seconds(now);
