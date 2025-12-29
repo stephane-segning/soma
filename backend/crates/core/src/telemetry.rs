@@ -1,6 +1,8 @@
-use std::{env, fs, path::Path};
+use std::fs::File;
 use std::sync::OnceLock;
-use tracing_subscriber::EnvFilter;
+use std::{env, fs, path::Path, path::PathBuf};
+use tracing_error::ErrorLayer;
+use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
 // Keep the guard alive for non-blocking writers; dropping it stops flushing to disk.
 static FILE_GUARD: OnceLock<tracing_appender::non_blocking::WorkerGuard> = OnceLock::new();
@@ -12,12 +14,14 @@ static FILE_GUARD: OnceLock<tracing_appender::non_blocking::WorkerGuard> = OnceL
 pub fn init_tracing(default_filter: &str) {
     let data_dir = env::var("SOMA_LOGS_DIR").ok();
     let log_as_json = structured_logs_enabled();
+    let flame_on = flame_enabled();
 
     let env_filter =
         EnvFilter::try_from_default_env().unwrap_or_else(|_| default_filter.into());
-    let mut guard_slot = None;
+    let mut file_guard_slot = None;
+    let mut writer = None;
 
-    let res = if let Some(dir) = data_dir.as_ref() {
+    if let Some(dir) = data_dir.as_ref() {
         if let Err(e) = fs::create_dir_all(Path::new(dir)) {
             return eprintln!("Failed to create SOMA_LOGS_DIR ({}): {}", dir, e);
         }
@@ -26,34 +30,60 @@ pub fn init_tracing(default_filter: &str) {
         let (non_blocking_appender, guard) = tracing_appender::non_blocking(appender);
 
         // Store the guard so the background worker keeps flushing to disk.
-        guard_slot = Some(guard);
+        file_guard_slot = Some(guard);
 
-        if log_as_json {
-            tracing_subscriber::fmt()
-                .with_env_filter(env_filter.clone())
-                .json()
-                .with_writer(non_blocking_appender)
-                .try_init()
+        writer = Some(non_blocking_appender);
+    }
+
+    let fmt_layer = if log_as_json {
+        let layer = fmt::layer().json();
+        if let Some(writer) = writer {
+            layer.with_writer(writer).boxed()
         } else {
-            tracing_subscriber::fmt()
-                .with_env_filter(env_filter.clone())
-                .with_writer(non_blocking_appender)
-                .try_init()
+            layer.boxed()
         }
     } else {
-        if log_as_json {
-            tracing_subscriber::fmt()
-                .with_env_filter(env_filter.clone())
-                .json()
-                .try_init()
+        let layer = fmt::layer();
+        if let Some(writer) = writer {
+            layer.with_writer(writer).boxed()
         } else {
-            tracing_subscriber::fmt()
-                .with_env_filter(env_filter.clone())
-                .try_init()
+            layer.boxed()
         }
     };
 
-    if let Some(guard) = guard_slot {
+    let subscriber = tracing_subscriber::registry()
+        .with(env_filter)
+        .with(ErrorLayer::default())
+        .with(fmt_layer);
+
+    let res = if flame_on {
+        let flame_dir = flame_output_dir(data_dir.as_deref());
+        if let Err(e) = fs::create_dir_all(&flame_dir) {
+            eprintln!(
+                "Failed to create flame output dir ({}): {}",
+                flame_dir.display(),
+                e
+            );
+            subscriber.try_init()
+        } else {
+            let flame_file = flame_dir.join(format!("{}.folded", current_bin_name()));
+            match File::create(&flame_file) {
+                Ok(file) => subscriber.with(tracing_flame::FlameLayer::new(file)).try_init(),
+                Err(e) => {
+                    eprintln!(
+                        "Failed to create flame output file at {}: {}",
+                        flame_file.display(),
+                        e
+                    );
+                    subscriber.try_init()
+                }
+            }
+        }
+    } else {
+        subscriber.try_init()
+    };
+
+    if let Some(guard) = file_guard_slot {
         let _ = FILE_GUARD.set(guard);
     }
 
@@ -63,12 +93,38 @@ pub fn init_tracing(default_filter: &str) {
 }
 
 fn structured_logs_enabled() -> bool {
-    env::var("SOMA_LOG_FORMAT")
-        .map(|value| {
-            matches!(
-                value.trim().to_ascii_lowercase().as_str(),
-                "json" | "structured" | "true" | "1"
-            )
+    bool_env("SOMA_LOG_FORMAT", &["json", "structured", "true", "1"])
+}
+
+fn flame_enabled() -> bool {
+    bool_env("SOMA_FLAME_ENABLED", &["1", "true", "yes", "on"])
+}
+
+fn flame_output_dir(logs_dir: Option<&str>) -> PathBuf {
+    if let Some(dir) = logs_dir {
+        let logs_path = Path::new(dir);
+        let base = logs_path
+            .parent()
+            .and_then(|p| p.parent())
+            .unwrap_or_else(|| Path::new("."));
+        base.join("flame")
+    } else {
+        PathBuf::from("flame")
+    }
+}
+
+fn current_bin_name() -> String {
+    env::current_exe()
+        .ok()
+        .and_then(|path| {
+            path.file_stem()
+                .map(|os| os.to_string_lossy().into_owned())
         })
+        .unwrap_or_else(|| "soma".to_string())
+}
+
+fn bool_env(var: &str, truthy: &[&str]) -> bool {
+    env::var(var)
+        .map(|value| truthy.contains(&value.trim().to_ascii_lowercase().as_str()))
         .unwrap_or(false)
 }

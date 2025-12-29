@@ -44,7 +44,7 @@ const Video = new YooptaPlugin<VideoElementMap, VideoPluginOptions>({
     onUpload: async () => Promise.resolve({ src: '' }),
     display: {
       title: 'Video',
-      description: 'Upload from device, insert from Youtube, Vimeo, DailyMotion, Loom, Wistia',
+      description: 'Upload from device, insert from Youtube, Vimeo, DailyMotion, Wistia',
     },
   },
   commands: VideoCommands,

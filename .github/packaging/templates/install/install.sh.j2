@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BUNDLE_VERSION="$bundle_version"
-BUNDLE_TAG="bundle-$bundle_version"
-REPO="$repo"
+BUNDLE_VERSION="{{bundle_version}}"
+BUNDLE_TAG="bundle-{{bundle_version}}"
+REPO="{{repo}}"
 
 os="$(uname -s | tr '[:upper:]' '[:lower:]')"
 arch="$(uname -m)"

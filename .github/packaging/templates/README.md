@@ -2,7 +2,7 @@
 
 Rendered by `cargo xtask release bundle` into the bundle staging dir.
 
-Variables available to all templates (string.Template syntax: `$var`):
+Variables available to all templates (Handlebars syntax: `{{var}}`):
 - `name` – package name (e.g. `soma-daemon`)
 - `version` – daemon/agent version (from `daemons_version`)
 - `desktop_version` – desktop app version (from `desktop_version`)
@@ -31,6 +31,6 @@ How they are used:
 - Zip artifacts always include both services (daemon+agent) plus README/install.
 
 Conventions:
-- Binaries are expected at `$install_prefix/bin/soma-daemon` and `$install_prefix/bin/soma-agentd`.
+- Binaries are expected at `{{install_prefix}}/bin/soma-daemon` and `{{install_prefix}}/bin/soma-agentd`.
 - Services are not auto-enabled; operators should `systemctl enable --now soma-daemon` (and `soma-agentd`) or load the LaunchDaemons via `launchctl`.
 - Update the template context in `xtask` when adding new template variables.

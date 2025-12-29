@@ -1,6 +1,6 @@
 import { flip, inline, offset, shift, useFloating } from "@floating-ui/react";
 import { VideoIcon } from "@radix-ui/react-icons";
-import type { CSSProperties } from "react";
+import type { CSSProperties, HTMLAttributes, ReactNode, RefCallback } from "react";
 import { useState } from "react";
 
 import { Loader } from "./Loader";
@@ -11,7 +11,13 @@ const loadingStyles: CSSProperties = {
 	transition: "width 100ms ease-in",
 };
 
-const Placeholder = ({ attributes, children, blockId }) => {
+type PlaceholderProps = {
+	attributes: HTMLAttributes<HTMLDivElement> & { ref: RefCallback<HTMLDivElement> };
+	children?: ReactNode;
+	blockId: string;
+};
+
+const Placeholder = ({ attributes, children, blockId }: PlaceholderProps) => {
 	const [isUploaderOpen, setIsUploaderOpen] = useState(false);
 	const [loading, setLoading] = useState<boolean>(false);
 

@@ -5,7 +5,8 @@ use std::process::Command;
 
 use anyhow::{Context, Result, anyhow, bail};
 use clap::{Args, Parser, Subcommand, ValueEnum};
-use regex::{Captures, Regex};
+use handlebars::{Handlebars, no_escape};
+use regex::Regex;
 use reqwest::blocking::Client;
 use reqwest::header::{ACCEPT, AUTHORIZATION, USER_AGENT};
 use serde::Deserialize;
@@ -822,7 +823,8 @@ fn build_macos_package(
 fn render_template(template_path: &Path, dest: &Path, ctx: &HashMap<String, String>) -> Result<()> {
     let text = fs::read_to_string(template_path)
         .with_context(|| format!("reading template {}", path_string(template_path)))?;
-    let rendered = substitute_template(&text, ctx)?;
+    let rendered = render_template_text(&text, ctx)
+        .with_context(|| format!("rendering template {}", path_string(template_path)))?;
     if let Some(parent) = dest.parent() {
         fs::create_dir_all(parent)?;
     }
@@ -831,30 +833,14 @@ fn render_template(template_path: &Path, dest: &Path, ctx: &HashMap<String, Stri
     Ok(())
 }
 
-fn substitute_template(text: &str, ctx: &HashMap<String, String>) -> Result<String> {
-    // Mimics python string.Template.safe_substitute: replace $key or ${key}; leave missing intact; $$ -> $.
-    let re = Regex::new(
-        r"(?P<esc>\$\$)|\$(?P<brace>\{(?P<key1>[A-Za-z_][A-Za-z0-9_]*)\})|\$(?P<key2>[A-Za-z_][A-Za-z0-9_]*)",
-    )?;
-    let rendered = re.replace_all(text, |caps: &Captures| {
-        if caps.name("esc").is_some() {
-            return "$".to_string();
-        }
-        if let Some(key) = caps.name("key1") {
-            return ctx
-                .get(key.as_str())
-                .cloned()
-                .unwrap_or_else(|| format!("${{{}}}", key.as_str()));
-        }
-        if let Some(key) = caps.name("key2") {
-            return ctx
-                .get(key.as_str())
-                .cloned()
-                .unwrap_or_else(|| format!("${}", key.as_str()));
-        }
-        String::new()
-    });
-    Ok(rendered.into_owned())
+fn render_template_text(text: &str, ctx: &HashMap<String, String>) -> Result<String> {
+    let mut handlebars = Handlebars::new();
+    handlebars.register_escape_fn(no_escape);
+    handlebars.set_strict_mode(true);
+
+    handlebars
+        .render_template(text, ctx)
+        .map_err(|err| anyhow!(err))
 }
 
 fn run_command(ctx: &ExecContext, cmd: &mut Command) -> Result<()> {
@@ -1018,11 +1004,18 @@ version = "1.2.3"
     }
 
     #[test]
-    fn template_substitution_safe() {
+    fn template_rendering_uses_handlebars() {
         let mut ctx = HashMap::new();
         ctx.insert("name".into(), "soma".into());
         ctx.insert("arch".into(), "amd64".into());
-        let rendered = substitute_template("hello $name ${arch} $$ $missing", &ctx).unwrap();
-        assert_eq!(rendered, "hello soma amd64 $ $missing");
+        let rendered = render_template_text("hello {{name}} {{arch}}", &ctx).unwrap();
+        assert_eq!(rendered, "hello soma amd64");
+    }
+
+    #[test]
+    fn template_rendering_fails_on_missing_vars() {
+        let ctx = HashMap::<String, String>::new();
+        let err = render_template_text("hello {{missing}}", &ctx).unwrap_err();
+        assert!(err.to_string().contains("missing"));
     }
 }

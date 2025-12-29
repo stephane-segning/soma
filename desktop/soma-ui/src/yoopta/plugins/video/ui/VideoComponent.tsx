@@ -3,7 +3,6 @@ import type { CSSProperties } from 'react';
 import type { RenderElementProps } from 'slate-react';
 
 import DailyMotion from './DailyMotionPlayer';
-import LoomPlayer from './LoomPlayer';
 import VimeoPlayer from './VimeoPlayer';
 import WistiaPlayer from './WistiaPlayer';
 import YouTubePlayer from './YoutubePlayer';
@@ -18,7 +17,6 @@ const PROVIDERS = {
   vimeo: VimeoPlayer,
   youtube: YouTubePlayer,
   dailymotion: DailyMotion,
-  loom: LoomPlayer,
   wistia: WistiaPlayer,
 };
 

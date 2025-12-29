@@ -78,7 +78,11 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal"] }
 
 tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter", "json", "ansi", "serde_json"] }
 tracing-appender = { version = "0.2" }
+tracing-attributes = { version = "0.1" }
 tracing = { version = "0", features = ["attributes", "async-await", "std"] }
+tracing-error = { version = "0.2" }
+tracing-flame = "0.2.0"
+inferno = "0.12.4"
 
 mimalloc = "0"
 futures = "0.3"
@@ -95,6 +99,7 @@ yrs = "0.19"
 regex = "1.11"
 toml = "0.8"
 time = { version = "0.3", features = ["formatting", "macros"] }
+handlebars = "6.3.2"
 
 tauri = { version = "2", features = ["tray-icon", "tracing", "macos-private-api"] }
 tauri-plugin-opener = "2"

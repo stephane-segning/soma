@@ -17,7 +17,6 @@ export type VideoProviderTypes =
   | 'youtube'
   | 'vimeo'
   | 'dailymotion'
-  | 'loom'
   | 'wistia'
   | string
   | null;

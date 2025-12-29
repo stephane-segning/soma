@@ -37,6 +37,75 @@ The monorepo is organized into clear, documented areas:
 
 For smoother shell usage, we recommend contributing developers use `zsh` together with [JBarberU/zsh-justfile](https://github.com/JBarberU/zsh-justfile) so the `just` commands get tab completion and helpful hints.
 
+## Environment variables
+
+Most backends expose configuration via CLI flags (clap) and mirror those flags as environment variables.
+
+### Common (all Rust binaries)
+
+- `RUST_LOG`: log filter (e.g. `info`, `debug`, `soma_peer=debug,libp2p=info`).
+- `SOMA_LOGS_DIR`: when set, write logs to weekly-rotating files under this directory (created if missing). When unset, logs go to the default writer.
+- `SOMA_LOG_FORMAT`: set to `json` (also accepts `structured`, `true`, `1`) for JSON logs; otherwise plain text.
+- `SOMA_FLAME_ENABLED`: opt-in flame capture (folded stacks) via `tracing-flame` (truthy: `1/true/yes/on`). Output goes to a sibling `flame/` directory next to the `logs` root (or `./flame` if `SOMA_LOGS_DIR` is unset).
+
+### `soma-daemon`
+
+- `SOMA_DATA_DIR`: base directory for daemon identity storage (defaults to `./data`).
+- `SOMA_DAEMON_SOCKET`: unix socket path (default: `/tmp/soma-daemon.sock`).
+- `SOMA_BLOB_DIR`: blob storage directory (default: `./blobs`).
+- `SOMA_DAEMON_DB`: SQLite DB path (default: `./daemon.db`).
+- `SOMA_LISTEN_ADDRS`: comma-delimited libp2p listen multiaddrs.
+- `SOMA_BOOTSTRAP_ADDRS`: comma-delimited bootstrap peer multiaddrs.
+- `SOMA_RDV_ADDRS`: comma-delimited rendezvous node multiaddrs.
+- `SOMA_RELAY_ADDRS`: comma-delimited relay node multiaddrs.
+- `SOMA_DISABLE_MDNS`: set to `true` to disable mDNS.
+
+### `soma-botd`
+
+- `SOMA_DATA_DIR`: base directory for bot identity storage (defaults to `./data`).
+- `HTTP_ADDR`: HTTP bind addr (default: `0.0.0.0:8080`).
+- `SOMA_BLOB_DIR`: blob cache/storage dir (default: `./blobs`).
+- `SOMA_DATABASE_URL`: database URL (postgres or sqlite); defaults to `./botd.db` (SQLite).
+- `SOMA_LISTEN_ADDRS`, `SOMA_BOOTSTRAP_ADDRS`, `SOMA_RDV_ADDRS`, `SOMA_RELAY_ADDRS`, `SOMA_DISABLE_MDNS`: peer connectivity settings (see `soma-daemon` above).
+- `SOMA_MODE`: `bot` (default, read-only HTTP) or `server-daemon` (admin HTTP).
+- `SOMA_ADMIN_TOKEN`: optional bearer token required for admin APIs in `server-daemon` mode.
+
+### `soma-agentd`
+
+- `SOMA_AGENTD_SOCKET`: unix socket path (default: `/tmp/soma-agentd.sock`).
+- `SOMA_AGENTD_MODELS_DIR`: GGUF models directory (default: `./models`).
+- `SOMA_AGENTD_DEFAULT_CHAT_MODEL`: default chat model name.
+- `SOMA_AGENTD_DEFAULT_EMBED_MODEL`: default embedding model name.
+- `SOMA_AGENTD_CHAT_MODEL_PATH`: explicit GGUF path override for chat model.
+- `SOMA_AGENTD_EMBED_MODEL_PATH`: explicit GGUF path override for embed model.
+- `SOMA_AGENTD_CTX_SIZE`: context window size (default: `16384`).
+- `SOMA_AGENTD_THREADS`: optional inference thread count.
+
+### `soma-relayd`
+
+- `SOMA_DATA_DIR`: base directory for relay identity storage (defaults to `./data`).
+- `HTTP_ADDR`: HTTP bind addr (default: `0.0.0.0:8081`).
+
+### `soma-rendezvousd`
+
+- `SOMA_DATA_DIR`: base directory for rendezvous identity storage (defaults to `./data`).
+- `HTTP_ADDR`: HTTP bind addr (default: `0.0.0.0:8082`).
+
+### `soma-bffd`
+
+- `SOMA_DATA_DIR`: base directory for the optional libp2p peer identity storage (defaults to `./data`).
+- `HTTP_ADDR`: HTTP bind addr (default: `0.0.0.0:8083`).
+- `SOMA_P2P_ENABLE`: enable optional libp2p peer (default: `false`).
+- `SOMA_P2P_LISTEN_ADDRS`: comma-delimited listen multiaddrs for the optional peer.
+- `SOMA_P2P_BOOTSTRAP_ADDRS`: comma-delimited bootstrap multiaddrs for the optional peer.
+
+### `soma-serverd`
+
+`soma-serverd` multiplexes subcommands and reuses `HTTP_ADDR` for each:
+
+- `SOMA_DATA_DIR`: base directory for embedded service identities (defaults to `./data`).
+- `HTTP_ADDR`: relay (`relay`), rendezvous (`rendezvous`), or bff (`bff`) HTTP bind addr (defaults: `8081/8082/8083`).
+
 ## License
 
 This project is available under the terms of the MIT License. See [LICENSE](LICENSE) for details.

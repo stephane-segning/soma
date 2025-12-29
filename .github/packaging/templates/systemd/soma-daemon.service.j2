@@ -5,7 +5,7 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=$install_prefix/bin/soma-daemon
+ExecStart={{install_prefix}}/bin/soma-daemon
 Restart=on-failure
 RestartSec=5
 

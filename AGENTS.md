@@ -295,6 +295,7 @@ Shared frontend stack (Soma, Soma-app, Tapia):
 - Routing: `react-router` core (prefer memory/hash routers for Electron; not `react-router-dom`)
 - i18n: `react-i18next` + `i18next` with `i18next-chained-backend`, `i18next-http-backend`, `i18next-resources-to-backend`, `i18next-browser-languagedetector`
 - Command palette + hotkeys: `react-hotkeys-hook` and `react-cmdk`
+- `desktop/soma-ui` packaging: root export is intentionally disabled (`exports["."]=false`) and there is no `src/index.ts`. Import via subpaths (`soma-ui/components/*`, `soma-ui/hooks/*`, `soma-ui/utils/*`, `soma-ui/yoopta`, `soma-ui/types`). `tsup` builds multi-entry outputs for those folders and excludes stories.
 
 Legacy Electron app (`desktop/soma`): removed/retired in favor of the Tauri app; do not add new code here.
 
@@ -438,6 +439,7 @@ Backends initialize tracing via `soma_core::telemetry::init_tracing(...)` (`back
 - `RUST_LOG`: sets the log filter (preferred); falls back to the binary-provided default (typically `info`).
 - `SOMA_LOG_FORMAT`: set to `json` (also accepts `structured`, `true`, `1`) to enable JSON logs; otherwise uses plain text.
 - `SOMA_LOGS_DIR`: when set, writes logs to a weekly-rotating file under this directory (created if missing). When unset, logs go to the process’ default writer (stdout/stderr depending on runtime).
+- `SOMA_FLAME_ENABLED`: opt-in flame capture (folded stack output) via `tracing-flame`; output is placed in a sibling `flame/` directory next to `SOMA_LOGS_DIR`’s parent (or `./flame` when no log dir is set) with one `.folded` file per binary. Convert to SVG with `inferno-flamegraph`.
 
 ## Docker Images (Backend) and Docker Testing
 
