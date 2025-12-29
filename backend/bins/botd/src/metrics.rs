@@ -27,6 +27,7 @@ pub struct BotMetrics {
     pub listeners: Family<(), Counter>,
     pub pings: Family<PingLabels, Counter>,
     pub join_decisions: Family<JoinDecisionLabels, Counter>,
+    pub blob_requests_denied: Counter,
 }
 
 impl BotMetrics {
@@ -53,12 +54,20 @@ impl BotMetrics {
             join_decisions.clone(),
         );
 
+        let blob_requests_denied = Counter::default();
+        registry.register(
+            "blob_requests_denied_total",
+            "Denied blob requests (not a member or invalid scope)",
+            blob_requests_denied.clone(),
+        );
+
         Self {
             registry: std::sync::Arc::new(registry),
             events,
             listeners,
             pings,
             join_decisions,
+            blob_requests_denied,
         }
     }
 }

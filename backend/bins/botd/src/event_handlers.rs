@@ -139,8 +139,11 @@ impl PeerEventHandler<BotState> for MetricsHandler {
             PeerEvent::ConnectionEstablished { .. } => {
                 record_event(metrics, EventKindLabel::ConnectionEstablished);
             }
-            PeerEvent::ConnectionError { .. } => {
+            PeerEvent::ConnectionError { error, .. } => {
                 record_event(metrics, EventKindLabel::ConnectionError);
+                if error.contains("blob request denied") || error.contains("blob request missing space_id") {
+                    metrics.blob_requests_denied.inc();
+                }
             }
             PeerEvent::PingOk { .. } => {
                 record_event(metrics, EventKindLabel::PingOk);
@@ -253,6 +256,7 @@ impl PeerEventHandler<BotState> for LoggingHandler {
                 peer,
                 agent,
                 protocols,
+                ..
             } => {
                 info!(%peer, %agent, protocols, "bot identify received");
             }

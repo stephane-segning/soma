@@ -1,5 +1,4 @@
 use crate::{Error, SomaResult};
-use log::{error, info};
 use std::path::Path;
 
 #[derive(Clone, Copy, Debug)]

@@ -23,6 +23,7 @@ use crate::{
 };
 use soma_net::NetIdentity;
 use soma_peer::bootstrap::{PeerBootstrapper, PeerLauncher};
+use soma_storage::RepositoryProvider;
 use soma_vdfs::fs::FsBlobStore;
 
 /// Build configuration from CLI args and run the bot runtime.
