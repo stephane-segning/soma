@@ -38,10 +38,9 @@ function TabbedApp(): React.JSX.Element | null {
 			return;
 		}
 
-		const hashPath = window.location.hash.startsWith("#")
+		const initialPath = window.location.hash.startsWith("#")
 			? window.location.hash.slice(1)
 			: "";
-		const initialPath = hashPath || "/spaces/landing";
 		initFromPersisted(createDefaultState(initialPath));
 	}, [initialized, initFromPersisted, tabsSetting.data, tabsSetting.isLoading]);
 
@@ -49,19 +48,15 @@ function TabbedApp(): React.JSX.Element | null {
 		if (!initialized) return;
 		let timeout: number | null = null;
 
-		const unsubscribe = useTabsStore.subscribe(
-			(state) => [state.tabs, state.activeId] as const,
-			// @ts-expect-error
-			() => {
-				if (timeout) window.clearTimeout(timeout);
-				timeout = window.setTimeout(() => {
-					setSetting.mutate({
-						key: SETTINGS_KEY,
-						value: useTabsStore.getState().toPersisted(),
-					});
-				}, 250);
-			},
-		);
+		const unsubscribe = useTabsStore.subscribe(() => {
+			if (timeout) window.clearTimeout(timeout);
+			timeout = window.setTimeout(() => {
+				setSetting.mutate({
+					key: SETTINGS_KEY,
+					value: useTabsStore.getState().toPersisted(),
+				});
+			}, 250);
+		});
 
 		return () => {
 			if (timeout) window.clearTimeout(timeout);

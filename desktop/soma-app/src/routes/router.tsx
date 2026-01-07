@@ -37,7 +37,6 @@ const routes: RouteObject[] = [
 			{
 				path: "spaces/:spaceId",
 				handle: { title: "Space" },
-				lazy: () => import("./layouts/space-layout"),
 				children: [
 					{
 						index: true,

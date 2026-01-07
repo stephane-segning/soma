@@ -1,4 +1,4 @@
-import { SpacesRail } from "@soma/components/spaces-rail.tsx";
+import { SideMenu } from "@soma/components/side/side-menu.tsx";
 import { TabsBar } from "@soma/components/tabs-bar.tsx";
 import { WindowControls } from "@soma/components/window-controls.tsx";
 import { lazy, Suspense } from "react";
@@ -48,7 +48,7 @@ function Component(): React.JSX.Element {
 						</header>
 					</>
 				)}
-				leftColumn={<SpacesRail />}
+				leftColumn={<SideMenu />}
 				rightColumn={
 					<Suspense
 						fallback={
