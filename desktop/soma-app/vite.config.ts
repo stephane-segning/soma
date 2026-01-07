@@ -1,8 +1,15 @@
 import { consoleForwardPlugin } from "@0xbigboss/vite-console-forward-plugin";
+import legacy from "@vitejs/plugin-legacy";
 import react from "@vitejs/plugin-react";
+import VitePluginCssMediaSplitter from "css-media-splitter/vite-plugin";
+import TurboConsole from "unplugin-turbo-console/vite";
 import { defineConfig } from "vite";
+import biomePlugin from "vite-plugin-biome";
+import { ViteImageOptimizer } from "vite-plugin-image-optimizer";
 import { ViteMinifyPlugin } from "vite-plugin-minify";
+import { qrcode } from "vite-plugin-qrcode";
 import topLevelAwait from "vite-plugin-top-level-await";
+import { vitePluginVersionMark } from "vite-plugin-version-mark";
 import wasm from "vite-plugin-wasm";
 import tsconfigPaths from "vite-tsconfig-paths";
 
@@ -11,6 +18,33 @@ const host = process.env.TAURI_DEV_HOST as string;
 // https://vite.dev/config/
 export default defineConfig(async () => ({
 	plugins: [
+		TurboConsole({
+			/* options here */
+		}),
+		qrcode(),
+		VitePluginCssMediaSplitter(),
+		vitePluginVersionMark({
+			// name: 'test-app',
+			// version: '0.0.1',
+			// command: 'git describe --tags',
+			// outputFile: true,
+			// ifGitSHA: true,
+			ifShortSHA: true,
+			ifMeta: true,
+			ifLog: true,
+			ifGlobal: true,
+		}),
+		biomePlugin({
+			mode: "check",
+			files: ".",
+			applyFixes: true,
+		}),
+		legacy({
+			targets: ["defaults", "not IE 11"],
+		}),
+		ViteImageOptimizer({
+			/* pass your config */
+		}),
 		react(),
 		tsconfigPaths(),
 		ViteMinifyPlugin({}),
@@ -41,6 +75,6 @@ export default defineConfig(async () => ({
 		},
 	},
 	build: {
-		chunkSizeWarningLimit: 5_000, // 2KB
+		chunkSizeWarningLimit: 5_000, // 5KB
 	},
 }));

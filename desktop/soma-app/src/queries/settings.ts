@@ -10,13 +10,6 @@ function useSettingQuery<T = unknown>(key: string) {
 	});
 }
 
-function useLastRouteQuery() {
-	return useQuery({
-		queryKey: ["router", "lastRoute"] as const,
-		queryFn: async () => settingsService.getLastRoute(),
-	});
-}
-
 function useSetSettingMutation() {
 	const queryClient = useQueryClient();
 
@@ -32,4 +25,4 @@ function useSetSettingMutation() {
 	});
 }
 
-export { useLastRouteQuery, useSetSettingMutation, useSettingQuery };
+export { useSetSettingMutation, useSettingQuery };

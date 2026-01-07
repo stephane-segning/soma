@@ -1,8 +1,4 @@
-import {
-	useLastRouteQuery,
-	useSetSettingMutation,
-	useSettingQuery,
-} from "@soma/queries/settings";
+import { useSetSettingMutation, useSettingQuery } from "@soma/queries/settings";
 import {
 	createDefaultState,
 	isPersistedTabsStateV1,
@@ -31,11 +27,10 @@ function TabbedApp(): React.JSX.Element | null {
 
 	const setSetting = useSetSettingMutation();
 	const tabsSetting = useSettingQuery(SETTINGS_KEY);
-	const lastRoute = useLastRouteQuery();
 
 	useEffect(() => {
 		if (initialized) return;
-		if (tabsSetting.isLoading || lastRoute.isLoading) return;
+		if (tabsSetting.isLoading) return;
 
 		const persisted = tabsSetting.data;
 		if (isPersistedTabsStateV1(persisted)) {
@@ -46,16 +41,9 @@ function TabbedApp(): React.JSX.Element | null {
 		const hashPath = window.location.hash.startsWith("#")
 			? window.location.hash.slice(1)
 			: "";
-		const initialPath = lastRoute.data || hashPath || "/";
+		const initialPath = hashPath || "/spaces/landing";
 		initFromPersisted(createDefaultState(initialPath));
-	}, [
-		initialized,
-		initFromPersisted,
-		tabsSetting.data,
-		tabsSetting.isLoading,
-		lastRoute.data,
-		lastRoute.isLoading,
-	]);
+	}, [initialized, initFromPersisted, tabsSetting.data, tabsSetting.isLoading]);
 
 	useEffect(() => {
 		if (!initialized) return;

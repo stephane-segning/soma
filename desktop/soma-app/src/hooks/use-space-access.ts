@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import * as spacesService from "../services/spaces-service";
 import { useMemo } from "react";
+import * as spacesService from "../services/spaces-service";
 
 type UseSpaceAccessResult = {
 	isChecking: boolean;
@@ -12,7 +12,10 @@ type UseSpaceAccessResult = {
  * Access check backed by daemon GetSpace. Uses TanStack Query for caching and status.
  */
 export function useSpaceAccess(spaceId?: string): UseSpaceAccessResult {
-	const enabled = useMemo(() => Boolean(spaceId && spaceId.trim().length > 0), [spaceId]);
+	const enabled = useMemo(
+		() => Boolean(spaceId && spaceId.trim().length > 0),
+		[spaceId],
+	);
 	const { data, isPending, isFetching, error } = useQuery({
 		queryKey: ["space-access", spaceId],
 		enabled,

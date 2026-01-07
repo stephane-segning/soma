@@ -1,4 +1,3 @@
-import { RouterListener } from "@soma/components/router-listener";
 import { SpacesRail } from "@soma/components/spaces-rail.tsx";
 import { TabsBar } from "@soma/components/tabs-bar.tsx";
 import { WindowControls } from "@soma/components/window-controls.tsx";
@@ -42,7 +41,7 @@ function Component(): React.JSX.Element {
 									Soma
 								</div>
 
-								<div className="min-w-0 flex-1" data-tauri-drag-region>
+								<div className="min-w-0 flex-1">
 									<TabsBar {...props} />
 								</div>
 							</div>
@@ -68,8 +67,6 @@ function Component(): React.JSX.Element {
 					<Outlet />
 				</div>
 			</DesktopShell>
-
-			<RouterListener />
 
 			<Suspense fallback={null}>
 				<CommandPaletteShell />

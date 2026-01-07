@@ -30,8 +30,6 @@ export async function stageBlob(input: {
 		fileName: input.fileName,
 	});
 
-	console.log({ response });
-
 	return {
 		cid: response.cid,
 		mime: response.mime,

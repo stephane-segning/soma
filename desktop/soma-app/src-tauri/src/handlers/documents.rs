@@ -50,43 +50,50 @@ impl DocumentsController {
     }
 
     pub async fn upsert_draft(&self, params: UpsertDraftParams) -> AppResult<()> {
-        let payload = UpsertDocumentRequest {
-            space_id: params.space_id.clone(),
-            document_id: params.document_id.clone(),
-            content_json: params.content_json.clone(),
-            published: params.published,
-            updated_at_ms: params.updated_at_ms,
-        };
+        let updated_at_ms = params
+            .updated_at_ms
+            .unwrap_or_else(|| Utc::now().timestamp_millis());
 
-        self.state.daemon.upsert_document(payload).await.map(|_| {
-            self.persist_draft_record(DraftRecord {
-                space_id: params.space_id,
-                document_id: params.document_id,
-                content_json: params.content_json,
-                published: if params.published { 1 } else { 0 },
-                updated_at_ms: params.updated_at_ms,
-            })
-        })
+        self.persist_draft_record(DraftRecord {
+            space_id: params.space_id,
+            document_id: params.document_id,
+            content_json: params.content_json,
+            published: if params.published { 1 } else { 0 },
+            updated_at_ms,
+        });
+
+        Ok(())
     }
 
     pub async fn queue_daemon_sync(&self, params: QueueDaemonSyncParams) -> AppResult<()> {
+        let QueueDaemonSyncParams {
+            space_id,
+            document_id,
+            content_json,
+            updated_at_ms,
+            published,
+        } = params;
+
+        let published = published.unwrap_or(true);
+        let published_flag = if published { 1 } else { 0 };
+
+        self.persist_draft_record(DraftRecord {
+            space_id: space_id.clone(),
+            document_id: document_id.clone(),
+            content_json: content_json.clone(),
+            published: published_flag,
+            updated_at_ms,
+        });
+
         let payload = UpsertDocumentRequest {
-            space_id: params.space_id.clone(),
-            document_id: params.document_id.clone(),
-            content_json: params.content_json.clone(),
-            published: params.published.unwrap_or(true),
-            updated_at_ms: params.updated_at_ms,
+            space_id,
+            document_id,
+            content_json,
+            published,
+            updated_at_ms,
         };
-        let published_flag = if payload.published { 1 } else { 0 };
-        self.state.daemon.upsert_document(payload).await.map(|_| {
-            self.persist_draft_record(DraftRecord {
-                space_id: params.space_id,
-                document_id: params.document_id,
-                content_json: params.content_json,
-                published: published_flag,
-                updated_at_ms: params.updated_at_ms,
-            })
-        })
+
+        self.state.daemon.upsert_document(payload).await.map(|_| ())
     }
 
     pub async fn sync_published(&self, params: SyncPublishedParams) -> AppResult<i32> {
@@ -191,7 +198,7 @@ pub struct UpsertDraftParams {
     pub document_id: String,
     pub content_json: String,
     pub published: bool,
-    pub updated_at_ms: i64,
+    pub updated_at_ms: Option<i64>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

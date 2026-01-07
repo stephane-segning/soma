@@ -49,7 +49,9 @@ export async function getSpace(spaceId: string): Promise<Space> {
 	return invoke<Space>("spaces_get", { spaceId });
 }
 
-export async function listSpaceMembers(spaceId: string): Promise<SpaceMember[]> {
+export async function listSpaceMembers(
+	spaceId: string,
+): Promise<SpaceMember[]> {
 	if (!spaceId) return [];
 	return invoke<SpaceMember[]>("spaces_list_members", { spaceId }).catch(
 		() => [],

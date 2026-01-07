@@ -44,10 +44,7 @@ export async function queueDaemonSync(input: {
 	updatedAtMs: number;
 	published?: boolean;
 }): Promise<{ ok: true }> {
-	await invoke("documents_queue_daemon_sync", {
-		...input,
-		published: !!input.published,
-	});
+	await invoke("documents_queue_daemon_sync", input);
 	return { ok: true };
 }
 

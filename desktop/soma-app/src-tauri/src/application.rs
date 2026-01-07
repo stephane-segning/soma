@@ -36,7 +36,11 @@ impl SomaAppBuilder {
         let builder = builder
             .plugin(
                 tauri_plugin_log::Builder::new()
-                    .level(tauri_plugin_log::log::LevelFilter::Trace)
+                    .level(if cfg!(debug_assertions) {
+                        tauri_plugin_log::log::LevelFilter::Trace
+                    } else {
+                        tauri_plugin_log::log::LevelFilter::Info
+                    })
                     .target(tauri_plugin_log::Target::new(
                         tauri_plugin_log::TargetKind::Stdout,
                     ))

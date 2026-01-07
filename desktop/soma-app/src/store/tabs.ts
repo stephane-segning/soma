@@ -83,7 +83,8 @@ const useTabsStore = create<TabsStore>((set, get) => ({
 		});
 	},
 	selectTab: (tabId) => {
-		const { tabs } = get();
+		const { tabs, activeId } = get();
+		if (activeId === tabId) return;
 		if (!tabs.some((t) => t.id === tabId)) return;
 		set({ activeId: tabId });
 	},
@@ -117,6 +118,10 @@ const useTabsStore = create<TabsStore>((set, get) => ({
 	},
 	setTabPath: (tabId, path) => {
 		const nextPath = coercePath(path);
+		const { tabs } = get();
+		const existing = tabs.find((tab) => tab.id === tabId);
+		if (!existing) return;
+		if (existing.path === nextPath) return;
 		set((state) => ({
 			tabs: state.tabs.map((tab) =>
 				tab.id === tabId ? { ...tab, path: nextPath } : tab,
@@ -124,6 +129,10 @@ const useTabsStore = create<TabsStore>((set, get) => ({
 		}));
 	},
 	renameTab: (tabId, title) => {
+		const { tabs } = get();
+		const existing = tabs.find((tab) => tab.id === tabId);
+		if (!existing) return;
+		if (existing.title === title) return;
 		set((state) => ({
 			tabs: state.tabs.map((tab) =>
 				tab.id === tabId ? { ...tab, title } : tab,

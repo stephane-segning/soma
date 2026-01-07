@@ -12,6 +12,7 @@ import {
 	type Tools,
 	type YooEditor,
 	type YooptaContentValue,
+	type YooptaOnChangeOptions,
 } from "@yoopta/editor";
 import type { SlateElement } from "@yoopta/editor/dist/editor/types";
 import type { YooptaPlugin } from "@yoopta/editor/dist/plugins";
@@ -74,7 +75,10 @@ type Props = {
 	className?: string;
 	style?: React.CSSProperties;
 	initialValue?: YooptaContentValue;
-	onValueChange?: (value: YooptaContentValue) => void;
+	onValueChange?: (
+		value: YooptaContentValue,
+		options: YooptaOnChangeOptions,
+	) => void;
 	onSave?: () => void;
 	spaceId: string;
 	documentId: string;
@@ -108,6 +112,11 @@ function YooptaEditorWithTools({
 	}, [handleSaveShortcut]);
 
 	const editor: YooEditor = useMemo(() => createYooptaEditor(), []);
+
+	useEffect(() => {
+		if (initialValue === undefined) return;
+		editor.setEditorValue(initialValue);
+	}, [editor, initialValue]);
 
 	// Rich toolbelt restored; keep uploads wired through uploadToBlob.
 	const plugins = useMemo(
@@ -274,13 +283,12 @@ function YooptaEditorWithTools({
 			className={className}
 			editor={editor}
 			marks={marks}
-			onChange={(nextValue) => onValueChange?.(nextValue)}
+			onChange={(nextValue, options) => onValueChange?.(nextValue, options)}
 			placeholder={placeholder}
 			plugins={plugins}
 			readOnly={readOnly}
 			style={style}
 			tools={tools}
-			value={initialValue}
 		/>
 	);
 }

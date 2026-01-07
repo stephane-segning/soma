@@ -21,7 +21,10 @@ function TabsBar({}: TabsBarProps): React.JSX.Element {
 
 	return (
 		<div className="flex min-w-0 items-center gap-2">
-			<div className="no-scrollbar flex flex-1 items-center gap-2 overflow-x-auto">
+			<div
+				className="no-scrollbar flex flex-1 items-center gap-2 overflow-x-auto"
+				data-tauri-drag-region
+			>
 				{tabs.map((tab) => {
 					const isActive = tab.id === activeId;
 					return (
@@ -58,12 +61,12 @@ function TabsBar({}: TabsBarProps): React.JSX.Element {
 				})}
 			</div>
 			<button
-				className="btn btn-primary btn-sm btn-circle shrink-0 [-webkit-app-region:no-drag]"
+				className="btn btn-primary btn-sm btn-circle btn-soft"
 				disabled={atMaxTabs}
 				onClick={() => openTab()}
 				type="button"
 			>
-				<Plus className="size-5" />
+				<Plus className="size-6" />
 			</button>
 		</div>
 	);

@@ -1,11 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { AiChat } from "soma-ui/components/chat/ai-chat";
 import { AiConversation } from "soma-ui/components/chat/ai-conversation";
 import { AiInput } from "soma-ui/components/forms/ai-input";
 import { AiModelSelector } from "soma-ui/components/forms/ai-model-selector";
-import { useChatConversation } from "../hooks/use-chat-conversation";
-import { type ChatMessage, listModels } from "../services/chat-service";
 
 function ChatSidebar(): React.JSX.Element {
 	// const [draft, setDraft] = useState("");

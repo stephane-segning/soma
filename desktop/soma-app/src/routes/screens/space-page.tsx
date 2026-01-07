@@ -1,12 +1,7 @@
 import { YooptaEditorWithTools } from "@soma/components/yoopta/yoopta-editor-with-tools";
-import {
-	useQueueDaemonSyncMutation,
-	useUpsertDocumentDraftMutation,
-} from "@soma/queries/documents";
-import type { YooptaContentValue } from "@yoopta/editor";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { YooptaContentValue, YooptaOnChangeOptions } from "@yoopta/editor";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { type LoaderFunctionArgs, useLoaderData } from "react-router";
-import { useDebounce } from "react-use";
 import * as documentsService from "../../services/documents-service";
 
 type LoaderData = {
@@ -25,6 +20,29 @@ function parseContent(
 	} catch {
 		return undefined;
 	}
+}
+
+function isMeaningfulChange(options: YooptaOnChangeOptions): boolean {
+	const operations = options.operations ?? [];
+	if (operations.length === 0) return true;
+
+	return operations.some((operation) => {
+		if (
+			operation.type === "set_block_path" ||
+			operation.type === "validate_block_paths" ||
+			operation.type === "set_editor_value"
+		) {
+			return false;
+		}
+
+		if (operation.type === "set_slate") {
+			return operation.properties.slateOps.some(
+				(op) => op.type !== "set_selection",
+			);
+		}
+
+		return true;
+	});
 }
 
 async function loader({ params }: LoaderFunctionArgs): Promise<LoaderData> {
@@ -50,87 +68,99 @@ async function loader({ params }: LoaderFunctionArgs): Promise<LoaderData> {
 function Component(): React.JSX.Element {
 	const data = useLoaderData<LoaderData>();
 
-	const [contentJson, setContentJson] = useState<string>(
-		data.initialContentJson ?? "null",
+	const initialValue = useMemo(
+		() => parseContent(data.initialContentJson),
+		[data.initialContentJson],
 	);
-	const contentValue = useMemo(() => parseContent(contentJson), [contentJson]);
 
-	const queueDaemonSync = useQueueDaemonSyncMutation();
-	const upsertDraft = useUpsertDocumentDraftMutation();
-	const latestSerializedRef = useRef("");
-
-	useDebounce(
-		() => {
-			if (!data.spaceId || !data.pageId) return;
-
-			upsertDraft.mutate({
-				spaceId: data.spaceId,
-				documentId: data.pageId,
-				published: true,
-				contentJson,
-			});
-			queueDaemonSync.mutate({
-				spaceId: data.spaceId,
-				documentId: data.pageId,
-				updatedAtMs: Date.now(),
-				published: true,
-				contentJson,
-			});
-		},
-		5,
-		[contentJson],
-	);
+	const latestValueRef = useRef<YooptaContentValue | undefined>(initialValue);
+	const dirtyRef = useRef(false);
+	const savingRef = useRef(false);
+	const autosaveTimerRef = useRef<number | null>(null);
 
 	useEffect(() => {
-		latestSerializedRef.current = contentJson;
-	}, [contentJson]);
+		latestValueRef.current = initialValue;
+		dirtyRef.current = false;
+		if (autosaveTimerRef.current) {
+			window.clearTimeout(autosaveTimerRef.current);
+			autosaveTimerRef.current = null;
+		}
+	}, [initialValue]);
+
+	useEffect(() => {
+		return () => {
+			if (autosaveTimerRef.current) {
+				window.clearTimeout(autosaveTimerRef.current);
+			}
+		};
+	}, []);
+
+	const flushSave = useCallback(async () => {
+		if (!data.spaceId || !data.pageId) return;
+		if (savingRef.current) return;
+		if (!dirtyRef.current) return;
+
+		savingRef.current = true;
+		try {
+			while (dirtyRef.current) {
+				dirtyRef.current = false;
+
+				const contentJson = JSON.stringify(latestValueRef.current ?? null);
+				await documentsService.queueDaemonSync({
+					spaceId: data.spaceId,
+					documentId: data.pageId,
+					updatedAtMs: Date.now(),
+					published: true,
+					contentJson,
+				});
+			}
+		} catch (error) {
+			dirtyRef.current = true;
+			console.warn("Failed to sync document to daemon", error);
+		} finally {
+			savingRef.current = false;
+		}
+	}, [data.pageId, data.spaceId]);
+
+	const scheduleAutosave = useCallback(() => {
+		if (autosaveTimerRef.current) {
+			window.clearTimeout(autosaveTimerRef.current);
+		}
+		autosaveTimerRef.current = window.setTimeout(() => {
+			autosaveTimerRef.current = null;
+			void flushSave();
+		}, 750);
+	}, [flushSave]);
 
 	const handleSave = useCallback(() => {
-		if (!data.spaceId || !data.pageId) return;
-
-		const payload = latestSerializedRef.current;
-		if (!payload) return;
-		try {
-			// Validate JSON before persisting to avoid corrupt drafts.
-			JSON.parse(payload);
-		} catch {
-			return;
+		dirtyRef.current = true;
+		if (autosaveTimerRef.current) {
+			window.clearTimeout(autosaveTimerRef.current);
+			autosaveTimerRef.current = null;
 		}
+		void flushSave();
+	}, [flushSave]);
 
-		const now = Date.now();
-		upsertDraft.mutate({
-			spaceId: data.spaceId,
-			documentId: data.pageId,
-			contentJson: payload,
-			published: true,
-		});
-		queueDaemonSync.mutate({
-			spaceId: data.spaceId,
-			documentId: data.pageId,
-			contentJson: payload,
-			updatedAtMs: now,
-			published: true,
-		});
-	}, [data.pageId, data.spaceId, queueDaemonSync, upsertDraft]);
+	const handleValueChange = useCallback(
+		(value: YooptaContentValue, options: YooptaOnChangeOptions) => {
+			latestValueRef.current = value;
+			if (!isMeaningfulChange(options)) return;
+
+			dirtyRef.current = true;
+			scheduleAutosave();
+		},
+		[scheduleAutosave],
+	);
 
 	return (
 		<div className="flex flex-col gap-4 px-4">
 			<YooptaEditorWithTools
 				className="!w-full"
 				documentId={data.pageId}
-				initialValue={contentValue}
+				initialValue={initialValue}
 				key={`${data.spaceId}:${data.pageId}`}
 				onSave={handleSave}
-				onValueChange={(value) => {
-					try {
-						const serialized = JSON.stringify(value ?? null);
-						if (serialized === contentJson) return;
-						setContentJson(serialized);
-						latestSerializedRef.current = serialized;
-					} catch {
-						// ignore serialization failures
-					}
-				}}
+				onValueChange={handleValueChange}
 				placeholder="Start writing…"
 				spaceId={data.spaceId}
 			/>

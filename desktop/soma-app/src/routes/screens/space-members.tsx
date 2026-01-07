@@ -60,18 +60,23 @@ function Component(): React.JSX.Element {
 					</div>
 				)}
 
-				{!membersQuery.isLoading && !membersQuery.isError && members.length === 0 && (
-					<div className="p-4 text-base-content/70">
-						{t("space.members.empty", "No members found for this space.")}
-					</div>
-				)}
+				{!membersQuery.isLoading &&
+					!membersQuery.isError &&
+					members.length === 0 && (
+						<div className="p-4 text-base-content/70">
+							{t("space.members.empty", "No members found for this space.")}
+						</div>
+					)}
 
 				{members.length > 0 && (
 					<div className="divide-y divide-base-300">
 						{members.map((member) => (
-							<div className="flex items-center justify-between px-4 py-3" key={member.peerId}>
+							<div
+								className="flex items-center justify-between px-4 py-3"
+								key={member.peerId}
+							>
 								<div className="space-y-1">
-									<div className="font-mono text-sm text-base-content">
+									<div className="font-mono text-base-content text-sm">
 										{member.peerId}
 									</div>
 									<div className="text-base-content/60 text-xs">
