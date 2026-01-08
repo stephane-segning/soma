@@ -12,7 +12,7 @@ Follow these steps to run the full Soma stack (daemon, Soma desktop app, and opt
 ## 1. Clone the Repository
 
 ```bash
-git clone <this-repo-url> soma
+git clone https://github.com/stephane-segning/soma soma
 cd soma
 ```
 

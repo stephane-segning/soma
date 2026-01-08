@@ -42,10 +42,10 @@ See `docs/src/development/agentd-ipc.md` for the recommended trust boundary.
 ```mermaid
 flowchart LR
   subgraph "User Device"
-    SomaUI[Soma desktop app<br/>(Tauri + React)]
-    TapiaUI[Tapia companion app<br/>(Tauri + React)]
-    Daemon[soma-daemon<br/>(Rust libp2p peer + storage)]
-    Agent[soma-agentd (optional)<br/>(local AI/compute)]
+    SomaUI["Soma desktop app<br/>(Tauri + React)"]
+    TapiaUI["Tapia companion app<br/>(Tauri + React)"]
+    Daemon["soma-daemon<br/>(Rust libp2p peer + storage)"]
+    Agent["soma-agentd (optional)<br/>(local AI/compute)"]
 
     SomaUI -- IPC (gRPC over UDS) --> Daemon
     TapiaUI -- IPC (gRPC over UDS) --> Daemon
@@ -53,8 +53,8 @@ flowchart LR
   end
 
   subgraph "P2P Network"
-    Daemon -- libp2p --> Other[Other peer (daemon/bot)]
-    Bot[soma-botd<br/>(cache-only peer + onboarding)]:::peer
+    Daemon -- libp2p --> Other["Other peer (daemon/bot)"]
+    Bot["soma-botd<br/>(cache-only peer + onboarding)"]:::peer
     Daemon -- libp2p --> Bot
     Bot -- libp2p --> Other
   end
@@ -68,9 +68,6 @@ flowchart LR
   Daemon -- reserves/relays (fallback) --> Relay
   Bot -- registers/discovers --> Rendezvous
   Bot -- reserves/relays (fallback) --> Relay
-
-  classDef infra fill:#EEE,stroke:#333,stroke-dasharray:5 5;
-  classDef peer fill:#F6F6F6,stroke:#333;
 ```
 
 ## Deep linking (invite links)

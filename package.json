@@ -6,6 +6,9 @@
   "scripts": {
     "dev:soma": "pnpm --filter soma-app run dev",
     "dev:tapia": "pnpm --filter tapia-app run dev",
+    "docs:dev": "pnpm --filter @soma/docs run dev",
+    "docs:build": "pnpm --filter @soma/docs run build",
+    "docs:preview": "pnpm --filter @soma/docs run preview",
     "typecheck": "pnpm --filter soma-app run typecheck && pnpm --filter tapia-app run typecheck",
     "lint": "pnpm --filter soma-app run lint && pnpm --filter tapia-app run lint",
     "format": "pnpm --filter soma-app run format && pnpm --filter tapia-app run format"
@@ -13,6 +16,7 @@
   "workspaces": [
     "desktop/soma-app",
     "desktop/tapia-app",
-    "desktop/soma-ui"
+    "desktop/soma-ui",
+    "docs"
   ]
 }

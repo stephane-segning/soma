@@ -14,11 +14,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Setup just
-        uses: extractions/setup-just@v3
-
-      - name: Build MkDocs
-        uses: ./.github/actions/build-mkdocs
+      - name: Build docs
+        uses: ./.github/actions/build-docs
 
       - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v4

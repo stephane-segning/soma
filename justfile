@@ -97,7 +97,7 @@ test-desktop-all:
 
 # Build docs site (used in CI for gh-pages)
 build-docs:
-    cd docs && mkdocs build --config-file mkdocs.yml --site-dir ../site
+    pnpm --filter @soma/docs run build
     cd desktop/soma-ui && pnpm run build:storybook -- --output-dir ../../site/storybook
 
 # CI helpers (combine existing recipes)

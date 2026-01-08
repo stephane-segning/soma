@@ -3,3 +3,4 @@ packages:
   - 'desktop/soma-app'
   - 'desktop/tapia-app'
   - 'desktop/soma-ui'
+  - 'docs'

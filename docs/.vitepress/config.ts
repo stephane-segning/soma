@@ -1,0 +1,121 @@
+import {type DefaultTheme} from 'vitepress';
+import {withMermaid} from "vitepress-plugin-mermaid";
+import {withPwa} from '@vite-pwa/vitepress'
+
+const nav: DefaultTheme.NavItem[] = [
+    {text: 'Overview', link: '/00-overview'},
+    {text: 'Getting Started', link: '/getting-started/'},
+    {text: 'Architecture', link: '/architecture/soma-tapia'},
+    {text: 'Development', link: '/development/dependencies'},
+    {text: 'Security', link: '/security/threat-model'},
+];
+
+const sidebar: DefaultTheme.Sidebar = {
+    '/': [
+        {text: 'Home', link: '/'},
+        {text: 'Overview', link: '/00-overview'},
+        {text: 'Glossary', link: '/01-glossary'},
+        {text: 'Space Authorization Model', link: '/space-authorization-model'},
+    ],
+    '/getting-started/': [
+        {
+            text: 'Getting Started',
+            items: [{text: 'Setup', link: '/getting-started/'}],
+        },
+    ],
+    '/architecture/': [
+        {
+            text: 'Architecture',
+            items: [
+                {text: 'Platform Components', link: '/architecture/soma-tapia'},
+                {text: 'End-to-End Flows', link: '/architecture/e2e-flows'},
+                {text: 'libp2p Primer', link: '/architecture/libp2p-primer'},
+                {text: 'Peer Connectivity', link: '/architecture/peer-connectivity'},
+                {text: 'Infrastructure Services', link: '/architecture/infra-services'},
+                {text: 'Class Membership', link: '/architecture/class-membership'},
+                {text: 'Blobs (VDF)', link: '/architecture/blobs-vdfs'},
+                {text: 'Packaging & Deployment', link: '/architecture/deployment'},
+                {text: 'Traits', link: '/architecture/traits'},
+            ],
+        },
+        {
+            text: 'ADRs',
+            items: [
+                {text: 'ADR-0001: Local Daemon gRPC', link: '/architecture/adrs/0001-local-daemon-grpc'},
+                {text: 'ADR-0002: Capabilities & Membership', link: '/architecture/adrs/0002-capabilities-membership'},
+                {text: 'ADR-0003: Bots as Cache', link: '/architecture/adrs/0003-bots-as-cache'},
+                {text: 'ADR-0004: VDFs Crate', link: '/architecture/adrs/0004-vdfs-crate'},
+            ],
+        },
+        {
+            text: 'arc42',
+            items: [
+                {text: '01 Introduction & Goals', link: '/architecture/arc42/01-introduction-goals'},
+                {text: '02 Constraints', link: '/architecture/arc42/02-constraints'},
+                {text: '03 Context & Scope', link: '/architecture/arc42/03-context'},
+                {text: '04 Solution Strategy', link: '/architecture/arc42/04-solution-strategy'},
+                {text: '05 Building Block View', link: '/architecture/arc42/05-building-block-view'},
+                {text: '06 Runtime View', link: '/architecture/arc42/06-runtime-view'},
+                {text: '07 Deployment View', link: '/architecture/arc42/07-deployment-view'},
+                {text: '08 Crosscutting Concepts', link: '/architecture/arc42/08-crosscutting'},
+                {text: '09 Architecture Decisions', link: '/architecture/arc42/09-architecture-decisions'},
+                {text: '10 Quality Requirements', link: '/architecture/arc42/10-quality-requirements'},
+                {text: '11 Risks & Technical Debt', link: '/architecture/arc42/11-risks-tech-debt'},
+                {text: '12 Glossary', link: '/architecture/arc42/12-glossary'},
+            ],
+        },
+    ],
+    '/development/': [
+        {
+            text: 'Development',
+            items: [
+                {text: 'Dependencies', link: '/development/dependencies'},
+                {text: 'Protos & Codegen', link: '/development/protos'},
+                {text: 'Database & Migrations', link: '/development/database'},
+                {text: 'Telemetry & Logging', link: '/development/telemetry-logging'},
+                {text: 'xtask', link: '/development/xtask'},
+                {text: 'justfile', link: '/development/justfile'},
+                {text: 'Peer Events', link: '/development/peer-events'},
+                {text: 'Tauri Apps (commands)', link: '/development/tauri-commands'},
+                {text: 'Tapia Deep Links', link: '/development/tapia-deep-links'},
+                {text: 'Agentd IPC', link: '/development/agentd-ipc'},
+                {text: 'Local LLMs (agentd models)', link: '/development/agentd-models'},
+                {text: 'Daemon Testing (grpcurl)', link: '/development/daemon-grpcurl'},
+                {text: 'Backend Refactor Notes', link: '/development/backend-refactor-notes'},
+                {text: 'UI Components', link: '/development/ui-components'},
+            ],
+        },
+    ],
+    '/security/': [
+        {
+            text: 'Security',
+            items: [
+                {text: 'Threat Model', link: '/security/threat-model'},
+                {text: 'SBOM', link: '/security/sbom'},
+            ],
+        },
+    ],
+};
+
+export default withPwa(withMermaid({
+    lang: 'en-US',
+    title: 'Soma',
+    titleTemplate: 'Soma',
+    description: 'Documentation for Soma and Tapia',
+    srcDir: 'src',
+    outDir: '../site',
+    cleanUrls: true,
+    lastUpdated: true,
+    markdown: {
+        lineNumbers: true,
+    },
+    themeConfig: {
+        nav,
+        sidebar,
+        search: {
+            provider: 'local',
+        },
+        outline: 'deep',
+    },
+    pwa: {}
+}));

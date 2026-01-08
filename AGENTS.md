@@ -20,7 +20,7 @@ In this repo, **VDF** refers to a **cache-only peer role** (sometimes casually w
 - `desktop/` – Desktop applications and packaging.
     - `desktop/soma-app/` – Soma Tauri v2 app (main/only Soma desktop UI; Rust main process).
     - `desktop/tapia-app/` – Tapia Tauri v2 app (main Tapia UI; Rust main process). Legacy Electron app remains under `desktop/tapia` but is not the primary target.
-- `docs/` – MkDocs documentation (`docs/src/` for markdown, `docs/mkdocs.yml` for navigation).
+- `docs/` – VitePress documentation (`docs/src/` for markdown, `docs/.vitepress` for config/navigation).
 - `proto/` – shared protocol definitions and codegen inputs.
 - `deploy/` – Helm charts and infrastructure manifests.
 - `prd/` – product requirements and high-level product documentation.
@@ -35,8 +35,9 @@ When in doubt, place:
 
 Docs quickstart:
 
-- Local build: `cd docs && mkdocs build` (CI installs MkDocs; locally you may want a venv/pipx if `pip` is externally-managed).
-- Repo helper: `just build-docs` (writes to `./site`). Storybook for `desktop/soma-ui` is also built into `site/storybook` after MkDocs.
+- Docs live as the `@soma/docs` workspace package under `docs/`.
+- Local build: `pnpm docs:dev` (VitePress dev server) or `pnpm docs:build` (writes to `./site`).
+- Repo helper: `just build-docs` (runs VitePress build to `./site` and Storybook into `site/storybook`).
 
 Repo automation (`xtask`):
 

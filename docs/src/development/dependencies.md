@@ -22,22 +22,15 @@ This keeps dependency upgrades simple, avoids version skew, and makes feature us
 - Desktop dependencies are managed via the `pnpm` workspace under `desktop/`.
 - Install and run scripts via `pnpm` (not `npm`).
 
-## Docs (MkDocs)
+## Docs (VitePress)
 
-Docs are built with MkDocs using the `bootstrap386` theme (CI installs these via `.github/actions/build-mkdocs/action.yml`).
+Docs are built with VitePress (Node-based) from the `docs/src` markdown tree via the `@soma/docs` workspace package. Use the root scripts (or `pnpm --filter @soma/docs run dev/build` directly):
+
+```bash
+pnpm docs:dev     # dev server
+pnpm docs:build   # outputs to ./site
+```
 
 ## Repo automation (`cargo xtask`)
 
 Repo automation lives in `xtask/` and is invoked via `cargo xtask ...` (wired through `.cargo/config.toml`). This is used by CI for version resolution and bundle packaging.
-
-Local install:
-
-```bash
-python3 -m pip install mkdocs mkdocs-material mkdocs-bootstrap386 mkdocs-mermaid2-plugin
-```
-
-Build:
-
-```bash
-just build-docs
-```

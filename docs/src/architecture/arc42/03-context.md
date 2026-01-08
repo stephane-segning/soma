@@ -25,10 +25,10 @@ flowchart LR
   end
 
   subgraph Server["Optional server components"]
-    Bot[soma-botd (VDF)]
+    Bot["soma-botd (VDF)"]
     Relay[soma-relayd]
     Rdz[soma-rendezvousd]
-    Bff[soma-bffd (LLM BFF)]
+    Bff["soma-bffd (LLM BFF)"]
   end
 
   DaemonA <--> DaemonB
