@@ -21,6 +21,7 @@ function Component(): React.JSX.Element {
 	return (
 		<>
 			<DesktopShell
+				defaultRightOpen={false}
 				header={(props) => (
 					<>
 						<header
@@ -57,13 +58,14 @@ function Component(): React.JSX.Element {
 							</div>
 						}
 					>
-						<div className="p-2">
+						<div className="border-base-300 border-l p-3">
 							<ChatSidebar />
 						</div>
 					</Suspense>
 				}
+				variant="flat"
 			>
-				<div className="ring-2 ring-base-200">
+				<div className="min-h-full bg-base-100">
 					<Outlet />
 				</div>
 			</DesktopShell>

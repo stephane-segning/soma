@@ -32,10 +32,10 @@ const YouTubePlayer = ({ videoId, children, attributes, ...other }: Props) => {
 	};
 
 	return (
-		<div {...attributes} className="yoo-video-relative" ref={onRef}>
+		<div {...attributes} className="relative" ref={onRef}>
 			<img
 				alt="youtube_video_preview"
-				className="yoo-video-absolute yoo-video-top-0 yoo-video-left-0 yoo-video-w-full yoo-video-h-full"
+				className="absolute top-0 left-0 w-full h-full"
 				height="100%"
 				src={`https://i.ytimg.com/vi/${videoId}/default.jpg`}
 				style={{
@@ -48,7 +48,7 @@ const YouTubePlayer = ({ videoId, children, attributes, ...other }: Props) => {
 				<iframe
 					allowFullScreen
 					// https://developers.google.com/youtube/player_parameters?hl=en
-					className="yoo-video-absolute yoo-video-top-0 yoo-video-left-0"
+					className="absolute top-0 left-0"
 					frameBorder={0}
 					onLoad={() => setFrameLoaded(true)}
 					src={`https://www.youtube.com/embed/${videoId}`}

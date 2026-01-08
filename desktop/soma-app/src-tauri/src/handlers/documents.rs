@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
-use soma_proto_build::daemon::UpsertDocumentRequest;
+use soma_proto_build::daemon::{GetDocumentRequest, UpsertDocumentRequest};
 
 use crate::error::AppResult;
 use crate::state::ManagedState;
@@ -30,22 +30,21 @@ pub struct PageRecord {
 }
 
 #[derive(Default)]
-struct DocCache {
-    drafts: HashMap<String, DraftRecord>,
+struct PageCache {
     pages: HashMap<String, PageRecord>,
 }
 
 #[derive(Clone)]
 pub struct DocumentsController {
     state: ManagedState,
-    cache: Arc<Mutex<DocCache>>,
+    pages: Arc<Mutex<PageCache>>,
 }
 
 impl DocumentsController {
     pub fn new(state: ManagedState) -> Self {
         Self {
             state,
-            cache: Arc::new(Mutex::new(DocCache::default())),
+            pages: Arc::new(Mutex::new(PageCache::default())),
         }
     }
 
@@ -54,15 +53,15 @@ impl DocumentsController {
             .updated_at_ms
             .unwrap_or_else(|| Utc::now().timestamp_millis());
 
-        self.persist_draft_record(DraftRecord {
+        let payload = UpsertDocumentRequest {
             space_id: params.space_id,
             document_id: params.document_id,
             content_json: params.content_json,
-            published: if params.published { 1 } else { 0 },
+            published: params.published,
             updated_at_ms,
-        });
+        };
 
-        Ok(())
+        self.state.daemon.upsert_document(payload).await.map(|_| ())
     }
 
     pub async fn queue_daemon_sync(&self, params: QueueDaemonSyncParams) -> AppResult<()> {
@@ -74,22 +73,11 @@ impl DocumentsController {
             published,
         } = params;
 
-        let published = published.unwrap_or(true);
-        let published_flag = if published { 1 } else { 0 };
-
-        self.persist_draft_record(DraftRecord {
-            space_id: space_id.clone(),
-            document_id: document_id.clone(),
-            content_json: content_json.clone(),
-            published: published_flag,
-            updated_at_ms,
-        });
-
         let payload = UpsertDocumentRequest {
             space_id,
             document_id,
             content_json,
-            published,
+            published: published.unwrap_or(true),
             updated_at_ms,
         };
 
@@ -105,26 +93,30 @@ impl DocumentsController {
             updated_at_ms: params.updated_at_ms,
         };
 
-        self.state.daemon.upsert_document(payload).await.map(|_| {
-            self.persist_draft_record(DraftRecord {
-                space_id: params.space_id,
-                document_id: params.document_id,
-                content_json: params.content_json,
-                published: 1,
-                updated_at_ms: params.updated_at_ms,
-            });
-            1
-        })
+        self.state.daemon.upsert_document(payload).await.map(|_| 1)
     }
 
-    pub fn get_draft(&self, params: GetDraftParams) -> AppResult<Option<DraftRecord>> {
-        let key = cache_key(&params.space_id, &params.document_id);
-        let cache = self.cache.lock().expect("doc cache mutex poisoned");
-        Ok(cache.drafts.get(&key).cloned())
+    pub async fn get_draft(&self, params: GetDraftParams) -> AppResult<Option<DraftRecord>> {
+        let response = self
+            .state
+            .daemon
+            .get_document(GetDocumentRequest {
+                space_id: params.space_id,
+                document_id: params.document_id,
+            })
+            .await?;
+
+        Ok(response.map(|doc| DraftRecord {
+            space_id: doc.space_id,
+            document_id: doc.document_id,
+            content_json: doc.content_json,
+            published: if doc.published { 1 } else { 0 },
+            updated_at_ms: doc.updated_at_ms,
+        }))
     }
 
     pub fn ensure_page(&self, params: EnsurePageParams) -> AppResult<PageRecord> {
-        let mut cache = self.cache.lock().expect("doc cache mutex poisoned");
+        let mut cache = self.pages.lock().expect("page cache mutex poisoned");
         let key = cache_key(&params.space_id, &params.page_id);
         let existing = cache.pages.get(&key).cloned();
         let now = Utc::now().timestamp_millis();
@@ -150,7 +142,7 @@ impl DocumentsController {
     }
 
     pub fn list_pages(&self, params: ListPagesParams) -> AppResult<Vec<PageRecord>> {
-        let cache = self.cache.lock().expect("doc cache mutex poisoned");
+        let cache = self.pages.lock().expect("page cache mutex poisoned");
         Ok(cache
             .pages
             .values()
@@ -163,7 +155,7 @@ impl DocumentsController {
         &self,
         params: UpdatePageTitleParams,
     ) -> AppResult<Option<PageRecord>> {
-        let mut cache = self.cache.lock().expect("doc cache mutex poisoned");
+        let mut cache = self.pages.lock().expect("page cache mutex poisoned");
         let key = cache_key(&params.space_id, &params.page_id);
         if let Some(record) = cache.pages.get_mut(&key) {
             record.title = params.title;
@@ -174,7 +166,7 @@ impl DocumentsController {
     }
 
     pub fn set_page_parents(&self, params: SetPageParentsParams) -> AppResult<Option<PageRecord>> {
-        let mut cache = self.cache.lock().expect("doc cache mutex poisoned");
+        let mut cache = self.pages.lock().expect("page cache mutex poisoned");
         let key = cache_key(&params.space_id, &params.page_id);
         if let Some(record) = cache.pages.get_mut(&key) {
             record.parent_page_ids = params.parent_page_ids;
@@ -182,12 +174,6 @@ impl DocumentsController {
             return Ok(Some(record.clone()));
         }
         Ok(None)
-    }
-
-    fn persist_draft_record(&self, record: DraftRecord) {
-        let mut cache = self.cache.lock().expect("doc cache mutex poisoned");
-        let key = cache_key(&record.space_id, &record.document_id);
-        cache.drafts.insert(key, record);
     }
 }
 

@@ -67,7 +67,7 @@ const FileUploader = ({
 
 	return (
 		<button
-			className="yoo-file-user-select-none yoo-file-transition-bg yoo-file-duration-20 yoo-file-ease-in yoo-file-white-space-nowrap yoo-file-rounded-[4px] yoo-file-h-[32px] yoo-file-px-[12px] yoo-file-border yoo-file-border-solid yoo-file-border-[rgba(55,53,47,0.16)] yoo-file-w-full yoo-file-cursor-pointer yoo-file-text-[14px] yoo-file-leading-[1.2] yoo-file-font-medium yoo-file-flex yoo-file-items-center yoo-file-justify-center yoo-file-bg-white"
+			className="user-select-none transition-bg duration-20 ease-in white-space-nowrap rounded-[4px] h-[32px] px-[12px] border border-solid border-[rgba(55,53,47,0.16)] w-full cursor-pointer text-[14px] leading-[1.2] font-medium flex items-center justify-center bg-white"
 			onClick={pickAndUpload}
 			type="button"
 		>

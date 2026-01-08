@@ -102,10 +102,10 @@ const VideoRender = ({ extendRender, ...props }: PluginElementRenderProps) => {
     <div
       contentEditable={false}
       draggable={false}
-      className={`yoo-video-mt-4 yoo-video-relative yoo-video-flex ${alignClass} yoopta-video`}>
-      <Resizable {...resizeProps} className="yoo-video-my-0 yoo-video-flex">
+      className={`mt-4 relative flex ${alignClass} yoopta-video`}>
+      <Resizable {...resizeProps} className="my-0 flex">
         {blockSelected && (
-          <div className="yoo-video-absolute yoo-video-pointer-events-none yoo-video-inset-0 yoo-video-bg-[rgba(35,131,226,0.14)] yoo-video-z-[81] yoo-video-rounded-[3px] yoo-video-opacity-100 yoo-video-transition-opacity yoo-video-duration-150 yoo-video-ease-in" />
+          <div className="absolute pointer-events-none inset-0 bg-[rgba(35,131,226,0.14)] z-[81] rounded-[3px] opacity-100 transition-opacity duration-150 ease-in" />
         )}
         {extendRender ? (
           extendRender(props)

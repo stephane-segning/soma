@@ -124,9 +124,15 @@ importers:
       i18next-resources-to-backend:
         specifier: ^1.2.1
         version: 1.2.1
+      prop-types:
+        specifier: ^15.8.1
+        version: 15.8.1
       react:
         specifier: ^19.1.0
         version: 19.2.3
+      react-avatar:
+        specifier: ^5.0.4
+        version: 5.0.4(@babel/runtime@7.28.4)(core-js-pure@3.47.0)(prop-types@15.8.1)(react@19.2.3)
       react-cmdk:
         specifier: ^1.3.9
         version: 1.3.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -4162,6 +4168,9 @@ packages:
   character-reference-invalid@2.0.1:
     resolution: {integrity: sha512-iBZ4F4wRbyORVsu0jPV7gXkOsGYjGHPmAyv+HiHG8gi5PtC9KI2j1+v8/tlibRvjoWX027ypmG/n0HtO5t7unw==}
 
+  charenc@0.0.2:
+    resolution: {integrity: sha512-yrLQ/yVUFXkzg7EDQsPieE/53+0RlaWTs+wBrvW36cyilJ2SaDWfl4Yj7MtLTXleV9uEKefbAGUPv2/iWSooRA==}
+
   check-error@2.1.1:
     resolution: {integrity: sha512-OAlb+T7V4Op9OwdkjmguYRqncdlx5JiofwOAUkmTF+jNdHwzTaTs4sRAGpzLF3oOz5xAyDGrPgeIDFQmDOTiJw==}
     engines: {node: '>= 16'}
@@ -4291,6 +4300,9 @@ packages:
   core-js-compat@3.47.0:
     resolution: {integrity: sha512-IGfuznZ/n7Kp9+nypamBhvwdwLsW6KC8IOaURw2doAK5e98AG3acVLdh0woOnEqCfUtS+Vu882JE4k/DAm3ItQ==}
 
+  core-js-pure@3.47.0:
+    resolution: {integrity: sha512-BcxeDbzUrRnXGYIVAGFtcGQVNpFcUhVjr6W7F8XktvQW2iJP9e66GP6xdKotCRFlrxBvNIBrhwKteRXqMV86Nw==}
+
   core-js@3.47.0:
     resolution: {integrity: sha512-c3Q2VVkGAUyupsjRnaNX6u8Dq2vAdzm9iuPj5FW0fRxzlxgq9Q39MDq10IvmQSpLgHQNyQzQmOo6bgGHmH3NNg==}
 
@@ -4312,6 +4324,9 @@ packages:
 
   crossws@0.3.5:
     resolution: {integrity: sha512-ojKiDvcmByhwa8YYqbQI/hg7MEU0NC03+pSdEq4ZUnZR9xXpwk7E43SMNGkn+JxJGPFtNvQ48+vV2p+P1ml5PA==}
+
+  crypt@0.0.2:
+    resolution: {integrity: sha512-mCxBlsHFYh9C+HVpiEacem8FEBnMXgU9gy4zmNC+SXAZNB/1idgp/aulFJ4FgCi7GPEVbfyng092GqL2k2rmow==}
 
   crypto-random-string@2.0.0:
     resolution: {integrity: sha512-v1plID3y9r/lPhviJ1wrXpLeyUIGAZ2SHNYTEapm7/8A9nLPoyvVp3RK/EPFqn5kEznyWgYZNsRtYYIWbuG8KA==}
@@ -5154,6 +5169,9 @@ packages:
     resolution: {integrity: sha512-wa56o2/ElJMYqjCjGkXri7it5FbebW5usLw/nPmCMs5DeZ7eziSYZhSmPRn0txqeW4LnAmQQU7FgqLpsEFKM4A==}
     engines: {node: '>= 0.4'}
 
+  is-buffer@1.1.6:
+    resolution: {integrity: sha512-NcdALwpXkTm5Zvvbk7owOUSvVvBKDgKP5/ewfXEznmQFfs4ZRmanOeKBTjRVjka3QFoN6XJ+9F3USqfHqTaU5w==}
+
   is-callable@1.2.7:
     resolution: {integrity: sha512-1BC0BVFhS/p0qtw6enp8e+8OD0UrK0oFLztSjNzhcKA3WDuJxxAPXzPuPtKkjEY9UUoEWlX/8fgKeu2S8i9JTA==}
     engines: {node: '>= 0.4'}
@@ -5242,6 +5260,9 @@ packages:
   is-regexp@1.0.0:
     resolution: {integrity: sha512-7zjFAPO4/gwyQAAgRRmqeEeyIICSdmCqa3tsVHMdBzaXXRiqopZL4Cyghg/XulGWrtABTpbnYYzzIRffLkP4oA==}
     engines: {node: '>=0.10.0'}
+
+  is-retina@1.0.3:
+    resolution: {integrity: sha512-/tCmbIETZwCd8uHWO+GvbRa7jxwHFHdfetHfiwoP0aN9UDf3prUJMtKn7iBFYipYhqY1bSTjur8hC/Dakt8eyw==}
 
   is-set@2.0.3:
     resolution: {integrity: sha512-iPAjerrse27/ygGLxw+EBR9agv9Y6uLeYVJMu+QNCoouJ1/1ri0mGrcWpfCqFZuzzx3WjtwxG098X+n4OuRkPg==}
@@ -5563,6 +5584,9 @@ packages:
   math-intrinsics@1.1.0:
     resolution: {integrity: sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==}
     engines: {node: '>= 0.4'}
+
+  md5@2.3.0:
+    resolution: {integrity: sha512-T1GITYmFaKuO91vxyoQMFETst+O71VUPEU3ze5GNzDm0OWdP8v1ziTaAEPUr/3kLsY3Sftgz242A1SetQiDL7g==}
 
   mdast-util-find-and-replace@3.0.2:
     resolution: {integrity: sha512-Tmd1Vg/m3Xz43afeNxDIhWRtFZgM2VLyaf4vSTYwudTyeuTneoL3qtWMA5jeLyz/O1vDJmmV4QuScFCA2tBPwg==}
@@ -6237,6 +6261,14 @@ packages:
     peerDependencies:
       react: ^16.13.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
       react-dom: ^16.13.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
+  react-avatar@5.0.4:
+    resolution: {integrity: sha512-5oJRv9A02KBJGtVIpCZjU2yWGKetUX0Ft5GMCJ2oDM53XfhuubIGb1WsZJLcCh/QywpAXap8g7R9NVAGtp+Amw==}
+    peerDependencies:
+      '@babel/runtime': '>=7'
+      core-js-pure: '>=3'
+      prop-types: ^15.0.0 || ^16.0.0
+      react: ^15.0.0 || ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
   react-cmdk@1.3.9:
     resolution: {integrity: sha512-MSVmAQZ9iqY7hO3r++XP6yWSHzGfMDGMvY3qlDT8k5RiWoRFwO1CGPlsWzhvcUbPilErzsMKK7uB4McEcX4B6g==}
@@ -11472,6 +11504,8 @@ snapshots:
 
   character-reference-invalid@2.0.1: {}
 
+  charenc@0.0.2: {}
+
   check-error@2.1.1: {}
 
   chevrotain-allstar@0.3.1(chevrotain@11.0.3):
@@ -11597,6 +11631,8 @@ snapshots:
     dependencies:
       browserslist: 4.28.1
 
+  core-js-pure@3.47.0: {}
+
   core-js@3.47.0: {}
 
   cose-base@1.0.3:
@@ -11624,6 +11660,8 @@ snapshots:
   crossws@0.3.5:
     dependencies:
       uncrypto: 0.1.3
+
+  crypt@0.0.2: {}
 
   crypto-random-string@2.0.0: {}
 
@@ -12681,6 +12719,8 @@ snapshots:
       call-bound: 1.0.4
       has-tostringtag: 1.0.2
 
+  is-buffer@1.1.6: {}
+
   is-callable@1.2.7: {}
 
   is-core-module@2.16.1:
@@ -12753,6 +12793,8 @@ snapshots:
       hasown: 2.0.2
 
   is-regexp@1.0.0: {}
+
+  is-retina@1.0.3: {}
 
   is-set@2.0.3: {}
 
@@ -13005,6 +13047,12 @@ snapshots:
   marked@16.4.2: {}
 
   math-intrinsics@1.1.0: {}
+
+  md5@2.3.0:
+    dependencies:
+      charenc: 0.0.2
+      crypt: 0.0.2
+      is-buffer: 1.1.6
 
   mdast-util-find-and-replace@3.0.2:
     dependencies:
@@ -13899,6 +13947,15 @@ snapshots:
     dependencies:
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
+
+  react-avatar@5.0.4(@babel/runtime@7.28.4)(core-js-pure@3.47.0)(prop-types@15.8.1)(react@19.2.3):
+    dependencies:
+      '@babel/runtime': 7.28.4
+      core-js-pure: 3.47.0
+      is-retina: 1.0.3
+      md5: 2.3.0
+      prop-types: 15.8.1
+      react: 19.2.3
 
   react-cmdk@1.3.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3):
     dependencies:

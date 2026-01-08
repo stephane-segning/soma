@@ -219,6 +219,19 @@ message UpsertDocumentResponse {
   bool ok = 1;
 }
 
+message GetDocumentRequest {
+  string space_id = 1;
+  string document_id = 2;
+}
+
+message GetDocumentResponse {
+  string space_id = 1;
+  string document_id = 2;
+  string content_json = 3;
+  bool published = 4;
+  int64 updated_at_ms = 5;
+}
+
 message DaemonEvent {
   oneof event {
     JoinDecisionEvent join_decision = 1;
@@ -246,4 +259,5 @@ service Daemon {
   rpc DecideJoin(DecideJoinRequest) returns (DecideJoinResponse);
   rpc UploadBlob(UploadBlobRequest) returns (UploadBlobResponse);
   rpc UpsertDocument(UpsertDocumentRequest) returns (UpsertDocumentResponse);
+  rpc GetDocument(GetDocumentRequest) returns (GetDocumentResponse);
 }

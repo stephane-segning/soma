@@ -14,6 +14,7 @@ use tokio_stream::{StreamExt as TokioStreamExt, wrappers::BroadcastStream};
 use tonic::{Request, Response, Status};
 use tracing::{info, warn};
 
+use soma_storage::documents::Document;
 use crate::services::space::SpaceManager;
 use soma_storage::RepositoryProvider;
 use soma_vdfs::fs::FsBlobStore;
@@ -338,31 +339,62 @@ impl daemon::daemon_server::Daemon for DaemonService {
             return Err(Status::invalid_argument("content_json required"));
         }
 
-        let published = if payload.published { 1_i64 } else { 0_i64 };
-        sqlx::query(
-            r#"
-            INSERT INTO documents (space_id, document_id, content_json, published, updated_at_ms)
-            VALUES ($1, $2, $3, $4, $5)
-            ON CONFLICT(space_id, document_id)
-            DO UPDATE SET
-                content_json = excluded.content_json,
-                published = excluded.published,
-                updated_at_ms = excluded.updated_at_ms
-            "#,
-        )
-        .bind(payload.space_id)
-        .bind(payload.document_id)
-        .bind(payload.content_json)
-        .bind(published)
-        .bind(payload.updated_at_ms)
-        .execute(&self.state.repos.pool())
-        .await
-        .map_err(|err| {
-            warn!(%err, "upsert_document failed");
-            Status::internal("failed to upsert document")
-        })?;
+        let document = Document {
+            space_id: payload.space_id,
+            document_id: payload.document_id,
+            content_json: payload.content_json,
+            published: payload.published,
+            updated_at_ms: payload.updated_at_ms,
+        };
+
+        self.state
+            .repos
+            .document_repo()
+            .upsert_document(&document)
+            .await
+            .map_err(|err| {
+                warn!(%err, "upsert_document failed");
+                Status::internal("failed to upsert document")
+            })?;
 
         Ok(Response::new(daemon::UpsertDocumentResponse { ok: true }))
+    }
+
+    async fn get_document(
+        &self,
+        request: Request<daemon::GetDocumentRequest>,
+    ) -> Result<Response<daemon::GetDocumentResponse>, Status> {
+        let payload = request.into_inner();
+        if payload.space_id.is_empty() {
+            return Err(Status::invalid_argument("space_id required"));
+        }
+        self.ensure_membership(&payload.space_id).await?;
+        if payload.document_id.is_empty() {
+            return Err(Status::invalid_argument("document_id required"));
+        }
+
+        let document = self
+            .state
+            .repos
+            .document_repo()
+            .get_document(&payload.space_id, &payload.document_id)
+            .await
+            .map_err(|err| {
+                warn!(%err, "get_document failed");
+                Status::internal("failed to fetch document")
+            })?;
+
+        let Some(document) = document else {
+            return Err(Status::not_found("document not found"));
+        };
+
+        Ok(Response::new(daemon::GetDocumentResponse {
+            space_id: document.space_id,
+            document_id: document.document_id,
+            content_json: document.content_json,
+            published: document.published,
+            updated_at_ms: document.updated_at_ms,
+        }))
     }
 
     async fn decide_join(

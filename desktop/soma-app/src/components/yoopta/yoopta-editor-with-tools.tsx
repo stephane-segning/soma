@@ -32,9 +32,9 @@ import {
 } from "@yoopta/marks";
 import Paragraph from "@yoopta/paragraph";
 import Table from "@yoopta/table";
-import Toolbar, { DefaultToolbarRender } from "@yoopta/toolbar";
 import type React from "react";
 import { useCallback, useEffect, useMemo } from "react";
+import { useHotkeys } from "react-hotkeys-hook";
 import {
 	YooptaFilePlugin,
 	YooptaImagePlugin,
@@ -95,23 +95,7 @@ function YooptaEditorWithTools({
 	spaceId,
 	documentId,
 }: Props): React.JSX.Element {
-	const handleSaveShortcut = useCallback(
-		(event: KeyboardEvent) => {
-			if (readOnly || !onSave) return;
-			if (event.key.toLowerCase() !== "s") return;
-			if (!event.metaKey && !event.ctrlKey) return;
-			event.preventDefault();
-			onSave();
-		},
-		[onSave, readOnly],
-	);
-
-	useEffect(() => {
-		window.addEventListener("keydown", handleSaveShortcut);
-		return () => window.removeEventListener("keydown", handleSaveShortcut);
-	}, [handleSaveShortcut]);
-
-	const editor: YooEditor = useMemo(() => createYooptaEditor(), []);
+	const editor = useMemo(() => createYooptaEditor(), []);
 
 	useEffect(() => {
 		if (initialValue === undefined) return;
@@ -261,7 +245,7 @@ function YooptaEditorWithTools({
 					},
 				}),
 			] as YooptaPlugin<Record<string, SlateElement>>[],
-		[],
+		[documentId, spaceId],
 	);
 
 	const marks = useMemo(
@@ -272,11 +256,12 @@ function YooptaEditorWithTools({
 	const tools: Partial<Tools> = useMemo(
 		() => ({
 			ActionMenu: { tool: ActionMenuList, render: DefaultActionMenuRender },
-			Toolbar: { tool: Toolbar, render: DefaultToolbarRender },
 			LinkTool: { tool: LinkTool, render: DefaultLinkToolRender },
 		}),
 		[],
 	);
+
+	useHotkeys("mod+s", () => onSave, [onSave], { scopes: ["rich-text"] });
 
 	return (
 		<YooptaEditorView

@@ -51,7 +51,7 @@ pub async fn documents_get_draft(
     request: tauri::ipc::Request<'_>,
 ) -> AppResult<Option<DraftRecord>> {
     let params: GetDraftParams = parse_params(&request, "documents_get_draft")?;
-    controller.get_draft(params)
+    controller.get_draft(params).await
 }
 
 #[tauri::command]

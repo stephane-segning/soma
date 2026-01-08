@@ -103,7 +103,7 @@ const ImageComponent = ({
           <UI.Overlay
             onClick={handleImageClick}
             lockScroll
-            className="yoopta-image-zoom-overlay yoo-image-bg-[rgba(255,255,255,0.95)]">
+            className="yoopta-image-zoom-overlay bg-[rgba(255,255,255,0.95)]">
             <></>
           </UI.Overlay>
         </UI.Portal>

@@ -1,7 +1,10 @@
 import { YooptaEditorWithTools } from "@soma/components/yoopta/yoopta-editor-with-tools";
+import { usePagesQuery } from "@soma/queries/pages";
 import type { YooptaContentValue, YooptaOnChangeOptions } from "@yoopta/editor";
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { type LoaderFunctionArgs, useLoaderData } from "react-router";
+import { Bookmark, Clock, MessageCircle, MoreHorizontal } from "react-feather";
+import { HotkeysProvider } from "react-hotkeys-hook";
+import { Link, type LoaderFunctionArgs, useLoaderData } from "react-router";
 import * as documentsService from "../../services/documents-service";
 
 type LoaderData = {
@@ -67,6 +70,7 @@ async function loader({ params }: LoaderFunctionArgs): Promise<LoaderData> {
 
 function Component(): React.JSX.Element {
 	const data = useLoaderData<LoaderData>();
+	const pagesQuery = usePagesQuery(data.spaceId);
 
 	const initialValue = useMemo(
 		() => parseContent(data.initialContentJson),
@@ -152,18 +156,97 @@ function Component(): React.JSX.Element {
 		[scheduleAutosave],
 	);
 
+	const pages = pagesQuery.data ?? [];
+	const page = pages.find((p) => p.pageId === data.pageId);
+
+	const breadcrumbs = useMemo(() => {
+		if (!page) return [];
+		const map = new Map(pages.map((p) => [p.pageId, p]));
+		const chain = [];
+		const seen = new Set<string>();
+		let cursor: typeof page | undefined = page;
+		while (cursor && !seen.has(cursor.pageId)) {
+			chain.push(cursor);
+			seen.add(cursor.pageId);
+			const parentId = cursor.parentPageIds[0];
+			cursor = parentId ? map.get(parentId) : undefined;
+		}
+		return chain.reverse();
+	}, [page, pages]);
+
+	const lastEditedLabel = useMemo(() => {
+		const updatedAtMs = page?.updatedAtMs ?? null;
+		if (!updatedAtMs) return "just now";
+		const delta = Date.now() - updatedAtMs;
+		const minutes = Math.floor(delta / (60 * 1000));
+		if (minutes <= 1) return "just now";
+		if (minutes < 60) return `${minutes}m ago`;
+		const hours = Math.floor(minutes / 60);
+		if (hours < 24) return `${hours}h ago`;
+		const days = Math.floor(hours / 24);
+		if (days < 30) return `${days}d ago`;
+		const months = Math.floor(days / 30);
+		return `${months}mo ago`;
+	}, [page]);
+
 	return (
-		<div className="flex flex-col gap-4 px-4">
-			<YooptaEditorWithTools
-				className="!w-full"
-				documentId={data.pageId}
-				initialValue={initialValue}
-				key={`${data.spaceId}:${data.pageId}`}
-				onSave={handleSave}
-				onValueChange={handleValueChange}
-				placeholder="Start writing…"
-				spaceId={data.spaceId}
-			/>
+		<div className="flex justify-center bg-base-100">
+			<div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-8">
+				<div className="flex flex-wrap items-center justify-between gap-2 text-base-content/70 text-sm">
+					<div className="flex flex-wrap items-center gap-2 text-base-content/60 text-xs">
+						<Link
+							className="hover:underline"
+							to={`/spaces/${data.spaceId}/pages`}
+						>
+							Home
+						</Link>
+						{breadcrumbs.map((crumb, index) => (
+							<span className="flex items-center gap-2" key={crumb.pageId}>
+								<span className="text-base-content/40">/</span>
+								{index === breadcrumbs.length - 1 ? (
+									<span className="font-medium text-base-content">
+										{crumb.title || "Untitled"}
+									</span>
+								) : (
+									<Link
+										className="hover:underline"
+										to={`/spaces/${crumb.spaceId}/pages/${crumb.pageId}`}
+									>
+										{crumb.title || "Untitled"}
+									</Link>
+								)}
+							</span>
+						))}
+					</div>
+					<div className="flex items-center gap-1">
+						<button className="btn btn-ghost btn-sm" type="button">
+							<MessageCircle className="size-4" />
+						</button>
+						<button className="btn btn-ghost btn-sm" type="button">
+							<Clock className="size-4" />
+						</button>
+						<button className="btn btn-ghost btn-sm" type="button">
+							<Bookmark className="size-4" />
+						</button>
+						<button className="btn btn-ghost btn-sm" type="button">
+							<MoreHorizontal className="size-4" />
+						</button>
+					</div>
+				</div>
+
+				<HotkeysProvider initiallyActiveScopes={["rich-text"]}>
+					<YooptaEditorWithTools
+						className="!w-full"
+						documentId={data.pageId}
+						initialValue={initialValue}
+						key={`${data.spaceId}:${data.pageId}`}
+						onSave={handleSave}
+						onValueChange={handleValueChange}
+						placeholder="Start writing…"
+						spaceId={data.spaceId}
+					/>
+				</HotkeysProvider>
+			</div>
 		</div>
 	);
 }

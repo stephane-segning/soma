@@ -1,6 +1,6 @@
 import { cn } from "@soma/lib/cn";
 import { useTabsStore } from "@soma/store/tabs";
-import { Plus, X } from "react-feather";
+import { ChevronLeft, ChevronRight, Plus, X } from "react-feather";
 
 type TabsBarProps = {
 	leftOpen: boolean;
@@ -11,7 +11,14 @@ type TabsBarProps = {
 	hasRight: boolean;
 };
 
-function TabsBar({}: TabsBarProps): React.JSX.Element {
+function TabsBar({
+	leftOpen,
+	rightOpen,
+	hasLeft,
+	hasRight,
+	toggleLeft,
+	toggleRight,
+}: TabsBarProps): React.JSX.Element {
 	const tabs = useTabsStore((s) => s.tabs);
 	const activeId = useTabsStore((s) => s.activeId);
 	const selectTab = useTabsStore((s) => s.selectTab);
@@ -21,6 +28,38 @@ function TabsBar({}: TabsBarProps): React.JSX.Element {
 
 	return (
 		<div className="flex min-w-0 items-center gap-2">
+			<div className="flex items-center gap-1" data-no-drag>
+				{hasLeft ? (
+					<button
+						aria-label={leftOpen ? "Hide sidebar" : "Show sidebar"}
+						className="btn btn-ghost btn-xs btn-square border border-base-200"
+						onClick={toggleLeft}
+						type="button"
+					>
+						<ChevronLeft
+							className="size-3.5"
+							style={{
+								transform: leftOpen ? "rotate(0deg)" : "rotate(180deg)",
+							}}
+						/>
+					</button>
+				) : null}
+				{hasRight ? (
+					<button
+						aria-label={rightOpen ? "Hide right pane" : "Show right pane"}
+						className="btn btn-ghost btn-xs btn-square border border-base-200"
+						onClick={toggleRight}
+						type="button"
+					>
+						<ChevronRight
+							className="size-3.5"
+							style={{
+								transform: rightOpen ? "rotate(0deg)" : "rotate(180deg)",
+							}}
+						/>
+					</button>
+				) : null}
+			</div>
 			<div
 				className="no-scrollbar flex flex-1 items-center gap-2 overflow-x-auto"
 				data-tauri-drag-region

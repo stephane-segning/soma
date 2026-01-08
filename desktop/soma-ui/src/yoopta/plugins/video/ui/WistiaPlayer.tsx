@@ -18,7 +18,7 @@ const WistiaPlayer = ({ videoId, children, attributes, width, height, ...other }
   };
 
   return (
-    <div {...attributes} ref={onRef} className="yoo-video-relative" style={{ width, height }}>
+    <div {...attributes} ref={onRef} className="relative" style={{ width, height }}>
       <div
         style={{
           position: 'relative',

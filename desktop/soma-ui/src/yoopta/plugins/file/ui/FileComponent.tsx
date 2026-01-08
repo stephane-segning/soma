@@ -33,18 +33,18 @@ const FileComponent = ({ name, src, size, format, align }: FileComponentProps) =
 
   return (
     <div
-      className="yoo-file-w-full yoo-file-cursor-pointer"
+      className="w-full cursor-pointer"
       contentEditable={false}
       onClick={onOpen}>
       <div
-        className={`yoo-file-flex ${alignClass} yoo-file-items-center yoo-file-rounded-[4px] yoo-file-py-[8px] yoo-file-px-2 hover:yoo-file-bg-[rgba(55,53,47,0.04)] yoo-file-border-b-[1px] hover:yoo-file-border-[rgba(55,53,47,0.16)] yoo-file-border-[transparent]`}>
-        <div className="yoo-file-flex yoo-file-items-center yoo-file-leading-[1.2] yoo-file-font-medium yoo-file-text-[#000000]">
+        className={`flex ${alignClass} items-center rounded-[4px] py-[8px] px-2 hover:bg-[rgba(55,53,47,0.04)] border-b-[1px] hover:border-[rgba(55,53,47,0.16)] border-[transparent]`}>
+        <div className="flex items-center leading-[1.2] font-medium text-[#000000]">
           <FileTextIcon width={16} height={16} />
-          <span className="yoo-file-ml-[6px] yoo-file-text-[14px]">
+          <span className="ml-[6px] text-[14px]">
             {format ? `${name}.${format}` : `${name}`}
           </span>
         </div>
-        <div className="yoo-file-ml-[8px] yoo-file-text-[10px] yoo-file-font-normal yoo-file-text-[#37352fa6]">
+        <div className="ml-[8px] text-[10px] font-normal text-[#37352fa6]">
           {formatBytesToKilobytes(size)}
         </div>
       </div>

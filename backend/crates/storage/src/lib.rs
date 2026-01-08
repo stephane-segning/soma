@@ -8,13 +8,14 @@ use soma_core::SomaResult;
 use sqlx_utils::types::Pool;
 
 pub mod bootstrap;
+pub mod documents;
 pub mod issuer;
 pub mod mailbox;
 pub mod membership;
 pub mod peers;
 use crate::{
-    issuer::IssuerRepository, mailbox::MailboxRepository, membership::MembershipRepository,
-    peers::PeerPublicKeyRepository,
+    documents::DocumentRepository, issuer::IssuerRepository, mailbox::MailboxRepository,
+    membership::MembershipRepository, peers::PeerPublicKeyRepository,
 };
 
 /// Abstraction over repositories needed by controllers/services.
@@ -23,6 +24,7 @@ pub trait RepositoryProvider: Send + Sync {
     fn issuer_repo(&self) -> Arc<dyn IssuerRepository>;
     fn mailbox_repo(&self) -> Arc<dyn MailboxRepository>;
     fn peer_keys_repo(&self) -> Arc<dyn PeerPublicKeyRepository>;
+    fn document_repo(&self) -> Arc<dyn DocumentRepository>;
     fn pool(&self) -> Pool;
 }
 
@@ -56,6 +58,10 @@ impl RepositoryFactory {
     pub fn peer_keys(&self) -> peers::SqlPeerPublicKeyRepository {
         peers::SqlPeerPublicKeyRepository::new(self.pool.clone())
     }
+
+    pub fn documents(&self) -> documents::SqlDocumentRepository {
+        documents::SqlDocumentRepository::new(self.pool.clone())
+    }
 }
 
 impl RepositoryProvider for RepositoryFactory {
@@ -73,6 +79,10 @@ impl RepositoryProvider for RepositoryFactory {
 
     fn peer_keys_repo(&self) -> Arc<dyn PeerPublicKeyRepository> {
         Arc::new(self.peer_keys())
+    }
+
+    fn document_repo(&self) -> Arc<dyn DocumentRepository> {
+        Arc::new(self.documents())
     }
 
     fn pool(&self) -> Pool {
@@ -98,6 +108,10 @@ where
 
     fn peer_keys_repo(&self) -> Arc<dyn PeerPublicKeyRepository> {
         (**self).peer_keys_repo()
+    }
+
+    fn document_repo(&self) -> Arc<dyn DocumentRepository> {
+        (**self).document_repo()
     }
 
     fn pool(&self) -> Pool {

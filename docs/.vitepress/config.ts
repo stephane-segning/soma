@@ -102,7 +102,6 @@ export default withPwa(withMermaid({
     title: 'Soma',
     titleTemplate: 'Soma',
     description: 'Documentation for Soma and Tapia',
-    // GitHub Pages serves the site under /soma/
     base: '/soma/',
     srcDir: 'src',
     outDir: '../site',

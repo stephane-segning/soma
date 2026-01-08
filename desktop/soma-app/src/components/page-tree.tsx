@@ -10,6 +10,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import {
 	type PageRecord,
+	useCreatePage,
 	useEnsurePageMutation,
 	usePagesQuery,
 	useSetPageParentsMutation,
@@ -18,7 +19,7 @@ import {
 import type React from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Edit2, File, Plus } from "react-feather";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 
 type TreeNode = {
 	page: PageRecord;
@@ -28,6 +29,8 @@ type TreeNode = {
 type Props = {
 	spaceId: string;
 	activePageId?: string;
+	filterTerm?: string;
+	showNewButton?: boolean;
 };
 
 function buildTree(pages: PageRecord[]): TreeNode[] {
@@ -59,7 +62,31 @@ function buildTree(pages: PageRecord[]): TreeNode[] {
 	return roots;
 }
 
-function PageTree({ spaceId, activePageId }: Props): React.JSX.Element | null {
+function filterTree(nodes: TreeNode[], term: string): TreeNode[] {
+	if (!term.trim()) return nodes;
+	const needle = term.trim().toLowerCase();
+
+	const walk = (node: TreeNode): TreeNode | null => {
+		const title = node.page.title.toLowerCase();
+		const filteredChildren = node.children
+			.map((child) => walk(child))
+			.filter(Boolean) as TreeNode[];
+
+		if (title.includes(needle) || filteredChildren.length > 0) {
+			return { ...node, children: filteredChildren };
+		}
+		return null;
+	};
+
+	return nodes.map((node) => walk(node)).filter(Boolean) as TreeNode[];
+}
+
+function PageTree({
+	spaceId,
+	activePageId,
+	filterTerm = "",
+	showNewButton = true,
+}: Props): React.JSX.Element | null {
 	const { data, isLoading } = usePagesQuery(spaceId);
 	const ensurePage = useEnsurePageMutation();
 	const updatePageTitle = useUpdatePageTitleMutation();
@@ -67,9 +94,12 @@ function PageTree({ spaceId, activePageId }: Props): React.JSX.Element | null {
 	const [editingPageId, setEditingPageId] = useState<string | null>(null);
 	const [titleDraft, setTitleDraft] = useState("");
 	const [activeDragId, setActiveDragId] = useState<string | null>(null);
-	const navigate = useNavigate();
 
 	const tree = useMemo(() => buildTree(data ?? []), [data]);
+	const filteredTree = useMemo(
+		() => filterTree(tree, filterTerm),
+		[filterTerm, tree],
+	);
 	const pagesById = useMemo(() => {
 		const map = new Map<string, PageRecord>();
 		for (const page of data ?? []) {
@@ -152,6 +182,8 @@ function PageTree({ spaceId, activePageId }: Props): React.JSX.Element | null {
 		[isDescendantOf, setPageParents, spaceId],
 	);
 
+	const createPage = useCreatePage(spaceId);
+
 	if (!spaceId) return null;
 
 	return (
@@ -161,24 +193,17 @@ function PageTree({ spaceId, activePageId }: Props): React.JSX.Element | null {
 			sensors={sensors}
 		>
 			<div className="space-y-2">
-				<button
-					aria-label="New page"
-					className="btn btn-soft btn-circle btn-primary btn-xs"
-					disabled={ensurePage.isPending}
-					onClick={async () => {
-						try {
-							const created = await ensurePage.mutateAsync({
-								spaceId,
-								parentPageIds: activePageId ? [activePageId] : [],
-							});
-							navigate(`/spaces/${spaceId}/pages/${created.pageId}`);
-						} catch {
-							// ignored
-						}
-					}}
-				>
-					<Plus size={14} />
-				</button>
+				{showNewButton ? (
+					<div>
+						<button
+							className="btn btn-soft btn-circle btn-primary btn-xs"
+							disabled={ensurePage.isPending}
+							onClick={() => createPage([])}
+						>
+							<Plus className="size-4" />
+						</button>
+					</div>
+				) : null}
 
 				<PageTreeList
 					activeDragId={activeDragId}
@@ -198,7 +223,7 @@ function PageTree({ spaceId, activePageId }: Props): React.JSX.Element | null {
 					onTitleDraftChange={setTitleDraft}
 					spaceId={spaceId}
 					titleDraft={titleDraft}
-					tree={tree}
+					tree={filteredTree}
 				/>
 			</div>
 		</DndContext>

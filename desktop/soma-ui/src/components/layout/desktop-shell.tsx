@@ -17,6 +17,13 @@ export type DesktopShellProps = {
 	footer?: ReactNode;
 	overlays?: ReactNode;
 	className?: string;
+	bodyClassName?: string;
+	headerClassName?: string;
+	contentClassName?: string;
+	mainClassName?: string;
+	variant?: "default" | "flat";
+	defaultLeftOpen?: boolean;
+	defaultRightOpen?: boolean;
 	initialLeftWidth?: number;
 	initialRightWidth?: number;
 	onLeftResizeStop?: (nextWidth: number) => void;
@@ -38,8 +45,8 @@ function ResizeHandle() {
 		>
 			<span
 				className={cn(
-					"h-12 rounded-full bg-gray-600/80 transition-all duration-150",
-					hover ? "w-1.5" : "w-0.75",
+					"h-10 rounded-full bg-base-300 transition-all duration-150",
+					hover ? "w-1.5" : "w-px",
 				)}
 			/>
 		</div>
@@ -58,11 +65,19 @@ export function DesktopShell({
 	initialRightWidth = 260,
 	onLeftResizeStop,
 	onRightResizeStop,
+	bodyClassName,
+	headerClassName,
+	contentClassName,
+	mainClassName,
+	variant = "default",
+	defaultLeftOpen = true,
+	defaultRightOpen = true,
 }: DesktopShellProps) {
-	const [leftOpen, setLeftOpen] = useState(true);
-	const [rightOpen, setRightOpen] = useState(true);
+	const [leftOpen, setLeftOpen] = useState(defaultLeftOpen);
+	const [rightOpen, setRightOpen] = useState(defaultRightOpen);
 	const [leftWidth, setLeftWidth] = useState(initialLeftWidth);
 	const [rightWidth, setRightWidth] = useState(initialRightWidth);
+	const isFlat = variant === "flat";
 	const leftContent = useMemo(
 		() => (leftOpen ? leftColumn : null),
 		[leftOpen, leftColumn],
@@ -96,11 +111,24 @@ export function DesktopShell({
 				</div>
 			) : null}
 
-			<div className="relative z-10 flex h-full w-full flex-col gap-4">
+			<div
+				className={cn(
+					"relative z-10 flex h-full w-full flex-col",
+					isFlat ? "" : "gap-4",
+					bodyClassName,
+				)}
+			>
 				{headerNode ? (
-					<div className="flex flex-col gap-2">{headerNode}</div>
+					<div className={cn("flex flex-col", isFlat ? "" : "gap-2", headerClassName)}>
+						{headerNode}
+					</div>
 				) : null}
-				<div className="flex min-h-0 flex-1 items-start overflow-hidden">
+				<div
+					className={cn(
+						"flex min-h-0 flex-1 items-start overflow-hidden",
+						contentClassName,
+					)}
+				>
 					{leftColumn ? (
 						<div className="relative flex h-full shrink-0">
 							{leftOpen ? (
@@ -127,7 +155,13 @@ export function DesktopShell({
 						</div>
 					) : null}
 
-					<main className="max-h-full min-h-0 flex-1 space-y-4 overflow-auto">
+					<main
+						className={cn(
+							"max-h-full min-h-0 flex-1 overflow-auto",
+							isFlat ? "" : "space-y-4",
+							mainClassName,
+						)}
+					>
 						{children}
 					</main>
 

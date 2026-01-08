@@ -7,11 +7,14 @@ use soma_proto_build::daemon::{
     GetSpaceRequest, GetSpaceResponse, ListSpaceMembersRequest, ListSpaceMembersResponse,
     ListSpacesRequest, ListSpacesResponse, UpdateSpaceRequest, UpdateSpaceResponse,
     UploadBlobRequest, UploadBlobResponse, UpsertDocumentRequest, UpsertDocumentResponse,
-    daemon_client::DaemonClient as GrpcDaemonClient,
+    daemon_client::DaemonClient as GrpcDaemonClient, GetDocumentRequest, GetDocumentResponse,
 };
 use tauri::{AppHandle, Wry};
 use tokio::sync::Mutex;
-use tonic::transport::{Channel, Endpoint};
+use tonic::{
+    transport::{Channel, Endpoint},
+    Code,
+};
 use tracing::info;
 
 use crate::error::AppResult;
@@ -143,6 +146,18 @@ impl DaemonApi {
         let mut client = self.client().await?;
         let res = client.list_space_members(req).await?;
         Ok(res.into_inner())
+    }
+
+    pub async fn get_document(
+        &self,
+        req: GetDocumentRequest,
+    ) -> Result<Option<GetDocumentResponse>, AppError> {
+        let mut client = self.client().await?;
+        match client.get_document(req).await {
+            Ok(res) => Ok(Some(res.into_inner())),
+            Err(status) if status.code() == Code::NotFound => Ok(None),
+            Err(err) => Err(err.into()),
+        }
     }
 }
 

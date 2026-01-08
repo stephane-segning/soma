@@ -1,70 +1,54 @@
+import { cn } from "@soma/lib/cn.ts";
 import { useSpacesQuery } from "@soma/queries/spaces";
-import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router";
-
-function currentSpaceId(hash: string): string | null {
-	const normalized = hash.startsWith("#") ? hash.slice(1) : hash;
-	const match = normalized.match(/\/spaces\/([^/]+)/);
-	return match ? match[1] : null;
-}
-
-function useActiveSpaceId() {
-	const [hash, setHash] = useState(() => window.location.hash);
-
-	useEffect(() => {
-		const handler = () => setHash(window.location.hash);
-		window.addEventListener("hashchange", handler);
-		return () => window.removeEventListener("hashchange", handler);
-	}, []);
-
-	return useMemo(() => currentSpaceId(hash), [hash]);
-}
+import Avatar from "react-avatar";
+import { Plus } from "react-feather";
+import { Link, useParams } from "react-router";
 
 function SpacesRail(): React.JSX.Element {
 	const spacesQuery = useSpacesQuery();
-	const activeSpaceId = useActiveSpaceId();
+	const { spaceId } = useParams<{ spaceId: string }>();
 	const spaces = spacesQuery.data?.spaces ?? [];
 
 	return (
-		<div className="flex h-full flex-col items-center gap-3 overflow-y-auto px-2 py-3">
+		<div className="flex h-full w-16 flex-col items-center gap-3 overflow-y-auto px-2 py-3">
 			{spacesQuery.isLoading && (
 				<>
-					<div className="size-12 rounded-2xl bg-base-300" />
-					<div className="size-12 rounded-2xl bg-base-300" />
+					<div className="avatar">
+						<div className="skeleton size-12 rounded-2xl bg-base-300 outline outline-2 outline-base-100" />
+					</div>
+					<div className="avatar">
+						<div className="skeleton size-12 rounded-2xl bg-base-300 outline outline-2 outline-base-100" />
+					</div>
 				</>
 			)}
+
 			{spaces.map((space) => {
-				const isActive = space.spaceId === activeSpaceId;
-				const initials = (space.displayName || space.spaceId || "?")
-					.slice(0, 2)
-					.toUpperCase();
+				const isActive = space.spaceId === spaceId;
+
 				return (
 					<Link
-						className="group"
+						className="avatar"
 						key={space.spaceId}
 						to={`/spaces/${space.spaceId}/pages`}
 					>
 						<div
-							className={[
-								"size-12 rounded-2xl ring-2 ring-offset-2 transition",
-								isActive
-									? "bg-primary/20 ring-primary"
-									: "bg-base-200 ring-transparent hover:ring-base-300",
-							].join(" ")}
+							className={cn(
+								"flex w-12 items-center justify-center rounded-2xl ring-2 ring-dashed ring-offset-2 ring-offset-base-100",
+								isActive && "ring-primary",
+								!isActive && "ring-transparent hover:ring-base-300",
+							)}
 						>
-							<div className="flex h-full items-center justify-center font-semibold text-sm">
-								{initials}
-							</div>
+							<Avatar name={space.displayName || space.spaceId} />
 						</div>
 					</Link>
 				);
 			})}
 
-			<Link
-				className="flex size-12 items-center justify-center rounded-2xl bg-base-200 font-bold text-lg ring-2 ring-base-300 ring-dashed transition hover:bg-base-300"
-				to="/spaces"
-			>
-				+
+			{/* TODO implement a logic using `useCreateSpaceMutation` to create a new space or redirect to `/spaces/join` to join a new space*/}
+			<Link className="avatar" to="/spaces">
+				<div className="flex w-12 items-center justify-center rounded-2xl bg-base-100 outline-dotted outline-2 outline-base-300">
+					<Plus className="size-4" />
+				</div>
 			</Link>
 		</div>
 	);

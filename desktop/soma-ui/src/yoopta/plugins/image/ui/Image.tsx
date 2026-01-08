@@ -98,10 +98,10 @@ const ImageRender = ({ extendRender, ...props }: PluginElementRenderProps) => {
     <div
       contentEditable={false}
       draggable={false}
-      className={`yoo-image-mt-4 yoo-image-relative yoo-image-flex ${alignClass} yoopta-image`}>
-      <Resizable {...resizeProps} className="yoo-image-my-0 yoo-image-flex">
+      className={`mt-4 relative flex ${alignClass} yoopta-image`}>
+      <Resizable {...resizeProps} className="my-0 flex">
         {blockSelected && (
-          <div className="yoo-image-absolute yoo-image-pointer-events-none yoo-image-inset-0 yoo-image-bg-[rgba(35,131,226,0.14)] yoo-image-z-[81] yoo-image-rounded-[3px] yoo-image-opacity-100 yoo-image-transition-opacity yoo-image-duration-150 yoo-image-ease-in" />
+          <div className="absolute pointer-events-none inset-0 bg-[rgba(35,131,226,0.14)] z-[81] rounded-[3px] opacity-100 transition-opacity duration-150 ease-in" />
         )}
         {extendRender ? (
           extendRender(props)
