@@ -10,9 +10,12 @@ runs:
       with:
         node-version: "20"
         cache: "pnpm"
+        cache-dependency-path: pnpm-lock.yaml
     - name: Enable corepack (pnpm)
       shell: bash
-      run: corepack enable
+      run: |
+        corepack enable
+        corepack prepare pnpm@9.0.0 --activate
     - name: Install docs dependencies
       shell: bash
       run: pnpm install --frozen-lockfile
