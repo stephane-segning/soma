@@ -20,7 +20,9 @@
 		"window-state:default",
 		"store:allow-load",
 		"store:default",
-		"dialog:allow-open",
-		"dialog:default"
+		"dialog:default",
+		"fs:allow-app-read-recursive",
+		"fs:allow-app-meta-recursive",
+		"fs:allow-download-read-recursive"
 	]
 }

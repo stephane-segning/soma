@@ -1,6 +1,7 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { basename, extname } from "@tauri-apps/api/path";
 import { type OpenDialogOptions, open } from "@tauri-apps/plugin-dialog";
+import { readFile } from "@tauri-apps/plugin-fs";
 
 type PickFileOptions = {
 	accept?: string;
@@ -112,12 +113,7 @@ export async function pickSingleFile(
 
 		const mime = guessMimeFromExt(extension, accept);
 		const assetUrl = convertFileSrc(selectedPath);
-		const response = await fetch(assetUrl);
-		if (!response.ok) {
-			throw new Error(`Failed to read file bytes for ${selectedPath}`);
-		}
-		const buffer = await response.arrayBuffer();
-		const bytes = new Uint8Array(buffer);
+		const bytes = await readFile(assetUrl);
 
 		return new File([bytes], name, {
 			type: mime,

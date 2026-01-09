@@ -33,6 +33,9 @@ impl SomaAppBuilder {
             info!("another instance attempted to start with args: {argv:?}");
         }));
 
+        #[cfg(desktop)]
+        let builder = builder.plugin(tauri_plugin_fs::init());
+
         let builder = builder
             .plugin(
                 tauri_plugin_log::Builder::new()

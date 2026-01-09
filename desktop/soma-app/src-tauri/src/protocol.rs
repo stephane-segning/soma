@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use anyhow::Result;
 use tauri::{
     AppHandle, Builder, Manager, UriSchemeContext, Wry,
     http::{self, HeaderValue},
@@ -8,6 +7,7 @@ use tauri::{
 use tracing::{debug, warn};
 
 use crate::{daemon::BlobSource, state::ManagedState};
+use crate::error::AppResult;
 
 pub trait ProtocolRegistrar: Send + Sync {
     fn attach(self: Arc<Self>, builder: Builder<Wry>) -> Builder<Wry>;
@@ -43,7 +43,7 @@ impl BlobProtocol {
         &self,
         app: &AppHandle<Wry>,
         request: &http::Request<Vec<u8>>,
-    ) -> Result<http::Response<Vec<u8>>> {
+    ) -> AppResult<http::Response<Vec<u8>>> {
         let uri = request.uri();
 
         let authority = uri
