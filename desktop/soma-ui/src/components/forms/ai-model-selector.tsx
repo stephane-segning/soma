@@ -26,7 +26,7 @@ export function AiModelSelector({
 	onChange,
 	disabled,
 	className,
-	size = "md",
+	size = "sm",
 }: AiModelSelectorProps) {
 	const [open, setOpen] = useState(false);
 	const ref = useRef<HTMLDivElement | null>(null);
@@ -49,6 +49,7 @@ export function AiModelSelector({
 			<PolymorphButton
 				disabled={disabled}
 				onClick={() => setOpen((state) => !state)}
+				shape="default"
 				size={size}
 				trailingIcon={<ChevronDown size={14} />}
 				variant="ghost"

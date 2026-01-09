@@ -82,7 +82,7 @@ function ChatSidebar(): React.JSX.Element {
 	}, []);
 
 	return (
-		<div className="flex h-full flex-col gap-1">
+		<div className="flex h-full flex-col gap-1 text-sm antialiased">
 			<div className="grow overflow-y-scroll">
 				<AiChat className="min-h-full">
 					<AiConversation messages={messages} />
@@ -90,6 +90,7 @@ function ChatSidebar(): React.JSX.Element {
 			</div>
 
 			<AiInput
+				className="border-base-300 border-t pb-2"
 				modelSelector={
 					<AiModelSelector
 						onChange={setModel}
@@ -123,6 +124,7 @@ function ChatSidebar(): React.JSX.Element {
 					]);
 					setInput("");
 				}}
+				textareaProps={{ maxRows: 8 }}
 				value={input}
 			/>
 		</div>

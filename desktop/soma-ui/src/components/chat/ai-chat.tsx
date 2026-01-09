@@ -3,7 +3,6 @@ import { cn } from "../../utils/cn";
 
 export type AiChatProps = {
 	children: ReactNode;
-	footer?: ReactNode;
 	maxHeight?: number | string;
 	className?: string;
 	contentClassName?: string;
@@ -11,28 +10,15 @@ export type AiChatProps = {
 
 export function AiChat({
 	children,
-	footer,
 	maxHeight = "70vh",
 	className,
 	contentClassName,
 }: AiChatProps) {
 	return (
-		<div
-			className={cn(
-				"flex flex-col rounded-md border border-base-300/60 bg-base-100/70",
-				className,
-			)}
-			style={{ maxHeight }}
-		>
-			<div className={cn("flex-1 overflow-auto p-4", contentClassName)}>
+		<div className={cn("flex flex-col", className)} style={{ maxHeight }}>
+			<div className={cn("flex-1 overflow-auto p-2", contentClassName)}>
 				{children}
 			</div>
-
-			{footer ? (
-				<div className="border-base-300/60 border-t bg-base-100/80 p-3">
-					{footer}
-				</div>
-			) : null}
 		</div>
 	);
 }

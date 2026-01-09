@@ -1,7 +1,9 @@
-import { motion } from "motion/react";
-import type { ReactNode, TextareaHTMLAttributes } from "react";
+import type { ReactNode } from "react";
 import { useMemo } from "react";
 import { ChevronDown, Mic, Paperclip, Send } from "react-feather";
+import TextareaAutosize, {
+	type TextareaAutosizeProps,
+} from "react-textarea-autosize";
 import { cn } from "../../utils/cn";
 import { PolymorphButton } from "../actions/polymorph-button";
 
@@ -17,10 +19,7 @@ export type AiInputProps = {
 	disabled?: boolean;
 	rows?: number;
 	className?: string;
-	textareaProps?: Omit<
-		TextareaHTMLAttributes<HTMLTextAreaElement>,
-		"value" | "onChange"
-	>;
+	textareaProps?: Omit<TextareaAutosizeProps, "value" | "onChange">;
 };
 
 export function AiInput({
@@ -33,7 +32,7 @@ export function AiInput({
 	modelSelector,
 	placeholder = "Type your message...",
 	disabled,
-	rows = 3,
+	rows = 1,
 	className,
 	textareaProps,
 }: AiInputProps) {
@@ -48,7 +47,7 @@ export function AiInput({
 					aria-label="Attach"
 					disabled={disabled}
 					iconOnly
-					leadingIcon={<Paperclip size={16} />}
+					leadingIcon={<Paperclip className="size-4" />}
 					onClick={onAttach}
 					size="sm"
 					variant="ghost"
@@ -57,7 +56,7 @@ export function AiInput({
 					aria-label="Voice"
 					disabled={disabled}
 					iconOnly
-					leadingIcon={<Mic size={16} />}
+					leadingIcon={<Mic className="size-4" />}
 					onClick={onVoice}
 					size="sm"
 					variant="ghost"
@@ -74,15 +73,10 @@ export function AiInput({
 	);
 
 	return (
-		<div
-			className={cn(
-				"relative border border-base-300/80 bg-base-100",
-				className,
-			)}
-		>
-			<div className="px-4 pt-3 pb-3">
-				<textarea
-					className="w-full resize-none bg-transparent text-base text-base-content outline-none placeholder:text-base-content/50"
+		<div className={cn("relative", className)}>
+			<div className="px-3">
+				<TextareaAutosize
+					className="w-full resize-none bg-transparent py-2 text-base text-base-content outline-none placeholder:text-base-content/50"
 					disabled={disabled}
 					onChange={(event) => onChange(event.target.value)}
 					onKeyDown={(event) => {
@@ -100,19 +94,18 @@ export function AiInput({
 				/>
 			</div>
 
-			<div className="flex items-center justify-between border-base-200/80 border-t px-4 py-3">
+			<div className="flex items-center justify-between px-2">
 				{footer}
-				<motion.div whileHover={{ y: -1 }} whileTap={{ scale: 0.96 }}>
-					<PolymorphButton
-						aria-label="Send message"
-						disabled={!canSend}
-						iconOnly
-						leadingIcon={<Send size={16} />}
-						onClick={onSend}
-						size="lg"
-						variant="secondary"
-					/>
-				</motion.div>
+
+				<PolymorphButton
+					aria-label="Send message"
+					disabled={!canSend}
+					iconOnly
+					leadingIcon={<Send className="size-4" />}
+					onClick={onSend}
+					size="sm"
+					variant="primary"
+				/>
 			</div>
 		</div>
 	);

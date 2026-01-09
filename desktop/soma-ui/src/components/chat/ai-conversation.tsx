@@ -23,7 +23,7 @@ export function AiConversation({
 
 	return (
 		<div className={className}>
-			<div className="space-y-3">
+			<div className="space-y-2">
 				{messages.map((message) => (
 					<AiMessage key={message.id} message={message} />
 				))}

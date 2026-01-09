@@ -58,7 +58,7 @@ function Component(): React.JSX.Element {
 							</div>
 						}
 					>
-						<div className="border-base-300 border-l p-3">
+						<div className="h-full max-h-full border-base-300 border-l">
 							<ChatSidebar />
 						</div>
 					</Suspense>

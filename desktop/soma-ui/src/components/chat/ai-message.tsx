@@ -24,7 +24,7 @@ export function AiMessage({ message, className }: AiMessageProps) {
 	const icon = getIcon(message.role);
 
 	return (
-		<div className={cn("flex gap-3 px-1 py-2", className)}>
+		<div className={cn("flex gap-2", className)}>
 			<div className="mt-0.5 text-base-content/60">{icon}</div>
 			<div className="flex-1 space-y-2">
 				<div className="flex items-center gap-2">

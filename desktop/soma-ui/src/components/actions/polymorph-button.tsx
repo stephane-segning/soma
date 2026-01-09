@@ -10,18 +10,19 @@ type Variant =
 	| "danger"
 	| "success";
 type Size = "xs" | "sm" | "md" | "lg";
+type Shape = "circle" | "default";
 
 export type PolymorphButtonProps = {
 	variant?: Variant;
 	size?: Size;
+	shape?: Shape;
 	iconOnly?: boolean;
 	leadingIcon?: ReactNode;
 	trailingIcon?: ReactNode;
 	loading?: boolean;
-	glow?: boolean;
 	fullWidth?: boolean;
 	asChild?: boolean;
-} & Omit<HTMLMotionProps<"button">, "whileHover" | "whileTap"> &
+} & Omit<HTMLMotionProps<"button">, "whileTap"> &
 	Omit<ButtonHTMLAttributes<HTMLButtonElement>, "type"> & {
 		type?: ButtonHTMLAttributes<HTMLButtonElement>["type"];
 	};
@@ -42,14 +43,19 @@ const sizeStyles: Record<Size, string> = {
 	lg: "btn-lg",
 };
 
+const shapeStyles: Record<Shape, string> = {
+	circle: "btn-circle",
+	default: "",
+};
+
 export function PolymorphButton({
 	variant = "primary",
 	size = "md",
+	shape = "circle",
 	iconOnly,
 	leadingIcon,
 	trailingIcon,
 	loading,
-	glow,
 	fullWidth,
 	className,
 	children,
@@ -60,9 +66,9 @@ export function PolymorphButton({
 		"btn transition",
 		variantStyles[variant],
 		sizeStyles[size],
+		shapeStyles[shape],
 		iconOnly ? "btn-square" : "gap-2",
 		fullWidth && "w-full",
-		glow && "shadow-[0_0_28px_-8px_rgba(59,130,246,0.7)]",
 		className,
 	);
 
@@ -70,7 +76,6 @@ export function PolymorphButton({
 		<motion.button
 			className={base}
 			type={type}
-			whileHover={{ y: iconOnly ? -2 : -1, scale: iconOnly ? 1.05 : 1.01 }}
 			whileTap={{ scale: 0.98 }}
 			{...props}
 		>

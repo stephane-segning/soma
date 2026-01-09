@@ -31,7 +31,7 @@ export function AiThinking({
 	return (
 		<div
 			className={cn(
-				"rounded-xl bg-base-200/60 px-3 py-2 text-base-content/80 text-sm",
+				"rounded-xl bg-base-200/60 px-2 py-1 text-base-content/80 text-sm",
 				className,
 			)}
 		>

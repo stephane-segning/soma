@@ -20,6 +20,7 @@ import type React from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Edit2, File, Plus } from "react-feather";
 import { Link } from "react-router";
+import { PolymorphButton } from "soma-ui/components/actions/polymorph-button";
 
 type TreeNode = {
 	page: PageRecord;
@@ -195,13 +196,13 @@ function PageTree({
 			<div className="space-y-2">
 				{showNewButton ? (
 					<div>
-						<button
-							className="btn btn-soft btn-circle btn-primary btn-xs"
+						<PolymorphButton
 							disabled={ensurePage.isPending}
 							onClick={() => createPage([])}
+							variant="primary"
 						>
 							<Plus className="size-4" />
-						</button>
+						</PolymorphButton>
 					</div>
 				) : null}
 
@@ -328,6 +329,7 @@ function TreeItem({
 			</li>
 		);
 	}
+
 	const isActive = node.page.pageId === activePageId;
 	const isEditing = node.page.pageId === editingPageId;
 	const isDragging = activeDragId === node.page.pageId;
@@ -365,7 +367,6 @@ function TreeItem({
 			</span>
 
 			<input
-				autoFocus={true}
 				className="input input-xs input-ghost flex-1 truncate"
 				disabled={isSaving}
 				onBlur={() => {
