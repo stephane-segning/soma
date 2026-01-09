@@ -153,7 +153,7 @@ export function DesktopShell({
 									}}
 									size={{ width: leftWidth, height: "100%" }}
 								>
-									<div className="scrollbar-none relative h-full overflow-auto">
+									<div className="scrollbar-none relative h-full overflow-auto border-base-300 border-r">
 										<aside className="h-full">{leftContent}</aside>
 									</div>
 								</Resizable>
@@ -189,7 +189,7 @@ export function DesktopShell({
 									}}
 									size={{ width: rightWidth, height: "100%" }}
 								>
-									<div className="scrollbar-none relative h-full overflow-auto">
+									<div className="scrollbar-none relative h-full overflow-auto border-base-300 border-l">
 										<aside className="h-full">{rightContent}</aside>
 									</div>
 								</Resizable>
