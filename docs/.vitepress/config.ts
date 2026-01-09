@@ -1,6 +1,7 @@
 import {type DefaultTheme} from 'vitepress';
 import {withMermaid} from "vitepress-plugin-mermaid";
 import {withPwa} from '@vite-pwa/vitepress'
+import type {PreRenderedAsset} from "rollup";
 
 const nav: DefaultTheme.NavItem[] = [
     {text: 'Overview', link: '/00-overview'},

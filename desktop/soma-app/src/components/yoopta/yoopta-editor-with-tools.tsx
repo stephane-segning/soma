@@ -10,7 +10,6 @@ import Divider from "@yoopta/divider";
 import {
 	createYooptaEditor,
 	type Tools,
-	type YooEditor,
 	type YooptaContentValue,
 	type YooptaOnChangeOptions,
 } from "@yoopta/editor";
@@ -33,7 +32,7 @@ import {
 import Paragraph from "@yoopta/paragraph";
 import Table from "@yoopta/table";
 import type React from "react";
-import { useCallback, useEffect, useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import {
 	YooptaFilePlugin,

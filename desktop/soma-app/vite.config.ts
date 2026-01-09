@@ -1,7 +1,7 @@
 import { consoleForwardPlugin } from "@0xbigboss/vite-console-forward-plugin";
-import legacy from "@vitejs/plugin-legacy";
 import react from "@vitejs/plugin-react";
 import VitePluginCssMediaSplitter from "css-media-splitter/vite-plugin";
+import type { PreRenderedAsset } from "rollup";
 import TurboConsole from "unplugin-turbo-console/vite";
 import { defineConfig } from "vite";
 import biomePlugin from "vite-plugin-biome";
@@ -39,9 +39,6 @@ export default defineConfig(async () => ({
 			files: ".",
 			applyFixes: true,
 		}),
-		legacy({
-			targets: ["defaults", "not IE 11"],
-		}),
 		ViteImageOptimizer({
 			/* pass your config */
 		}),
@@ -76,5 +73,18 @@ export default defineConfig(async () => ({
 	},
 	build: {
 		chunkSizeWarningLimit: 5_000, // 5KB
+		rollupOptions: {
+			output: {
+				entryFileNames: "assets/js/15-[name]-[hash].js",
+				chunkFileNames: "assets/js/[name]-[hash].js",
+				assetFileNames: (assetInfo: PreRenderedAsset) => {
+					if (assetInfo.name?.endsWith(".css")) {
+						return "assets/css/[name]-[hash][extname]";
+					}
+
+					return "assets/[name]-[hash][extname]";
+				},
+			},
+		},
 	},
 }));

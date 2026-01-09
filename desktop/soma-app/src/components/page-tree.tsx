@@ -183,7 +183,7 @@ function PageTree({
 		[isDescendantOf, setPageParents, spaceId],
 	);
 
-	const createPage = useCreatePage(spaceId);
+	const { createPage } = useCreatePage(spaceId);
 
 	if (!spaceId) return null;
 
