@@ -6526,7 +6526,7 @@ dependencies = [
 
 [[package]]
 name = "soma-agent"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "soma-net",
  "tempfile",
@@ -6534,7 +6534,7 @@ dependencies = [
 
 [[package]]
 name = "soma-agentd"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -6556,7 +6556,7 @@ dependencies = [
 
 [[package]]
 name = "soma-api"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "soma-net",
  "tempfile",
@@ -6564,7 +6564,7 @@ dependencies = [
 
 [[package]]
 name = "soma-app"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -6595,7 +6595,7 @@ dependencies = [
 
 [[package]]
 name = "soma-bff"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "axum",
  "reqwest",
@@ -6609,7 +6609,7 @@ dependencies = [
 
 [[package]]
 name = "soma-bffd"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "axum",
  "clap",
@@ -6628,7 +6628,7 @@ dependencies = [
 
 [[package]]
 name = "soma-botd"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "axum",
@@ -6662,7 +6662,7 @@ dependencies = [
 
 [[package]]
 name = "soma-cache"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "tokio",
@@ -6670,7 +6670,7 @@ dependencies = [
 
 [[package]]
 name = "soma-common"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "ciborium",
  "libp2p",
@@ -6683,7 +6683,7 @@ dependencies = [
 
 [[package]]
 name = "soma-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "axum",
@@ -6698,7 +6698,7 @@ dependencies = [
 
 [[package]]
 name = "soma-daemon"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "clap",
@@ -6729,7 +6729,7 @@ dependencies = [
 
 [[package]]
 name = "soma-membership"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "libp2p",
@@ -6747,7 +6747,7 @@ dependencies = [
 
 [[package]]
 name = "soma-metrics"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "axum",
  "prometheus-client 0.22.3",
@@ -6757,7 +6757,7 @@ dependencies = [
 
 [[package]]
 name = "soma-net"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "futures",
  "libp2p",
@@ -6768,7 +6768,7 @@ dependencies = [
 
 [[package]]
 name = "soma-peer"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "derive_builder",
@@ -6786,7 +6786,7 @@ dependencies = [
 
 [[package]]
 name = "soma-proto-build"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "prost",
  "prost-build",
@@ -6799,7 +6799,7 @@ dependencies = [
 
 [[package]]
 name = "soma-relay"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "axum",
  "futures",
@@ -6816,7 +6816,7 @@ dependencies = [
 
 [[package]]
 name = "soma-relayd"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "axum",
  "clap",
@@ -6831,7 +6831,7 @@ dependencies = [
 
 [[package]]
 name = "soma-rendezvous"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "axum",
  "futures",
@@ -6848,7 +6848,7 @@ dependencies = [
 
 [[package]]
 name = "soma-rendezvousd"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "axum",
  "clap",
@@ -6863,7 +6863,7 @@ dependencies = [
 
 [[package]]
 name = "soma-serverd"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "axum",
  "clap",
@@ -6880,7 +6880,7 @@ dependencies = [
 
 [[package]]
 name = "soma-socket"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "soma-core",
  "tokio",
@@ -6891,7 +6891,7 @@ dependencies = [
 
 [[package]]
 name = "soma-storage"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "soma-core",
@@ -6901,7 +6901,7 @@ dependencies = [
 
 [[package]]
 name = "soma-vdfs"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "async-trait",
  "prost",
@@ -7417,7 +7417,7 @@ checksum = "55937e1799185b12863d447f42597ed69d9928686b8d88a1df17376a097d8369"
 
 [[package]]
 name = "tapia-app"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "derive_builder",
@@ -7551,7 +7551,7 @@ dependencies = [
 
 [[package]]
 name = "tauri-command-utils"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "serde",

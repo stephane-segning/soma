@@ -62,6 +62,7 @@ impl BlobProtocol {
             return Ok(not_found());
         }
 
+        // TODO this cannot happen, because `state() called before manage() for soma_app_lib::state::ManagedState`
         let state = app.state::<ManagedState>();
         let Some(bytes) = state
             .daemon

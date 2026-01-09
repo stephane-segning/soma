@@ -133,7 +133,7 @@ panic = "abort"
 incremental = true # Compile your binary in smaller steps.
 
 [workspace.package]
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 license = "MIT"
 publish = false
