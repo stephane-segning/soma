@@ -11,7 +11,7 @@ function AsideNavigation() {
 
 	return (
 		<aside className="flex h-full w-full shrink-0 flex-col border-base-300 border-r bg-base-100">
-			<div className="flex-1 overflow-y-auto p-3">
+			<div className="flex-1 overflow-y-auto p-2">
 				<div className="mb-2 flex items-center justify-between font-semibold text-[11px] text-base-content/60 uppercase tracking-[0.12em]">
 					<span>{t("space.sidebar.pages", "Pages")}</span>
 					<button

@@ -101,7 +101,6 @@ export function CommandPalette({
 							<div className="flex items-center gap-2 rounded-xl bg-base-200 px-3 py-2">
 								<Search className="text-base-content/60" size={16} />
 								<input
-									autoFocus
 									className="h-9 flex-1 bg-transparent text-sm outline-none"
 									onChange={(event) => setQuery(event.target.value)}
 									placeholder={placeholder}

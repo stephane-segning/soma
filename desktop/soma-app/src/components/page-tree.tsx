@@ -262,7 +262,7 @@ function PageTreeList({
 
 	return (
 		<ul
-			className={`menu w-full ${isOver ? "outline outline-1 outline-primary/40" : ""}`}
+			className={`menu w-full -px-2 ${isOver ? "outline outline-1 outline-primary/40" : ""}`}
 			ref={setNodeRef}
 		>
 			{isLoading && (
@@ -412,7 +412,7 @@ function TreeItem({
 			</button>
 
 			<Link
-				className={`${isActive ? "active" : ""} flex-1`}
+				className={`${isActive ? "" : ""} flex-1`}
 				to={`/spaces/${spaceId}/pages/${node.page.pageId}`}
 				{...listeners}
 				onClick={(event) => {
