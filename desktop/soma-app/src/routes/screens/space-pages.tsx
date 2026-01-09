@@ -13,8 +13,8 @@ function Component(): React.JSX.Element {
 	const ensurePage = useEnsurePageMutation();
 
 	return (
-		<div className="space-y-4">
-			<div className="flex items-center justify-between">
+		<div className="space-y-4 px-2">
+			<div className="flex items-center justify-between py-2">
 				<h2 className="font-semibold text-lg">
 					{t("space.pages.title", "Pages")}
 				</h2>

@@ -119,7 +119,13 @@ export function DesktopShell({
 				)}
 			>
 				{headerNode ? (
-					<div className={cn("flex flex-col", isFlat ? "" : "gap-2", headerClassName)}>
+					<div
+						className={cn(
+							"flex flex-col",
+							isFlat ? "" : "gap-2",
+							headerClassName,
+						)}
+					>
 						{headerNode}
 					</div>
 				) : null}
@@ -131,14 +137,14 @@ export function DesktopShell({
 				>
 					{leftColumn ? (
 						<div className="relative flex h-full shrink-0">
-							{leftOpen ? (
+							{leftOpen && (
 								<Resizable
 									className="h-full"
 									enable={{ right: true }}
 									handleComponent={{
 										right: <ResizeHandle />,
 									}}
-									maxWidth={420}
+									maxWidth={640}
 									minWidth={80}
 									onResizeStop={(_, __, ref) => {
 										const next = ref.offsetWidth;
@@ -151,7 +157,7 @@ export function DesktopShell({
 										<aside className="h-full">{leftContent}</aside>
 									</div>
 								</Resizable>
-							) : null}
+							)}
 						</div>
 					) : null}
 
@@ -167,15 +173,15 @@ export function DesktopShell({
 
 					{rightColumn ? (
 						<div className="relative h-full shrink-0">
-							{rightOpen ? (
+							{rightOpen && (
 								<Resizable
 									className="h-full"
 									enable={{ left: true }}
 									handleComponent={{
 										left: <ResizeHandle />,
 									}}
-									maxWidth={400}
-									minWidth={180}
+									maxWidth={640}
+									minWidth={80}
 									onResizeStop={(_, __, ref) => {
 										const next = ref.offsetWidth;
 										setRightWidth(next);
@@ -187,15 +193,6 @@ export function DesktopShell({
 										<aside className="h-full">{rightContent}</aside>
 									</div>
 								</Resizable>
-							) : (
-								<button
-									aria-label="Show right panel"
-									className="btn btn-ghost btn-xs rounded-full bg-base-100 shadow"
-									onClick={() => setRightOpen(true)}
-									type="button"
-								>
-									ℹ
-								</button>
 							)}
 						</div>
 					) : null}

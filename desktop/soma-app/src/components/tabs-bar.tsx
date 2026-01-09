@@ -1,6 +1,7 @@
 import { cn } from "@soma/lib/cn";
 import { useTabsStore } from "@soma/store/tabs";
-import { ChevronLeft, ChevronRight, Plus, X } from "react-feather";
+import { List, MessageCircle, Plus, X } from "react-feather";
+import { PolymorphButton } from "soma-ui/components/actions/polymorph-button";
 
 type TabsBarProps = {
 	leftOpen: boolean;
@@ -12,8 +13,6 @@ type TabsBarProps = {
 };
 
 function TabsBar({
-	leftOpen,
-	rightOpen,
 	hasLeft,
 	hasRight,
 	toggleLeft,
@@ -28,38 +27,19 @@ function TabsBar({
 
 	return (
 		<div className="flex min-w-0 items-center gap-2">
-			<div className="flex items-center gap-1" data-no-drag>
-				{hasLeft ? (
-					<button
-						aria-label={leftOpen ? "Hide sidebar" : "Show sidebar"}
-						className="btn btn-ghost btn-xs btn-square border border-base-200"
+			<div className="flex items-center gap-1">
+				{hasLeft && (
+					<PolymorphButton
+						className="btn-soft"
 						onClick={toggleLeft}
+						size="sm"
 						type="button"
 					>
-						<ChevronLeft
-							className="size-3.5"
-							style={{
-								transform: leftOpen ? "rotate(0deg)" : "rotate(180deg)",
-							}}
-						/>
-					</button>
-				) : null}
-				{hasRight ? (
-					<button
-						aria-label={rightOpen ? "Hide right pane" : "Show right pane"}
-						className="btn btn-ghost btn-xs btn-square border border-base-200"
-						onClick={toggleRight}
-						type="button"
-					>
-						<ChevronRight
-							className="size-3.5"
-							style={{
-								transform: rightOpen ? "rotate(0deg)" : "rotate(180deg)",
-							}}
-						/>
-					</button>
-				) : null}
+						<List className="size-4" />
+					</PolymorphButton>
+				)}
 			</div>
+
 			<div
 				className="no-scrollbar flex flex-1 items-center gap-2 overflow-x-auto"
 				data-tauri-drag-region
@@ -99,14 +79,29 @@ function TabsBar({
 					);
 				})}
 			</div>
-			<button
-				className="btn btn-primary btn-sm btn-circle btn-soft"
-				disabled={atMaxTabs}
-				onClick={() => openTab()}
-				type="button"
-			>
-				<Plus className="size-6" />
-			</button>
+
+			<div className="flex items-center gap-1">
+				<PolymorphButton
+					className="btn-soft"
+					disabled={atMaxTabs}
+					onClick={() => openTab()}
+					size="sm"
+					type="button"
+				>
+					<Plus className="size-4" />
+				</PolymorphButton>
+
+				{hasRight && (
+					<PolymorphButton
+						className="btn-soft"
+						onClick={toggleRight}
+						size="sm"
+						type="button"
+					>
+						<MessageCircle className="size-4" />
+					</PolymorphButton>
+				)}
+			</div>
 		</div>
 	);
 }

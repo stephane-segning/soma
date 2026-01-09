@@ -1,5 +1,6 @@
 @use "tailwindcss/index.css";
-@use "soma-ui/styles.css";
+//@use "soma-ui/styles.css";
+@source "../../../soma-ui/src";
 
 @plugin "daisyui" {
   themes: lemonade --default,
@@ -17,7 +18,7 @@
 html, body, #root {
   background: transparent !important;
 
-  @apply m-0 shadow-none;
+  @apply m-0 p-0 shadow-none overscroll-none;
 }
 
 #root {
