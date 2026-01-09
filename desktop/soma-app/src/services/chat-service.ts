@@ -44,17 +44,18 @@ export async function streamChat(
 }
 
 export async function listModels(): Promise<AgentModel[]> {
-	const { models } = await invoke<{
-		models: {
-			name: string;
-			kind: string;
-			path: string;
-			loaded: boolean;
-			size_bytes?: number;
-		}[];
-	}>("agent_list_models");
+	const res =
+		await invoke<
+			{
+				name: string;
+				kind: string;
+				path: string;
+				loaded: boolean;
+				size_bytes?: number;
+			}[]
+		>("agent_list_models");
 
-	return models.map((m) => ({
+	return res.map((m) => ({
 		name: m.name,
 		kind: normalizeKind(m.kind),
 		path: m.path,

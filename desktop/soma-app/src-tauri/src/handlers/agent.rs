@@ -1,5 +1,7 @@
 use base64::{Engine as _, engine::general_purpose};
 use serde::{Deserialize, Serialize};
+//use tauri_plugin_log::log::info;
+use tracing::info;
 use soma_proto_build::agent;
 
 use crate::error::{AppError, AppResult};

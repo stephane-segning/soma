@@ -7,15 +7,15 @@ import { AiConversation } from "soma-ui/components/chat/ai-conversation";
 import { AiInput } from "soma-ui/components/forms/ai-input";
 
 function ChatSidebar(): React.JSX.Element {
-	const modelsQuery = useQuery({
+	const { data, error } = useQuery({
 		queryKey: ["agent", "models"],
-		queryFn: listModels,
-		staleTime: 5 * 60 * 1000,
+		queryFn: async () => listModels(),
+		//staleTime: 5 * 60 * 1000,
 	});
 
 	const chatModels = useMemo(
-		() => modelsQuery.data?.filter((m) => m.kind === "chat") ?? [],
-		[modelsQuery.data],
+		() => data?.filter((m) => m.kind === "chat") ?? [],
+		[data],
 	);
 
 	const [selectedModel, setSelectedModel] = useState<string>(
@@ -36,9 +36,14 @@ function ChatSidebar(): React.JSX.Element {
 	const handleSend = () => {
 		const prompt = draft.trim();
 		if (!prompt || isSending) return;
+
 		setDraft(() => "");
 		sendPrompt(prompt, selectedModel);
 	};
+
+	if (error) {
+		console.error(error);
+	}
 
 	return (
 		<div className="flex h-full flex-col gap-1 text-sm antialiased">
@@ -54,7 +59,7 @@ function ChatSidebar(): React.JSX.Element {
 					<>
 						{chatModels.length > 0 && (
 							<select
-								className="select select-sm"
+								className="select select-sm select-ghost"
 								defaultValue="Pick a font"
 								onChange={(e) => setSelectedModel(e.target.value)}
 							>

@@ -165,6 +165,7 @@ pub async fn agent_chat_stream(
 #[tauri::command]
 pub async fn agent_list_models(
     controller: State<'_, AgentController>,
+    _request: tauri::ipc::Request<'_>,
 ) -> AppResult<Vec<ModelInfoDto>> {
     controller.list_models().await
 }

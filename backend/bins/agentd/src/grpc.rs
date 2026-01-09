@@ -4,6 +4,7 @@ use futures::Stream;
 use soma_proto_build::agent;
 use tokio_stream::{StreamExt as TokioStreamExt, wrappers::UnboundedReceiverStream};
 use tonic::{Request, Response, Status};
+use tracing::info;
 use yrs::{Doc, ReadTxn, StateVector, Transact, Update, updates::decoder::Decode};
 
 use crate::engine::{

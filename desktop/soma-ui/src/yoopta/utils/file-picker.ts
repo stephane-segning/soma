@@ -1,9 +1,10 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { basename, extname } from "@tauri-apps/api/path";
-import { open, type OpenDialogOptions } from "@tauri-apps/plugin-dialog";
+import { type OpenDialogOptions, open } from "@tauri-apps/plugin-dialog";
 
 type PickFileOptions = {
 	accept?: string;
+	multiple?: boolean;
 };
 
 const MIME_BY_EXT: Record<string, string> = {
@@ -76,49 +77,52 @@ function acceptToFilters(accept?: string): OpenDialogOptions["filters"] {
 	];
 }
 
-function guessMimeFromExt(ext: string | null | undefined, accept?: string): string {
-	if (!ext) return accept?.startsWith("image/") ? "image/*" : "application/octet-stream";
+function guessMimeFromExt(
+	ext: string | null | undefined,
+	accept?: string,
+): string {
+	if (!ext)
+		return accept?.startsWith("image/")
+			? "image/*"
+			: "application/octet-stream";
 	const cleanExt = ext.replace(/^\./, "").toLowerCase();
 	return MIME_BY_EXT[cleanExt] || "application/octet-stream";
 }
 
-export async function pickSingleFile(options: PickFileOptions = {}): Promise<File | null> {
-	if (typeof window === "undefined") return null;
-
+export async function pickSingleFile(
+	options: PickFileOptions = {},
+): Promise<File | null> {
 	const accept = options.accept;
-	const isTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+	const isTauri =
+		typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
 	if (isTauri) {
-		try {
-			const selection = await open({
-				multiple: false,
-				filters: acceptToFilters(accept),
-			});
+		const selection = await open({
+			multiple: options.multiple,
+			filters: acceptToFilters(accept),
+		});
 
-			const selectedPath = Array.isArray(selection) ? selection[0] : selection;
-			if (!selectedPath) return null;
+		const selectedPath = Array.isArray(selection) ? selection[0] : selection;
+		if (!selectedPath) return null;
 
-			const [name, extension] = await Promise.all([
-				basename(selectedPath),
-				extname(selectedPath),
-			]);
+		const [name, extension] = await Promise.all([
+			basename(selectedPath),
+			extname(selectedPath),
+		]);
 
-			const mime = guessMimeFromExt(extension, accept);
-			const assetUrl = convertFileSrc(selectedPath);
-			const response = await fetch(assetUrl);
-			if (!response.ok) {
-				throw new Error(`Failed to read file bytes for ${selectedPath}`);
-			}
-			const buffer = await response.arrayBuffer();
-			const bytes = new Uint8Array(buffer);
-
-			return new File([bytes], name, {
-				type: mime,
-				lastModified: Date.now(),
-			});
-		} catch (error) {
-			console.warn("Tauri dialog picker failed, falling back to DOM file input", error);
+		const mime = guessMimeFromExt(extension, accept);
+		const assetUrl = convertFileSrc(selectedPath);
+		const response = await fetch(assetUrl);
+		if (!response.ok) {
+			throw new Error(`Failed to read file bytes for ${selectedPath}`);
 		}
+		const buffer = await response.arrayBuffer();
+		const bytes = new Uint8Array(buffer);
+
+		return new File([bytes], name, {
+			type: mime,
+			lastModified: Date.now(),
+		});
 	}
 
 	return new Promise((resolve) => {
