@@ -218,6 +218,37 @@ message ReadBlobResponse {
   string mime = 3;
 }
 
+message BlobMetadata {
+  string space_id = 1;
+  string cid = 2;
+  uint64 size = 3;
+  string mime = 4;
+  string name = 5;
+  int64 created_at_ms = 6;
+  int64 last_seen_ms = 7;
+}
+
+message GetBlobMetadataRequest {
+  string space_id = 1;
+  string cid = 2;
+}
+
+message GetBlobMetadataResponse {
+  BlobMetadata blob = 1;
+}
+
+message ListBlobsRequest {
+  string space_id = 1;
+  // Optional: limit to blobs referenced by this document.
+  string document_id = 2;
+  uint32 limit = 3;
+  uint32 offset = 4;
+}
+
+message ListBlobsResponse {
+  repeated BlobMetadata blobs = 1;
+}
+
 message UpsertDocumentRequest {
   string space_id = 1;
   string document_id = 2;
@@ -339,6 +370,10 @@ service Daemon {
   rpc UploadBlob(UploadBlobRequest) returns (UploadBlobResponse);
   // Read a blob from the daemon's blob store by its content ID.
   rpc ReadBlob(ReadBlobRequest) returns (ReadBlobResponse);
+  // Fetch metadata for a blob (if known to the daemon).
+  rpc GetBlobMetadata(GetBlobMetadataRequest) returns (GetBlobMetadataResponse);
+  // List blobs known to the daemon for a space (optionally scoped to a document).
+  rpc ListBlobs(ListBlobsRequest) returns (ListBlobsResponse);
   // Create or update a document.
   rpc UpsertDocument(UpsertDocumentRequest) returns (UpsertDocumentResponse);
   // Get a document's content.

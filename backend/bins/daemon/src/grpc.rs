@@ -14,10 +14,12 @@ use tokio_stream::{StreamExt as TokioStreamExt, wrappers::BroadcastStream};
 use tonic::{Request, Response, Status};
 use tracing::{info, warn};
 
+use crate::services::blobs::BlobsService;
 use crate::services::documents::DocumentsService;
 use crate::services::pages::PagesService;
 use crate::services::space::SpaceManager;
 use soma_storage::RepositoryProvider;
+use soma_storage::blobs::BlobMetadata;
 use soma_storage::documents::Document;
 use soma_storage::pages::Page;
 use soma_vdfs::fs::FsBlobStore;
@@ -42,6 +44,18 @@ fn to_page_record(page: Page) -> daemon::PageRecord {
         parent_page_ids: page.parent_page_ids,
         created_at_ms: page.created_at_ms,
         updated_at_ms: page.updated_at_ms,
+    }
+}
+
+fn to_blob_metadata(blob: BlobMetadata) -> daemon::BlobMetadata {
+    daemon::BlobMetadata {
+        space_id: blob.space_id,
+        cid: blob.cid,
+        size: blob.size.max(0) as u64,
+        mime: blob.mime,
+        name: blob.name,
+        created_at_ms: blob.created_at_ms,
+        last_seen_ms: blob.last_seen_ms,
     }
 }
 /// Daemon shared state (peer id, command channel, listeners, event bus).
@@ -268,6 +282,31 @@ impl daemon::daemon_server::Daemon for DaemonService {
             .map_err(|err| {
                 warn!(%err, "failed to persist blob");
                 Status::internal("failed to persist blob")
+            })?;
+
+        let now = now_ms();
+        let blob_metadata = BlobMetadata {
+            space_id: payload.space_id.clone(),
+            cid: write_res.cid.clone(),
+            size: write_res.size as i64,
+            mime: mime.clone(),
+            name: payload.name.clone(),
+            created_at_ms: now,
+            last_seen_ms: now,
+        };
+        BlobsService::new(self.state.repos.clone())
+            .record_upload(
+                &blob_metadata,
+                if payload.doc_id.is_empty() {
+                    None
+                } else {
+                    Some(payload.doc_id.as_str())
+                },
+            )
+            .await
+            .map_err(|err| {
+                warn!(%err, "failed to persist blob metadata");
+                Status::internal("failed to persist blob metadata")
             })?;
 
         // Emit event only when tied to Yoopta content.

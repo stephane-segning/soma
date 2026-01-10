@@ -8,6 +8,7 @@ use soma_core::SomaResult;
 use sqlx_utils::types::Pool;
 
 pub mod bootstrap;
+pub mod blobs;
 pub mod documents;
 pub mod issuer;
 pub mod mailbox;
@@ -15,6 +16,7 @@ pub mod membership;
 pub mod pages;
 pub mod peers;
 use crate::{
+    blobs::BlobRepository,
     documents::DocumentRepository, issuer::IssuerRepository, mailbox::MailboxRepository,
     membership::MembershipRepository, pages::PageRepository, peers::PeerPublicKeyRepository,
 };
@@ -27,6 +29,7 @@ pub trait RepositoryProvider: Send + Sync {
     fn peer_keys_repo(&self) -> Arc<dyn PeerPublicKeyRepository>;
     fn document_repo(&self) -> Arc<dyn DocumentRepository>;
     fn page_repo(&self) -> Arc<dyn PageRepository>;
+    fn blob_repo(&self) -> Arc<dyn BlobRepository>;
     fn pool(&self) -> Pool;
 }
 
@@ -68,6 +71,10 @@ impl RepositoryFactory {
     pub fn pages(&self) -> pages::SqlPageRepository {
         pages::SqlPageRepository::new(self.pool.clone())
     }
+
+    pub fn blobs(&self) -> blobs::SqlBlobRepository {
+        blobs::SqlBlobRepository::new(self.pool.clone())
+    }
 }
 
 impl RepositoryProvider for RepositoryFactory {
@@ -93,6 +100,10 @@ impl RepositoryProvider for RepositoryFactory {
 
     fn page_repo(&self) -> Arc<dyn PageRepository> {
         Arc::new(self.pages())
+    }
+
+    fn blob_repo(&self) -> Arc<dyn BlobRepository> {
+        Arc::new(self.blobs())
     }
 
     fn pool(&self) -> Pool {
@@ -126,6 +137,10 @@ where
 
     fn page_repo(&self) -> Arc<dyn PageRepository> {
         (**self).page_repo()
+    }
+
+    fn blob_repo(&self) -> Arc<dyn BlobRepository> {
+        (**self).blob_repo()
     }
 
     fn pool(&self) -> Pool {

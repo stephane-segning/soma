@@ -118,6 +118,12 @@ Where to wire this:
 - Peer event definitions: `backend/crates/peer/src/lib.rs`, `backend/crates/peer/src/events.rs`
 - Daemon storage + IPC/controller: `backend/bins/daemon/`
 
+#### Read and serving (desktop → daemon IPC)
+
+- Desktop renderers should load bytes via `soma-blob://daemon/{space_id}/{cid}` (never read blob files directly).
+- The Tauri custom protocol handler lives at `desktop/soma-app/src-tauri/src/protocol.rs` and reads bytes via `Daemon/ReadBlob` (proto `proto/daemon/v1/daemon.proto`, implemented in `backend/bins/daemon/src/grpc.rs`).
+- Tauri URI scheme handlers may run before `.setup(...)`; any state used by a protocol handler must be registered via `.manage(...)` **before** `register_uri_scheme_protocol(...)`.
+
 #### Network distribution (fetch + cache)
 
 - Peers retrieve blobs from each other by CID over libp2p (a simple request/response “get by CID” protocol).
@@ -224,6 +230,9 @@ Use this list to track domain flows and where the API lives. Mark items off as y
     - Bot mode (`soma-botd --mode bot`): auto-approves only when it holds a valid issuer capability for the space; otherwise records a pending join and rejects until manually approved elsewhere. HTTP stays read-only.
     - Server-daemon mode (`soma-botd --mode server-daemon`): authenticated admin surface for join control (`POST /v1/join/request`, `GET /v1/join/requests`, `POST /v1/join/decide`); controllers delegate to storage + decider (no force-mint).
     - Daemon gRPC also exposes manual approval surfaces: `Daemon/ListJoinRequests`, `Daemon/DecideJoin` and membership queries via `Daemon/ListMyMemberships`.
+- [x] Blob upload & read (desktop IPC)
+    - Daemon gRPC: `Daemon/UploadBlob`, `Daemon/ReadBlob` (Unix socket, proto `proto/daemon/v1/daemon.proto`)
+    - Desktop: `soma-blob://daemon/{space_id}/{cid}` protocol handler in `desktop/soma-app/src-tauri/src/protocol.rs`
 - [ ] Space create & ownership genesis (verifyable)
     - Add a real “space genesis” artifact (owner-signed record) that other peers can verify; current `spaces.owner_peer_id` is DB-local metadata only.
 - [ ] Issuer capability lifecycle (secure)
@@ -311,7 +320,7 @@ Soma-app (`desktop/soma-app`) (Tauri v2):
   - Do not define app-local `AppError`/`AppResult`; they are provided by `desktop/tauri-command-utils` and re-exported from each app’s `src/error.rs`.
   - `tauri-command-utils` features control which `AppError` variants are compiled (`bad-request`, `json-error`, `io`, `anyhow`, `daemon`, `agent`); apps should enable only what they use.
 - Desktop assumes `soma-daemon` is already running; do not start daemons from the renderer.
-- No local blob persistence/caching in the desktop app: uploads go to `soma-daemon`, and renderers should use `soma-blob://daemon/{space_id}/{cid}` URLs for blob references.
+- No local blob persistence/caching in the desktop app: uploads go to `soma-daemon`, and renderers should use `soma-blob://daemon/{space_id}/{cid}` (served by the Tauri `soma-blob` protocol via `Daemon/ReadBlob`) for blob references.
 - Local LLM chat runs via `soma-agentd` (gRPC over Unix socket); for model selection and “base vs instruct” behavior, see `docs/src/development/agentd-models.md`.
 - Space members UI: `/spaces/:spaceId/members` simply lists the roster fetched via the daemon `ListSpaceMembers` RPC exposed as the `spaces_list_members` Tauri command (`desktop/soma-app/src/routes/screens/space-members.tsx` + `@soma/queries/spaces`). Keep it lightweight/read-only; no bespoke member page beyond this list.
 
