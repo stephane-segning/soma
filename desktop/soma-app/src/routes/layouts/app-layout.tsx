@@ -1,3 +1,4 @@
+import { RouterListener } from "@soma/components/router-listener";
 import { SideMenu } from "@soma/components/side/side-menu.tsx";
 import { TabsBar } from "@soma/components/tabs-bar.tsx";
 import { WindowControls } from "@soma/components/window-controls.tsx";
@@ -73,6 +74,8 @@ function Component(): React.JSX.Element {
 			<Suspense fallback={null}>
 				<CommandPaletteShell />
 			</Suspense>
+
+			<RouterListener />
 		</>
 	);
 }
