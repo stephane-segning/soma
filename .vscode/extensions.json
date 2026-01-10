@@ -2,6 +2,7 @@
     "recommendations": [
         "skellock.just",
         "fill-labs.dependi",
-        "sonarsource.sonarlint-vscode"
+        "sonarsource.sonarlint-vscode",
+        "drblury.protobuf-vsc"
     ]
 }

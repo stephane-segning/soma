@@ -12,10 +12,11 @@ pub mod documents;
 pub mod issuer;
 pub mod mailbox;
 pub mod membership;
+pub mod pages;
 pub mod peers;
 use crate::{
     documents::DocumentRepository, issuer::IssuerRepository, mailbox::MailboxRepository,
-    membership::MembershipRepository, peers::PeerPublicKeyRepository,
+    membership::MembershipRepository, pages::PageRepository, peers::PeerPublicKeyRepository,
 };
 
 /// Abstraction over repositories needed by controllers/services.
@@ -25,6 +26,7 @@ pub trait RepositoryProvider: Send + Sync {
     fn mailbox_repo(&self) -> Arc<dyn MailboxRepository>;
     fn peer_keys_repo(&self) -> Arc<dyn PeerPublicKeyRepository>;
     fn document_repo(&self) -> Arc<dyn DocumentRepository>;
+    fn page_repo(&self) -> Arc<dyn PageRepository>;
     fn pool(&self) -> Pool;
 }
 
@@ -62,6 +64,10 @@ impl RepositoryFactory {
     pub fn documents(&self) -> documents::SqlDocumentRepository {
         documents::SqlDocumentRepository::new(self.pool.clone())
     }
+
+    pub fn pages(&self) -> pages::SqlPageRepository {
+        pages::SqlPageRepository::new(self.pool.clone())
+    }
 }
 
 impl RepositoryProvider for RepositoryFactory {
@@ -83,6 +89,10 @@ impl RepositoryProvider for RepositoryFactory {
 
     fn document_repo(&self) -> Arc<dyn DocumentRepository> {
         Arc::new(self.documents())
+    }
+
+    fn page_repo(&self) -> Arc<dyn PageRepository> {
+        Arc::new(self.pages())
     }
 
     fn pool(&self) -> Pool {
@@ -112,6 +122,10 @@ where
 
     fn document_repo(&self) -> Arc<dyn DocumentRepository> {
         (**self).document_repo()
+    }
+
+    fn page_repo(&self) -> Arc<dyn PageRepository> {
+        (**self).page_repo()
     }
 
     fn pool(&self) -> Pool {

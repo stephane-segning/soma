@@ -50,8 +50,13 @@ function TabbedApp(): React.JSX.Element | null {
 	useEffect(() => {
 		if (!initialized) return;
 		let timeout: number | null = null;
+		let prevTabsState = store.getState().tabs;
 
 		const unsubscribe = store.subscribe(() => {
+			const nextTabsState = store.getState().tabs;
+			if (nextTabsState === prevTabsState) return;
+			prevTabsState = nextTabsState;
+
 			if (timeout) window.clearTimeout(timeout);
 			timeout = window.setTimeout(() => {
 				setSetting.mutate({

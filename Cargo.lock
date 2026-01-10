@@ -6894,6 +6894,7 @@ name = "soma-storage"
 version = "0.1.1"
 dependencies = [
  "async-trait",
+ "serde_json",
  "soma-core",
  "sqlx",
  "sqlx-utils",

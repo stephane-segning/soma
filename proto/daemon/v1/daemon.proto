@@ -243,6 +243,56 @@ message GetDocumentResponse {
   int64 updated_at_ms = 5;
 }
 
+message PageRecord {
+  string space_id = 1;
+  string page_id = 2;
+  string title = 3;
+  repeated string parent_page_ids = 4;
+  int64 created_at_ms = 5;
+  int64 updated_at_ms = 6;
+}
+
+message EnsurePageRequest {
+  string space_id = 1;
+  string page_id = 2;
+  string title = 3;
+  repeated string parent_page_ids = 4;
+  int64 created_at_ms = 5;
+  int64 updated_at_ms = 6;
+}
+
+message EnsurePageResponse {
+  PageRecord page = 1;
+}
+
+message ListPagesRequest {
+  string space_id = 1;
+}
+
+message ListPagesResponse {
+  repeated PageRecord pages = 1;
+}
+
+message UpdatePageTitleRequest {
+  string space_id = 1;
+  string page_id = 2;
+  string title = 3;
+}
+
+message UpdatePageTitleResponse {
+  PageRecord page = 1;
+}
+
+message SetPageParentsRequest {
+  string space_id = 1;
+  string page_id = 2;
+  repeated string parent_page_ids = 3;
+}
+
+message SetPageParentsResponse {
+  PageRecord page = 1;
+}
+
 message DaemonEvent {
   oneof event {
     JoinDecisionEvent join_decision = 1;
@@ -252,24 +302,53 @@ message DaemonEvent {
   }
 }
 
+// The Daemon service defines the gRPC API for the local Soma daemon process,
+// used by clients to interact with the peer over a Unix domain socket.
 service Daemon {
+  // Get the status of the local daemon.
   rpc Status(StatusRequest) returns (StatusResponse);
+  // Request to join a space.
   rpc JoinSpace(JoinSpaceRequest) returns (JoinSpaceResponse);
+  // Stream events from the daemon.
   rpc StreamEvents(StreamEventsRequest) returns (stream DaemonEvent);
+  // Revoke a member's access to a space.
   rpc RevokeSpace(RevokeSpaceRequest) returns (RevokeSpaceResponse);
+  // List members of a given space.
   rpc ListSpaceMembers(ListSpaceMembersRequest) returns (ListSpaceMembersResponse);
+  // List all spaces the current user is a member of.
   rpc ListMyMemberships(google.protobuf.Empty) returns (ListMyMembershipsResponse);
+  // Issue a capability for another peer to act as an issuer for a space.
   rpc IssueIssuerCapability(IssueIssuerCapabilityRequest) returns (IssueIssuerCapabilityResponse);
+  // Discover available spaces.
   rpc DiscoverSpaces(DiscoverSpacesRequest) returns (DiscoverSpacesResponse);
+  // List spaces managed by this daemon.
   rpc ListSpaces(ListSpacesRequest) returns (ListSpacesResponse);
+  // Create a new space.
   rpc CreateSpace(CreateSpaceRequest) returns (CreateSpaceResponse);
+  // Get details for a specific space.
   rpc GetSpace(GetSpaceRequest) returns (GetSpaceResponse);
+  // Update a space's details.
   rpc UpdateSpace(UpdateSpaceRequest) returns (UpdateSpaceResponse);
+  // Delete a space.
   rpc DeleteSpace(DeleteSpaceRequest) returns (DeleteSpaceResponse);
+  // List pending join requests.
   rpc ListJoinRequests(ListJoinRequestsRequest) returns (ListJoinRequestsResponse);
+  // Approve or reject a join request.
   rpc DecideJoin(DecideJoinRequest) returns (DecideJoinResponse);
+  // Upload a blob to the daemon's blob store.
   rpc UploadBlob(UploadBlobRequest) returns (UploadBlobResponse);
+  // Read a blob from the daemon's blob store by its content ID.
   rpc ReadBlob(ReadBlobRequest) returns (ReadBlobResponse);
+  // Create or update a document.
   rpc UpsertDocument(UpsertDocumentRequest) returns (UpsertDocumentResponse);
+  // Get a document's content.
   rpc GetDocument(GetDocumentRequest) returns (GetDocumentResponse);
+  // Create a page record if it does not exist.
+  rpc EnsurePage(EnsurePageRequest) returns (EnsurePageResponse);
+  // List pages for a space.
+  rpc ListPages(ListPagesRequest) returns (ListPagesResponse);
+  // Update a page's title.
+  rpc UpdatePageTitle(UpdatePageTitleRequest) returns (UpdatePageTitleResponse);
+  // Set a page's parent IDs.
+  rpc SetPageParents(SetPageParentsRequest) returns (SetPageParentsResponse);
 }

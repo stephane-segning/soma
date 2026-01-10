@@ -11,3 +11,4 @@ soma-core = { workspace = true }
 sqlx = { workspace = true }
 async-trait = { workspace = true }
 sqlx-utils = { workspace = true }
+serde_json = { workspace = true }
