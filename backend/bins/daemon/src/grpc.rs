@@ -14,9 +14,10 @@ use tokio_stream::{StreamExt as TokioStreamExt, wrappers::BroadcastStream};
 use tonic::{Request, Response, Status};
 use tracing::{info, warn};
 
-use soma_storage::documents::Document;
+use crate::services::documents::DocumentsService;
 use crate::services::space::SpaceManager;
 use soma_storage::RepositoryProvider;
+use soma_storage::documents::Document;
 use soma_vdfs::fs::FsBlobStore;
 
 const MAX_UPLOAD_BYTES: usize = 8 * 1024 * 1024;
@@ -347,10 +348,8 @@ impl daemon::daemon_server::Daemon for DaemonService {
             updated_at_ms: payload.updated_at_ms,
         };
 
-        self.state
-            .repos
-            .document_repo()
-            .upsert_document(&document)
+        DocumentsService::new(self.state.repos.clone())
+            .upsert(&document)
             .await
             .map_err(|err| {
                 warn!(%err, "upsert_document failed");
@@ -373,11 +372,8 @@ impl daemon::daemon_server::Daemon for DaemonService {
             return Err(Status::invalid_argument("document_id required"));
         }
 
-        let document = self
-            .state
-            .repos
-            .document_repo()
-            .get_document(&payload.space_id, &payload.document_id)
+        let document = DocumentsService::new(self.state.repos.clone())
+            .get(&payload.space_id, &payload.document_id)
             .await
             .map_err(|err| {
                 warn!(%err, "get_document failed");
