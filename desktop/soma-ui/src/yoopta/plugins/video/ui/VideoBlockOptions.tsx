@@ -1,19 +1,19 @@
 // @ts-nocheck
 
-import {
-	ExternalLinkIcon,
-	ImageIcon,
-	RowSpacingIcon,
-	SizeIcon,
-	TextAlignCenterIcon,
-	TextAlignLeftIcon,
-	TextAlignRightIcon,
-	UpdateIcon,
-	WidthIcon,
-} from "@radix-ui/react-icons";
 import type { YooEditor, YooptaBlockData } from "@yoopta/editor";
 import { Blocks, Elements, UI, useYooptaPluginOptions } from "@yoopta/editor";
 import { useState } from "react";
+import {
+	AlignCenter,
+	AlignLeft,
+	AlignRight,
+	Crop,
+	ExternalLink,
+	Image,
+	Maximize2,
+	Minimize2,
+	RefreshCw,
+} from "react-feather";
 import CheckmarkIcon from "../icons/checkmark.svg";
 import DownloadIcon from "../icons/download.svg";
 import type {
@@ -24,9 +24,9 @@ import type {
 import { Loader } from "./Loader";
 
 const ALIGN_ICONS = {
-	left: TextAlignLeftIcon,
-	center: TextAlignCenterIcon,
-	right: TextAlignRightIcon,
+	left: AlignLeft,
+	center: AlignCenter,
+	right: AlignRight,
 };
 
 const {
@@ -202,15 +202,11 @@ const VideoBlockOptions = ({ editor, block, props: videoProps }: Props) => {
 								type="button"
 							>
 								<span className="flex">
-									<RowSpacingIcon
-										className="mr-2 h-4 w-4"
-										height={16}
-										width={16}
-									/>
+									<Minimize2 className="mr-2 size-4" height={16} width={16} />
 									Fit
 								</span>
 								{videoProps?.fit === "contain" && (
-									<CheckmarkIcon className="h-4 w-4" height={16} width={16} />
+									<CheckmarkIcon className="size-4" height={16} width={16} />
 								)}
 							</button>
 						</BlockOptionsMenuItem>
@@ -221,11 +217,11 @@ const VideoBlockOptions = ({ editor, block, props: videoProps }: Props) => {
 								type="button"
 							>
 								<span className="flex">
-									<WidthIcon className="mr-2 h-4 w-4" height={16} width={16} />
+									<Maximize2 className="mr-2 size-4" height={16} width={16} />
 									Fill
 								</span>
 								{videoProps?.fit === "fill" && (
-									<CheckmarkIcon className="h-4 w-4" height={16} width={16} />
+									<CheckmarkIcon className="size-4" height={16} width={16} />
 								)}
 							</button>
 						</BlockOptionsMenuItem>
@@ -236,11 +232,11 @@ const VideoBlockOptions = ({ editor, block, props: videoProps }: Props) => {
 								type="button"
 							>
 								<span className="flex">
-									<SizeIcon className="mr-2 h-4 w-4" height={16} width={16} />
+									<Crop className="mr-2 size-4" height={16} width={16} />
 									Cover
 								</span>
 								{videoProps?.fit === "cover" && (
-									<CheckmarkIcon className="h-4 w-4" height={16} width={16} />
+									<CheckmarkIcon className="size-4" height={16} width={16} />
 								)}
 							</button>
 						</BlockOptionsMenuItem>
@@ -273,7 +269,7 @@ const VideoBlockOptions = ({ editor, block, props: videoProps }: Props) => {
 										width={24}
 									/>
 								) : (
-									<UpdateIcon className="mr-2 h-4 w-4" height={16} width={16} />
+									<RefreshCw className="mr-2 size-4" height={16} width={16} />
 								)}
 								Replace video
 							</label>
@@ -306,7 +302,7 @@ const VideoBlockOptions = ({ editor, block, props: videoProps }: Props) => {
 									width={24}
 								/>
 							) : (
-								<ImageIcon className="mr-2 h-4 w-4" height={16} width={16} />
+								<Image className="mr-2 size-4" height={16} width={16} />
 							)}
 							{videoProps?.poster ? "Replace poster" : "Add poster"}
 						</label>
@@ -318,7 +314,7 @@ const VideoBlockOptions = ({ editor, block, props: videoProps }: Props) => {
 						onClick={onToggleAlign}
 						type="button"
 					>
-						<AlignIcon className="mr-2 h-4 w-4" height={16} width={16} />
+						<AlignIcon className="mr-2 size-4" height={16} width={16} />
 						Alignment
 					</button>
 				</BlockOptionsMenuItem>
@@ -330,16 +326,12 @@ const VideoBlockOptions = ({ editor, block, props: videoProps }: Props) => {
 					>
 						{isExternalVideo ? (
 							<>
-								<ExternalLinkIcon
-									className="mr-2 h-4 w-4"
-									height={16}
-									width={16}
-								/>
+								<ExternalLink className="mr-2 size-4" height={16} width={16} />
 								Open
 							</>
 						) : (
 							<>
-								<DownloadIcon className="mr-2 h-4 w-4" height={16} width={16} />
+								<DownloadIcon className="mr-2 size-4" height={16} width={16} />
 								Download
 							</>
 						)}

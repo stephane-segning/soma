@@ -20,10 +20,10 @@ export default defineConfig({
 		"react-router",
 		"@yoopta/editor",
 		"@floating-ui/react",
-		"@radix-ui/react-icons",
 		"@tauri-apps/api",
 		"@tauri-apps/plugin-dialog",
 		"slate",
 		"slate-react",
+		"react-feather",
 	],
 });

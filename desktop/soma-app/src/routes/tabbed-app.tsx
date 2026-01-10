@@ -106,7 +106,7 @@ function TabbedApp(): React.JSX.Element | null {
 
 	if (!initialized || !activeTab || !router) return null;
 	return (
-		<div className="h-full w-full" data-no-drag>
+		<div className="h-full w-full">
 			<RouterProvider key={activeTab.id} router={router} />
 		</div>
 	);

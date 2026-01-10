@@ -1,72 +1,84 @@
 // @ts-nocheck
+import type { YooEditor, YooptaBlockData } from "@yoopta/editor";
+import { Blocks, UI } from "@yoopta/editor";
 import {
-  ExternalLinkIcon,
-  TextAlignCenterIcon,
-  TextAlignLeftIcon,
-  TextAlignRightIcon,
-} from '@radix-ui/react-icons';
-import type { YooEditor, YooptaBlockData } from '@yoopta/editor';
-import { Blocks, UI } from '@yoopta/editor';
+	AlignCenter,
+	AlignLeft,
+	AlignRight,
+	ExternalLink,
+} from "react-feather";
 
-import type { FileElementProps } from '../types';
+import type { FileElementProps } from "../types";
 
 const ALIGN_ICONS = {
-  left: TextAlignLeftIcon,
-  center: TextAlignCenterIcon,
-  right: TextAlignRightIcon,
+	left: AlignLeft,
+	center: AlignCenter,
+	right: AlignRight,
 };
 
-const { ExtendedBlockActions, BlockOptionsMenuGroup, BlockOptionsMenuItem, BlockOptionsSeparator } =
-  UI;
+const {
+	ExtendedBlockActions,
+	BlockOptionsMenuGroup,
+	BlockOptionsMenuItem,
+	BlockOptionsSeparator,
+} = UI;
 
 type Props = {
-  editor: YooEditor;
-  block: YooptaBlockData;
-  props?: FileElementProps;
+	editor: YooEditor;
+	block: YooptaBlockData;
+	props?: FileElementProps;
 };
 
 const FileBlockOptions = ({ editor, block, props: fileProps }: Props) => {
-  const onOpen = () => {
-    if (!fileProps?.src) return;
-    window.open(fileProps?.src, '_blank');
-  };
+	const onOpen = () => {
+		if (!fileProps?.src) return;
+		window.open(fileProps?.src, "_blank");
+	};
 
-  const currentAlign = block?.meta?.align || 'center';
-  const AlignIcon = ALIGN_ICONS[currentAlign];
+	const currentAlign = block?.meta?.align || "center";
+	const AlignIcon = ALIGN_ICONS[currentAlign];
 
-  const onToggleAlign = () => {
-    const aligns = ['left', 'center', 'right'];
-    if (!block) return;
+	const onToggleAlign = () => {
+		const aligns = ["left", "center", "right"];
+		if (!block) return;
 
-    const nextAlign = aligns[
-      (aligns.indexOf(currentAlign) + 1) % aligns.length
-    ] as YooptaBlockData['meta']['align'];
-    Blocks.updateBlock(editor, block.id, { meta: { ...block.meta, align: nextAlign } });
-  };
+		const nextAlign = aligns[
+			(aligns.indexOf(currentAlign) + 1) % aligns.length
+		] as YooptaBlockData["meta"]["align"];
+		Blocks.updateBlock(editor, block.id, {
+			meta: { ...block.meta, align: nextAlign },
+		});
+	};
 
-  return (
-    <ExtendedBlockActions onClick={() => editor.setPath({ current: block.meta.order })}>
-      <BlockOptionsSeparator />
-      <BlockOptionsMenuGroup>
-        <BlockOptionsMenuItem>
-          <button type="button" className="yoopta-block-options-button" onClick={onToggleAlign}>
-            <AlignIcon width={16} height={16} className="w-4 h-4 mr-2" />
-            Alignment
-          </button>
-        </BlockOptionsMenuItem>
-        <BlockOptionsMenuItem>
-          <button type="button" className="yoopta-block-options-button" onClick={onOpen}>
-            <ExternalLinkIcon
-              width={16}
-              height={16}
-              className="w-4 h-4 mr-2"
-            />
-            Open
-          </button>
-        </BlockOptionsMenuItem>
-      </BlockOptionsMenuGroup>
-    </ExtendedBlockActions>
-  );
+	return (
+		<ExtendedBlockActions
+			onClick={() => editor.setPath({ current: block.meta.order })}
+		>
+			<BlockOptionsSeparator />
+			<BlockOptionsMenuGroup>
+				<BlockOptionsMenuItem>
+					<button
+						className="yoopta-block-options-button"
+						onClick={onToggleAlign}
+						type="button"
+					>
+						<AlignIcon className="mr-2 size-4" height={16} width={16} />
+						Alignment
+					</button>
+				</BlockOptionsMenuItem>
+				<BlockOptionsMenuItem>
+					<button
+						className="yoopta-block-options-button"
+						onClick={onOpen}
+						type="button"
+					>
+						<ExternalLink className="mr-2 size-4" height={16} width={16} />
+						Open
+					</button>
+				</BlockOptionsMenuItem>
+			</BlockOptionsMenuGroup>
+		</ExtendedBlockActions>
+	);
 };
 
 export { FileBlockOptions };

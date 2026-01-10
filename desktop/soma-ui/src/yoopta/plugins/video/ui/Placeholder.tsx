@@ -1,7 +1,7 @@
 import { flip, inline, offset, shift, useFloating } from "@floating-ui/react";
-import { VideoIcon } from "@radix-ui/react-icons";
 import type { CSSProperties, HTMLAttributes, ReactNode, RefCallback } from "react";
 import { useState } from "react";
+import { Video } from "react-feather";
 
 import { Loader } from "./Loader";
 import { VideoUploader } from "./VideoUploader";
@@ -50,7 +50,7 @@ const Placeholder = ({ attributes, children, blockId }: PlaceholderProps) => {
 						width={24}
 					/>
 				) : (
-					<VideoIcon
+					<Video
 						className="mr-2 user-select-none"
 						height={24}
 						width={24}

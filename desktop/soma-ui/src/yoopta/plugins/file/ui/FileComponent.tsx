@@ -1,6 +1,6 @@
 // @ts-nocheck
 import type { MouseEvent } from 'react';
-import { FileTextIcon } from '@radix-ui/react-icons';
+import { FileText } from 'react-feather';
 
 import type { FileElementProps } from '../types';
 
@@ -39,7 +39,7 @@ const FileComponent = ({ name, src, size, format, align }: FileComponentProps) =
       <div
         className={`flex ${alignClass} items-center rounded-[4px] py-[8px] px-2 hover:bg-[rgba(55,53,47,0.04)] border-b-[1px] hover:border-[rgba(55,53,47,0.16)] border-[transparent]`}>
         <div className="flex items-center leading-[1.2] font-medium text-[#000000]">
-          <FileTextIcon width={16} height={16} />
+          <FileText width={16} height={16} />
           <span className="ml-[6px] text-[14px]">
             {format ? `${name}.${format}` : `${name}`}
           </span>

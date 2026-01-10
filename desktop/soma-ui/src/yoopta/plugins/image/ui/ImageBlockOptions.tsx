@@ -1,18 +1,19 @@
 import { flip, inline, offset, shift, useFloating } from "@floating-ui/react";
-import {
-	RowSpacingIcon,
-	SizeIcon,
-	TextAlignCenterIcon,
-	TextAlignLeftIcon,
-	TextAlignRightIcon,
-	TextIcon,
-	UpdateIcon,
-	WidthIcon,
-} from "@radix-ui/react-icons";
 import type { YooEditor, YooptaBlockData } from "@yoopta/editor";
 import { Blocks, Elements, UI, useYooptaPluginOptions } from "@yoopta/editor";
 import { useState } from "react";
-import { Check, Download } from "react-feather";
+import {
+	AlignCenter,
+	AlignLeft,
+	AlignRight,
+	Check,
+	Crop,
+	Download,
+	Maximize2,
+	Minimize2,
+	RefreshCw,
+	Type,
+} from "react-feather";
 import type {
 	ImageElementProps,
 	ImagePluginElements,
@@ -22,9 +23,9 @@ import { InputAltText } from "./InputAltText";
 import { Loader } from "./Loader";
 
 const ALIGN_ICONS = {
-	left: TextAlignLeftIcon,
-	center: TextAlignCenterIcon,
-	right: TextAlignRightIcon,
+	left: AlignLeft,
+	center: AlignCenter,
+	right: AlignRight,
 };
 
 const {
@@ -197,7 +198,7 @@ const ImageBlockOptions = ({ editor, block, props: imageProps }: Props) => {
 						type="button"
 					>
 						<span className="flex">
-							<RowSpacingIcon className="mr-2 h-4 w-4" height={16} width={16} />
+							<Minimize2 className="mr-2 size-4" />
 							Fit
 						</span>
 						{imageProps?.fit === "contain" && <Check className="size-4" />}
@@ -210,7 +211,7 @@ const ImageBlockOptions = ({ editor, block, props: imageProps }: Props) => {
 						type="button"
 					>
 						<span className="flex">
-							<WidthIcon className="mr-2 h-4 w-4" height={16} width={16} />
+							<Maximize2 className="mr-2 size-4" />
 							Fill
 						</span>
 						{imageProps?.fit === "fill" && <Check className="size-4" />}
@@ -223,7 +224,7 @@ const ImageBlockOptions = ({ editor, block, props: imageProps }: Props) => {
 						type="button"
 					>
 						<span className="flex">
-							<SizeIcon className="mr-2 h-4 w-4" height={16} width={16} />
+							<Crop className="mr-2 size-4" />
 							Cover
 						</span>
 						{imageProps?.fit === "cover" && <Check className="size-4" />}
@@ -250,7 +251,7 @@ const ImageBlockOptions = ({ editor, block, props: imageProps }: Props) => {
 						ref={refs.setReference}
 						type="button"
 					>
-						<TextIcon className="mr-2 h-4 w-4" height={16} width={16} />
+						<Type className="mr-2 size-4" />
 						Alt text
 					</button>
 				</BlockOptionsMenuItem>
@@ -276,7 +277,7 @@ const ImageBlockOptions = ({ editor, block, props: imageProps }: Props) => {
 								width={24}
 							/>
 						) : (
-							<UpdateIcon className="mr-2 h-4 w-4" height={16} width={16} />
+							<RefreshCw className="mr-2 size-4" />
 						)}
 						Replace image
 					</label>
@@ -290,7 +291,7 @@ const ImageBlockOptions = ({ editor, block, props: imageProps }: Props) => {
 						onClick={onToggleAlign}
 						type="button"
 					>
-						<AlignIcon className="mr-2 h-4 w-4" height={16} width={16} />
+						<AlignIcon className="mr-2 size-4" />
 						Alignment
 					</button>
 				</BlockOptionsMenuItem>

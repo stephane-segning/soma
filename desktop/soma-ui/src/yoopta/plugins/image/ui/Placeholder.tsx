@@ -2,7 +2,7 @@
 import type { CSSProperties} from 'react';
 import { useState } from 'react';
 import { flip, inline, offset, shift, useFloating } from '@floating-ui/react';
-import { ImageIcon } from '@radix-ui/react-icons';
+import { Image } from 'react-feather';
 
 import { ImageUploader } from './ImageUploader';
 import { Loader } from './Loader';
@@ -39,7 +39,7 @@ const Placeholder = ({ attributes, children, blockId }) => {
         {loading ? (
           <Loader className="mr-2 user-select-none" width={24} height={24} />
         ) : (
-          <ImageIcon className="mr-2 user-select-none" width={24} height={24} />
+          <Image className="mr-2 user-select-none" width={24} height={24} />
         )}
         <span className="font-medium">
           {loading ? 'Loading...' : 'Click to add image'}
