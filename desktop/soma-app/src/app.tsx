@@ -1,5 +1,4 @@
 import { lazy } from "react";
-import { ConfigProvider } from "react-avatar";
 
 const TabbedApp = lazy(() =>
 	import("@soma/routes/tabbed-app").then((m) => ({
@@ -8,11 +7,7 @@ const TabbedApp = lazy(() =>
 );
 
 function App() {
-	return (
-		<ConfigProvider>
-			<TabbedApp />
-		</ConfigProvider>
-	);
+	return <TabbedApp />;
 }
 
 export { App };

@@ -5,6 +5,7 @@ import { App } from "@soma/app.tsx";
 import { AppErrorBoundary } from "@soma/components/app-error-boundary";
 import { store } from "@soma/store/store";
 import { StrictMode } from "react";
+import { ConfigProvider } from "react-avatar";
 import { createRoot } from "react-dom/client";
 import { I18nextProvider } from "react-i18next";
 import { Provider } from "react-redux";
@@ -20,7 +21,9 @@ createRoot(document.getElementById("root") as HTMLElement).render(
 		<AppErrorBoundary>
 			<I18nextProvider i18n={i18n}>
 				<Provider store={store}>
-					<App />
+					<ConfigProvider>
+						<App />
+					</ConfigProvider>
 				</Provider>
 			</I18nextProvider>
 		</AppErrorBoundary>
