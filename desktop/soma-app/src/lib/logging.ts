@@ -60,10 +60,12 @@ function forwardConsole(
 	fnName: ConsoleFnName,
 	logger: (message: string) => Promise<void>,
 ) {
-	const original = console[fnName];
+	const original = console[fnName].bind(console) as (
+		...messages: unknown[]
+	) => void;
 	const buffered = createBufferedLogger(logger);
 	console[fnName] = (...messages: unknown[]) => {
-		original.apply(console, messages as unknown as any[]);
+		original(...messages);
 		buffered(formatMessage(messages));
 	};
 }
