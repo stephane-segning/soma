@@ -9,6 +9,7 @@ function useEnsurePageMutation() {
 	const [mutate, state] = api.useEnsurePageMutation();
 	return {
 		...state,
+		isPending: state.isLoading,
 		mutate,
 		mutateAsync: (input: {
 			spaceId: string;
@@ -47,6 +48,7 @@ function useUpdatePageTitleMutation() {
 	const [mutate, state] = api.useUpdatePageTitleMutation();
 	return {
 		...state,
+		isPending: state.isLoading,
 		mutate,
 		mutateAsync: (input: { spaceId: string; pageId: string; title: string }) =>
 			mutate(input).unwrap(),
@@ -57,6 +59,7 @@ function useSetPageParentsMutation() {
 	const [mutate, state] = api.useSetPageParentsMutation();
 	return {
 		...state,
+		isPending: state.isLoading,
 		mutate,
 		mutateAsync: (input: {
 			spaceId: string;

@@ -61,7 +61,7 @@ const api = createApi({
 			],
 		}),
 
-		listSpaces: builder.query<spacesService.Space[], void>({
+		listSpaces: builder.query<spacesService.ListSpacesResult, void>({
 			queryFn: async () => {
 				try {
 					const data = await spacesService.listSpaces();
@@ -100,7 +100,7 @@ const api = createApi({
 		}),
 		createSpace: builder.mutation<
 			spacesService.Space,
-			spacesService.CreateSpace
+			{ spaceId?: string; displayName?: string }
 		>({
 			queryFn: async (input) => {
 				try {
@@ -112,7 +112,10 @@ const api = createApi({
 			},
 			invalidatesTags: [{ type: "Spaces", id: "LIST" }],
 		}),
-		updateSpace: builder.mutation<void, spacesService.UpdateSpace>({
+		updateSpace: builder.mutation<
+			void,
+			{ spaceId: string; displayName?: string }
+		>({
 			queryFn: async (input) => {
 				try {
 					await spacesService.updateSpace(input);

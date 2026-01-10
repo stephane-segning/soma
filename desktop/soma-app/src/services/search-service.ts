@@ -1,5 +1,10 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { SearchResult } from "../queries/search";
+
+export type SearchResult = {
+	id: string;
+	title: string;
+	subtitle?: string;
+};
 
 export async function search(query: string): Promise<SearchResult[]> {
 	const trimmed = query.trim();

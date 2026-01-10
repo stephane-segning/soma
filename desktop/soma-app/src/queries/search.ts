@@ -1,12 +1,7 @@
 import { api } from "@soma/store/api";
+import type { SearchResult } from "../services/search-service";
 import { useMemo, useState } from "react";
 import { useDebounce } from "react-use";
-
-type SearchResult = {
-	id: string;
-	title: string;
-	subtitle?: string;
-};
 
 function useSearchQuery(rawQuery: string) {
 	const [query, setQuery] = useState(() => rawQuery?.trim?.() ?? "");
