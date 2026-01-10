@@ -80,10 +80,10 @@ Packaging templates:
 
 ### Rust (Cargo workspace)
 
-- Third-party dependency versions are declared **only** in `backend/Cargo.toml` under `[workspace.dependencies]`.
-- All crates and binaries under `backend/crates/*` and `backend/bins/*` must depend on third-party crates using `{ workspace = true }`.
+- Third-party dependency versions are declared **only** in the repo root `Cargo.toml` under `[workspace.dependencies]`.
+- All crates and binaries under `backend/crates/*`, `backend/bins/*`, and `desktop/*/src-tauri` must depend on third-party crates using `{ workspace = true }`.
 - If a crate needs optional capabilities, add `features = [...]` on the `{ workspace = true }` dependency in that leaf `Cargo.toml`.
-- Do not add `version = "..."` for third-party crates anywhere except `backend/Cargo.toml`.
+- Do not add `version = "..."` for third-party crates anywhere except the root `Cargo.toml`.
 
 ### Backends
 
@@ -111,8 +111,9 @@ Soma treats binary assets (“blobs”: files, images, attachments, Yoopta-relat
 #### Upload and persistence (daemon only)
 
 - The only supported “upload” entrypoint is local IPC to `soma-daemon` (Unix socket gRPC / daemon API).
-- `soma-daemon` persists bytes into its configured blob storage pool (space-scoped layout recommended) and records minimal metadata (size, content type, original name).
+- `soma-daemon` persists bytes into its configured blob storage pool (space-scoped layout recommended) and records minimal metadata (size, content type, original name) in SQLite.
 - `soma-daemon` emits a peer event **only** when the blob is associated with Yoopta content (i.e. the upload includes Yoopta context like a document ID / node ID). Non-Yoopta blobs are stored but do not generate Yoopta-related peer events.
+- Daemon gRPC blob surfaces live in `proto/daemon/v1/daemon.proto` (`UploadBlob`, `ReadBlob`, `GetBlobMetadata`, `ListBlobs`).
 
 Where to wire this:
 - Peer event definitions: `backend/crates/peer/src/lib.rs`, `backend/crates/peer/src/events.rs`
@@ -269,6 +270,11 @@ Botd (Postgres or SQLite via `SOMA_DATABASE_URL`) and daemon (SQLite file) embed
   - Outgoing (requester-side): `is_outgoing=1`, `target_peer_id=<chosen_decider>`, `status/attempts/next_attempt_at/last_error` for local UI status.
 - `issuer_capabilities(space_id, delegate_peer_id)` – issuer_peer_id, issued_at, expires_at, capability blob
 - `mailbox(id)` – kind, space_id?, subject_peer_id?, status (queued|leased|done|dead), attempts, available_at, lease_until?, leased_by?, payload blob, created_at
+- `documents(space_id, document_id)` – Yoopta JSON content (mutable)
+- `pages(space_id, page_id)` – page navigation metadata (title + parents)
+- `blobs(space_id, cid)` – blob metadata for content-addressed bytes (size/mime/name, timestamps)
+- `blob_refs(space_id, cid, document_id)` – document→blob references (for listing + safe GC)
+- `peer_public_keys(peer_id)` – Identify public keys observed for peers
 
 Migrations are centralized in `backend/crates/storage/migrations` and embedded by both `soma-daemon` and `soma-botd` at startup.
 
@@ -320,6 +326,9 @@ Soma-app (`desktop/soma-app`) (Tauri v2):
   - Do not define app-local `AppError`/`AppResult`; they are provided by `desktop/tauri-command-utils` and re-exported from each app’s `src/error.rs`.
   - `tauri-command-utils` features control which `AppError` variants are compiled (`bad-request`, `json-error`, `io`, `anyhow`, `daemon`, `agent`); apps should enable only what they use.
 - Desktop assumes `soma-daemon` is already running; do not start daemons from the renderer.
+- Documents + page navigation metadata are daemon-owned:
+  - Yoopta JSON drafts/content: `Daemon/UpsertDocument` + `Daemon/GetDocument`
+  - Page list/tree metadata: `Daemon/EnsurePage`, `Daemon/ListPages`, `Daemon/UpdatePageTitle`, `Daemon/SetPageParents`
 - No local blob persistence/caching in the desktop app: uploads go to `soma-daemon`, and renderers should use `soma-blob://daemon/{space_id}/{cid}` (served by the Tauri `soma-blob` protocol via `Daemon/ReadBlob`) for blob references.
 - Local LLM chat runs via `soma-agentd` (gRPC over Unix socket); for model selection and “base vs instruct” behavior, see `docs/src/development/agentd-models.md`.
 - Space members UI: `/spaces/:spaceId/members` simply lists the roster fetched via the daemon `ListSpaceMembers` RPC exposed as the `spaces_list_members` Tauri command (`desktop/soma-app/src/routes/screens/space-members.tsx` + `@soma/queries/spaces`). Keep it lightweight/read-only; no bespoke member page beyond this list.
@@ -389,6 +398,11 @@ This repo intentionally has multiple binaries. Each has a distinct goal and depl
 - Use existing hooks and state containers before adding new global state mechanisms.
 - Keep side effects (I/O, daemon calls) in dedicated hooks or services, not inside presentational components.
 - Run the formatter/linter (`pnpm run format` / `pnpm run lint`) before committing.
+- **State management (desktop apps)**:
+  - Soma desktop uses Redux Toolkit slices in `desktop/soma-app/src/store/` (`store.ts` wires reducers/middleware; slices like `tabs.ts`, `ui.ts`, `documents.ts` own local UI state).
+  - Data fetching/caching uses **RTK Query** (`desktop/soma-app/src/store/api.ts`); prefer `api.injectEndpoints` for new HTTP/IPC calls.
+  - Do **not** add new Zustand stores and do **not** reintroduce TanStack Query in Soma; wrap RTK Query hooks in `src/queries/*` if you need app-specific helpers.
+  - When adding endpoints, tag data for cache invalidation and expose thin wrappers from `src/queries/*` to keep components simple.
 
 ### Documentation
 
