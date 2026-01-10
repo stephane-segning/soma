@@ -119,5 +119,7 @@ export default withPwa(withMermaid({
         },
         outline: 'deep',
     },
-    pwa: {}
+    pwa: {
+        outDir: '../../site',
+    }
 }));
