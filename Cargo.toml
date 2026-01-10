@@ -110,7 +110,8 @@ fix-path-env = { git = "https://github.com/tauri-apps/fix-path-env-rs" }
 mime = "0.3.17"
 log = "0.4.29"
 tauri-plugin-deep-link = "2"
-tauri-plugin-log = "2"
+tauri-plugin-log = "2.8.0"
+tauri-plugin-dialog = "2.5.0"
 
 [workspace.dependencies.libp2p]
 version = "0.56"
