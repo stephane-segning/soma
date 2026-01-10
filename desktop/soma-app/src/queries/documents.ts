@@ -1,54 +1,49 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
-import * as documentsService from "../services/documents-service";
+import { api, type DraftRow } from "@soma/store/api";
 
-type DraftRow = {
-	spaceId: string;
-	documentId: string;
-	contentJson: string;
-	published: 0 | 1;
-	updatedAtMs: number;
-};
-
-function useDocumentDraftQuery(spaceId: string, documentId: string) {
-	return useQuery({
-		queryKey: ["documents", "draft", spaceId, documentId] as const,
-		queryFn: async (): Promise<DraftRow | null> =>
-			documentsService.getDraft({ spaceId, documentId }),
-	});
-}
+const useDocumentDraftQuery = (spaceId: string, documentId: string) =>
+	api.useGetDraftQuery({ spaceId, documentId });
 
 function useUpsertDocumentDraftMutation() {
-	return useMutation({
-		mutationFn: async (input: {
+	const [mutate, state] = api.useUpsertDraftMutation();
+	return {
+		...state,
+		mutate,
+		mutateAsync: (input: {
 			spaceId: string;
 			documentId: string;
 			contentJson: string;
 			published: boolean;
-		}) => documentsService.upsertDraft(input),
-	});
+		}) => mutate(input).unwrap(),
+	};
 }
 
 function useQueueDaemonSyncMutation() {
-	return useMutation({
-		mutationFn: async (input: {
+	const [mutate, state] = api.useQueueDaemonSyncMutation();
+	return {
+		...state,
+		mutate,
+		mutateAsync: (input: {
 			spaceId: string;
 			documentId: string;
 			contentJson: string;
 			updatedAtMs: number;
 			published?: boolean;
-		}) => documentsService.queueDaemonSync(input),
-	});
+		}) => mutate(input).unwrap(),
+	};
 }
 
 function useSyncPublishedDocumentMutation() {
-	return useMutation({
-		mutationFn: async (input: {
+	const [mutate, state] = api.useSyncPublishedDocumentMutation();
+	return {
+		...state,
+		mutate,
+		mutateAsync: (input: {
 			spaceId: string;
 			documentId: string;
 			contentJson: string;
 			updatedAtMs: number;
-		}) => documentsService.syncPublishedDocument(input),
-	});
+		}) => mutate(input).unwrap(),
+	};
 }
 
 export {

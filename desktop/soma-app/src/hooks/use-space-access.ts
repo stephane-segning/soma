@@ -1,6 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { api } from "@soma/store/api";
 import { useMemo } from "react";
-import * as spacesService from "../services/spaces-service";
 
 type UseSpaceAccessResult = {
 	isChecking: boolean;
@@ -8,30 +7,23 @@ type UseSpaceAccessResult = {
 	error: unknown;
 };
 
-/**
- * Access check backed by daemon GetSpace. Uses TanStack Query for caching and status.
- */
+/** Access check backed by daemon GetSpace. */
 export function useSpaceAccess(spaceId?: string): UseSpaceAccessResult {
 	const enabled = useMemo(
 		() => Boolean(spaceId && spaceId.trim().length > 0),
 		[spaceId],
 	);
-	const { data, isPending, isFetching, error } = useQuery({
-		queryKey: ["space-access", spaceId],
-		enabled,
-		retry: 1,
-		queryFn: () => {
-			if (!spaceId) throw new Error("spaceId required");
-			return spacesService.getSpace(spaceId);
-		},
-	});
+	const { data, isLoading, isFetching, error } = api.useGetSpaceQuery(
+		spaceId ?? "",
+		{ skip: !enabled },
+	);
 
 	return useMemo(
 		() => ({
-			isChecking: isPending || isFetching,
+			isChecking: isLoading || isFetching,
 			hasAccess: Boolean(data),
 			error: error ?? null,
 		}),
-		[isPending, isFetching, data, error],
+		[isLoading, isFetching, data, error],
 	);
 }

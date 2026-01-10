@@ -1,28 +1,19 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import * as settingsService from "../services/settings-service";
+import { api } from "@soma/store/api";
 
 type SetSettingInput = { key: string; value: unknown };
 
 function useSettingQuery<T = unknown>(key: string) {
-	return useQuery({
-		queryKey: ["settings", key] as const,
-		queryFn: async () => settingsService.getSetting<T>(key),
-	});
+	const result = api.useGetSettingQuery(key);
+	return { ...result, data: result.data as T | undefined };
 }
 
 function useSetSettingMutation() {
-	const queryClient = useQueryClient();
-
-	return useMutation({
-		mutationFn: async ({ key, value }: SetSettingInput) => {
-			return settingsService.setSetting(key, value);
-		},
-		onSuccess: (_data, variables) => {
-			void queryClient.invalidateQueries({
-				queryKey: ["settings", variables.key],
-			});
-		},
-	});
+	const [mutate, state] = api.useSetSettingMutation();
+	return {
+		...state,
+		mutate,
+		mutateAsync: (input: SetSettingInput) => mutate(input).unwrap(),
+	};
 }
 
 export { useSetSettingMutation, useSettingQuery };

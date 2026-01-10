@@ -1,16 +1,14 @@
 import { useChatConversation } from "@soma/hooks/use-chat-conversation.ts";
-import { listModels } from "@soma/services/chat-service.ts";
-import { useQuery } from "@tanstack/react-query";
+import { api } from "@soma/store/api";
 import { useEffect, useMemo, useState } from "react";
 import { AiChat } from "soma-ui/components/chat/ai-chat";
 import { AiConversation } from "soma-ui/components/chat/ai-conversation";
 import { AiInput } from "soma-ui/components/forms/ai-input";
 
 function ChatSidebar(): React.JSX.Element {
-	const { data, error } = useQuery({
-		queryKey: ["agent", "models"],
-		queryFn: async () => listModels(),
-		//staleTime: 5 * 60 * 1000,
+	const { data, error } = api.useListAgentModelsQuery(undefined, {
+		// leave cache around; listModels is cheap
+		refetchOnMountOrArgChange: false,
 	});
 
 	const chatModels = useMemo(

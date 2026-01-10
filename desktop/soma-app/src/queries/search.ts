@@ -1,7 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { api } from "@soma/store/api";
 import { useMemo, useState } from "react";
 import { useDebounce } from "react-use";
-import { search as searchFN } from "../services/search-service";
 
 type SearchResult = {
 	id: string;
@@ -10,7 +9,7 @@ type SearchResult = {
 };
 
 function useSearchQuery(rawQuery: string) {
-	const [query, setQuery] = useState(() => rawQuery?.trim?.());
+	const [query, setQuery] = useState(() => rawQuery?.trim?.() ?? "");
 
 	useDebounce(
 		() => {
@@ -22,11 +21,12 @@ function useSearchQuery(rawQuery: string) {
 
 	const enabled = useMemo(() => query.length >= 2, [query]);
 
-	return useQuery({
-		queryKey: ["search", query] as const,
-		enabled,
-		queryFn: async () => searchFN(query),
-	});
+	return api.useSearchQuery(
+		{ query, enabled },
+		{
+			skip: !enabled,
+		},
+	);
 }
 
 export { useSearchQuery };

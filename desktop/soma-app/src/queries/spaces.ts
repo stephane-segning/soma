@@ -1,60 +1,38 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import * as spacesService from "../services/spaces-service";
+import { api, type SpaceMember } from "@soma/store/api";
 
-type SpaceMember = spacesService.SpaceMember;
-
-function useSpacesQuery() {
-	return useQuery({
-		queryKey: ["spaces"] as const,
-		queryFn: async () => await spacesService.listSpaces(),
-	});
-}
+const useSpacesQuery = api.useListSpacesQuery;
+const useSpaceQuery = (spaceId: string) =>
+	api.useGetSpaceQuery(spaceId, { skip: !spaceId });
+const useSpaceMembersQuery = (spaceId: string) =>
+	api.useListSpaceMembersQuery(spaceId, { skip: !spaceId });
 
 function useCreateSpaceMutation() {
-	const queryClient = useQueryClient();
-	return useMutation({
-		mutationFn: spacesService.createSpace,
-		onSuccess: () => {
-			void queryClient.invalidateQueries({ queryKey: ["spaces"] });
-		},
-	});
+	const [mutate, state] = api.useCreateSpaceMutation();
+	return {
+		...state,
+		mutate,
+		mutateAsync: (input: Parameters<typeof mutate>[0]) =>
+			mutate(input).unwrap(),
+	};
 }
 
 function useUpdateSpaceMutation() {
-	const queryClient = useQueryClient();
-	return useMutation({
-		mutationFn: spacesService.updateSpace,
-		onSuccess: () => {
-			void queryClient.invalidateQueries({ queryKey: ["spaces"] });
-		},
-	});
+	const [mutate, state] = api.useUpdateSpaceMutation();
+	return {
+		...state,
+		mutate,
+		mutateAsync: (input: Parameters<typeof mutate>[0]) =>
+			mutate(input).unwrap(),
+	};
 }
 
 function useDeleteSpaceMutation() {
-	const queryClient = useQueryClient();
-	return useMutation({
-		mutationFn: async (spaceId: string) => spacesService.deleteSpace(spaceId),
-		onSuccess: () => {
-			void queryClient.invalidateQueries({ queryKey: ["spaces"] });
-		},
-	});
-}
-
-function useSpaceQuery(spaceId: string) {
-	return useQuery({
-		queryKey: ["spaces", spaceId] as const,
-		queryFn: async () => spacesService.getSpace(spaceId),
-		enabled: Boolean(spaceId),
-	});
-}
-
-function useSpaceMembersQuery(spaceId: string) {
-	return useQuery({
-		queryKey: ["spaces", spaceId, "members"] as const,
-		queryFn: async (): Promise<SpaceMember[]> =>
-			spacesService.listSpaceMembers(spaceId),
-		enabled: Boolean(spaceId),
-	});
+	const [mutate, state] = api.useDeleteSpaceMutation();
+	return {
+		...state,
+		mutate,
+		mutateAsync: (spaceId: string) => mutate(spaceId).unwrap(),
+	};
 }
 
 export {

@@ -1,41 +1,22 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { api, type PageRecord } from "@soma/store/api";
 import { useCallback } from "react";
 import { useNavigate } from "react-router";
-import * as documentsService from "../services/documents-service";
 
-type PageRecord = {
-	spaceId: string;
-	pageId: string;
-	title: string;
-	parentPageIds: string[];
-	createdAtMs: number;
-	updatedAtMs: number;
-};
-
-function usePagesQuery(spaceId: string) {
-	return useQuery({
-		enabled: Boolean(spaceId),
-		queryKey: ["pages", spaceId] as const,
-		queryFn: async (): Promise<PageRecord[]> =>
-			documentsService.listPages({ spaceId }),
-	});
-}
+const usePagesQuery = (spaceId: string) =>
+	api.useListPagesQuery(spaceId, { skip: !spaceId });
 
 function useEnsurePageMutation() {
-	const queryClient = useQueryClient();
-	return useMutation({
-		mutationFn: async (input: {
+	const [mutate, state] = api.useEnsurePageMutation();
+	return {
+		...state,
+		mutate,
+		mutateAsync: (input: {
 			spaceId: string;
 			pageId?: string;
 			title?: string;
 			parentPageIds?: string[];
-		}): Promise<PageRecord> => documentsService.ensurePage(input),
-		onSuccess: (data) => {
-			void queryClient.invalidateQueries({
-				queryKey: ["pages", data.spaceId],
-			});
-		},
-	});
+		}) => mutate(input).unwrap(),
+	};
 }
 
 function useCreatePage(spaceId: string) {
@@ -63,41 +44,26 @@ function useCreatePage(spaceId: string) {
 }
 
 function useUpdatePageTitleMutation() {
-	const queryClient = useQueryClient();
-	return useMutation({
-		mutationFn: async (input: {
-			spaceId: string;
-			pageId: string;
-			title: string;
-		}): Promise<PageRecord | null> => documentsService.updatePageTitle(input),
-		onSuccess: (data, variables) => {
-			if (data) {
-				void queryClient.invalidateQueries({
-					queryKey: ["pages", data.spaceId],
-				});
-			} else {
-				void queryClient.invalidateQueries({
-					queryKey: ["pages", variables.spaceId],
-				});
-			}
-		},
-	});
+	const [mutate, state] = api.useUpdatePageTitleMutation();
+	return {
+		...state,
+		mutate,
+		mutateAsync: (input: { spaceId: string; pageId: string; title: string }) =>
+			mutate(input).unwrap(),
+	};
 }
 
 function useSetPageParentsMutation() {
-	const queryClient = useQueryClient();
-	return useMutation({
-		mutationFn: async (input: {
+	const [mutate, state] = api.useSetPageParentsMutation();
+	return {
+		...state,
+		mutate,
+		mutateAsync: (input: {
 			spaceId: string;
 			pageId: string;
 			parentPageIds: string[];
-		}): Promise<PageRecord | null> => documentsService.setPageParents(input),
-		onSuccess: (_data, variables) => {
-			void queryClient.invalidateQueries({
-				queryKey: ["pages", variables.spaceId],
-			});
-		},
-	});
+		}) => mutate(input).unwrap(),
+	};
 }
 
 export {
