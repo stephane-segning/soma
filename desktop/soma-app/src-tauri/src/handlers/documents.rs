@@ -1,9 +1,9 @@
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
-
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
-use soma_proto_build::daemon::{GetDocumentRequest, UpsertDocumentRequest};
+use soma_proto_build::daemon::{
+    EnsurePageRequest, GetDocumentRequest, ListPagesRequest, PageRecord as DaemonPageRecord,
+    SetPageParentsRequest, UpdatePageTitleRequest, UpsertDocumentRequest,
+};
 
 use crate::error::AppResult;
 use crate::state::ManagedState;
@@ -29,23 +29,14 @@ pub struct PageRecord {
     pub updated_at_ms: i64,
 }
 
-#[derive(Default)]
-struct PageCache {
-    pages: HashMap<String, PageRecord>,
-}
-
 #[derive(Clone)]
 pub struct DocumentsController {
     state: ManagedState,
-    pages: Arc<Mutex<PageCache>>,
 }
 
 impl DocumentsController {
     pub fn new(state: ManagedState) -> Self {
-        Self {
-            state,
-            pages: Arc::new(Mutex::new(PageCache::default())),
-        }
+        Self { state }
     }
 
     pub async fn upsert_draft(&self, params: UpsertDraftParams) -> AppResult<()> {
@@ -115,65 +106,79 @@ impl DocumentsController {
         }))
     }
 
-    pub fn ensure_page(&self, params: EnsurePageParams) -> AppResult<PageRecord> {
-        let mut cache = self.pages.lock().expect("page cache mutex poisoned");
-        let key = cache_key(&params.space_id, &params.page_id);
-        let existing = cache.pages.get(&key).cloned();
+    pub async fn ensure_page(&self, params: EnsurePageParams) -> AppResult<PageRecord> {
         let now = Utc::now().timestamp_millis();
-        let record = PageRecord {
-            space_id: params.space_id,
-            page_id: params.page_id,
-            title: params
-                .title
-                .or_else(|| existing.as_ref().map(|p| p.title.clone()))
-                .unwrap_or_else(|| "Untitled page".to_string()),
-            parent_page_ids: params
-                .parent_page_ids
-                .or_else(|| existing.as_ref().map(|p| p.parent_page_ids.clone()))
-                .unwrap_or_default(),
-            created_at_ms: params
-                .created_at_ms
-                .or_else(|| existing.as_ref().map(|p| p.created_at_ms))
-                .unwrap_or(now),
-            updated_at_ms: params.updated_at_ms.unwrap_or(now),
-        };
-        cache.pages.insert(key, record.clone());
-        Ok(record)
+        let page = self
+            .state
+            .daemon
+            .ensure_page(EnsurePageRequest {
+                space_id: params.space_id,
+                page_id: params.page_id,
+                title: params.title.unwrap_or_default(),
+                parent_page_ids: params.parent_page_ids.unwrap_or_default(),
+                created_at_ms: params.created_at_ms.unwrap_or(now),
+                updated_at_ms: params.updated_at_ms.unwrap_or(now),
+            })
+            .await?;
+
+        Ok(from_daemon_page(page))
     }
 
-    pub fn list_pages(&self, params: ListPagesParams) -> AppResult<Vec<PageRecord>> {
-        let cache = self.pages.lock().expect("page cache mutex poisoned");
-        Ok(cache
-            .pages
-            .values()
-            .filter(|p| p.space_id == params.space_id)
-            .cloned()
-            .collect())
+    pub async fn list_pages(&self, params: ListPagesParams) -> AppResult<Vec<PageRecord>> {
+        let pages = self
+            .state
+            .daemon
+            .list_pages(ListPagesRequest {
+                space_id: params.space_id,
+            })
+            .await?;
+
+        Ok(pages.into_iter().map(from_daemon_page).collect())
     }
 
-    pub fn update_page_title(
+    pub async fn update_page_title(
         &self,
         params: UpdatePageTitleParams,
     ) -> AppResult<Option<PageRecord>> {
-        let mut cache = self.pages.lock().expect("page cache mutex poisoned");
-        let key = cache_key(&params.space_id, &params.page_id);
-        if let Some(record) = cache.pages.get_mut(&key) {
-            record.title = params.title;
-            record.updated_at_ms = Utc::now().timestamp_millis();
-            return Ok(Some(record.clone()));
-        }
-        Ok(None)
+        let page = self
+            .state
+            .daemon
+            .update_page_title(UpdatePageTitleRequest {
+                space_id: params.space_id,
+                page_id: params.page_id,
+                title: params.title,
+            })
+            .await?;
+
+        Ok(page.map(from_daemon_page))
     }
 
-    pub fn set_page_parents(&self, params: SetPageParentsParams) -> AppResult<Option<PageRecord>> {
-        let mut cache = self.pages.lock().expect("page cache mutex poisoned");
-        let key = cache_key(&params.space_id, &params.page_id);
-        if let Some(record) = cache.pages.get_mut(&key) {
-            record.parent_page_ids = params.parent_page_ids;
-            record.updated_at_ms = Utc::now().timestamp_millis();
-            return Ok(Some(record.clone()));
-        }
-        Ok(None)
+    pub async fn set_page_parents(
+        &self,
+        params: SetPageParentsParams,
+    ) -> AppResult<Option<PageRecord>> {
+        let page = self
+            .state
+            .daemon
+            .set_page_parents(SetPageParentsRequest {
+                space_id: params.space_id,
+                page_id: params.page_id,
+                parent_page_ids: params.parent_page_ids,
+            })
+            .await?;
+
+        Ok(page.map(from_daemon_page))
+    }
+}
+
+fn from_daemon_page(page: DaemonPageRecord) -> PageRecord {
+    PageRecord {
+        space_id: page.space_id,
+        page_id: page.page_id,
+        title: page.title,
+        parent_page_ids: page.parent_page_ids,
+        created_at_ms: page.created_at_ms,
+        updated_at_ms: page.updated_at_ms,
     }
 }
 
@@ -244,8 +249,4 @@ pub struct SetPageParentsParams {
     pub space_id: String,
     pub page_id: String,
     pub parent_page_ids: Vec<String>,
-}
-
-fn cache_key(space: &str, id: &str) -> String {
-    format!("{space}::{id}")
 }

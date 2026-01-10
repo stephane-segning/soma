@@ -16,11 +16,8 @@ pub struct Document {
 #[async_trait]
 pub trait DocumentRepository: Send + Sync {
     async fn upsert_document(&self, document: &Document) -> SomaResult<()>;
-    async fn get_document(
-        &self,
-        space_id: &str,
-        document_id: &str,
-    ) -> SomaResult<Option<Document>>;
+    async fn get_document(&self, space_id: &str, document_id: &str)
+    -> SomaResult<Option<Document>>;
 }
 
 #[derive(Clone, Debug)]

@@ -2,7 +2,7 @@ use std::fs::File;
 use std::sync::OnceLock;
 use std::{env, fs, path::Path, path::PathBuf};
 use tracing_error::ErrorLayer;
-use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 
 // Keep the guard alive for non-blocking writers; dropping it stops flushing to disk.
 static FILE_GUARD: OnceLock<tracing_appender::non_blocking::WorkerGuard> = OnceLock::new();
@@ -16,8 +16,7 @@ pub fn init_tracing(default_filter: &str) {
     let log_as_json = structured_logs_enabled();
     let flame_on = flame_enabled();
 
-    let env_filter =
-        EnvFilter::try_from_default_env().unwrap_or_else(|_| default_filter.into());
+    let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| default_filter.into());
     let mut file_guard_slot = None;
     let mut writer = None;
 
@@ -68,7 +67,9 @@ pub fn init_tracing(default_filter: &str) {
         } else {
             let flame_file = flame_dir.join(format!("{}.folded", current_bin_name()));
             match File::create(&flame_file) {
-                Ok(file) => subscriber.with(tracing_flame::FlameLayer::new(file)).try_init(),
+                Ok(file) => subscriber
+                    .with(tracing_flame::FlameLayer::new(file))
+                    .try_init(),
                 Err(e) => {
                     eprintln!(
                         "Failed to create flame output file at {}: {}",
@@ -116,10 +117,7 @@ fn flame_output_dir(logs_dir: Option<&str>) -> PathBuf {
 fn current_bin_name() -> String {
     env::current_exe()
         .ok()
-        .and_then(|path| {
-            path.file_stem()
-                .map(|os| os.to_string_lossy().into_owned())
-        })
+        .and_then(|path| path.file_stem().map(|os| os.to_string_lossy().into_owned()))
         .unwrap_or_else(|| "soma".to_string())
 }
 

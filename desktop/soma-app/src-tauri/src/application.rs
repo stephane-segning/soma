@@ -13,7 +13,7 @@ use crate::{
         search::SearchController, spaces::SpacesController,
     },
     protocol::{BlobProtocol, ProtocolRegistrar},
-    state::{ManagedState},
+    state::ManagedState,
 };
 
 pub struct SomaAppBuilder {

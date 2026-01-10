@@ -15,12 +15,35 @@ use tonic::{Request, Response, Status};
 use tracing::{info, warn};
 
 use crate::services::documents::DocumentsService;
+use crate::services::pages::PagesService;
 use crate::services::space::SpaceManager;
 use soma_storage::RepositoryProvider;
 use soma_storage::documents::Document;
+use soma_storage::pages::Page;
 use soma_vdfs::fs::FsBlobStore;
 
 const MAX_UPLOAD_BYTES: usize = 8 * 1024 * 1024;
+
+fn now_ms() -> i64 {
+    use std::time::UNIX_EPOCH;
+
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis()
+        .min(i64::MAX as u128) as i64
+}
+
+fn to_page_record(page: Page) -> daemon::PageRecord {
+    daemon::PageRecord {
+        space_id: page.space_id,
+        page_id: page.page_id,
+        title: page.title,
+        parent_page_ids: page.parent_page_ids,
+        created_at_ms: page.created_at_ms,
+        updated_at_ms: page.updated_at_ms,
+    }
+}
 /// Daemon shared state (peer id, command channel, listeners, event bus).
 pub struct DaemonState {
     pub peer_id: PeerId,
@@ -427,6 +450,146 @@ impl daemon::daemon_server::Daemon for DaemonService {
             content_json: document.content_json,
             published: document.published,
             updated_at_ms: document.updated_at_ms,
+        }))
+    }
+
+    async fn ensure_page(
+        &self,
+        request: Request<daemon::EnsurePageRequest>,
+    ) -> Result<Response<daemon::EnsurePageResponse>, Status> {
+        let payload = request.into_inner();
+        if payload.space_id.is_empty() {
+            return Err(Status::invalid_argument("space_id required"));
+        }
+        self.ensure_membership(&payload.space_id).await?;
+        if payload.page_id.is_empty() {
+            return Err(Status::invalid_argument("page_id required"));
+        }
+
+        let now = now_ms();
+        let title = if payload.title.trim().is_empty() {
+            "Untitled page".to_string()
+        } else {
+            payload.title
+        };
+
+        let page = Page {
+            space_id: payload.space_id,
+            page_id: payload.page_id,
+            title,
+            parent_page_ids: payload.parent_page_ids,
+            created_at_ms: if payload.created_at_ms == 0 {
+                now
+            } else {
+                payload.created_at_ms
+            },
+            updated_at_ms: if payload.updated_at_ms == 0 {
+                now
+            } else {
+                payload.updated_at_ms
+            },
+        };
+
+        let page = PagesService::new(self.state.repos.clone())
+            .ensure_page(&page)
+            .await
+            .map_err(|err| {
+                warn!(%err, "ensure_page failed");
+                Status::internal("failed to ensure page")
+            })?;
+
+        Ok(Response::new(daemon::EnsurePageResponse {
+            page: Some(to_page_record(page)),
+        }))
+    }
+
+    async fn list_pages(
+        &self,
+        request: Request<daemon::ListPagesRequest>,
+    ) -> Result<Response<daemon::ListPagesResponse>, Status> {
+        let payload = request.into_inner();
+        if payload.space_id.is_empty() {
+            return Err(Status::invalid_argument("space_id required"));
+        }
+        self.ensure_membership(&payload.space_id).await?;
+
+        let pages = PagesService::new(self.state.repos.clone())
+            .list_pages(&payload.space_id)
+            .await
+            .map_err(|err| {
+                warn!(%err, "list_pages failed");
+                Status::internal("failed to list pages")
+            })?;
+
+        Ok(Response::new(daemon::ListPagesResponse {
+            pages: pages.into_iter().map(to_page_record).collect(),
+        }))
+    }
+
+    async fn update_page_title(
+        &self,
+        request: Request<daemon::UpdatePageTitleRequest>,
+    ) -> Result<Response<daemon::UpdatePageTitleResponse>, Status> {
+        let payload = request.into_inner();
+        if payload.space_id.is_empty() {
+            return Err(Status::invalid_argument("space_id required"));
+        }
+        self.ensure_membership(&payload.space_id).await?;
+        if payload.page_id.is_empty() {
+            return Err(Status::invalid_argument("page_id required"));
+        }
+        if payload.title.trim().is_empty() {
+            return Err(Status::invalid_argument("title required"));
+        }
+
+        let page = PagesService::new(self.state.repos.clone())
+            .update_title(&payload.space_id, &payload.page_id, &payload.title)
+            .await
+            .map_err(|err| {
+                warn!(%err, "update_page_title failed");
+                Status::internal("failed to update page title")
+            })?;
+
+        let Some(page) = page else {
+            return Err(Status::not_found("page not found"));
+        };
+
+        Ok(Response::new(daemon::UpdatePageTitleResponse {
+            page: Some(to_page_record(page)),
+        }))
+    }
+
+    async fn set_page_parents(
+        &self,
+        request: Request<daemon::SetPageParentsRequest>,
+    ) -> Result<Response<daemon::SetPageParentsResponse>, Status> {
+        let payload = request.into_inner();
+        if payload.space_id.is_empty() {
+            return Err(Status::invalid_argument("space_id required"));
+        }
+        self.ensure_membership(&payload.space_id).await?;
+        if payload.page_id.is_empty() {
+            return Err(Status::invalid_argument("page_id required"));
+        }
+
+        let page = PagesService::new(self.state.repos.clone())
+            .set_parents(
+                &payload.space_id,
+                &payload.page_id,
+                &payload.parent_page_ids,
+            )
+            .await
+            .map_err(|err| {
+                warn!(%err, "set_page_parents failed");
+                Status::internal("failed to set page parents")
+            })?;
+
+        let Some(page) = page else {
+            return Err(Status::not_found("page not found"));
+        };
+
+        Ok(Response::new(daemon::SetPageParentsResponse {
+            page: Some(to_page_record(page)),
         }))
     }
 

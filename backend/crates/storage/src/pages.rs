@@ -19,8 +19,7 @@ pub trait PageRepository: Send + Sync {
     async fn create_page(&self, page: &Page) -> SomaResult<()>;
     async fn get_page(&self, space_id: &str, page_id: &str) -> SomaResult<Option<Page>>;
     async fn list_pages(&self, space_id: &str) -> SomaResult<Vec<Page>>;
-    async fn update_title(&self, space_id: &str, page_id: &str, title: &str)
-        -> SomaResult<u64>;
+    async fn update_title(&self, space_id: &str, page_id: &str, title: &str) -> SomaResult<u64>;
     async fn set_parents(
         &self,
         space_id: &str,
@@ -100,12 +99,7 @@ impl PageRepository for SqlPageRepository {
         Ok(rows.into_iter().map(map_page_row).collect())
     }
 
-    async fn update_title(
-        &self,
-        space_id: &str,
-        page_id: &str,
-        title: &str,
-    ) -> SomaResult<u64> {
+    async fn update_title(&self, space_id: &str, page_id: &str, title: &str) -> SomaResult<u64> {
         let updated_at_ms = now_ms();
         let res = sqlx::query(
             r#"

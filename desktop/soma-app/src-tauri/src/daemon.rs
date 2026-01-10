@@ -4,17 +4,19 @@ use anyhow::Context;
 use derive_builder::Builder;
 use soma_proto_build::daemon::{
     CreateSpaceRequest, CreateSpaceResponse, DeleteSpaceRequest, DeleteSpaceResponse,
-    GetSpaceRequest, GetSpaceResponse, ListSpaceMembersRequest, ListSpaceMembersResponse,
-    ListSpacesRequest, ListSpacesResponse, UpdateSpaceRequest, UpdateSpaceResponse,
-    ReadBlobRequest, ReadBlobResponse, UploadBlobRequest, UploadBlobResponse,
-    UpsertDocumentRequest, UpsertDocumentResponse, daemon_client::DaemonClient as GrpcDaemonClient,
-    GetDocumentRequest, GetDocumentResponse,
+    EnsurePageRequest, EnsurePageResponse, GetDocumentRequest, GetDocumentResponse,
+    GetSpaceRequest, GetSpaceResponse, ListPagesRequest, ListPagesResponse,
+    ListSpaceMembersRequest, ListSpaceMembersResponse, ListSpacesRequest, ListSpacesResponse,
+    PageRecord, ReadBlobRequest, ReadBlobResponse, SetPageParentsRequest, UpdatePageTitleRequest,
+    UpdateSpaceRequest, UpdateSpaceResponse,
+    UploadBlobRequest, UploadBlobResponse, UpsertDocumentRequest, UpsertDocumentResponse,
+    daemon_client::DaemonClient as GrpcDaemonClient,
 };
 use tauri::async_runtime;
 use tokio::sync::Mutex;
 use tonic::{
-    transport::{Channel, Endpoint},
     Code,
+    transport::{Channel, Endpoint},
 };
 use tracing::info;
 
@@ -168,6 +170,43 @@ impl DaemonApi {
         let mut client = self.client().await?;
         match client.get_document(req).await {
             Ok(res) => Ok(Some(res.into_inner())),
+            Err(status) if status.code() == Code::NotFound => Ok(None),
+            Err(err) => Err(err.into()),
+        }
+    }
+
+    pub async fn ensure_page(&self, req: EnsurePageRequest) -> Result<PageRecord, AppError> {
+        let mut client = self.client().await?;
+        let res: EnsurePageResponse = client.ensure_page(req).await?.into_inner();
+        res.page
+            .ok_or_else(|| AppError::Daemon("daemon returned empty page".to_string()))
+    }
+
+    pub async fn list_pages(&self, req: ListPagesRequest) -> Result<Vec<PageRecord>, AppError> {
+        let mut client = self.client().await?;
+        let res: ListPagesResponse = client.list_pages(req).await?.into_inner();
+        Ok(res.pages)
+    }
+
+    pub async fn update_page_title(
+        &self,
+        req: UpdatePageTitleRequest,
+    ) -> Result<Option<PageRecord>, AppError> {
+        let mut client = self.client().await?;
+        match client.update_page_title(req).await {
+            Ok(res) => Ok(res.into_inner().page),
+            Err(status) if status.code() == Code::NotFound => Ok(None),
+            Err(err) => Err(err.into()),
+        }
+    }
+
+    pub async fn set_page_parents(
+        &self,
+        req: SetPageParentsRequest,
+    ) -> Result<Option<PageRecord>, AppError> {
+        let mut client = self.client().await?;
+        match client.set_page_parents(req).await {
+            Ok(res) => Ok(res.into_inner().page),
             Err(status) if status.code() == Code::NotFound => Ok(None),
             Err(err) => Err(err.into()),
         }

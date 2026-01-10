@@ -6,8 +6,8 @@ use tauri::{
 };
 use tracing::{debug, warn};
 
-use crate::{daemon::BlobSource, state::ManagedState};
 use crate::error::AppResult;
+use crate::{daemon::BlobSource, state::ManagedState};
 
 pub trait ProtocolRegistrar: Send + Sync {
     fn attach(self: Arc<Self>, builder: Builder<Wry>) -> Builder<Wry>;
@@ -63,10 +63,7 @@ impl BlobProtocol {
         }
 
         let state = app.state::<ManagedState>();
-        let Some(bytes) = state
-            .daemon
-            .read_blob(space_id, cid)?
-        else {
+        let Some(bytes) = state.daemon.read_blob(space_id, cid)? else {
             debug!("blob {cid} not found for space {space_id}");
             return Ok(not_found());
         };

@@ -60,7 +60,7 @@ pub async fn documents_ensure_page(
     request: tauri::ipc::Request<'_>,
 ) -> AppResult<PageRecord> {
     let params: EnsurePageParams = parse_params(&request, "documents_ensure_page")?;
-    controller.ensure_page(params)
+    controller.ensure_page(params).await
 }
 
 #[tauri::command]
@@ -69,7 +69,7 @@ pub async fn documents_list_pages(
     request: tauri::ipc::Request<'_>,
 ) -> AppResult<Vec<PageRecord>> {
     let params: ListPagesParams = parse_params(&request, "documents_list_pages")?;
-    controller.list_pages(params)
+    controller.list_pages(params).await
 }
 
 #[tauri::command]
@@ -78,7 +78,7 @@ pub async fn documents_update_page_title(
     request: tauri::ipc::Request<'_>,
 ) -> AppResult<Option<PageRecord>> {
     let params: UpdatePageTitleParams = parse_params(&request, "documents_update_page_title")?;
-    controller.update_page_title(params)
+    controller.update_page_title(params).await
 }
 
 #[tauri::command]
@@ -87,7 +87,7 @@ pub async fn documents_set_page_parents(
     request: tauri::ipc::Request<'_>,
 ) -> AppResult<Option<PageRecord>> {
     let params: SetPageParentsParams = parse_params(&request, "documents_set_page_parents")?;
-    controller.set_page_parents(params)
+    controller.set_page_parents(params).await
 }
 
 #[tauri::command]

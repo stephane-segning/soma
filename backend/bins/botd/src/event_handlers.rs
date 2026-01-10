@@ -141,7 +141,9 @@ impl PeerEventHandler<BotState> for MetricsHandler {
             }
             PeerEvent::ConnectionError { error, .. } => {
                 record_event(metrics, EventKindLabel::ConnectionError);
-                if error.contains("blob request denied") || error.contains("blob request missing space_id") {
+                if error.contains("blob request denied")
+                    || error.contains("blob request missing space_id")
+                {
                     metrics.blob_requests_denied.inc();
                 }
             }
