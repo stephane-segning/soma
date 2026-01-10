@@ -1,307 +1,312 @@
-// @ts-nocheck
-import { useState } from 'react';
-import { flip, inline, offset, shift, useFloating } from '@floating-ui/react';
+import { flip, inline, offset, shift, useFloating } from "@floating-ui/react";
 import {
-  RowSpacingIcon,
-  SizeIcon,
-  TextAlignCenterIcon,
-  TextAlignLeftIcon,
-  TextAlignRightIcon,
-  TextIcon,
-  UpdateIcon,
-  WidthIcon,
-} from '@radix-ui/react-icons';
-import {
-  Blocks,
-  Elements,
-  UI,
-  useYooptaPluginOptions
-} from '@yoopta/editor';
+	RowSpacingIcon,
+	SizeIcon,
+	TextAlignCenterIcon,
+	TextAlignLeftIcon,
+	TextAlignRightIcon,
+	TextIcon,
+	UpdateIcon,
+	WidthIcon,
+} from "@radix-ui/react-icons";
+import type { YooEditor, YooptaBlockData } from "@yoopta/editor";
+import { Blocks, Elements, UI, useYooptaPluginOptions } from "@yoopta/editor";
+import { useState } from "react";
+import { Check, Download } from "react-feather";
 import type {
-  YooEditor,
-  YooptaBlockData} from '@yoopta/editor';
-
-import { InputAltText } from './InputAltText';
-import { Loader } from './Loader';
-import CheckmarkIcon from '../icons/checkmark.svg';
-import DownloadIcon from '../icons/download.svg';
-import type { ImageElementProps, ImagePluginElements, ImagePluginOptions } from '../types';
+	ImageElementProps,
+	ImagePluginElements,
+	ImagePluginOptions,
+} from "../types";
+import { InputAltText } from "./InputAltText";
+import { Loader } from "./Loader";
 
 const ALIGN_ICONS = {
-  left: TextAlignLeftIcon,
-  center: TextAlignCenterIcon,
-  right: TextAlignRightIcon,
+	left: TextAlignLeftIcon,
+	center: TextAlignCenterIcon,
+	right: TextAlignRightIcon,
 };
 
-const { ExtendedBlockActions, BlockOptionsMenuGroup, BlockOptionsMenuItem, BlockOptionsSeparator } =
-  UI;
+const {
+	ExtendedBlockActions,
+	BlockOptionsMenuGroup,
+	BlockOptionsMenuItem,
+	BlockOptionsSeparator,
+} = UI;
 
 type Props = {
-  editor: YooEditor;
-  block: YooptaBlockData;
-  props?: ImageElementProps;
+	editor: YooEditor;
+	block: YooptaBlockData;
+	props?: ImageElementProps;
 };
 
 const ImageBlockOptions = ({ editor, block, props: imageProps }: Props) => {
-  const options = useYooptaPluginOptions<ImagePluginOptions>('Image');
-  const [isAltTextOpen, setIsAltTextOpen] = useState(false);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [altText, setAltText] = useState<string>(imageProps?.alt || '');
+	const options = useYooptaPluginOptions<ImagePluginOptions>("Image");
+	const [isAltTextOpen, setIsAltTextOpen] = useState(false);
+	const [loading, setLoading] = useState<boolean>(false);
+	const [altText, setAltText] = useState<string>(imageProps?.alt || "");
 
-  const { refs, floatingStyles } = useFloating({
-    placement: 'left',
-    open: isAltTextOpen,
-    onOpenChange: setIsAltTextOpen,
-    middleware: [inline(), flip(), shift(), offset(10)],
-  });
+	const { refs, floatingStyles } = useFloating({
+		placement: "left",
+		open: isAltTextOpen,
+		onOpenChange: setIsAltTextOpen,
+		middleware: [inline(), flip(), shift(), offset(10)],
+	});
 
-  const onSetLoading = (slate: boolean) => setLoading(slate);
+	const onSetLoading = (slate: boolean) => setLoading(slate);
 
-  const onSetAltText = (text: string) => setAltText(text);
-  const onSaveAltText = () => {
-    if (!altText) return;
-    Elements.updateElement<ImagePluginElements, ImageElementProps>(editor, block.id, {
-      type: 'image',
-      props: { alt: altText },
-    });
+	const onSetAltText = (text: string) => setAltText(text);
+	const onSaveAltText = () => {
+		if (!altText) return;
+		Elements.updateElement<ImagePluginElements, ImageElementProps>(
+			editor,
+			block.id,
+			{
+				type: "image",
+				props: { alt: altText },
+			},
+		);
 
-    setIsAltTextOpen(false);
-  };
+		setIsAltTextOpen(false);
+	};
 
-  const onDeleteAltText = () => {
-    setAltText('');
-    Elements.updateElement<ImagePluginElements, ImageElementProps>(editor, block.id, {
-      type: 'image',
-      props: { alt: '' },
-    });
+	const onDeleteAltText = () => {
+		setAltText("");
+		Elements.updateElement<ImagePluginElements, ImageElementProps>(
+			editor,
+			block.id,
+			{
+				type: "image",
+				props: { alt: "" },
+			},
+		);
 
-    setIsAltTextOpen(false);
-  };
+		setIsAltTextOpen(false);
+	};
 
-  const onCover = () => {
-    Elements.updateElement<ImagePluginElements, ImageElementProps>(editor, block.id, {
-      type: 'image',
-      props: { fit: 'cover' },
-    });
-  };
+	const onCover = () => {
+		Elements.updateElement<ImagePluginElements, ImageElementProps>(
+			editor,
+			block.id,
+			{
+				type: "image",
+				props: { fit: "cover" },
+			},
+		);
+	};
 
-  const onFit = () => {
-    Elements.updateElement<ImagePluginElements, ImageElementProps>(editor, block.id, {
-      type: 'image',
-      props: { fit: 'contain' },
-    });
-  };
+	const onFit = () => {
+		Elements.updateElement<ImagePluginElements, ImageElementProps>(
+			editor,
+			block.id,
+			{
+				type: "image",
+				props: { fit: "contain" },
+			},
+		);
+	};
 
-  const onFill = () => {
-    Elements.updateElement<ImagePluginElements, ImageElementProps>(editor, block.id, {
-      type: 'image',
-      props: { fit: 'fill' },
-    });
-  };
+	const onFill = () => {
+		Elements.updateElement<ImagePluginElements, ImageElementProps>(
+			editor,
+			block.id,
+			{
+				type: "image",
+				props: { fit: "fill" },
+			},
+		);
+	};
 
-  const onDownload = () => {
-    if (!imageProps || !imageProps.src) return;
+	const onDownload = () => {
+		if (!imageProps || !imageProps.src) return;
 
-    const link = document.createElement('a');
-    link.href = imageProps.src;
-    link.download = imageProps.alt || imageProps.src;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+		const link = document.createElement("a");
+		link.href = imageProps.src;
+		link.download = imageProps.alt || imageProps.src;
+		link.target = "_blank";
+		link.rel = "noopener noreferrer";
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+	};
 
-  const currentAlign = block?.meta?.align || 'center';
-  const AlignIcon = ALIGN_ICONS[currentAlign];
+	const currentAlign = block?.meta?.align || "center";
+	const AlignIcon = ALIGN_ICONS[currentAlign];
 
-  const onToggleAlign = () => {
-    const aligns = ['left', 'center', 'right'];
-    if (!block) return;
+	const onToggleAlign = () => {
+		const aligns = ["left", "center", "right"];
+		if (!block) return;
 
-    const nextAlign = aligns[
-      (aligns.indexOf(currentAlign) + 1) % aligns.length
-    ] as YooptaBlockData['meta']['align'];
-    Blocks.updateBlock(editor, block.id, { meta: { ...block.meta, align: nextAlign } });
-  };
+		const nextAlign = aligns[
+			(aligns.indexOf(currentAlign) + 1) % aligns.length
+		] as YooptaBlockData["meta"]["align"];
+		Blocks.updateBlock(editor, block.id, {
+			meta: { ...block.meta, align: nextAlign },
+		});
+	};
 
-  const onUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!options?.onUpload) {
-      throw new Error('onUpload not provided in plugin options. Check Image.extend({}) method');
-    }
+	const onUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+		if (!options?.onUpload) {
+			throw new Error(
+				"onUpload not provided in plugin options. Check Image.extend({}) method",
+			);
+		}
 
-    const file = e.target.files?.[0];
-    if (!file) return;
+		const file = e.target.files?.[0];
+		if (!file) return;
 
-    onSetLoading(true);
+		onSetLoading(true);
 
-    try {
-      const data = await options?.onUpload(file);
-      const defaultImageProps = editor.plugins.Image.elements.image.props as ImageElementProps;
+		try {
+			const data = await options?.onUpload(file);
+			const defaultImageProps = editor.plugins.Image.elements.image
+				.props as ImageElementProps;
 
-      Elements.updateElement<ImagePluginElements, ImageElementProps>(editor, block.id, {
-        type: 'image',
-        props: {
-          src: data.src,
-          alt: data.alt,
-          sizes: data.sizes || defaultImageProps.sizes,
-          bgColor: imageProps?.bgColor || data.bgColor || defaultImageProps.bgColor,
-          fit: imageProps?.fit || data.fit || defaultImageProps.fit || 'fill',
-        },
-      });
-    } catch (error) {
-    } finally {
-      onSetLoading(false);
-    }
-  };
+			Elements.updateElement<ImagePluginElements, ImageElementProps>(
+				editor,
+				block.id,
+				{
+					type: "image",
+					props: {
+						src: data.src,
+						alt: data.alt,
+						sizes: data.sizes || defaultImageProps.sizes,
+						bgColor:
+							imageProps?.bgColor || data.bgColor || defaultImageProps.bgColor,
+						fit: imageProps?.fit || data.fit || defaultImageProps.fit || "fill",
+					},
+				},
+			);
+		} catch (error) {
+		} finally {
+			onSetLoading(false);
+		}
+	};
 
-  return (
-    <ExtendedBlockActions
-      onClick={() => editor.setPath({ current: block.meta.order })}
-      className="yoopta-image-options">
-      <BlockOptionsSeparator />
-      <BlockOptionsMenuGroup>
-        <BlockOptionsMenuItem>
-          <button
-            type="button"
-            className="yoopta-block-options-button justify-between"
-            onClick={onFit}>
-            <span className="flex">
-              <RowSpacingIcon
-                width={16}
-                height={16}
-                className="w-4 h-4 mr-2"
-              />
-              Fit
-            </span>
-            {imageProps?.fit === 'contain' && (
-              <CheckmarkIcon width={16} height={16} className="w-4 h-4" />
-            )}
-          </button>
-        </BlockOptionsMenuItem>
-        <BlockOptionsMenuItem>
-          <button
-            type="button"
-            className="yoopta-block-options-button justify-between"
-            onClick={onFill}>
-            <span className="flex">
-              <WidthIcon
-                width={16}
-                height={16}
-                className="w-4 h-4 mr-2"
-              />
-              Fill
-            </span>
-            {imageProps?.fit === 'fill' && (
-              <CheckmarkIcon width={16} height={16} className="w-4 h-4" />
-            )}
-          </button>
-        </BlockOptionsMenuItem>
-        <BlockOptionsMenuItem>
-          <button
-            type="button"
-            className="yoopta-block-options-button justify-between"
-            onClick={onCover}>
-            <span className="flex">
-              <SizeIcon
-                width={16}
-                height={16}
-                className="w-4 h-4 mr-2"
-              />
-              Cover
-            </span>
-            {imageProps?.fit === 'cover' && (
-              <CheckmarkIcon width={16} height={16} className="w-4 h-4" />
-            )}
-          </button>
-        </BlockOptionsMenuItem>
-      </BlockOptionsMenuGroup>
-      <BlockOptionsSeparator />
-      <BlockOptionsMenuGroup>
-        {isAltTextOpen && (
-          <InputAltText
-            value={altText}
-            onChange={onSetAltText}
-            floatingStyles={floatingStyles}
-            onClose={() => setIsAltTextOpen(false)}
-            refs={refs}
-            onDelete={onDeleteAltText}
-            onSave={onSaveAltText}
-          />
-        )}
-        <BlockOptionsMenuItem>
-          <button
-            type="button"
-            className="yoopta-block-options-button"
-            ref={refs.setReference}
-            onClick={() => setIsAltTextOpen(true)}>
-            <TextIcon
-              width={16}
-              height={16}
-              className="w-4 h-4 mr-2"
-            />
-            Alt text
-          </button>
-        </BlockOptionsMenuItem>
-        <BlockOptionsMenuItem>
-          <label
-            htmlFor="image-uploader"
-            className="rounded-sm relative hover:bg-[#37352f14] leading-[120%] px-2 py-1.5 mx-[4px] cursor-pointer w-full flex justify-start data-[disabled=true]:cursor-not-allowed data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50"
-            data-disabled={loading}>
-            <input
-              type="file"
-              accept={options.accept}
-              multiple={false}
-              id="image-uploader"
-              className="absolute hidden"
-              onChange={onUpload}
-              disabled={loading}
-            />
-            {loading ? (
-              <Loader
-                className="mr-2 user-select-none"
-                width={24}
-                height={24}
-              />
-            ) : (
-              <UpdateIcon
-                width={16}
-                height={16}
-                className="w-4 h-4 mr-2"
-              />
-            )}
-            Replace image
-          </label>
-        </BlockOptionsMenuItem>
-      </BlockOptionsMenuGroup>
-      <BlockOptionsSeparator />
-      <BlockOptionsMenuGroup>
-        <BlockOptionsMenuItem>
-          <button
-            type="button"
-            className="yoopta-button rounded-sm hover:bg-[#37352f14] leading-[120%] px-2 py-1.5 mx-[4px] cursor-pointer w-full flex justify-start"
-            onClick={onToggleAlign}>
-            <AlignIcon
-              width={16}
-              height={16}
-              className="w-4 h-4 mr-2"
-            />
-            Alignment
-          </button>
-        </BlockOptionsMenuItem>
-        <BlockOptionsMenuItem>
-          <button type="button" className="yoopta-block-options-button" onClick={onDownload}>
-            <DownloadIcon
-              width={16}
-              height={16}
-              className="w-4 h-4 mr-2"
-            />
-            Download
-          </button>
-        </BlockOptionsMenuItem>
-      </BlockOptionsMenuGroup>
-    </ExtendedBlockActions>
-  );
+	return (
+		<ExtendedBlockActions
+			className="yoopta-image-options"
+			onClick={() => editor.setPath({ current: block.meta.order })}
+		>
+			<BlockOptionsSeparator />
+			<BlockOptionsMenuGroup>
+				<BlockOptionsMenuItem>
+					<button
+						className="yoopta-block-options-button justify-between"
+						onClick={onFit}
+						type="button"
+					>
+						<span className="flex">
+							<RowSpacingIcon className="mr-2 h-4 w-4" height={16} width={16} />
+							Fit
+						</span>
+						{imageProps?.fit === "contain" && <Check className="size-4" />}
+					</button>
+				</BlockOptionsMenuItem>
+				<BlockOptionsMenuItem>
+					<button
+						className="yoopta-block-options-button justify-between"
+						onClick={onFill}
+						type="button"
+					>
+						<span className="flex">
+							<WidthIcon className="mr-2 h-4 w-4" height={16} width={16} />
+							Fill
+						</span>
+						{imageProps?.fit === "fill" && <Check className="size-4" />}
+					</button>
+				</BlockOptionsMenuItem>
+				<BlockOptionsMenuItem>
+					<button
+						className="yoopta-block-options-button justify-between"
+						onClick={onCover}
+						type="button"
+					>
+						<span className="flex">
+							<SizeIcon className="mr-2 h-4 w-4" height={16} width={16} />
+							Cover
+						</span>
+						{imageProps?.fit === "cover" && <Check className="size-4" />}
+					</button>
+				</BlockOptionsMenuItem>
+			</BlockOptionsMenuGroup>
+			<BlockOptionsSeparator />
+			<BlockOptionsMenuGroup>
+				{isAltTextOpen && (
+					<InputAltText
+						floatingStyles={floatingStyles}
+						onChange={onSetAltText}
+						onClose={() => setIsAltTextOpen(false)}
+						onDelete={onDeleteAltText}
+						onSave={onSaveAltText}
+						refs={refs}
+						value={altText}
+					/>
+				)}
+				<BlockOptionsMenuItem>
+					<button
+						className="yoopta-block-options-button"
+						onClick={() => setIsAltTextOpen(true)}
+						ref={refs.setReference}
+						type="button"
+					>
+						<TextIcon className="mr-2 h-4 w-4" height={16} width={16} />
+						Alt text
+					</button>
+				</BlockOptionsMenuItem>
+				<BlockOptionsMenuItem>
+					<label
+						className="relative mx-1 flex w-full cursor-pointer justify-start rounded-sm px-2 py-1.5 leading-[120%] hover:bg-[#37352f14] data-[disabled=true]:pointer-events-none data-[disabled=true]:cursor-not-allowed data-[disabled=true]:opacity-50"
+						data-disabled={loading}
+						htmlFor="image-uploader"
+					>
+						<input
+							accept={options.accept}
+							className="absolute hidden"
+							disabled={loading}
+							id="image-uploader"
+							multiple={false}
+							onChange={onUpload}
+							type="file"
+						/>
+						{loading ? (
+							<Loader
+								className="user-select-none mr-2"
+								height={24}
+								width={24}
+							/>
+						) : (
+							<UpdateIcon className="mr-2 h-4 w-4" height={16} width={16} />
+						)}
+						Replace image
+					</label>
+				</BlockOptionsMenuItem>
+			</BlockOptionsMenuGroup>
+			<BlockOptionsSeparator />
+			<BlockOptionsMenuGroup>
+				<BlockOptionsMenuItem>
+					<button
+						className="yoopta-button mx-1 flex w-full cursor-pointer justify-start rounded-sm px-2 py-1.5 leading-[120%] hover:bg-[#37352f14]"
+						onClick={onToggleAlign}
+						type="button"
+					>
+						<AlignIcon className="mr-2 h-4 w-4" height={16} width={16} />
+						Alignment
+					</button>
+				</BlockOptionsMenuItem>
+				<BlockOptionsMenuItem>
+					<button
+						className="yoopta-block-options-button"
+						onClick={onDownload}
+						type="button"
+					>
+						<Download className="size-4" />
+						Download
+					</button>
+				</BlockOptionsMenuItem>
+			</BlockOptionsMenuGroup>
+		</ExtendedBlockActions>
+	);
 };
 
 export { ImageBlockOptions };
