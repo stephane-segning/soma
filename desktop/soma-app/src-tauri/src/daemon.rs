@@ -8,9 +8,8 @@ use soma_proto_build::daemon::{
     GetSpaceRequest, GetSpaceResponse, ListPagesRequest, ListPagesResponse,
     ListSpaceMembersRequest, ListSpaceMembersResponse, ListSpacesRequest, ListSpacesResponse,
     PageRecord, ReadBlobRequest, ReadBlobResponse, SetPageParentsRequest, UpdatePageTitleRequest,
-    UpdateSpaceRequest, UpdateSpaceResponse,
-    UploadBlobRequest, UploadBlobResponse, UpsertDocumentRequest, UpsertDocumentResponse,
-    daemon_client::DaemonClient as GrpcDaemonClient,
+    UpdateSpaceRequest, UpdateSpaceResponse, UploadBlobRequest, UploadBlobResponse,
+    UpsertDocumentRequest, UpsertDocumentResponse, daemon_client::DaemonClient as GrpcDaemonClient,
 };
 use tauri::async_runtime;
 use tokio::sync::Mutex;

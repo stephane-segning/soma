@@ -16,7 +16,11 @@ impl BlobsService {
         Self { repos }
     }
 
-    pub async fn record_upload(&self, blob: &BlobMetadata, document_id: Option<&str>) -> SomaResult<()> {
+    pub async fn record_upload(
+        &self,
+        blob: &BlobMetadata,
+        document_id: Option<&str>,
+    ) -> SomaResult<()> {
         self.repos.blob_repo().upsert_blob(blob).await?;
         if let Some(document_id) = document_id {
             if !document_id.trim().is_empty() {
@@ -59,7 +63,9 @@ impl BlobsService {
             }
         }
 
-        self.repos.blob_repo().list_blobs(space_id, limit, offset).await
+        self.repos
+            .blob_repo()
+            .list_blobs(space_id, limit, offset)
+            .await
     }
 }
-

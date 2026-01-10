@@ -380,6 +380,74 @@ impl daemon::daemon_server::Daemon for DaemonService {
         }))
     }
 
+    async fn get_blob_metadata(
+        &self,
+        request: Request<daemon::GetBlobMetadataRequest>,
+    ) -> Result<Response<daemon::GetBlobMetadataResponse>, Status> {
+        let payload = request.into_inner();
+        if payload.space_id.is_empty() {
+            return Err(Status::invalid_argument("space_id required"));
+        }
+        if payload.cid.is_empty() {
+            return Err(Status::invalid_argument("cid required"));
+        }
+        self.ensure_membership(&payload.space_id).await?;
+
+        let blob = BlobsService::new(self.state.repos.clone())
+            .get_metadata(&payload.space_id, &payload.cid)
+            .await
+            .map_err(|err| {
+                warn!(%err, "get_blob_metadata failed");
+                Status::internal("failed to fetch blob metadata")
+            })?;
+
+        let Some(blob) = blob else {
+            return Err(Status::not_found("blob metadata not found"));
+        };
+
+        Ok(Response::new(daemon::GetBlobMetadataResponse {
+            blob: Some(to_blob_metadata(blob)),
+        }))
+    }
+
+    async fn list_blobs(
+        &self,
+        request: Request<daemon::ListBlobsRequest>,
+    ) -> Result<Response<daemon::ListBlobsResponse>, Status> {
+        let payload = request.into_inner();
+        if payload.space_id.is_empty() {
+            return Err(Status::invalid_argument("space_id required"));
+        }
+        self.ensure_membership(&payload.space_id).await?;
+
+        let limit = if payload.limit == 0 {
+            100
+        } else {
+            payload.limit
+        };
+
+        let blobs = BlobsService::new(self.state.repos.clone())
+            .list_blobs(
+                &payload.space_id,
+                if payload.document_id.trim().is_empty() {
+                    None
+                } else {
+                    Some(payload.document_id.as_str())
+                },
+                limit,
+                payload.offset,
+            )
+            .await
+            .map_err(|err| {
+                warn!(%err, "list_blobs failed");
+                Status::internal("failed to list blobs")
+            })?;
+
+        Ok(Response::new(daemon::ListBlobsResponse {
+            blobs: blobs.into_iter().map(to_blob_metadata).collect(),
+        }))
+    }
+
     async fn issue_issuer_capability(
         &self,
         _request: Request<daemon::IssueIssuerCapabilityRequest>,

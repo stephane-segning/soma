@@ -26,8 +26,12 @@ pub struct BlobRef {
 pub trait BlobRepository: Send + Sync {
     async fn upsert_blob(&self, blob: &BlobMetadata) -> SomaResult<()>;
     async fn get_blob(&self, space_id: &str, cid: &str) -> SomaResult<Option<BlobMetadata>>;
-    async fn list_blobs(&self, space_id: &str, limit: u32, offset: u32)
-        -> SomaResult<Vec<BlobMetadata>>;
+    async fn list_blobs(
+        &self,
+        space_id: &str,
+        limit: u32,
+        offset: u32,
+    ) -> SomaResult<Vec<BlobMetadata>>;
     async fn list_blobs_for_document(
         &self,
         space_id: &str,

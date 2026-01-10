@@ -7,8 +7,8 @@ use std::{
 use soma_core::SomaResult;
 use sqlx_utils::types::Pool;
 
-pub mod bootstrap;
 pub mod blobs;
+pub mod bootstrap;
 pub mod documents;
 pub mod issuer;
 pub mod mailbox;
@@ -16,9 +16,9 @@ pub mod membership;
 pub mod pages;
 pub mod peers;
 use crate::{
-    blobs::BlobRepository,
-    documents::DocumentRepository, issuer::IssuerRepository, mailbox::MailboxRepository,
-    membership::MembershipRepository, pages::PageRepository, peers::PeerPublicKeyRepository,
+    blobs::BlobRepository, documents::DocumentRepository, issuer::IssuerRepository,
+    mailbox::MailboxRepository, membership::MembershipRepository, pages::PageRepository,
+    peers::PeerPublicKeyRepository,
 };
 
 /// Abstraction over repositories needed by controllers/services.
