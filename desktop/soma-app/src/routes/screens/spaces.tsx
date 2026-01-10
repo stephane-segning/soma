@@ -1,19 +1,20 @@
-import { useSpacesQuery } from "@soma/queries/spaces";
-import { useMemo } from "react";
-import { Navigate } from "react-router";
+import * as spacesService from "@soma/services/spaces-service.ts";
+import { redirect } from "react-router";
 
-function Component(): React.JSX.Element {
-	const spacesQuery = useSpacesQuery();
-	const spaceId = useMemo(() => {
-		const all = spacesQuery.data?.spaces ?? [];
-		return all?.[0]?.spaceId;
-	}, [spacesQuery.data?.spaces]);
+async function loader(): Promise<Response> {
+	const data = await spacesService.listSpaces();
+	const all = data?.spaces ?? [];
+	const spaceId = all?.[0]?.spaceId;
 
 	if (!spaceId) {
-		return <div />;
+		return Response.json("");
 	}
 
-	return <Navigate to={`/spaces/${spaceId}`} />;
+	return redirect(`/spaces/${spaceId}`);
 }
 
-export { Component };
+function Component() {
+	return null;
+}
+
+export { Component, loader };

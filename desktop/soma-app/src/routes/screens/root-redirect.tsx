@@ -1,7 +1,7 @@
 import { redirect } from "react-router";
 
 function loader(): Response {
-	return redirect("/spaces/landing");
+	return redirect("/spaces");
 }
 
 function Component(): null {
