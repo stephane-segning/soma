@@ -6,10 +6,11 @@ use soma_proto_build::daemon::{
     CreateSpaceRequest, CreateSpaceResponse, DeleteSpaceRequest, DeleteSpaceResponse,
     GetSpaceRequest, GetSpaceResponse, ListSpaceMembersRequest, ListSpaceMembersResponse,
     ListSpacesRequest, ListSpacesResponse, UpdateSpaceRequest, UpdateSpaceResponse,
-    UploadBlobRequest, UploadBlobResponse, UpsertDocumentRequest, UpsertDocumentResponse,
-    daemon_client::DaemonClient as GrpcDaemonClient, GetDocumentRequest, GetDocumentResponse,
+    ReadBlobRequest, ReadBlobResponse, UploadBlobRequest, UploadBlobResponse,
+    UpsertDocumentRequest, UpsertDocumentResponse, daemon_client::DaemonClient as GrpcDaemonClient,
+    GetDocumentRequest, GetDocumentResponse,
 };
-use tauri::{AppHandle, Wry};
+use tauri::async_runtime;
 use tokio::sync::Mutex;
 use tonic::{
     transport::{Channel, Endpoint},
@@ -32,7 +33,7 @@ pub struct DaemonConfig {
 }
 
 impl DaemonConfig {
-    pub fn from_app() -> anyhow::Result<Self> {
+    pub fn from_env() -> anyhow::Result<Self> {
         let socket_path = std::env::var_os("SOMA_DAEMON_SOCKET")
             .map(PathBuf::from)
             .unwrap_or_else(|| PathBuf::from("/tmp/soma-daemon.sock"));
@@ -50,8 +51,8 @@ pub struct DaemonApi {
 }
 
 impl DaemonApi {
-    pub fn from_app(_app: &AppHandle<Wry>) -> anyhow::Result<Arc<Self>> {
-        let config = DaemonConfig::from_app()?;
+    pub fn from_env() -> anyhow::Result<Arc<Self>> {
+        let config = DaemonConfig::from_env()?;
         info!("Using soma-daemon socket at {:?}", config.socket_path);
 
         Ok(Arc::new(Self {
@@ -95,6 +96,18 @@ impl DaemonApi {
         let mut client = self.client().await?;
         let res = client.upload_blob(req).await?;
         Ok(res.into_inner())
+    }
+
+    pub async fn read_blob_rpc(
+        &self,
+        req: ReadBlobRequest,
+    ) -> Result<Option<ReadBlobResponse>, AppError> {
+        let mut client = self.client().await?;
+        match client.read_blob(req).await {
+            Ok(res) => Ok(Some(res.into_inner())),
+            Err(status) if status.code() == Code::NotFound => Ok(None),
+            Err(err) => Err(err.into()),
+        }
     }
 
     pub async fn list_spaces(
@@ -162,8 +175,12 @@ impl DaemonApi {
 }
 
 impl BlobSource for DaemonApi {
-    fn read_blob(&self, _space_id: &str, _cid: &str) -> AppResult<Option<Vec<u8>>> {
-        // TODO: the daemon should itself return the position of the blob if present, and try downloading if not present
-        todo!("Not yet implemented")
+    fn read_blob(&self, space_id: &str, cid: &str) -> AppResult<Option<Vec<u8>>> {
+        let req = ReadBlobRequest {
+            space_id: space_id.to_string(),
+            cid: cid.to_string(),
+        };
+        let res = async_runtime::block_on(async { self.read_blob_rpc(req).await })?;
+        Ok(res.map(|r| r.data))
     }
 }

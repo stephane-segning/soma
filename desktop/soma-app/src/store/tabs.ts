@@ -1,5 +1,5 @@
 import { createId } from "@paralleldrive/cuid2";
-import { create } from "zustand";
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
 type PersistedTab = {
 	id: string;
@@ -15,17 +15,10 @@ type PersistedTabsStateV1 = {
 
 type Tab = PersistedTab;
 
-type TabsStore = {
+type TabsState = {
 	initialized: boolean;
 	activeId: string;
 	tabs: Tab[];
-	initFromPersisted: (state: PersistedTabsStateV1) => void;
-	selectTab: (tabId: string) => void;
-	openTab: (options?: { path?: string; title?: string }) => void;
-	closeTab: (tabId: string) => void;
-	setTabPath: (tabId: string, path: string) => void;
-	renameTab: (tabId: string, title: string) => void;
-	toPersisted: () => PersistedTabsStateV1;
 };
 
 const MAX_TABS = 10;
@@ -65,92 +58,120 @@ function isPersistedTabsStateV1(value: unknown): value is PersistedTabsStateV1 {
 	return true;
 }
 
-const useTabsStore = create<TabsStore>((set, get) => ({
+function tabsToPersisted(state: TabsState): PersistedTabsStateV1 {
+	const safeActiveId = state.tabs.some((t) => t.id === state.activeId)
+		? state.activeId
+		: (state.tabs[0]?.id ?? "");
+	return {
+		version: 1,
+		activeId: safeActiveId,
+		tabs: state.tabs.map(({ id, title, path }) => ({ id, title, path })),
+	};
+}
+
+const initialState: TabsState = {
 	initialized: false,
 	activeId: "",
 	tabs: [],
-	initFromPersisted: (state) => {
-		const next = isPersistedTabsStateV1(state)
-			? state
-			: createDefaultState("/");
-		const activeId = next.tabs.some((t) => t.id === next.activeId)
-			? next.activeId
-			: next.tabs[0].id;
-		set({
-			initialized: true,
-			activeId,
-			tabs: next.tabs.map((t) => ({ ...t, path: coercePath(t.path) })),
-		});
-	},
-	selectTab: (tabId) => {
-		const { tabs, activeId } = get();
-		if (activeId === tabId) return;
-		if (!tabs.some((t) => t.id === tabId)) return;
-		set({ activeId: tabId });
-	},
-	openTab: (options) => {
-		const { tabs } = get();
-		if (tabs.length >= MAX_TABS) return;
-		const id = newTabId();
-		const title = options?.title ?? `Tab ${tabs.length + 1}`;
-		const path = coercePath(options?.path ?? "/");
-		set({ tabs: [...tabs, { id, title, path }], activeId: id });
-	},
-	closeTab: (tabId) => {
-		const { tabs, activeId } = get();
-		const index = tabs.findIndex((t) => t.id === tabId);
-		if (index === -1) return;
+};
 
-		const nextTabs = tabs.filter((t) => t.id !== tabId);
-		if (nextTabs.length === 0) {
-			const fallback = createDefaultState("/");
-			set({ tabs: fallback.tabs, activeId: fallback.activeId });
-			return;
-		}
+const tabsSlice = createSlice({
+	name: "tabs",
+	initialState,
+	reducers: {
+		initFromPersisted(state, action: PayloadAction<PersistedTabsStateV1>) {
+			const next = isPersistedTabsStateV1(action.payload)
+				? action.payload
+				: createDefaultState("/");
+			const activeId = next.tabs.some((t) => t.id === next.activeId)
+				? next.activeId
+				: next.tabs[0].id;
+			state.initialized = true;
+			state.activeId = activeId;
+			state.tabs = next.tabs.map((t) => ({ ...t, path: coercePath(t.path) }));
+		},
+		selectTab(state, action: PayloadAction<string>) {
+			const tabId = action.payload;
+			if (state.activeId === tabId) return;
+			if (!state.tabs.some((t) => t.id === tabId)) return;
+			state.activeId = tabId;
+		},
+		openTab: {
+			prepare(options?: { path?: string; title?: string }) {
+				return { payload: { id: newTabId(), options } };
+			},
+			reducer(
+				state,
+				action: PayloadAction<{
+					id: string;
+					options?: { path?: string; title?: string };
+				}>,
+			) {
+				if (state.tabs.length >= MAX_TABS) return;
 
-		if (activeId !== tabId) {
-			set({ tabs: nextTabs });
-			return;
-		}
+				const title =
+					action.payload.options?.title ?? `Tab ${state.tabs.length + 1}`;
+				const path = coercePath(action.payload.options?.path ?? "/");
 
-		const nextActive = nextTabs[index] ?? nextTabs[index - 1] ?? nextTabs[0];
-		set({ tabs: nextTabs, activeId: nextActive.id });
-	},
-	setTabPath: (tabId, path) => {
-		const nextPath = coercePath(path);
-		const { tabs } = get();
-		const existing = tabs.find((tab) => tab.id === tabId);
-		if (!existing) return;
-		if (existing.path === nextPath) return;
-		set((state) => ({
-			tabs: state.tabs.map((tab) =>
-				tab.id === tabId ? { ...tab, path: nextPath } : tab,
-			),
-		}));
-	},
-	renameTab: (tabId, title) => {
-		const { tabs } = get();
-		const existing = tabs.find((tab) => tab.id === tabId);
-		if (!existing) return;
-		if (existing.title === title) return;
-		set((state) => ({
-			tabs: state.tabs.map((tab) =>
-				tab.id === tabId ? { ...tab, title } : tab,
-			),
-		}));
-	},
-	toPersisted: () => {
-		const { activeId, tabs } = get();
-		const safeActiveId = tabs.some((t) => t.id === activeId)
-			? activeId
-			: (tabs[0]?.id ?? "");
-		return {
-			version: 1,
-			activeId: safeActiveId,
-			tabs: tabs.map(({ id, title, path }) => ({ id, title, path })),
-		};
-	},
-}));
+				state.tabs.push({ id: action.payload.id, title, path });
+				state.activeId = action.payload.id;
+			},
+		},
+		closeTab(state, action: PayloadAction<string>) {
+			const tabId = action.payload;
+			const index = state.tabs.findIndex((t) => t.id === tabId);
+			if (index === -1) return;
 
-export { createDefaultState, isPersistedTabsStateV1, useTabsStore };
+			const nextTabs = state.tabs.filter((t) => t.id !== tabId);
+			if (nextTabs.length === 0) {
+				const fallback = createDefaultState("/");
+				state.tabs = fallback.tabs;
+				state.activeId = fallback.activeId;
+				return;
+			}
+
+			if (state.activeId !== tabId) {
+				state.tabs = nextTabs;
+				return;
+			}
+
+			const nextActive = nextTabs[index] ?? nextTabs[index - 1] ?? nextTabs[0];
+			state.tabs = nextTabs;
+			state.activeId = nextActive.id;
+		},
+		setTabPath(state, action: PayloadAction<{ tabId: string; path: string }>) {
+			const nextPath = coercePath(action.payload.path);
+			const tab = state.tabs.find((t) => t.id === action.payload.tabId);
+			if (!tab) return;
+			if (tab.path === nextPath) return;
+			tab.path = nextPath;
+		},
+		renameTab(state, action: PayloadAction<{ tabId: string; title: string }>) {
+			const tab = state.tabs.find((t) => t.id === action.payload.tabId);
+			if (!tab) return;
+			if (tab.title === action.payload.title) return;
+			tab.title = action.payload.title;
+		},
+	},
+});
+
+const tabsReducer = tabsSlice.reducer;
+const tabsActions = tabsSlice.actions;
+
+const tabsSelectors = {
+	selectInitialized: (state: { tabs: TabsState }) => state.tabs.initialized,
+	selectActiveId: (state: { tabs: TabsState }) => state.tabs.activeId,
+	selectTabs: (state: { tabs: TabsState }) => state.tabs.tabs,
+	selectPersisted: (state: { tabs: TabsState }) => tabsToPersisted(state.tabs),
+};
+
+export {
+	MAX_TABS,
+	createDefaultState,
+	isPersistedTabsStateV1,
+	tabsActions,
+	tabsReducer,
+	tabsSelectors,
+	tabsToPersisted,
+};
 export type { PersistedTabsStateV1 };

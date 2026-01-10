@@ -62,12 +62,10 @@ impl BlobProtocol {
             return Ok(not_found());
         }
 
-        // TODO this cannot happen, because `state() called before manage() for soma_app_lib::state::ManagedState`
         let state = app.state::<ManagedState>();
         let Some(bytes) = state
             .daemon
-            .read_blob(space_id, cid)
-            .map_err(|err| anyhow::anyhow!(err))?
+            .read_blob(space_id, cid)?
         else {
             debug!("blob {cid} not found for space {space_id}");
             return Ok(not_found());

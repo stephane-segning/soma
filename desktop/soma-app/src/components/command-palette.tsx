@@ -1,4 +1,7 @@
 import { useSearchQuery } from "@soma/queries/search";
+import { useAppDispatch, useAppSelector } from "@soma/store/hooks";
+import { store } from "@soma/store/store";
+import { uiActions, uiSelectors } from "@soma/store/ui";
 import { useEffect, useMemo, useState } from "react";
 import CommandPalette, {
 	filterItems,
@@ -7,24 +10,26 @@ import CommandPalette, {
 	useHandleOpenCommandPalette,
 } from "react-cmdk";
 import { useNavigate } from "react-router";
-import { useUiStore } from "../store/ui";
 
 function CommandPaletteShell(): React.JSX.Element {
+	const dispatch = useAppDispatch();
 	const [selected, setSelected] = useState<number>(0);
 	const [search, setSearch] = useState<string>("");
 	const [page, setPage] = useState<"root" | "positions">("root");
-	const { isCommandPaletteOpen, toggleCommandPalette } = useUiStore();
+	const isCommandPaletteOpen = useAppSelector(
+		uiSelectors.selectIsCommandPaletteOpen,
+	);
 	const navigate = useNavigate();
 	const searchResults = useSearchQuery(search);
 
 	const handleOpenChange = (
 		next: boolean | ((open: boolean) => boolean),
 	): void => {
-		const resolved =
-			typeof next === "function"
-				? next(useUiStore.getState().isCommandPaletteOpen)
-				: next;
-		toggleCommandPalette(resolved);
+		const currentOpen = uiSelectors.selectIsCommandPaletteOpen(
+			store.getState(),
+		);
+		const resolved = typeof next === "function" ? next(currentOpen) : next;
+		dispatch(uiActions.toggleCommandPalette(resolved));
 	};
 
 	useHandleOpenCommandPalette(handleOpenChange);
@@ -56,7 +61,7 @@ function CommandPaletteShell(): React.JSX.Element {
 						),
 						showType: false,
 						keywords: ["welcome"],
-						onClick: () => toggleCommandPalette(false),
+						onClick: () => dispatch(uiActions.toggleCommandPalette(false)),
 					},
 				],
 			},
@@ -70,7 +75,7 @@ function CommandPaletteShell(): React.JSX.Element {
 						keywords: ["route", "spaces", "home"],
 						onClick: () => {
 							navigate("/spaces");
-							toggleCommandPalette(false);
+							dispatch(uiActions.toggleCommandPalette(false));
 						},
 					},
 					{
@@ -79,7 +84,7 @@ function CommandPaletteShell(): React.JSX.Element {
 						keywords: ["route", "spaces", "join"],
 						onClick: () => {
 							navigate("/spaces/join");
-							toggleCommandPalette(false);
+							dispatch(uiActions.toggleCommandPalette(false));
 						},
 					},
 					{
@@ -88,7 +93,7 @@ function CommandPaletteShell(): React.JSX.Element {
 						keywords: ["route", "settings", "preferences"],
 						onClick: () => {
 							navigate("/settings");
-							toggleCommandPalette(false);
+							dispatch(uiActions.toggleCommandPalette(false));
 						},
 					},
 				],
@@ -152,13 +157,13 @@ function CommandPaletteShell(): React.JSX.Element {
 								keywords: [result.title, result.subtitle].filter(
 									(v): v is string => typeof v === "string",
 								),
-								onClick: () => toggleCommandPalette(false),
+								onClick: () => dispatch(uiActions.toggleCommandPalette(false)),
 							})),
 						},
 					]
 				: []),
 		],
-		[navigate, search, searchResults.data, toggleCommandPalette],
+		[dispatch, navigate, search, searchResults.data],
 	);
 
 	const rootItems = useMemo(() => filterItems(items, search), [items, search]);

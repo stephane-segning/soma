@@ -1,8 +1,11 @@
 import { useSetSettingMutation, useSettingQuery } from "@soma/queries/settings";
+import { useAppDispatch, useAppSelector } from "@soma/store/hooks";
+import { store } from "@soma/store/store";
 import {
 	createDefaultState,
 	isPersistedTabsStateV1,
-	useTabsStore,
+	tabsActions,
+	tabsSelectors,
 } from "@soma/store/tabs";
 import { useEffect, useMemo } from "react";
 import { RouterProvider } from "react-router";
@@ -20,10 +23,10 @@ function getOrCreateRouter(tabId: string, initialPath: string) {
 }
 
 function TabbedApp(): React.JSX.Element | null {
-	const initialized = useTabsStore((s) => s.initialized);
-	const activeId = useTabsStore((s) => s.activeId);
-	const tabs = useTabsStore((s) => s.tabs);
-	const initFromPersisted = useTabsStore((s) => s.initFromPersisted);
+	const dispatch = useAppDispatch();
+	const initialized = useAppSelector(tabsSelectors.selectInitialized);
+	const activeId = useAppSelector(tabsSelectors.selectActiveId);
+	const tabs = useAppSelector(tabsSelectors.selectTabs);
 
 	const setSetting = useSetSettingMutation();
 	const tabsSetting = useSettingQuery(SETTINGS_KEY);
@@ -34,26 +37,26 @@ function TabbedApp(): React.JSX.Element | null {
 
 		const persisted = tabsSetting.data;
 		if (isPersistedTabsStateV1(persisted)) {
-			initFromPersisted(persisted);
+			dispatch(tabsActions.initFromPersisted(persisted));
 			return;
 		}
 
 		const initialPath = window.location.hash.startsWith("#")
 			? window.location.hash.slice(1)
 			: "";
-		initFromPersisted(createDefaultState(initialPath));
-	}, [initialized, initFromPersisted, tabsSetting.data, tabsSetting.isLoading]);
+		dispatch(tabsActions.initFromPersisted(createDefaultState(initialPath)));
+	}, [dispatch, initialized, tabsSetting.data, tabsSetting.isLoading]);
 
 	useEffect(() => {
 		if (!initialized) return;
 		let timeout: number | null = null;
 
-		const unsubscribe = useTabsStore.subscribe(() => {
+		const unsubscribe = store.subscribe(() => {
 			if (timeout) window.clearTimeout(timeout);
 			timeout = window.setTimeout(() => {
 				setSetting.mutate({
 					key: SETTINGS_KEY,
-					value: useTabsStore.getState().toPersisted(),
+					value: tabsSelectors.selectPersisted(store.getState()),
 				});
 			}, 250);
 		});
@@ -69,7 +72,7 @@ function TabbedApp(): React.JSX.Element | null {
 		const persistNow = () => {
 			setSetting.mutate({
 				key: SETTINGS_KEY,
-				value: useTabsStore.getState().toPersisted(),
+				value: tabsSelectors.selectPersisted(store.getState()),
 			});
 		};
 		window.addEventListener("beforeunload", persistNow);

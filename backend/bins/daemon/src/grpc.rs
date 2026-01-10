@@ -281,6 +281,43 @@ impl daemon::daemon_server::Daemon for DaemonService {
         }))
     }
 
+    async fn read_blob(
+        &self,
+        request: Request<daemon::ReadBlobRequest>,
+    ) -> Result<Response<daemon::ReadBlobResponse>, Status> {
+        let payload = request.into_inner();
+        if payload.space_id.is_empty() {
+            return Err(Status::invalid_argument("space_id required"));
+        }
+        if payload.cid.is_empty() {
+            return Err(Status::invalid_argument("cid required"));
+        }
+        self.ensure_membership(&payload.space_id).await?;
+
+        let Some(bytes) = self
+            .state
+            .blob_store
+            .read(&payload.space_id, &payload.cid)
+            .await
+            .map_err(|err| {
+                warn!(%err, "read_blob failed");
+                Status::internal("failed to read blob")
+            })?
+        else {
+            return Err(Status::not_found("blob not found"));
+        };
+
+        if bytes.len() > MAX_UPLOAD_BYTES {
+            return Err(Status::resource_exhausted("blob too large"));
+        }
+
+        Ok(Response::new(daemon::ReadBlobResponse {
+            size: bytes.len() as u64,
+            data: bytes,
+            mime: "application/octet-stream".to_string(),
+        }))
+    }
+
     async fn issue_issuer_capability(
         &self,
         _request: Request<daemon::IssueIssuerCapabilityRequest>,

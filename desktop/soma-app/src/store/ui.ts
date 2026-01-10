@@ -1,16 +1,30 @@
-import { create } from "zustand";
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
 type UiState = {
 	isCommandPaletteOpen: boolean;
-	toggleCommandPalette: (open?: boolean) => void;
 };
 
-const useUiStore = create<UiState>((set) => ({
+const initialState: UiState = {
 	isCommandPaletteOpen: false,
-	toggleCommandPalette: (open) =>
-		set((state) => ({
-			isCommandPaletteOpen: open ?? !state.isCommandPaletteOpen,
-		})),
-}));
+};
 
-export { useUiStore };
+const uiSlice = createSlice({
+	name: "ui",
+	initialState,
+	reducers: {
+		toggleCommandPalette(state, action: PayloadAction<boolean | undefined>) {
+			state.isCommandPaletteOpen =
+				action.payload ?? !state.isCommandPaletteOpen;
+		},
+	},
+});
+
+const uiReducer = uiSlice.reducer;
+const uiActions = uiSlice.actions;
+const uiSelectors = {
+	selectIsCommandPaletteOpen: (state: { ui: UiState }) =>
+		state.ui.isCommandPaletteOpen,
+};
+
+export { uiActions, uiReducer, uiSelectors };
+export type { UiState };

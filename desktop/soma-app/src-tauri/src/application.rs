@@ -85,7 +85,11 @@ pub struct SomaApp {
 impl SomaApp {
     pub fn run(self) -> tauri::Result<()> {
         let context = tauri::generate_context!();
-        let mut builder = self.builder;
+        let daemon = DaemonApi::from_env()?;
+        let agent = AgentApi::from_env()?;
+        let managed_state = ManagedState::new(daemon, agent);
+
+        let mut builder = self.builder.manage(managed_state.clone());
         for registrar in self.protocol_registrars {
             builder = registrar.attach(builder);
         }
@@ -95,10 +99,6 @@ impl SomaApp {
         builder
             .setup(move |app| {
                 let handle = app.handle();
-
-                let daemon = DaemonApi::from_app(&app.handle())?;
-                let agent = AgentApi::from_app(&app.handle())?;
-                let managed_state = ManagedState::new(daemon, agent);
 
                 let documents_controller = DocumentsController::new(managed_state.clone());
                 let spaces_controller = SpacesController::new(managed_state.clone());

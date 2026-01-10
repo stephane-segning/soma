@@ -207,6 +207,17 @@ message UploadBlobResponse {
   string name = 4;
 }
 
+message ReadBlobRequest {
+  string space_id = 1;
+  string cid = 2;
+}
+
+message ReadBlobResponse {
+  bytes data = 1;
+  uint64 size = 2;
+  string mime = 3;
+}
+
 message UpsertDocumentRequest {
   string space_id = 1;
   string document_id = 2;
@@ -258,6 +269,7 @@ service Daemon {
   rpc ListJoinRequests(ListJoinRequestsRequest) returns (ListJoinRequestsResponse);
   rpc DecideJoin(DecideJoinRequest) returns (DecideJoinResponse);
   rpc UploadBlob(UploadBlobRequest) returns (UploadBlobResponse);
+  rpc ReadBlob(ReadBlobRequest) returns (ReadBlobResponse);
   rpc UpsertDocument(UpsertDocumentRequest) returns (UpsertDocumentResponse);
   rpc GetDocument(GetDocumentRequest) returns (GetDocumentResponse);
 }

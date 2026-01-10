@@ -1,5 +1,6 @@
 import { cn } from "@soma/lib/cn";
-import { useTabsStore } from "@soma/store/tabs";
+import { useAppDispatch, useAppSelector } from "@soma/store/hooks";
+import { MAX_TABS, tabsActions, tabsSelectors } from "@soma/store/tabs";
 import { List, MessageCircle, Plus, X } from "react-feather";
 import { PolymorphButton } from "soma-ui/components/actions/polymorph-button";
 
@@ -18,12 +19,10 @@ function TabsBar({
 	toggleLeft,
 	toggleRight,
 }: TabsBarProps): React.JSX.Element {
-	const tabs = useTabsStore((s) => s.tabs);
-	const activeId = useTabsStore((s) => s.activeId);
-	const selectTab = useTabsStore((s) => s.selectTab);
-	const openTab = useTabsStore((s) => s.openTab);
-	const closeTab = useTabsStore((s) => s.closeTab);
-	const atMaxTabs = tabs.length >= 10;
+	const dispatch = useAppDispatch();
+	const tabs = useAppSelector(tabsSelectors.selectTabs);
+	const activeId = useAppSelector(tabsSelectors.selectActiveId);
+	const atMaxTabs = tabs.length >= MAX_TABS;
 
 	return (
 		<div className="flex min-w-0 items-center gap-2">
@@ -56,9 +55,11 @@ function TabsBar({
 									: "bg-base-200/60 text-base-content/70 hover:bg-base-200",
 							)}
 							key={tab.id}
-							onClick={() => selectTab(tab.id)}
+							onClick={() => dispatch(tabsActions.selectTab(tab.id))}
 							onKeyDown={(e) => {
-								if (e.key === "Enter" || e.key === " ") selectTab(tab.id);
+								if (e.key === "Enter" || e.key === " ") {
+									dispatch(tabsActions.selectTab(tab.id));
+								}
 							}}
 							role="tab"
 							tabIndex={0}
@@ -69,7 +70,7 @@ function TabsBar({
 								className="btn btn-ghost btn-xs btn-circle [-webkit-app-region:no-drag]"
 								onClick={(e) => {
 									e.stopPropagation();
-									closeTab(tab.id);
+									dispatch(tabsActions.closeTab(tab.id));
 								}}
 								type="button"
 							>
@@ -84,7 +85,7 @@ function TabsBar({
 				<PolymorphButton
 					className="btn-soft"
 					disabled={atMaxTabs}
-					onClick={() => openTab()}
+					onClick={() => dispatch(tabsActions.openTab())}
 					size="sm"
 					type="button"
 				>

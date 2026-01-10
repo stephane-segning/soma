@@ -6,7 +6,6 @@ use soma_proto_build::agent::{
     ChatRequest, ChatResponse, ListModelsResponse, RerankRequest, RerankResponse,
     ResolveDriftRequest, ResolveDriftResponse, StatusResponse, agent_client::AgentClient,
 };
-use tauri::AppHandle;
 use tokio::sync::Mutex;
 use tonic::{
     Code,
@@ -42,7 +41,7 @@ pub struct AgentApi {
 }
 
 impl AgentApi {
-    pub fn from_app(_app: &AppHandle) -> anyhow::Result<Arc<Self>> {
+    pub fn from_env() -> anyhow::Result<Arc<Self>> {
         let config = AgentConfig::from_env()?;
         info!("Using soma-agentd socket at {:?}", config.socket_path);
         Ok(Arc::new(Self {

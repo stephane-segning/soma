@@ -1,4 +1,5 @@
-import { useTabsStore } from "@soma/store/tabs";
+import { useAppDispatch, useAppSelector } from "@soma/store/hooks";
+import { tabsActions, tabsSelectors } from "@soma/store/tabs";
 import { useEffect, useMemo } from "react";
 import { useLocation, useMatches } from "react-router";
 
@@ -7,9 +8,8 @@ type TitleHandle = {
 };
 
 function RouterListener(): null {
-	const activeId = useTabsStore((s) => s.activeId);
-	const setTabPath = useTabsStore((s) => s.setTabPath);
-	const renameTab = useTabsStore((s) => s.renameTab);
+	const dispatch = useAppDispatch();
+	const activeId = useAppSelector(tabsSelectors.selectActiveId);
 
 	const location = useLocation();
 	const matches = useMatches();
@@ -27,14 +27,14 @@ function RouterListener(): null {
 	useEffect(() => {
 		if (!activeId) return;
 		const path = `${location.pathname}${location.search}`;
-		setTabPath(activeId, path);
-	}, [activeId, location.pathname, location.search, setTabPath]);
+		dispatch(tabsActions.setTabPath({ tabId: activeId, path }));
+	}, [activeId, dispatch, location.pathname, location.search]);
 
 	useEffect(() => {
 		if (!activeId) return;
 		if (!routeTitle) return;
-		renameTab(activeId, routeTitle);
-	}, [activeId, renameTab, routeTitle]);
+		dispatch(tabsActions.renameTab({ tabId: activeId, title: routeTitle }));
+	}, [activeId, dispatch, routeTitle]);
 
 	return null;
 }
