@@ -17,7 +17,7 @@ async function loader({ params }: LoaderFunctionArgs): Promise<Response> {
 }
 
 function Component() {
-	return <>Maiou</>;
+	return null;
 }
 
 export { Component, loader };

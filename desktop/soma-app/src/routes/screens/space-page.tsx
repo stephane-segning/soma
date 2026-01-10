@@ -154,7 +154,7 @@ function Component(): React.JSX.Element {
 	);
 
 	return (
-		<div className="h-full min-h-full bg-base-200 px-12">
+		<div className="h-full min-h-full px-14">
 			<HotkeysProvider initiallyActiveScopes={["rich-text"]}>
 				<YooptaEditorWithTools
 					className="!w-full"
@@ -165,6 +165,7 @@ function Component(): React.JSX.Element {
 					onValueChange={handleValueChange}
 					placeholder="Start writing…"
 					spaceId={data.spaceId}
+					style={{ width: "unset" }}
 				/>
 			</HotkeysProvider>
 		</div>

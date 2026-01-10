@@ -21,7 +21,6 @@ export type DesktopShellProps = {
 	headerClassName?: string;
 	contentClassName?: string;
 	mainClassName?: string;
-	variant?: "default" | "flat";
 	defaultLeftOpen?: boolean;
 	defaultRightOpen?: boolean;
 	initialLeftWidth?: number;
@@ -69,7 +68,6 @@ export function DesktopShell({
 	headerClassName,
 	contentClassName,
 	mainClassName,
-	variant = "default",
 	defaultLeftOpen = true,
 	defaultRightOpen = true,
 }: DesktopShellProps) {
@@ -77,7 +75,6 @@ export function DesktopShell({
 	const [rightOpen, setRightOpen] = useState(defaultRightOpen);
 	const [leftWidth, setLeftWidth] = useState(initialLeftWidth);
 	const [rightWidth, setRightWidth] = useState(initialRightWidth);
-	const isFlat = variant === "flat";
 	const leftContent = useMemo(
 		() => (leftOpen ? leftColumn : null),
 		[leftOpen, leftColumn],
@@ -114,18 +111,11 @@ export function DesktopShell({
 			<div
 				className={cn(
 					"relative z-10 flex h-full w-full flex-col",
-					isFlat ? "" : "gap-4",
 					bodyClassName,
 				)}
 			>
 				{headerNode ? (
-					<div
-						className={cn(
-							"flex flex-col",
-							isFlat ? "" : "gap-2",
-							headerClassName,
-						)}
-					>
+					<div className={cn("flex flex-col", headerClassName)}>
 						{headerNode}
 					</div>
 				) : null}
@@ -164,7 +154,6 @@ export function DesktopShell({
 					<main
 						className={cn(
 							"max-h-full min-h-0 flex-1 overflow-auto",
-							isFlat ? "" : "space-y-4",
 							mainClassName,
 						)}
 					>

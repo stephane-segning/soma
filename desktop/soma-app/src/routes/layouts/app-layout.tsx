@@ -51,6 +51,7 @@ function Component(): React.JSX.Element {
 					</>
 				)}
 				leftColumn={<SideMenu />}
+				mainClassName="bg-base-200/60 min-h-screen"
 				rightColumn={
 					<Suspense
 						fallback={
@@ -59,16 +60,13 @@ function Component(): React.JSX.Element {
 							</div>
 						}
 					>
-						<div className="h-full max-h-full">
+						<div className="h-full min-h-full">
 							<ChatSidebar />
 						</div>
 					</Suspense>
 				}
-				variant="flat"
 			>
-				<div className="min-h-full bg-base-100">
-					<Outlet />
-				</div>
+				<Outlet />
 			</DesktopShell>
 
 			<Suspense fallback={null}>
