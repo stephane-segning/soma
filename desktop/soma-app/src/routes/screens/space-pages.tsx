@@ -8,9 +8,13 @@ async function loader({ params }: LoaderFunctionArgs): Promise<Response> {
 	}
 
 	const data = await documentsService.listPages({ spaceId });
-	const pageId = data?.[0]?.pageId;
+
+	let pageId = data?.[0]?.pageId;
 	if (!pageId) {
-		return redirect(`/spaces/${spaceId}`);
+		const record = await documentsService.ensurePage({
+			spaceId,
+		});
+		pageId = record.pageId;
 	}
 
 	return redirect(`/spaces/${spaceId}/pages/${pageId}`);
