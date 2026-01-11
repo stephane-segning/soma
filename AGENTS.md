@@ -47,6 +47,7 @@ Repo automation (`xtask`):
   - `cargo xtask version desktop --path desktop/soma-app/package.json`
 - Bundle packaging (downloads published release assets and produces `.deb/.rpm` or `.pkg`):
   - `cargo xtask release bundle --os <linux|macos> --arch <amd64|arm64>`
+  - Produces per-platform helper scripts `install.sh` and `uninstall.sh` alongside the packaged artifacts under `artifacts/bundle/<os>-<arch>/`.
   - Requires `GITHUB_REPOSITORY` + `GITHUB_TOKEN` (or `--repo/--token`), and platform tools (`fpm` on Linux, `pkgbuild` on macOS).
 
 ## Tech Stack
@@ -75,6 +76,7 @@ SBOM:
 Packaging templates:
 - Templates live under `.github/packaging/templates/` and are rendered by `cargo xtask release bundle`.
 - See `.github/packaging/templates/README.md` for the template variables and file list.
+  - Installer/uninstaller templates live under `.github/packaging/templates/install/` (`install.sh.j2`, `uninstall.sh.j2`).
 
 ## Dependency Policy
 

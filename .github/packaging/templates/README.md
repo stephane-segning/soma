@@ -22,13 +22,15 @@ Templates:
 - `launchd/digital.camer.soma.daemon.plist.j2` – launchd plist for macOS.
 - `launchd/digital.camer.soma.agentd.plist.j2` – launchd plist for macOS (agent).
 - `install/install.sh.j2` – installer script.
+- `install/uninstall.sh.j2` – uninstaller script.
 - `readme/README.md.j2` – bundle README.
 
 How they are used:
 - `cargo xtask release bundle` renders all templates into the bundle staging dir for each OS/arch matrix run.
-- Linux deb/rpm/pkg contents include: binaries, README, install.sh, systemd units.
-- macOS pkg/dmg/zip contents include: binaries, README, install.sh, launchd plists.
-- Zip artifacts always include both services (daemon+agent) plus README/install.
+- The bundle output directory includes standalone `install.sh` and `uninstall.sh` helper scripts next to the packaged artifacts.
+- Linux package contents include: binaries, README, systemd units.
+- macOS package contents include: binaries, README, launchd plists, desktop app.
+- Zip artifacts (when published) should include both services (daemon+agent) plus README, `install.sh`, and `uninstall.sh`.
 
 Conventions:
 - Binaries are expected at `{{install_prefix}}/bin/soma-daemon` and `{{install_prefix}}/bin/soma-agentd`.
