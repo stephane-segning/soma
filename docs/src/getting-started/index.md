@@ -35,15 +35,15 @@ RUST_LOG=info cargo run --release -p soma-daemon
 - Logs indicate whether it connected to relays or downloaded class metadata.
 - The socket path defaults to `/tmp/soma-daemon.sock` (set via `--socket-path` or `SOMA_DAEMON_SOCKET`). Desktop apps must be configured with this path to connect; for example, by setting the `SOMA_DAEMON_SOCKET` environment variable for the app. gRPC methods are defined in `proto/daemon/v1/daemon.proto`.
 
-## 3. Start Soma (Electron UI)
+## 3. Start Soma (Tauri UI)
 
 ```bash
 cd desktop/soma-app
-pnpm dev
+pnpm tauri:dev
 ```
 
 - Soma expects the local daemon to already be running at the configured Unix socket path (`SOMA_DAEMON_SOCKET`) and surfaces errors if it cannot connect (check the developer console).
-- Development builds typically hot-reload the React app while Electron stays running.
+- Development builds use Vite for the renderer (hot reload) and Tauri for the desktop shell/main process.
 
 ## 4. Start Tapia (optional)
 

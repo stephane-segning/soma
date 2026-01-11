@@ -70,7 +70,7 @@ Teachers can remove a bot at any time, which:
 
 ### Architecture (high level)
 
-- **Desktop UI** (Electron + React)
+- **Desktop UI** (Tauri v2 + React)
 - **Local daemon** (Rust, gRPC over Unix socket)
 - **Agent service** (local AI, optional)
 - **Bot daemons** (cache + onboarding)
@@ -95,4 +95,3 @@ Tapia is a typing-speed application shipped alongside Soma.
 - Explicit trust > Implicit trust
 - Simple UX > Enterprise complexity
 - Education-first
-

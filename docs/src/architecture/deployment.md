@@ -5,9 +5,10 @@ Soma ships as a desktop application plus a small set of cloud services. This pag
 ## Desktop Application Packaging
 
 - **Targets** – Linux `.deb` packages (and optional `.AppImage`/`.tar.gz`) plus macOS `.pkg` installers. Windows support would require an alternative IPC transport and is currently out of scope.
-- **Contents** – the Soma desktop app (Electron/React) and the `soma-daemon` binary are bundled together. The desktop app orchestrates starting/stopping the daemon, but the daemon can continue running headlessly for background networking.
-- **Build tooling** – Electron Builder (or equivalent) wraps the UI, embeds the Rust binary, registers the `soma://` deep-link protocol, and handles code-signing/notarization on macOS.
-- **Installation details** – On Linux, packages may install helper scripts or systemd units to keep the daemon running. On macOS, the daemon binary lives inside the `.app` bundle under `Contents/MacOS/` and is launched on demand.
+- **Contents** – the Soma desktop app (Tauri v2 + React) is installed alongside `soma-daemon` (and optionally `soma-agentd`) as separate binaries.
+- **Build tooling** – Tauri builds the desktop app; daemon/agent are built as Rust binaries. The bundle packaging step combines published artifacts into `.deb/.rpm` (Linux) or `.pkg` (macOS).
+- **Installation details** – On Linux, packages install systemd unit files; on macOS, packages install launchd plists. Services are not auto-enabled by default; operators/users can enable them if they want the daemon running in the background.
+- **Convenience scripts** – bundle releases also publish `install.sh` / `uninstall.sh` helper scripts that download and install/remove the right package for your OS/arch.
 
 ## Supporting Infrastructure
 

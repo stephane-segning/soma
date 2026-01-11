@@ -33,7 +33,7 @@ The key design rule is: **desktop apps do not implement libp2p**; they delegate 
 
 `soma-agentd` is a desktop-only helper process intended for long-running CPU/GPU tasks (LLMs, embeddings, OCR, indexing).
 
-In the current desktop implementation, the renderer initiates LLM streaming through Electron IPC, and the main process coordinates the agent process.
+In the current desktop implementation, the renderer initiates LLM streaming through Tauri IPC, and the Tauri main process coordinates the agent process.
 
 See `docs/src/development/agentd-ipc.md` for the recommended trust boundary.
 
@@ -78,7 +78,7 @@ The **Soma desktop app** is expected to register the `soma://` URL scheme so inv
 sequenceDiagram
     participant User as User (Clicks Invite Link)
     participant OS as Operating System
-    participant SomaApp as Soma desktop app (Electron)
+    participant SomaApp as Soma desktop app (Tauri)
     participant Daemon as Soma Daemon
     participant Bot as Class Bot (Issuer)
     User ->> OS: Clicks soma://join?class=X link

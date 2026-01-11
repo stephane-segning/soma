@@ -1,6 +1,6 @@
 # Agentd IPC and Security Model
 
-`soma-agentd` is a long-running, CPU-heavy worker (OCR, hashing, indexing, Yjs reconciliation, local LLM inference). It should not be exposed directly to the Electron renderer.
+`soma-agentd` is a long-running, CPU-heavy worker (OCR, hashing, indexing, Yjs reconciliation, local LLM inference). It should not be exposed directly to the desktop renderer.
 
 !!! note
     `desktop/soma-app` (Tauri) is currently wiring the renderer → Tauri main process → `soma-agentd` directly for chat.
@@ -8,7 +8,7 @@
 
 ## Recommended Topology
 
-- Electron (renderer) → Electron (main) → `soma-daemon` → `soma-agentd`
+- Tauri (renderer) → Tauri (main) → `soma-daemon` → `soma-agentd`
 - The UI only talks to `soma-daemon`.
 - `soma-daemon` mediates access to `soma-agentd` and enforces permissions and policy.
 
