@@ -21,10 +21,7 @@ const imageWrapperClasses = cva(
 const imageClasses = cva(
 	"max-w-full rounded-lg bg-transparent object-contain transition duration-150 ease-in-out",
 );
-const videoWrapperClasses = cva(
-	"yoopta-video-renderer inline-flex w-full justify-center",
-);
-const videoClasses = cva("max-w-full rounded-lg shadow-inner");
+
 const fileRootClasses = cva(
 	"yoopta-file-renderer flex items-center gap-3 rounded-lg bg-base-100 px-3 py-2 font-normal text-sm shadow-sm ring-1 ring-slate-200 ring-inset transition duration-150 ease-in-out",
 );
@@ -115,41 +112,6 @@ function BaseImage({
 
 const ManagedImage = memo(BaseImage);
 ManagedImage.displayName = "ManagedImage";
-
-function BaseVideo({
-	attributes,
-	children,
-	element,
-}: PluginElementRenderProps): React.JSX.Element {
-	const { src, poster, sizes, fit, bgColor } = element.props || {};
-	const width = toCssSize(sizes?.width);
-	const height = toCssSize(sizes?.height, "auto");
-
-	return (
-		<div
-			{...attributes}
-			className={cn(videoWrapperClasses())}
-			contentEditable={false}
-		>
-			<video
-				className={videoClasses()}
-				controls
-				poster={poster ?? undefined}
-				src={src ?? ""}
-				style={{
-					width,
-					height,
-					objectFit: fit ?? "contain",
-					backgroundColor: bgColor ?? "black",
-				}}
-			/>
-			{children}
-		</div>
-	);
-}
-
-const ManagedVideo = memo(BaseVideo);
-ManagedVideo.displayName = "ManagedVideo";
 
 function BaseFile({
 	attributes,
@@ -474,9 +436,7 @@ ManagedEmbed.displayName = "ManagedEmbed";
 const renderManagedImage = (props: PluginElementRenderProps) => (
 	<ManagedImage {...props} />
 );
-const renderManagedVideo = (props: PluginElementRenderProps) => (
-	<ManagedVideo {...props} />
-);
+
 const renderManagedFile = (props: PluginElementRenderProps) => (
 	<ManagedFile {...props} />
 );
@@ -532,7 +492,6 @@ const renderManagedEmbed = (props: PluginElementRenderProps) => (
 export {
 	renderManagedFile,
 	renderManagedImage,
-	renderManagedVideo,
 	renderManagedParagraph,
 	renderManagedHeadingOne,
 	renderManagedHeadingTwo,

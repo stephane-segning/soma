@@ -1,4 +1,5 @@
 import { consoleForwardPlugin } from "@0xbigboss/vite-console-forward-plugin";
+import legacy from "@vitejs/plugin-legacy";
 import react from "@vitejs/plugin-react";
 import VitePluginCssMediaSplitter from "css-media-splitter/vite-plugin";
 import type { PreRenderedAsset } from "rollup";
@@ -18,6 +19,9 @@ const host = process.env.TAURI_DEV_HOST as string;
 // https://vite.dev/config/
 export default defineConfig(async () => ({
 	plugins: [
+		legacy({
+			targets: ["defaults", "not IE 11"],
+		}),
 		TurboConsole({
 			/* options here */
 		}),

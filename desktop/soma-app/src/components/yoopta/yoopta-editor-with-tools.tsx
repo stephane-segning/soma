@@ -34,11 +34,7 @@ import Table from "@yoopta/table";
 import type React from "react";
 import { useEffect, useMemo } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
-import {
-	YooptaFilePlugin,
-	YooptaImagePlugin,
-	YooptaVideoPlugin,
-} from "soma-ui/yoopta";
+import { YooptaFilePlugin, YooptaImagePlugin } from "soma-ui/yoopta";
 import {
 	renderManagedAccordion,
 	renderManagedBlockquote,
@@ -58,7 +54,6 @@ import {
 	renderManagedTableCell,
 	renderManagedTableRow,
 	renderManagedTodoList,
-	renderManagedVideo,
 } from "./managed-renderers";
 import { YooptaEditorView } from "./yoopta-editor-view";
 
@@ -201,28 +196,6 @@ function YooptaEditorWithTools({
 								alt: file.name,
 								sizes: { width: data.width, height: data.height },
 							};
-						},
-					},
-				}),
-				YooptaVideoPlugin.extend({
-					renders: asPluginRenders({ video: renderManagedVideo }),
-					options: {
-						onUpload: async (file) => {
-							const data = await uploadToBlob(file, "video", {
-								spaceId,
-								docId: documentId,
-							});
-							return {
-								src: data.secure_url,
-								sizes: { width: data.width, height: data.height },
-							};
-						},
-						onUploadPoster: async (file) => {
-							const image = await uploadToBlob(file, "image", {
-								spaceId,
-								docId: documentId,
-							});
-							return image.secure_url;
 						},
 					},
 				}),
