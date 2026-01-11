@@ -3,6 +3,7 @@
         "skellock.just",
         "fill-labs.dependi",
         "sonarsource.sonarlint-vscode",
-        "drblury.protobuf-vsc"
+        "drblury.protobuf-vsc",
+        "wholroyd.jinja"
     ]
 }

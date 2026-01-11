@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+BUNDLE_VERSION="{{bundle_version}}"
+BUNDLE_TAG="bundle-{{bundle_version}}"
+REPO="{{repo}}"
+INSTALL_PREFIX="{{install_prefix}}"
+SERVICE_LABEL_DAEMON="{{service_label_daemon}}"
+SERVICE_LABEL_AGENT="{{service_label_agent}}"
+
+os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+arch="$(uname -m)"
+
+case "$os" in
+  linux) OS=linux ;;
+  darwin) OS=macos ;;
+  *) echo "unsupported OS: $os" >&2; exit 1 ;;
+esac
+
+case "$arch" in
+  x86_64|amd64) ARCH=amd64 ;;
+  arm64|aarch64) ARCH=arm64 ;;
+  *) echo "unsupported arch: $arch" >&2; exit 1 ;;
+esac
+
+if [ "$OS" = "macos" ]; then
+  echo "Stopping launchd services (best-effort)..."
+  sudo launchctl bootout system "/Library/LaunchDaemons/${SERVICE_LABEL_DAEMON}.plist" 2>/dev/null || true
+  sudo launchctl bootout system "/Library/LaunchDaemons/${SERVICE_LABEL_AGENT}.plist" 2>/dev/null || true
+
+  echo "Removing installed files..."
+  sudo rm -f "/Library/LaunchDaemons/${SERVICE_LABEL_DAEMON}.plist"
+  sudo rm -f "/Library/LaunchDaemons/${SERVICE_LABEL_AGENT}.plist"
+  sudo rm -f "$INSTALL_PREFIX/bin/soma-daemon"
+  sudo rm -f "$INSTALL_PREFIX/bin/soma-agentd"
+  sudo rm -f "$INSTALL_PREFIX/share/soma/README.md"
+  sudo rmdir "$INSTALL_PREFIX/share/soma" 2>/dev/null || true
+  sudo rm -rf "/Applications/soma-app.app"
+
+  # Drop the pkg receipt if present.
+  sudo pkgutil --forget "digital.camer.soma.bundle" >/dev/null 2>&1 || true
+
+  echo "Uninstalled Soma bundle ({{bundle_version}}) from $INSTALL_PREFIX and /Applications"
+elif [ "$OS" = "linux" ]; then
+  PACKAGE="soma-bundle"
+  if command -v dpkg >/dev/null 2>&1; then
+    if dpkg -s "$PACKAGE" >/dev/null 2>&1; then
+      sudo systemctl stop soma-daemon.service soma-agentd.service 2>/dev/null || true
+      sudo dpkg -r "$PACKAGE"
+      sudo systemctl daemon-reload 2>/dev/null || true
+      echo "Removed $PACKAGE ($ARCH) via dpkg"
+    else
+      echo "$PACKAGE is not installed (dpkg)" >&2
+    fi
+  elif command -v rpm >/dev/null 2>&1; then
+    if rpm -q "$PACKAGE" >/dev/null 2>&1; then
+      sudo systemctl stop soma-daemon.service soma-agentd.service 2>/dev/null || true
+      sudo rpm -e "$PACKAGE"
+      sudo systemctl daemon-reload 2>/dev/null || true
+      echo "Removed $PACKAGE ($ARCH) via rpm"
+    else
+      echo "$PACKAGE is not installed (rpm)" >&2
+    fi
+  else
+    echo "No supported package manager found (need dpkg or rpm)" >&2
+    exit 1
+  fi
+fi
+
+echo "If you installed a different version manually, remove any remaining Soma binaries under $INSTALL_PREFIX/bin and the AppImage or app bundle if present."
+echo "Release page: https://github.com/$REPO/releases/tag/$BUNDLE_TAG"

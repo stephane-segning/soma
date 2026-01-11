@@ -289,11 +289,21 @@ impl BundleArgs {
             &ctx_map,
         )?;
         make_executable(&install_path)?;
+        let uninstall_path = staging.join("uninstall.sh");
+        render_template(
+            &template_root.join("install/uninstall.sh.j2"),
+            &uninstall_path,
+            &ctx_map,
+        )?;
+        make_executable(&uninstall_path)?;
 
         let mut produced = Vec::new();
         let install_out = platform_out.join("install.sh");
         copy_file(&install_path, &install_out)?;
         produced.push(path_string(&install_out));
+        let uninstall_out = platform_out.join("uninstall.sh");
+        copy_file(&uninstall_path, &uninstall_out)?;
+        produced.push(path_string(&uninstall_out));
 
         // Service definitions.
         let systemd_path = staging.join("soma-daemon.service");
