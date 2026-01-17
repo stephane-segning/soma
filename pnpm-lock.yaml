@@ -10,16 +10,202 @@ importers:
 
   desktop/soma:
     dependencies:
+      '@dnd-kit/core':
+        specifier: ^6.3.1
+        version: 6.3.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@dnd-kit/modifiers':
+        specifier: ^9.0.0
+        version: 9.0.0(@dnd-kit/core@6.3.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
+      '@dnd-kit/sortable':
+        specifier: ^10.0.0
+        version: 10.0.0(@dnd-kit/core@6.3.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
+      '@dnd-kit/utilities':
+        specifier: ^3.2.2
+        version: 3.2.2(react@19.2.3)
       '@electron-toolkit/preload':
         specifier: ^3.0.2
         version: 3.0.2(electron@39.2.7)
       '@electron-toolkit/utils':
         specifier: ^4.0.0
         version: 4.0.0(electron@39.2.7)
+      '@floating-ui/react':
+        specifier: ^0.27.16
+        version: 0.27.16(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@headlessui/react':
+        specifier: ^2.2.9
+        version: 2.2.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@paralleldrive/cuid2':
+        specifier: ^3.0.0
+        version: 3.0.6
+      '@reduxjs/toolkit':
+        specifier: ^2.9.0
+        version: 2.11.2(react-redux@9.2.0(@types/react@19.2.7)(react@19.2.3)(redux@5.0.1))(react@19.2.3)
+      '@tauri-apps/api':
+        specifier: ^2
+        version: 2.9.1
+      '@tauri-apps/plugin-deep-link':
+        specifier: ~2
+        version: 2.4.6
+      '@tauri-apps/plugin-dialog':
+        specifier: ~2
+        version: 2.5.0
+      '@tauri-apps/plugin-fs':
+        specifier: ~2
+        version: 2.4.5
+      '@tauri-apps/plugin-log':
+        specifier: ~2
+        version: 2.8.0
+      '@tauri-apps/plugin-opener':
+        specifier: ^2.5.2
+        version: 2.5.3
+      '@tauri-apps/plugin-store':
+        specifier: ~2
+        version: 2.4.2
+      '@tauri-apps/plugin-window-state':
+        specifier: ~2
+        version: 2.4.1
+      '@yoopta/accordion':
+        specifier: ^4.9.9
+        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@yoopta/action-menu-list':
+        specifier: ^4.9.9
+        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@yoopta/blockquote':
+        specifier: ^4.9.9
+        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@yoopta/callout':
+        specifier: ^4.9.9
+        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@yoopta/code':
+        specifier: ^4.9.9
+        version: 4.9.9(@babel/runtime@7.28.4)(@codemirror/autocomplete@6.20.0)(@codemirror/commands@6.10.1)(@codemirror/language@6.12.1)(@codemirror/lint@6.9.2)(@codemirror/search@6.5.11)(@codemirror/state@6.5.3)(@codemirror/view@6.39.9)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@yoopta/divider':
+        specifier: ^4.9.9
+        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@yoopta/editor':
+        specifier: ^4.9.9
+        version: 4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0)
+      '@yoopta/embed':
+        specifier: ^4.9.9
+        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@yoopta/headings':
+        specifier: ^4.9.9
+        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@yoopta/link':
+        specifier: ^4.9.9
+        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@yoopta/link-tool':
+        specifier: ^4.9.9
+        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@yoopta/lists':
+        specifier: ^4.9.9
+        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@yoopta/marks':
+        specifier: ^4.9.9
+        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@yoopta/paragraph':
+        specifier: ^4.9.9
+        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@yoopta/table':
+        specifier: ^4.9.9
+        version: 4.9.9(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@yoopta/toolbar':
+        specifier: ^4.9.9
+        version: 4.9.9(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(@yoopta/editor@4.9.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-react@0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0))(slate@0.120.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      class-variance-authority:
+        specifier: ^0.7.1
+        version: 0.7.1
+      composed-offset-position:
+        specifier: ^0.0.6
+        version: 0.0.6(@floating-ui/utils@0.2.10)
       electron-updater:
         specifier: ^6.3.9
         version: 6.7.3
+      i18next:
+        specifier: ^25.7.3
+        version: 25.7.4(typescript@5.9.3)
+      i18next-browser-languagedetector:
+        specifier: ^8.2.0
+        version: 8.2.0
+      i18next-chained-backend:
+        specifier: ^4.6.2
+        version: 4.6.3
+      i18next-http-backend:
+        specifier: ^3.0.2
+        version: 3.0.2(encoding@0.1.13)
+      i18next-resources-to-backend:
+        specifier: ^1.2.1
+        version: 1.2.1
+      prop-types:
+        specifier: ^15.8.1
+        version: 15.8.1
+      react:
+        specifier: ^19.1.0
+        version: 19.2.3
+      react-avatar:
+        specifier: ^5.0.4
+        version: 5.0.4(@babel/runtime@7.28.4)(core-js-pure@3.47.0)(prop-types@15.8.1)(react@19.2.3)
+      react-cmdk:
+        specifier: ^1.3.9
+        version: 1.3.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      react-dom:
+        specifier: ^19.1.0
+        version: 19.2.3(react@19.2.3)
+      react-error-boundary:
+        specifier: ^6.0.0
+        version: 6.0.3(react@19.2.3)
+      react-feather:
+        specifier: ^2.0.10
+        version: 2.0.10(react@19.2.3)
+      react-hotkeys-hook:
+        specifier: ^5.2.1
+        version: 5.2.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      react-i18next:
+        specifier: ^16.5.0
+        version: 16.5.1(i18next@25.7.4(typescript@5.9.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.9.3)
+      react-redux:
+        specifier: ^9.2.0
+        version: 9.2.0(@types/react@19.2.7)(react@19.2.3)(redux@5.0.1)
+      react-router:
+        specifier: ^7.11.0
+        version: 7.12.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      react-use:
+        specifier: ^17.6.0
+        version: 17.6.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      rehype-react:
+        specifier: ^8
+        version: 8.0.0
+      remark-gfm:
+        specifier: ^4.0.0
+        version: 4.0.1
+      remark-parse:
+        specifier: ^11.0.0
+        version: 11.0.0
+      remark-rehype:
+        specifier: ^11.1.0
+        version: 11.1.2
+      slate:
+        specifier: ^0.120.0
+        version: 0.120.0
+      slate-react:
+        specifier: ^0.120.0
+        version: 0.120.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(slate-dom@0.119.0(slate@0.120.0))(slate@0.120.0)
+      soma-ui:
+        specifier: workspace:*
+        version: link:../soma-ui
+      tailwind-merge:
+        specifier: ^3.4.0
+        version: 3.4.0
+      unified:
+        specifier: ^11.0.4
+        version: 11.0.5
     devDependencies:
+      '@0xbigboss/vite-console-forward-plugin':
+        specifier: ^2.3.3
+        version: 2.3.3(vite@7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2))
+      '@biomejs/biome':
+        specifier: ^2.3.10
+        version: 2.3.11
       '@electron-toolkit/eslint-config-prettier':
         specifier: ^3.0.0
         version: 3.0.0(eslint@9.39.2(jiti@2.6.1))(prettier@3.8.0)
@@ -29,6 +215,15 @@ importers:
       '@electron-toolkit/tsconfig':
         specifier: ^2.0.0
         version: 2.0.0(@types/node@22.19.7)
+      '@tailwindcss/postcss':
+        specifier: ^4.1.18
+        version: 4.1.18
+      '@tauri-apps/cli':
+        specifier: ^2
+        version: 2.9.6
+      '@types/fs-extra':
+        specifier: ^11.0.4
+        version: 11.0.4
       '@types/node':
         specifier: ^22.19.1
         version: 22.19.7
@@ -38,9 +233,24 @@ importers:
       '@types/react-dom':
         specifier: ^19.2.3
         version: 19.2.3(@types/react@19.2.7)
+      '@vitejs/plugin-legacy':
+        specifier: ^7.2.1
+        version: 7.2.1(terser@5.44.1)(vite@7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2))
       '@vitejs/plugin-react':
         specifier: ^5.1.1
         version: 5.1.2(vite@7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2))
+      base-x:
+        specifier: ^5.0.1
+        version: 5.0.1
+      css-media-splitter:
+        specifier: ^0.2.9
+        version: 0.2.9
+      cssnano:
+        specifier: ^7.1.2
+        version: 7.1.2(postcss@8.5.6)
+      daisyui:
+        specifier: ^5.5.14
+        version: 5.5.14
       electron:
         specifier: ^39.2.6
         version: 39.2.7
@@ -65,18 +275,57 @@ importers:
       prettier:
         specifier: ^3.7.4
         version: 3.8.0
-      react:
-        specifier: ^19.2.1
-        version: 19.2.3
-      react-dom:
-        specifier: ^19.2.1
-        version: 19.2.3(react@19.2.3)
+      rimraf:
+        specifier: ^6.1.2
+        version: 6.1.2
+      rollup:
+        specifier: ^4.55.1
+        version: 4.55.1
+      sass:
+        specifier: ^1.97.1
+        version: 1.97.2
+      sharp:
+        specifier: ^0.34.5
+        version: 0.34.5
+      tailwind-scrollbar:
+        specifier: ^4.0.2
+        version: 4.0.2(react@19.2.3)(tailwindcss@4.1.18)
+      tailwindcss:
+        specifier: ^4.1.18
+        version: 4.1.18
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
+      unplugin-turbo-console:
+        specifier: ^2.3.0
+        version: 2.3.0(@nuxt/kit@3.20.2)(@nuxt/schema@3.20.2)(esbuild@0.27.2)(rollup@4.55.1)(vite@7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2))(vue@3.5.26(typescript@5.9.3))
       vite:
         specifier: ^7.2.6
         version: 7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2)
+      vite-plugin-biome:
+        specifier: ^1.1.0
+        version: 1.1.0(@biomejs/biome@2.3.11)
+      vite-plugin-image-optimizer:
+        specifier: ^2.0.3
+        version: 2.0.3(sharp@0.34.5)(svgo@4.0.0)(vite@7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2))
+      vite-plugin-minify:
+        specifier: ^2.1.0
+        version: 2.1.0(vite@7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2))
+      vite-plugin-qrcode:
+        specifier: ^0.3.0
+        version: 0.3.0(vite@7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2))
+      vite-plugin-top-level-await:
+        specifier: ^1.6.0
+        version: 1.6.0(@swc/helpers@0.5.18)(rollup@4.55.1)(vite@7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2))
+      vite-plugin-version-mark:
+        specifier: ^0.2.2
+        version: 0.2.2(@nuxt/kit@3.20.2)(@nuxt/schema@3.20.2)(vite@7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2))
+      vite-plugin-wasm:
+        specifier: ^3.5.0
+        version: 3.5.0(vite@7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2))
+      vite-tsconfig-paths:
+        specifier: ^6.0.3
+        version: 6.0.3(typescript@5.9.3)(vite@7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2))
 
   desktop/soma-app:
     dependencies:
@@ -9010,6 +9259,11 @@ snapshots:
 
   7zip-bin@5.2.0: {}
 
+  '@0xbigboss/vite-console-forward-plugin@2.3.3(vite@7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2))':
+    dependencies:
+      micromatch: 4.0.8
+      vite: 7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2)
+
   '@0xbigboss/vite-console-forward-plugin@2.3.3(vite@7.3.1(@types/node@25.0.3)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2))':
     dependencies:
       micromatch: 4.0.8
@@ -12620,6 +12874,25 @@ snapshots:
   '@vite-pwa/vitepress@1.1.0(vite-plugin-pwa@1.2.0(vite@5.4.21(@types/node@25.0.3)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1))(workbox-build@7.4.0(@types/babel__core@7.20.5))(workbox-window@7.4.0))':
     dependencies:
       vite-plugin-pwa: 1.2.0(vite@5.4.21(@types/node@25.0.3)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1))(workbox-build@7.4.0(@types/babel__core@7.20.5))(workbox-window@7.4.0)
+
+  '@vitejs/plugin-legacy@7.2.1(terser@5.44.1)(vite@7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2))':
+    dependencies:
+      '@babel/core': 7.28.5
+      '@babel/plugin-transform-dynamic-import': 7.27.1(@babel/core@7.28.5)
+      '@babel/plugin-transform-modules-systemjs': 7.28.5(@babel/core@7.28.5)
+      '@babel/preset-env': 7.28.5(@babel/core@7.28.5)
+      babel-plugin-polyfill-corejs3: 0.13.0(@babel/core@7.28.5)
+      babel-plugin-polyfill-regenerator: 0.6.5(@babel/core@7.28.5)
+      browserslist: 4.28.1
+      browserslist-to-esbuild: 2.1.1(browserslist@4.28.1)
+      core-js: 3.47.0
+      magic-string: 0.30.21
+      regenerator-runtime: 0.14.1
+      systemjs: 6.15.1
+      terser: 5.44.1
+      vite: 7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2)
+    transitivePeerDependencies:
+      - supports-color
 
   '@vitejs/plugin-legacy@7.2.1(terser@5.44.1)(vite@7.3.1(@types/node@25.0.3)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2))':
     dependencies:
@@ -17735,6 +18008,10 @@ snapshots:
     optionalDependencies:
       typescript: 5.8.3
 
+  tsconfck@3.1.6(typescript@5.9.3):
+    optionalDependencies:
+      typescript: 5.9.3
+
   tsconfig-paths@4.2.0:
     dependencies:
       json5: 2.2.3
@@ -17911,6 +18188,26 @@ snapshots:
 
   universalify@2.0.1: {}
 
+  unplugin-turbo-console@2.3.0(@nuxt/kit@3.20.2)(@nuxt/schema@3.20.2)(esbuild@0.27.2)(rollup@4.55.1)(vite@7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2))(vue@3.5.26(typescript@5.9.3)):
+    dependencies:
+      alien-signals: 2.0.8
+      estree-walker: 3.0.3
+      get-port-please: 3.2.0
+      h3: 1.15.4
+      launch-editor: 2.12.0
+      magic-string: 0.30.21
+      mrmime: 2.0.1
+      oxc-parser: 0.82.3
+      pathe: 2.0.3
+      unplugin: 2.3.11
+    optionalDependencies:
+      '@nuxt/kit': 3.20.2
+      '@nuxt/schema': 3.20.2
+      esbuild: 0.27.2
+      rollup: 4.55.1
+      vite: 7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2)
+      vue: 3.5.26(typescript@5.9.3)
+
   unplugin-turbo-console@2.3.0(@nuxt/kit@3.20.2)(@nuxt/schema@3.20.2)(esbuild@0.27.2)(rollup@4.55.1)(vite@7.3.1(@types/node@25.0.3)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2))(vue@3.5.26(typescript@5.8.3)):
     dependencies:
       alien-signals: 2.0.8
@@ -18048,6 +18345,15 @@ snapshots:
     dependencies:
       '@biomejs/biome': 2.3.11
 
+  vite-plugin-image-optimizer@2.0.3(sharp@0.34.5)(svgo@4.0.0)(vite@7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2)):
+    dependencies:
+      ansi-colors: 4.1.3
+      pathe: 2.0.3
+      vite: 7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2)
+    optionalDependencies:
+      sharp: 0.34.5
+      svgo: 4.0.0
+
   vite-plugin-image-optimizer@2.0.3(sharp@0.34.5)(svgo@4.0.0)(vite@7.3.1(@types/node@25.0.3)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2)):
     dependencies:
       ansi-colors: 4.1.3
@@ -18056,6 +18362,12 @@ snapshots:
     optionalDependencies:
       sharp: 0.34.5
       svgo: 4.0.0
+
+  vite-plugin-minify@2.1.0(vite@7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2)):
+    dependencies:
+      '@types/html-minifier-terser': 7.0.2
+      html-minifier-terser: 7.2.0
+      vite: 7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2)
 
   vite-plugin-minify@2.1.0(vite@7.3.1(@types/node@25.0.3)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2)):
     dependencies:
@@ -18074,10 +18386,26 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  vite-plugin-qrcode@0.3.0(vite@7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2)):
+    dependencies:
+      qrcode-terminal: 0.12.0
+      vite: 7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2)
+
   vite-plugin-qrcode@0.3.0(vite@7.3.1(@types/node@25.0.3)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2)):
     dependencies:
       qrcode-terminal: 0.12.0
       vite: 7.3.1(@types/node@25.0.3)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2)
+
+  vite-plugin-top-level-await@1.6.0(@swc/helpers@0.5.18)(rollup@4.55.1)(vite@7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2)):
+    dependencies:
+      '@rollup/plugin-virtual': 3.0.2(rollup@4.55.1)
+      '@swc/core': 1.15.8(@swc/helpers@0.5.18)
+      '@swc/wasm': 1.15.8
+      uuid: 10.0.0
+      vite: 7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2)
+    transitivePeerDependencies:
+      - '@swc/helpers'
+      - rollup
 
   vite-plugin-top-level-await@1.6.0(@swc/helpers@0.5.18)(rollup@4.55.1)(vite@7.3.1(@types/node@25.0.3)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2)):
     dependencies:
@@ -18090,11 +18418,21 @@ snapshots:
       - '@swc/helpers'
       - rollup
 
+  vite-plugin-version-mark@0.2.2(@nuxt/kit@3.20.2)(@nuxt/schema@3.20.2)(vite@7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2)):
+    dependencies:
+      '@nuxt/kit': 3.20.2
+      '@nuxt/schema': 3.20.2
+      vite: 7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2)
+
   vite-plugin-version-mark@0.2.2(@nuxt/kit@3.20.2)(@nuxt/schema@3.20.2)(vite@7.3.1(@types/node@25.0.3)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2)):
     dependencies:
       '@nuxt/kit': 3.20.2
       '@nuxt/schema': 3.20.2
       vite: 7.3.1(@types/node@25.0.3)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2)
+
+  vite-plugin-wasm@3.5.0(vite@7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2)):
+    dependencies:
+      vite: 7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2)
 
   vite-plugin-wasm@3.5.0(vite@7.3.1(@types/node@25.0.3)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2)):
     dependencies:
@@ -18107,6 +18445,17 @@ snapshots:
       tsconfck: 3.1.6(typescript@5.8.3)
     optionalDependencies:
       vite: 7.3.1(@types/node@25.0.3)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2)
+    transitivePeerDependencies:
+      - supports-color
+      - typescript
+
+  vite-tsconfig-paths@6.0.3(typescript@5.9.3)(vite@7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2)):
+    dependencies:
+      debug: 4.4.3
+      globrex: 0.1.2
+      tsconfck: 3.1.6(typescript@5.9.3)
+    optionalDependencies:
+      vite: 7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(sass@1.97.2)(terser@5.44.1)(yaml@2.8.2)
     transitivePeerDependencies:
       - supports-color
       - typescript

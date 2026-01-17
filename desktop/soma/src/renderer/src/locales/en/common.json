@@ -1,0 +1,97 @@
+{
+	"app.title": "Soma",
+	"app.tagline": "Build an Electron app with React and TypeScript",
+	"routes": {
+		"spaces": "Spaces",
+		"join": "Join",
+		"settings": "Settings"
+	},
+	"home": {
+		"title": "Home",
+		"subtitle": "Join a space with an invite, or open an existing space from your list.",
+		"recentSpaces": "Recent spaces",
+		"activity": "Activity"
+	},
+	"join": {
+		"title": "Join space",
+		"subtitle": "Enter a space id and invite secret/token you received from an existing member.",
+		"spaceId": "Space ID",
+		"spaceIdPlaceholder": "space_...",
+		"inviteSecret": "Invite secret",
+		"inviteSecretPlaceholder": "secret_...",
+		"displayName": "Display name",
+		"displayNamePlaceholder": "Your name",
+		"deviceName": "Device name",
+		"deviceNamePlaceholder": "MacBook Pro",
+		"submit": "Request to join",
+		"note": "Join flow wiring to the daemon API comes next."
+	},
+	"spaces": {
+		"title": "Spaces",
+		"joinCta": "Join",
+		"listTitle": "Your spaces",
+		"privateBadge": "Private",
+		"privateTitle": "Private space",
+		"joinTitle": "Join a space",
+		"filterLabel": "Filter",
+		"filterPlaceholder": "Filter spaces...",
+		"createCta": "Create new space",
+		"privateMeta": "1 member, 12 pages",
+		"joinMore": "Add display name",
+		"profileName": "Sarah Doe",
+		"profileEmail": "s.doe@example.com"
+	},
+	"space": {
+		"unknown": "Unknown space",
+		"tabs": {
+			"pages": "Pages",
+			"members": "Members",
+			"settings": "Settings"
+		},
+		"pages": {
+			"title": "Pages",
+			"new": "New page",
+			"welcome": "Welcome",
+			"notes": "Notes",
+			"breadcrumb": "Space page",
+			"untitled": "Untitled",
+			"back": "Back",
+			"save": "Save",
+			"editorPlaceholder": "Start writing…"
+		},
+		"members": {
+			"title": "Members",
+			"subtitle": "Roster and roles will render here once wired to the daemon."
+		},
+		"settings": {
+			"title": "Space settings",
+			"name": "Display name",
+			"role": "Your role",
+			"danger": "Danger zone",
+			"leaveHint": "Leave this space and remove local capability.",
+			"leave": "Leave space"
+		}
+	},
+	"settings": {
+		"title": "Settings",
+		"identity": "Identity",
+		"connectivity": "Connectivity"
+	},
+	"notFound": {
+		"title": "Not found",
+		"subtitle": "That page does not exist.",
+		"home": "Go home"
+	},
+	"components": {
+		"button": {
+			"ariaLabel": "Button action",
+			"loading": "Loading"
+		},
+		"tooltip": {
+			"ariaLabel": "Tooltip"
+		},
+		"modal": {
+			"closeLabel": "Close dialog"
+		}
+	}
+}
