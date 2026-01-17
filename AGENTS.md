@@ -78,6 +78,14 @@ Packaging templates:
 - See `.github/packaging/templates/README.md` for the template variables and file list.
   - Installer/uninstaller templates live under `.github/packaging/templates/install/` (`install.sh.j2`, `uninstall.sh.j2`).
 
+## Known Desktop Issue (Tauri/WebKit, Yoopta editor)
+
+- Symptom: In `desktop/soma-app` running under Tauri on macOS (WKWebView), pressing Enter in the Yoopta editor inserts a new line but focus/typing stops until clicking back into the editor. This does **not** reproduce in Electron/Chromium.
+- Current state: All experimental Enter/focus hacks were reverted; `desktop/soma-app/src/components/yoopta/yoopta-editor-view.tsx` is the original minimal wrapper to avoid crashes. The bug remains.
+- Repro: Launch Soma app (Tauri), open a space page, type text, press Enter → caret disappears/typing stops until refocus.
+- Suspected cause: WebKit-specific `contenteditable`/Slate selection loss; focus jumps off the editable. Electron (Chromium) does not show the issue.
+- Mitigation: None in Tauri yet. If stability is required, prefer Electron/Chromium for now until a WebKit-safe Yoopta/Slate workaround lands.
+
 ## Dependency Policy
 
 ### Rust (Cargo workspace)

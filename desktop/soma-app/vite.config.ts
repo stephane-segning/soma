@@ -82,7 +82,7 @@ export default defineConfig(async () => ({
 				entryFileNames: "assets/js/15-[name]-[hash].js",
 				chunkFileNames: "assets/js/[name]-[hash].js",
 				assetFileNames: (assetInfo: PreRenderedAsset) => {
-					if (assetInfo.name?.endsWith(".css")) {
+					if (assetInfo.names.some(name => name?.endsWith(".css"))) {
 						return "assets/css/[name]-[hash][extname]";
 					}
 
