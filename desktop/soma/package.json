@@ -120,11 +120,5 @@
 		"vite-plugin-version-mark": "^0.2.2",
 		"vite-plugin-wasm": "^3.5.0",
 		"vite-tsconfig-paths": "^6.0.3"
-	},
-	"pnpm": {
-		"onlyBuiltDependencies": [
-			"electron",
-			"esbuild"
-		]
 	}
 }

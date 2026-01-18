@@ -149,16 +149,25 @@ fn create_icns(png_output_dir: &Path, mac_output_dir: &Path) -> Result<()> {
     fs::create_dir_all(mac_output_dir)
         .with_context(|| format!("create output directory {}", mac_output_dir.display()))?;
 
+    let mut iconutil_ok = false;
     if cfg!(target_os = "macos") {
         match create_icns_with_iconutil(png_output_dir, mac_output_dir) {
-            Ok(()) => return Ok(()),
+            Ok(()) => {
+                iconutil_ok = true;
+            }
             Err(error) => {
                 eprintln!("iconutil failed: {error}; falling back to Rust icns");
             }
         }
     }
 
-    create_icns_with_rust(png_output_dir, mac_output_dir)
+    if !iconutil_ok {
+        create_icns_with_rust(png_output_dir, mac_output_dir)?;
+    }
+
+    create_legacy_icns(png_output_dir, mac_output_dir)?;
+
+    Ok(())
 }
 
 fn create_icns_with_rust(png_output_dir: &Path, mac_output_dir: &Path) -> Result<()> {
@@ -180,6 +189,34 @@ fn create_icns_with_rust(png_output_dir: &Path, mac_output_dir: &Path) -> Result
     }
 
     let icns_path = mac_output_dir.join("icon.icns");
+    let file = BufWriter::new(
+        File::create(&icns_path).with_context(|| format!("create {}", icns_path.display()))?,
+    );
+    icon_family
+        .write(file)
+        .with_context(|| format!("write {}", icns_path.display()))?;
+
+    Ok(())
+}
+
+fn create_legacy_icns(png_output_dir: &Path, mac_output_dir: &Path) -> Result<()> {
+    let mut icon_family = IconFamily::new();
+    for size in PNG_SIZES {
+        let Some(icon_type) = legacy_icon_type_for_size(size) else {
+            continue;
+        };
+        let file_path = png_output_dir.join(format!("{size}.png"));
+        let file = BufReader::new(
+            File::open(&file_path).with_context(|| format!("open {}", file_path.display()))?,
+        );
+        let image = Image::read_png(file)
+            .with_context(|| format!("read png {}", file_path.display()))?;
+        icon_family
+            .add_icon_with_type(&image, icon_type)
+            .with_context(|| format!("add png {} as {:?}", file_path.display(), icon_type))?;
+    }
+
+    let icns_path = mac_output_dir.join("icon-legacy.icns");
     let file = BufWriter::new(
         File::create(&icns_path).with_context(|| format!("create {}", icns_path.display()))?,
     );
@@ -249,6 +286,16 @@ fn icon_type_for_size(size: u32) -> Option<IconType> {
         256 => Some(IconType::RGBA32_256x256),
         512 => Some(IconType::RGBA32_512x512),
         1024 => Some(IconType::RGBA32_512x512_2x),
+        _ => None,
+    }
+}
+
+fn legacy_icon_type_for_size(size: u32) -> Option<IconType> {
+    match size {
+        16 => Some(IconType::RGB24_16x16),
+        32 => Some(IconType::RGB24_32x32),
+        48 => Some(IconType::RGB24_48x48),
+        128 => Some(IconType::RGB24_128x128),
         _ => None,
     }
 }

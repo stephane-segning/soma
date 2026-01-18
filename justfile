@@ -54,6 +54,7 @@ run-serverd:
 icons-soma input="desktop/soma/build/icon.png":
     input_path="{{input}}"; input_path="${input_path#input=}"; cargo icons --input "$input_path" --output desktop/soma/build --flatten
     cp desktop/soma/build/icons/icon.icns desktop/soma/build/icon.icns
+    cp desktop/soma/build/icons/icon-legacy.icns desktop/soma/build/icon-legacy.icns
     cp desktop/soma/build/icons/icon.ico desktop/soma/build/icon.ico
     cp desktop/soma/build/icons/1024x1024.png desktop/soma/build/icon.png
     cp desktop/soma/build/icons/1024x1024.png desktop/soma/resources/icon.png
@@ -64,6 +65,7 @@ icons-soma input="desktop/soma/build/icon.png":
 icons-tapia input="desktop/tapia/build/icon.png":
     input_path="{{input}}"; input_path="${input_path#input=}"; cargo icons --input "$input_path" --output desktop/tapia/build --flatten
     cp desktop/tapia/build/icons/icon.icns desktop/tapia/build/icon.icns
+    cp desktop/tapia/build/icons/icon-legacy.icns desktop/tapia/build/icon-legacy.icns
     cp desktop/tapia/build/icons/icon.ico desktop/tapia/build/icon.ico
     cp desktop/tapia/build/icons/1024x1024.png desktop/tapia/build/icon.png
     cp desktop/tapia/build/icons/1024x1024.png desktop/tapia/resources/icon.png

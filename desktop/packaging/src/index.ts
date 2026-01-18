@@ -38,7 +38,11 @@ type BundleArgs = {
 };
 
 async function main() {
-  await yargs(hideBin(process.argv))
+  const argv = hideBin(process.argv);
+  if (argv[0] === "--") {
+    argv.shift();
+  }
+  await yargs(argv)
     .scriptName("soma-packaging")
     .command<BundleArgs>(
       "$0",

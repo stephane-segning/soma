@@ -17,5 +17,11 @@
   "workspaces": [
     "desktop/*",
     "docs"
-  ]
+  ],
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "electron",
+      "esbuild"
+    ]
+  }
 }

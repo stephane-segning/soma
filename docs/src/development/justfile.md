@@ -21,10 +21,12 @@ If you need to extend workflows (e.g., add arguments or new targets), update the
 
 - **Electron Soma (`desktop/soma`)** – `just icons-soma /path/to/icon.png` (or `.svg`)
   - Writes into `desktop/soma/build/icons` and copies the output into `desktop/soma/build/icon.icns`, `desktop/soma/build/icon.ico`, and `desktop/soma/build/icon.png`.
+  - Writes `desktop/soma/build/icon-legacy.icns` for the dev dock icon (legacy ICNS encoding).
   - Updates the runtime window icon at `desktop/soma/resources/icon.png`.
   - Updates the renderer favicon at `desktop/soma/src/renderer/public/icon.png`.
 - **Electron Tapia (`desktop/tapia`)** – `just icons-tapia /path/to/icon.png` (or `.svg`)
   - Writes into `desktop/tapia/build/icons` and copies the output into `desktop/tapia/build/icon.icns`, `desktop/tapia/build/icon.ico`, and `desktop/tapia/build/icon.png`.
+  - Writes `desktop/tapia/build/icon-legacy.icns` for the dev dock icon (legacy ICNS encoding).
   - Updates the runtime window icon at `desktop/tapia/resources/icon.png`.
   - Updates the renderer favicon at `desktop/tapia/src/renderer/public/icon.png`.
 Note: these recipes take a single positional path argument; `just` treats `--input` as another recipe name.
