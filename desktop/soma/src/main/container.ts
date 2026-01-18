@@ -12,12 +12,14 @@ import { AppDataStore } from "./services/app-data-store";
 import { BlobProtocolRegistrar } from "./services/blob-protocol";
 import { DaemonClient } from "./services/daemon-client";
 import { AppLogger } from "./services/logger";
+import type { SomaRuntimeConfig } from "./services/stage-config";
 import { StartupService } from "./services/startup-service";
 import { TYPES } from "./types";
 
 export type ContainerOptions = {
 	logDir: string;
 	isDev: boolean;
+	runtimeConfig: SomaRuntimeConfig;
 };
 
 export function buildContainer(options: ContainerOptions): Container {
@@ -26,8 +28,12 @@ export function buildContainer(options: ContainerOptions): Container {
 	});
 
 	container.bind<AppDataStore>(TYPES.AppDataStore).toConstantValue(new AppDataStore());
-	container.bind<DaemonClient>(TYPES.DaemonClient).toDynamicValue(() => new DaemonClient());
-	container.bind<AgentClient>(TYPES.AgentClient).toDynamicValue(() => new AgentClient());
+	container
+		.bind<DaemonClient>(TYPES.DaemonClient)
+		.toDynamicValue(() => new DaemonClient(options.runtimeConfig.daemonSocketPath));
+	container
+		.bind<AgentClient>(TYPES.AgentClient)
+		.toDynamicValue(() => new AgentClient(options.runtimeConfig.agentSocketPath));
 
 	container.bind<AppLogger>(TYPES.Logger).toConstantValue(new AppLogger(options));
 

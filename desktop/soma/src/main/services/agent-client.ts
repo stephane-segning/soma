@@ -60,13 +60,11 @@ export type ResolveDriftResult = {
 	mergedUpdateBase64: string;
 };
 
-const AGENT_SOCKET = process.env.SOMA_AGENTD_SOCKET || "/tmp/soma-agentd.sock";
-
 export class AgentClient {
 	private client: GrpcAgentClient;
 
-	constructor() {
-		const address = `unix://${AGENT_SOCKET}`;
+	constructor(socketPath: string) {
+		const address = `unix://${socketPath}`;
 		this.client = new GrpcAgentClient(address, grpc.credentials.createInsecure());
 	}
 

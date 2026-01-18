@@ -186,16 +186,12 @@ export class StartupService {
 			saveTimer = setTimeout(save, 250);
 		};
 
-		for (const event of [
-			"resize",
-			"move",
-			"maximize",
-			"unmaximize",
-			"enter-full-screen",
-			"leave-full-screen",
-		] as const) {
-			window.on(event, scheduleSave);
-		}
+		window.on("resize", scheduleSave);
+		window.on("move", scheduleSave);
+		window.on("maximize", scheduleSave);
+		window.on("unmaximize", scheduleSave);
+		window.on("enter-full-screen", scheduleSave);
+		window.on("leave-full-screen", scheduleSave);
 		window.on("close", save);
 	}
 

@@ -97,5 +97,8 @@ pnpm build:linux
 
 ## Environment variables
 
-- `SOMA_DAEMON_SOCKET` (default: `/tmp/soma-daemon.sock`)
-- `SOMA_AGENTD_SOCKET` (default: `/tmp/soma-agentd.sock`)
+- `SOMA_STAGE` / `SOMA_CHANNEL` (dev-only; ignored in packaged apps)
+- `SOMA_DAEMON_SOCKET` (dev-only; default: `/tmp/soma-daemon.sock`, or `/tmp/soma-daemon-<stage>.sock` for non-prod stages)
+- `SOMA_AGENTD_SOCKET` (dev-only; default: `/tmp/soma-agentd.sock`, or `/tmp/soma-agentd-<stage>.sock` for non-prod stages)
+
+Note: for non-prod stages, the desktop app expects stage-suffixed sockets by default; run `soma-daemon` / `soma-agentd` with matching `--socket-path` (or set the env vars in dev).

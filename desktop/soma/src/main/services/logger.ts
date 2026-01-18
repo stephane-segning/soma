@@ -25,7 +25,7 @@ export class AppLogger {
 				maxFiles: 5,
 			}),
 		];
-		const formats: winston.format[] = [
+		const formats: winston.Logform.Format[] = [
 			winston.format.timestamp(),
 			winston.format.errors({
 				stack: true,

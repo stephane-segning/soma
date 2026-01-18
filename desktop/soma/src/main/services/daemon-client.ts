@@ -65,13 +65,11 @@ type ListSpacesResult = {
 	nextOffset?: number | null;
 };
 
-const DAEMON_SOCKET = process.env.SOMA_DAEMON_SOCKET || "/tmp/soma-daemon.sock";
-
 export class DaemonClient {
 	private client: GrpcDaemonClient;
 
-	constructor() {
-		const address = `unix://${DAEMON_SOCKET}`;
+	constructor(socketPath: string) {
+		const address = `unix://${socketPath}`;
 		this.client = new GrpcDaemonClient(address, grpc.credentials.createInsecure());
 	}
 
