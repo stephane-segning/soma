@@ -20,8 +20,16 @@
   ],
   "pnpm": {
     "onlyBuiltDependencies": [
+      "@parcel/watcher",
+      "@swc/core",
+      "core-js",
+      "core-js-pure",
       "electron",
-      "esbuild"
+      "electron-winstaller",
+      "esbuild",
+      "grpc-tools",
+      "protobufjs",
+      "sharp"
     ]
   }
 }
