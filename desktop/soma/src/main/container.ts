@@ -25,59 +25,35 @@ export function buildContainer(options: ContainerOptions): Container {
 		defaultScope: "Singleton",
 	});
 
-	container
-		.bind<AppDataStore>(TYPES.AppDataStore)
-		.toConstantValue(new AppDataStore());
-	container
-		.bind<DaemonClient>(TYPES.DaemonClient)
-		.toDynamicValue(() => new DaemonClient());
-	container
-		.bind<AgentClient>(TYPES.AgentClient)
-		.toDynamicValue(() => new AgentClient());
+	container.bind<AppDataStore>(TYPES.AppDataStore).toConstantValue(new AppDataStore());
+	container.bind<DaemonClient>(TYPES.DaemonClient).toDynamicValue(() => new DaemonClient());
+	container.bind<AgentClient>(TYPES.AgentClient).toDynamicValue(() => new AgentClient());
 
-	container
-		.bind<AppLogger>(TYPES.Logger)
-		.toConstantValue(new AppLogger(options));
+	container.bind<AppLogger>(TYPES.Logger).toConstantValue(new AppLogger(options));
 
 	container
 		.bind<BlobProtocolRegistrar>(TYPES.BlobProtocol)
-		.toDynamicValue(
-			(ctx) => new BlobProtocolRegistrar(ctx.container.get(TYPES.DaemonClient)),
-		);
+		.toDynamicValue((ctx) => new BlobProtocolRegistrar(ctx.container.get(TYPES.DaemonClient)));
 
 	container
 		.bind<BlobsController>(TYPES.BlobsController)
-		.toDynamicValue(
-			(ctx) => new BlobsController(ctx.container.get(TYPES.DaemonClient)),
-		);
+		.toDynamicValue((ctx) => new BlobsController(ctx.container.get(TYPES.DaemonClient)));
 	container
 		.bind<DocumentsController>(TYPES.DocumentsController)
-		.toDynamicValue(
-			(ctx) => new DocumentsController(ctx.container.get(TYPES.DaemonClient)),
-		);
+		.toDynamicValue((ctx) => new DocumentsController(ctx.container.get(TYPES.DaemonClient)));
 	container
 		.bind<SpacesController>(TYPES.SpacesController)
-		.toDynamicValue(
-			(ctx) => new SpacesController(ctx.container.get(TYPES.DaemonClient)),
-		);
+		.toDynamicValue((ctx) => new SpacesController(ctx.container.get(TYPES.DaemonClient)));
 	container
 		.bind<AgentController>(TYPES.AgentController)
-		.toDynamicValue(
-			(ctx) => new AgentController(ctx.container.get(TYPES.AgentClient)),
-		);
+		.toDynamicValue((ctx) => new AgentController(ctx.container.get(TYPES.AgentClient)));
 	container
 		.bind<SearchController>(TYPES.SearchController)
-		.toDynamicValue(
-			(ctx) => new SearchController(ctx.container.get(TYPES.DaemonClient)),
-		);
+		.toDynamicValue((ctx) => new SearchController(ctx.container.get(TYPES.DaemonClient)));
 	container
 		.bind<SettingsController>(TYPES.SettingsController)
-		.toDynamicValue(
-			(ctx) => new SettingsController(ctx.container.get(TYPES.AppDataStore)),
-		);
-	container
-		.bind<WindowController>(TYPES.WindowController)
-		.toDynamicValue(() => new WindowController());
+		.toDynamicValue((ctx) => new SettingsController(ctx.container.get(TYPES.AppDataStore)));
+	container.bind<WindowController>(TYPES.WindowController).toDynamicValue(() => new WindowController());
 
 	container
 		.bind<CommandRegistry>(TYPES.CommandRegistry)

@@ -13,12 +13,8 @@ function useEnsurePageMutation() {
 		...state,
 		isPending: state.isLoading,
 		mutate,
-		mutateAsync: (input: {
-			spaceId: string;
-			pageId?: string;
-			title?: string;
-			parentPageIds?: string[];
-		}) => mutate(input).unwrap(),
+		mutateAsync: (input: { spaceId: string; pageId?: string; title?: string; parentPageIds?: string[] }) =>
+			mutate(input).unwrap(),
 	};
 }
 
@@ -52,8 +48,7 @@ function useUpdatePageTitleMutation() {
 		...state,
 		isPending: state.isLoading,
 		mutate,
-		mutateAsync: (input: { spaceId: string; pageId: string; title: string }) =>
-			mutate(input).unwrap(),
+		mutateAsync: (input: { spaceId: string; pageId: string; title: string }) => mutate(input).unwrap(),
 	};
 }
 
@@ -63,19 +58,9 @@ function useSetPageParentsMutation() {
 		...state,
 		isPending: state.isLoading,
 		mutate,
-		mutateAsync: (input: {
-			spaceId: string;
-			pageId: string;
-			parentPageIds: string[];
-		}) => mutate(input).unwrap(),
+		mutateAsync: (input: { spaceId: string; pageId: string; parentPageIds: string[] }) => mutate(input).unwrap(),
 	};
 }
 
-export {
-	useEnsurePageMutation,
-	usePagesQuery,
-	useCreatePage,
-	useSetPageParentsMutation,
-	useUpdatePageTitleMutation,
-};
+export { useEnsurePageMutation, usePagesQuery, useCreatePage, useSetPageParentsMutation, useUpdatePageTitleMutation };
 export type { PageRecord };

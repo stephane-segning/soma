@@ -16,18 +16,12 @@ function CommandPaletteShell(): React.JSX.Element {
 	const [selected, setSelected] = useState<number>(0);
 	const [search, setSearch] = useState<string>("");
 	const [page, setPage] = useState<"root" | "positions">("root");
-	const isCommandPaletteOpen = useAppSelector(
-		uiSelectors.selectIsCommandPaletteOpen,
-	);
+	const isCommandPaletteOpen = useAppSelector(uiSelectors.selectIsCommandPaletteOpen);
 	const navigate = useNavigate();
 	const searchResults = useSearchQuery(search);
 
-	const handleOpenChange = (
-		next: boolean | ((open: boolean) => boolean),
-	): void => {
-		const currentOpen = uiSelectors.selectIsCommandPaletteOpen(
-			store.getState(),
-		);
+	const handleOpenChange = (next: boolean | ((open: boolean) => boolean)): void => {
+		const currentOpen = uiSelectors.selectIsCommandPaletteOpen(store.getState());
 		const resolved = typeof next === "function" ? next(currentOpen) : next;
 		dispatch(uiActions.toggleCommandPalette(resolved));
 	};
@@ -51,9 +45,7 @@ function CommandPaletteShell(): React.JSX.Element {
 						id: "welcome-card",
 						children: (
 							<div className="w-full border-indigo-500 border-indigo-500 border-t border-b bg-gradient-to-br from-primary via-warning to-success p-4">
-								<h2 className="font-semibold text-lg text-white leading-tight">
-									Welcome 👋
-								</h2>
+								<h2 className="font-semibold text-lg text-white leading-tight">Welcome 👋</h2>
 								<p className="mt-1 max-w-xs font-medium text-sm text-white/80">
 									Quickly jump to actions or pages in Soma.
 								</p>
@@ -147,16 +139,12 @@ function CommandPaletteShell(): React.JSX.Element {
 									<div className="flex flex-col">
 										<div className="truncate">{result.title}</div>
 										{result.subtitle ? (
-											<div className="truncate text-base-content/60 text-xs">
-												{result.subtitle}
-											</div>
+											<div className="truncate text-base-content/60 text-xs">{result.subtitle}</div>
 										) : null}
 									</div>
 								),
 								id: `search:${result.id}`,
-								keywords: [result.title, result.subtitle].filter(
-									(v): v is string => typeof v === "string",
-								),
+								keywords: [result.title, result.subtitle].filter((v): v is string => typeof v === "string"),
 								onClick: () => dispatch(uiActions.toggleCommandPalette(false)),
 							})),
 						},
@@ -172,8 +160,7 @@ function CommandPaletteShell(): React.JSX.Element {
 		<CommandPalette
 			footer={
 				<div className="px-4 py-3 text-neutral-500 text-sm">
-					Press <kbd className="border border-neutral-400 px-1 py-0.5">⌘K</kbd>{" "}
-					to toggle
+					Press <kbd className="border border-neutral-400 px-1 py-0.5">⌘K</kbd> to toggle
 				</div>
 			}
 			isOpen={isCommandPaletteOpen}
@@ -205,9 +192,7 @@ function CommandPaletteShell(): React.JSX.Element {
 				searchPrefix={["General", "Positions"]}
 			>
 				<CommandPalette.List heading="Positions">
-					<CommandPalette.ListItem index={0}>
-						Nothing here
-					</CommandPalette.ListItem>
+					<CommandPalette.ListItem index={0}>Nothing here</CommandPalette.ListItem>
 				</CommandPalette.List>
 			</CommandPalette.Page>
 		</CommandPalette>

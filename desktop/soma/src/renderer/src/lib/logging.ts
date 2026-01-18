@@ -54,13 +54,8 @@ function createBufferedLogger(logger: (message: string) => Promise<void>) {
 	};
 }
 
-function forwardConsole(
-	fnName: ConsoleFnName,
-	logger: (message: string) => Promise<void>,
-) {
-	const original = console[fnName].bind(console) as (
-		...messages: unknown[]
-	) => void;
+function forwardConsole(fnName: ConsoleFnName, logger: (message: string) => Promise<void>) {
+	const original = console[fnName].bind(console) as (...messages: unknown[]) => void;
 	const buffered = createBufferedLogger(logger);
 	console[fnName] = (...messages: unknown[]) => {
 		original(...messages);

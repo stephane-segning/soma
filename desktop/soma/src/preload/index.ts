@@ -2,8 +2,7 @@ import { electronAPI } from "@electron-toolkit/preload";
 import { contextBridge, ipcRenderer } from "electron";
 
 const api = {
-	invoke: (channel: string, args?: unknown) =>
-		ipcRenderer.invoke(channel, args),
+	invoke: (channel: string, args?: unknown) => ipcRenderer.invoke(channel, args),
 	windowControls: {
 		minimize: () =>
 			ipcRenderer.invoke("window:control", {

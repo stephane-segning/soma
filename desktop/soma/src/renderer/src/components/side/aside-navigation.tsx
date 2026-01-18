@@ -28,11 +28,7 @@ function AsideNavigation() {
 					</button>
 				</div>
 
-				<PageTree
-					activePageId={pageId ?? undefined}
-					showNewButton={false}
-					spaceId={spaceId ?? ""}
-				/>
+				<PageTree activePageId={pageId ?? undefined} showNewButton={false} spaceId={spaceId ?? ""} />
 			</div>
 
 			<div className="border-base-300 border-t p-3">

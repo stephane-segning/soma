@@ -2,16 +2,7 @@ import YooptaEditor, { type YooptaEditorProps } from "@yoopta/editor";
 
 type Props = Pick<
 	YooptaEditorProps,
-	| "editor"
-	| "plugins"
-	| "marks"
-	| "value"
-	| "placeholder"
-	| "readOnly"
-	| "className"
-	| "style"
-	| "tools"
-	| "onChange"
+	"editor" | "plugins" | "marks" | "value" | "placeholder" | "readOnly" | "className" | "style" | "tools" | "onChange"
 >;
 
 function YooptaEditorView({

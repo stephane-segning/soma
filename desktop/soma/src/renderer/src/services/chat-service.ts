@@ -25,10 +25,7 @@ export type AgentModel = {
 	sizeBytes?: number;
 };
 
-export async function streamChat(
-	messages: ChatMessage[],
-	options: ChatOptions = {},
-): Promise<StreamEvent> {
+export async function streamChat(messages: ChatMessage[], options: ChatOptions = {}): Promise<StreamEvent> {
 	const payload = {
 		messages,
 		model: options.model,

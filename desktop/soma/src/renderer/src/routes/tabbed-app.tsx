@@ -1,12 +1,7 @@
 import { useSetSettingMutation, useSettingQuery } from "@app/queries/settings";
 import { useAppDispatch, useAppSelector } from "@app/store/hooks";
 import { store } from "@app/store/store";
-import {
-	createDefaultState,
-	isPersistedTabsStateV1,
-	tabsActions,
-	tabsSelectors,
-} from "@app/store/tabs";
+import { createDefaultState, isPersistedTabsStateV1, tabsActions, tabsSelectors } from "@app/store/tabs";
 import { useEffect, useMemo } from "react";
 import { RouterProvider } from "react-router";
 import { createTabRouter } from "./router";
@@ -41,9 +36,7 @@ function TabbedApp(): React.JSX.Element | null {
 			return;
 		}
 
-		const initialPath = window.location.hash.startsWith("#")
-			? window.location.hash.slice(1)
-			: "";
+		const initialPath = window.location.hash.startsWith("#") ? window.location.hash.slice(1) : "";
 		dispatch(tabsActions.initFromPersisted(createDefaultState(initialPath)));
 	}, [dispatch, initialized, tabsSetting.data, tabsSetting.isLoading]);
 
@@ -92,15 +85,9 @@ function TabbedApp(): React.JSX.Element | null {
 		}
 	}, [initialized, tabs]);
 
-	const activeTab = useMemo(
-		() => tabs.find((t) => t.id === activeId),
-		[tabs, activeId],
-	);
+	const activeTab = useMemo(() => tabs.find((t) => t.id === activeId), [tabs, activeId]);
 	const router = useMemo(
-		() =>
-			initialized && activeTab
-				? getOrCreateRouter(activeTab.id, activeTab.path)
-				: null,
+		() => (initialized && activeTab ? getOrCreateRouter(activeTab.id, activeTab.path) : null),
 		[activeTab, initialized],
 	);
 

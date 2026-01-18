@@ -26,10 +26,7 @@ type DraftDocument = {
 	updatedAtMs: number;
 };
 
-function createDefaultDocumentState(
-	spaceId: string,
-	documentId: string,
-): DocumentEditorState {
+function createDefaultDocumentState(spaceId: string, documentId: string): DocumentEditorState {
 	return {
 		spaceId,
 		documentId,
@@ -56,10 +53,7 @@ const documentsSlice = createSlice({
 		) {
 			const key = makeKey(action.payload.spaceId, action.payload.documentId);
 			if (state.byKey[key]) return;
-			state.byKey[key] = createDefaultDocumentState(
-				action.payload.spaceId,
-				action.payload.documentId,
-			);
+			state.byKey[key] = createDefaultDocumentState(action.payload.spaceId, action.payload.documentId);
 		},
 		setContentJson: {
 			prepare(spaceId: string, documentId: string, contentJson: string) {
@@ -83,11 +77,7 @@ const documentsSlice = createSlice({
 			) {
 				const key = makeKey(action.payload.spaceId, action.payload.documentId);
 				const existing =
-					state.byKey[key] ??
-					createDefaultDocumentState(
-						action.payload.spaceId,
-						action.payload.documentId,
-					);
+					state.byKey[key] ?? createDefaultDocumentState(action.payload.spaceId, action.payload.documentId);
 				state.byKey[key] = {
 					...existing,
 					contentJson: action.payload.contentJson,
@@ -105,11 +95,7 @@ const documentsSlice = createSlice({
 		) {
 			const key = makeKey(action.payload.spaceId, action.payload.documentId);
 			const existing =
-				state.byKey[key] ??
-				createDefaultDocumentState(
-					action.payload.spaceId,
-					action.payload.documentId,
-				);
+				state.byKey[key] ?? createDefaultDocumentState(action.payload.spaceId, action.payload.documentId);
 			state.byKey[key] = {
 				...existing,
 				published: action.payload.published,
@@ -119,10 +105,7 @@ const documentsSlice = createSlice({
 			const draft = action.payload;
 			const key = makeKey(draft.spaceId, draft.documentId);
 			const existing = state.byKey[key];
-			if (
-				existing?.lastEditedAtMs &&
-				existing.lastEditedAtMs >= draft.updatedAtMs
-			) {
+			if (existing?.lastEditedAtMs && existing.lastEditedAtMs >= draft.updatedAtMs) {
 				return;
 			}
 			state.byKey[key] = {

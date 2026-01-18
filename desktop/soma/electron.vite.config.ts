@@ -52,10 +52,7 @@ export default defineConfig((configEnv) => ({
 					entryFileNames: "assets/js/[name]-[hash].js",
 					chunkFileNames: "assets/js/chunks/[name]-[hash].js",
 					assetFileNames: (assetInfo: PreRenderedAsset) => {
-						if (
-							assetInfo.names?.some((name) => name?.endsWith(".css")) ??
-							assetInfo.name?.endsWith(".css")
-						) {
+						if (assetInfo.names?.some((name) => name?.endsWith(".css")) ?? assetInfo.name?.endsWith(".css")) {
 							return "assets/css/[name]-[hash][extname]";
 						}
 

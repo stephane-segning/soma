@@ -34,10 +34,7 @@ export async function listSpaces(params?: {
 	return invoke<ListSpacesResult>("spaces_list", payload);
 }
 
-export async function createSpace(input: {
-	spaceId?: string;
-	displayName?: string;
-}): Promise<Space> {
+export async function createSpace(input: { spaceId?: string; displayName?: string }): Promise<Space> {
 	const res = await invoke<Space>("spaces_create", {
 		spaceId: input.spaceId,
 		displayName: input.displayName,
@@ -51,19 +48,14 @@ export async function getSpace(spaceId: string): Promise<Space> {
 	});
 }
 
-export async function listSpaceMembers(
-	spaceId: string,
-): Promise<SpaceMember[]> {
+export async function listSpaceMembers(spaceId: string): Promise<SpaceMember[]> {
 	if (!spaceId) return [];
 	return invoke<SpaceMember[]>("spaces_list_members", {
 		spaceId,
 	}).catch(() => []);
 }
 
-export async function updateSpace(input: {
-	spaceId: string;
-	displayName?: string;
-}): Promise<Space> {
+export async function updateSpace(input: { spaceId: string; displayName?: string }): Promise<Space> {
 	return invoke<Space>("spaces_update", {
 		spaceId: input.spaceId,
 		displayName: input.displayName,

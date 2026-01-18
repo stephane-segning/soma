@@ -1,9 +1,5 @@
 import { createId } from "@paralleldrive/cuid2";
-import type {
-	DaemonClient,
-	StoredDocument,
-	StoredPage,
-} from "../services/daemon-client";
+import type { DaemonClient, StoredDocument, StoredPage } from "../services/daemon-client";
 
 export type DraftRecord = {
 	spaceId: string;
@@ -69,10 +65,7 @@ export class DocumentsController {
 		return 1;
 	}
 
-	async getDraft(input: {
-		spaceId: string;
-		documentId: string;
-	}): Promise<DraftRecord | null> {
+	async getDraft(input: { spaceId: string; documentId: string }): Promise<DraftRecord | null> {
 		const doc = await this.daemon.getDocument(input.spaceId, input.documentId);
 		if (!doc) return null;
 		return {
@@ -108,16 +101,8 @@ export class DocumentsController {
 		return this.daemon.listPages(input.spaceId);
 	}
 
-	async updatePageTitle(input: {
-		spaceId: string;
-		pageId: string;
-		title: string;
-	}): Promise<PageRecord | null> {
-		return this.daemon.updatePageTitle(
-			input.spaceId,
-			input.pageId,
-			input.title,
-		);
+	async updatePageTitle(input: { spaceId: string; pageId: string; title: string }): Promise<PageRecord | null> {
+		return this.daemon.updatePageTitle(input.spaceId, input.pageId, input.title);
 	}
 
 	async setPageParents(input: {
@@ -125,10 +110,6 @@ export class DocumentsController {
 		pageId: string;
 		parentPageIds: string[];
 	}): Promise<PageRecord | null> {
-		return this.daemon.setPageParents(
-			input.spaceId,
-			input.pageId,
-			input.parentPageIds,
-		);
+		return this.daemon.setPageParents(input.spaceId, input.pageId, input.parentPageIds);
 	}
 }

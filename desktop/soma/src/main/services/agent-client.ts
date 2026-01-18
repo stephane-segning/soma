@@ -67,27 +67,20 @@ export class AgentClient {
 
 	constructor() {
 		const address = `unix://${AGENT_SOCKET}`;
-		this.client = new GrpcAgentClient(
-			address,
-			grpc.credentials.createInsecure(),
-		);
+		this.client = new GrpcAgentClient(address, grpc.credentials.createInsecure());
 	}
 
-	async chatStream(
-		messages: ChatMessage[],
-		options: ChatOptions = {},
-	): Promise<StreamEvent> {
+	async chatStream(messages: ChatMessage[], options: ChatOptions = {}): Promise<StreamEvent> {
 		try {
-			const stream: grpc.ClientReadableStream<ChatStreamEvent> =
-				this.client.chatStream({
-					model: options.model ?? "",
-					messages: messages.map((m) => ({
-						role: m.role,
-						content: m.content,
-					})),
-					temperature: options.temperature ?? 0,
-					maxTokens: Long.fromNumber(options.maxTokens ?? 256),
-				});
+			const stream: grpc.ClientReadableStream<ChatStreamEvent> = this.client.chatStream({
+				model: options.model ?? "",
+				messages: messages.map((m) => ({
+					role: m.role,
+					content: m.content,
+				})),
+				temperature: options.temperature ?? 0,
+				maxTokens: Long.fromNumber(options.maxTokens ?? 256),
+			});
 
 			let combined = "";
 			return await new Promise<StreamEvent>((resolve, reject) => {

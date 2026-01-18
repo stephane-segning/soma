@@ -28,11 +28,7 @@ function SpacesRail(): React.JSX.Element {
 				const isActive = space.spaceId === spaceId;
 
 				return (
-					<Link
-						className="avatar"
-						key={space.spaceId}
-						to={`/spaces/${space.spaceId}/pages`}
-					>
+					<Link className="avatar" key={space.spaceId} to={`/spaces/${space.spaceId}/pages`}>
 						<div
 							className={cn(
 								"flex w-12 items-center justify-center rounded-2xl ring-2 ring-dashed ring-offset-2 ring-offset-base-100",

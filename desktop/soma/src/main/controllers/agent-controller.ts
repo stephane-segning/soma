@@ -13,10 +13,7 @@ import type {
 export class AgentController {
 	constructor(private readonly agent: AgentClient) {}
 
-	chatStream(
-		messages: ChatMessage[],
-		options: ChatOptions = {},
-	): Promise<StreamEvent> {
+	chatStream(messages: ChatMessage[], options: ChatOptions = {}): Promise<StreamEvent> {
 		return this.agent.chatStream(messages, options);
 	}
 

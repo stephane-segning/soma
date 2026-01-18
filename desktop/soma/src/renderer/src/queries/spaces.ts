@@ -15,8 +15,7 @@ function useCreateSpaceMutation() {
 	return {
 		...state,
 		mutate,
-		mutateAsync: (input: Parameters<typeof mutate>[0]) =>
-			mutate(input).unwrap(),
+		mutateAsync: (input: Parameters<typeof mutate>[0]) => mutate(input).unwrap(),
 	};
 }
 
@@ -25,8 +24,7 @@ function useUpdateSpaceMutation() {
 	return {
 		...state,
 		mutate,
-		mutateAsync: (input: Parameters<typeof mutate>[0]) =>
-			mutate(input).unwrap(),
+		mutateAsync: (input: Parameters<typeof mutate>[0]) => mutate(input).unwrap(),
 	};
 }
 

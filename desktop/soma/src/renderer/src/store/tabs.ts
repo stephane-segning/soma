@@ -65,9 +65,7 @@ function isPersistedTabsStateV1(value: unknown): value is PersistedTabsStateV1 {
 }
 
 function tabsToPersisted(state: TabsState): PersistedTabsStateV1 {
-	const safeActiveId = state.tabs.some((t) => t.id === state.activeId)
-		? state.activeId
-		: (state.tabs[0]?.id ?? "");
+	const safeActiveId = state.tabs.some((t) => t.id === state.activeId) ? state.activeId : (state.tabs[0]?.id ?? "");
 	return {
 		version: 1,
 		activeId: safeActiveId,
@@ -90,12 +88,8 @@ const tabsSlice = createSlice({
 	initialState,
 	reducers: {
 		initFromPersisted(state, action: PayloadAction<PersistedTabsStateV1>) {
-			const next = isPersistedTabsStateV1(action.payload)
-				? action.payload
-				: createDefaultState("/");
-			const activeId = next.tabs.some((t) => t.id === next.activeId)
-				? next.activeId
-				: next.tabs[0].id;
+			const next = isPersistedTabsStateV1(action.payload) ? action.payload : createDefaultState("/");
+			const activeId = next.tabs.some((t) => t.id === next.activeId) ? next.activeId : next.tabs[0].id;
 			state.initialized = true;
 			state.activeId = activeId;
 			state.tabs = next.tabs.map((t) => ({
@@ -130,8 +124,7 @@ const tabsSlice = createSlice({
 			) {
 				if (state.tabs.length >= MAX_TABS) return;
 
-				const title =
-					action.payload.options?.title ?? `Tab ${state.tabs.length + 1}`;
+				const title = action.payload.options?.title ?? `Tab ${state.tabs.length + 1}`;
 				const path = coercePath(action.payload.options?.path ?? "/");
 
 				state.tabs.push({

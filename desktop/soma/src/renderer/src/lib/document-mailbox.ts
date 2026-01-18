@@ -14,20 +14,12 @@ function readMailbox(spaceId: string, pageId: string): MailboxEntry | null {
 		const raw = window.localStorage.getItem(mailboxKey(spaceId, pageId));
 		if (!raw) return null;
 		const parsed = JSON.parse(raw) as Partial<MailboxEntry>;
-		if (
-			typeof parsed !== "object" ||
-			parsed === null ||
-			typeof parsed.updatedAtMs !== "number"
-		) {
+		if (typeof parsed !== "object" || parsed === null || typeof parsed.updatedAtMs !== "number") {
 			return null;
 		}
 		return {
-			contentJson:
-				typeof parsed.contentJson === "string" ? parsed.contentJson : null,
-			title:
-				typeof parsed.title === "string" || parsed.title === null
-					? parsed.title
-					: undefined,
+			contentJson: typeof parsed.contentJson === "string" ? parsed.contentJson : null,
+			title: typeof parsed.title === "string" || parsed.title === null ? parsed.title : undefined,
 			updatedAtMs: parsed.updatedAtMs,
 		};
 	} catch {
@@ -35,17 +27,10 @@ function readMailbox(spaceId: string, pageId: string): MailboxEntry | null {
 	}
 }
 
-function writeMailbox(
-	spaceId: string,
-	pageId: string,
-	entry: MailboxEntry,
-): void {
+function writeMailbox(spaceId: string, pageId: string, entry: MailboxEntry): void {
 	if (typeof window === "undefined" || !window.localStorage) return;
 	try {
-		window.localStorage.setItem(
-			mailboxKey(spaceId, pageId),
-			JSON.stringify(entry),
-		);
+		window.localStorage.setItem(mailboxKey(spaceId, pageId), JSON.stringify(entry));
 	} catch {
 		// ignore localStorage write failures
 	}

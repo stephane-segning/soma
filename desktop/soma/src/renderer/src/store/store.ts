@@ -12,8 +12,7 @@ const store = configureStore({
 		ui: uiReducer,
 		documents: documentsReducer,
 	},
-	middleware: (getDefaultMiddleware) =>
-		getDefaultMiddleware().concat(api.middleware),
+	middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(api.middleware),
 });
 
 type RootState = ReturnType<typeof store.getState>;

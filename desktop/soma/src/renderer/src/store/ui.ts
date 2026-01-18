@@ -13,8 +13,7 @@ const uiSlice = createSlice({
 	initialState,
 	reducers: {
 		toggleCommandPalette(state, action: PayloadAction<boolean | undefined>) {
-			state.isCommandPaletteOpen =
-				action.payload ?? !state.isCommandPaletteOpen;
+			state.isCommandPaletteOpen = action.payload ?? !state.isCommandPaletteOpen;
 		},
 	},
 });
@@ -22,8 +21,7 @@ const uiSlice = createSlice({
 const uiReducer = uiSlice.reducer;
 const uiActions = uiSlice.actions;
 const uiSelectors = {
-	selectIsCommandPaletteOpen: (state: { ui: UiState }) =>
-		state.ui.isCommandPaletteOpen,
+	selectIsCommandPaletteOpen: (state: { ui: UiState }) => state.ui.isCommandPaletteOpen,
 };
 
 export { uiActions, uiReducer, uiSelectors };

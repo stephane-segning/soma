@@ -11,14 +11,9 @@ function ChatSidebar(): React.JSX.Element {
 		refetchOnMountOrArgChange: false,
 	});
 
-	const chatModels = useMemo(
-		() => data?.filter((m) => m.kind === "chat") ?? [],
-		[data],
-	);
+	const chatModels = useMemo(() => data?.filter((m) => m.kind === "chat") ?? [], [data]);
 
-	const [selectedModel, setSelectedModel] = useState<string>(
-		() => chatModels?.[0]?.name,
-	);
+	const [selectedModel, setSelectedModel] = useState<string>(() => chatModels?.[0]?.name);
 	const [draft, setDraft] = useState("");
 
 	useEffect(() => {

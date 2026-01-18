@@ -72,10 +72,7 @@ export class DaemonClient {
 
 	constructor() {
 		const address = `unix://${DAEMON_SOCKET}`;
-		this.client = new GrpcDaemonClient(
-			address,
-			grpc.credentials.createInsecure(),
-		);
+		this.client = new GrpcDaemonClient(address, grpc.credentials.createInsecure());
 	}
 
 	async uploadBlob(input: UploadBlobInput): Promise<UploadBlobResult> {
@@ -103,10 +100,7 @@ export class DaemonClient {
 		};
 	}
 
-	async readBlob(
-		spaceId: string,
-		cid: string,
-	): Promise<ReadBlobResponse | null> {
+	async readBlob(spaceId: string, cid: string): Promise<ReadBlobResponse | null> {
 		try {
 			const res = await new Promise<ReadBlobResponse>((resolve, reject) => {
 				this.client.readBlob(
@@ -146,10 +140,7 @@ export class DaemonClient {
 		});
 	}
 
-	async getDocument(
-		spaceId: string,
-		documentId: string,
-	): Promise<StoredDocument | null> {
+	async getDocument(spaceId: string, documentId: string): Promise<StoredDocument | null> {
 		try {
 			const res = await new Promise<GetDocumentResponse>((resolve, reject) => {
 				this.client.getDocument(
@@ -216,11 +207,7 @@ export class DaemonClient {
 		return (res.pages ?? []).map((p) => this.fromPageRecord(p));
 	}
 
-	async updatePageTitle(
-		spaceId: string,
-		pageId: string,
-		title: string,
-	): Promise<StoredPage | null> {
+	async updatePageTitle(spaceId: string, pageId: string, title: string): Promise<StoredPage | null> {
 		try {
 			const res = await new Promise<{
 				page?: PageRecord;
@@ -244,11 +231,7 @@ export class DaemonClient {
 		}
 	}
 
-	async setPageParents(
-		spaceId: string,
-		pageId: string,
-		parentPageIds: string[],
-	): Promise<StoredPage | null> {
+	async setPageParents(spaceId: string, pageId: string, parentPageIds: string[]): Promise<StoredPage | null> {
 		try {
 			const res = await new Promise<{
 				page?: PageRecord;
@@ -272,11 +255,7 @@ export class DaemonClient {
 		}
 	}
 
-	async listSpaces(options?: {
-		limit?: number;
-		offset?: number;
-		query?: string;
-	}): Promise<ListSpacesResult> {
+	async listSpaces(options?: { limit?: number; offset?: number; query?: string }): Promise<ListSpacesResult> {
 		const res = await new Promise<ListSpacesResponse>((resolve, reject) => {
 			this.client.listSpaces(
 				{
@@ -298,10 +277,7 @@ export class DaemonClient {
 		};
 	}
 
-	async createSpace(input: {
-		spaceId?: string;
-		displayName?: string;
-	}): Promise<StoredSpace> {
+	async createSpace(input: { spaceId?: string; displayName?: string }): Promise<StoredSpace> {
 		const res = await new Promise<{
 			spaceId: string;
 			ownerPeerId: string;
@@ -347,10 +323,7 @@ export class DaemonClient {
 		}
 	}
 
-	async updateSpace(input: {
-		spaceId: string;
-		displayName?: string;
-	}): Promise<StoredSpace> {
+	async updateSpace(input: { spaceId: string; displayName?: string }): Promise<StoredSpace> {
 		const res = await new Promise<{
 			space?: Space;
 		}>((resolve, reject) => {

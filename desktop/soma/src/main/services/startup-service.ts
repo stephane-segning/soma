@@ -168,9 +168,7 @@ export class StartupService {
 		const save = () => {
 			if (window.isDestroyed()) return;
 			const isMaximized = window.isMaximized();
-			const bounds = isMaximized
-				? window.getNormalBounds()
-				: window.getBounds();
+			const bounds = isMaximized ? window.getNormalBounds() : window.getBounds();
 			this.appDataStore.windowState = {
 				bounds: {
 					x: bounds.x,
@@ -202,16 +200,12 @@ export class StartupService {
 	}
 
 	private extractDeepLink(argv: string[]): string | null {
-		return (
-			argv.find((arg) => arg.startsWith(`${this.deepLinkScheme}://`)) ?? null
-		);
+		return argv.find((arg) => arg.startsWith(`${this.deepLinkScheme}://`)) ?? null;
 	}
 
 	private registerDeepLinkProtocol(): void {
 		if (process.defaultApp && process.argv.length >= 2) {
-			app.setAsDefaultProtocolClient(this.deepLinkScheme, process.execPath, [
-				resolve(process.argv[1]),
-			]);
+			app.setAsDefaultProtocolClient(this.deepLinkScheme, process.execPath, [resolve(process.argv[1])]);
 			return;
 		}
 		app.setAsDefaultProtocolClient(this.deepLinkScheme);

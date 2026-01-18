@@ -1,18 +1,11 @@
 import { uploadToBlob } from "@app/lib/blob";
 import Accordion from "@yoopta/accordion";
-import ActionMenuList, {
-	DefaultActionMenuRender,
-} from "@yoopta/action-menu-list";
+import ActionMenuList, { DefaultActionMenuRender } from "@yoopta/action-menu-list";
 import Blockquote from "@yoopta/blockquote";
 import Callout from "@yoopta/callout";
 import Code from "@yoopta/code";
 import Divider from "@yoopta/divider";
-import {
-	createYooptaEditor,
-	type Tools,
-	type YooptaContentValue,
-	type YooptaOnChangeOptions,
-} from "@yoopta/editor";
+import { createYooptaEditor, type Tools, type YooptaContentValue, type YooptaOnChangeOptions } from "@yoopta/editor";
 import type { SlateElement } from "@yoopta/editor/dist/editor/types";
 import type { YooptaPlugin } from "@yoopta/editor/dist/plugins";
 import type { PluginElementRenderProps } from "@yoopta/editor/dist/plugins/types";
@@ -23,14 +16,7 @@ import Image from "@yoopta/image";
 import Link from "@yoopta/link";
 import LinkTool, { DefaultLinkToolRender } from "@yoopta/link-tool";
 import { BulletedList, NumberedList, TodoList } from "@yoopta/lists";
-import {
-	Bold,
-	CodeMark,
-	Highlight,
-	Italic,
-	Strike,
-	Underline,
-} from "@yoopta/marks";
+import { Bold, CodeMark, Highlight, Italic, Strike, Underline } from "@yoopta/marks";
 import Paragraph from "@yoopta/paragraph";
 import Table from "@yoopta/table";
 import type React from "react";
@@ -58,10 +44,7 @@ import {
 } from "./managed-renderers";
 import { YooptaEditorView } from "./yoopta-editor-view";
 
-type PluginRenderMap = Record<
-	string,
-	(props: PluginElementRenderProps) => React.JSX.Element
->;
+type PluginRenderMap = Record<string, (props: PluginElementRenderProps) => React.JSX.Element>;
 const asPluginRenders = (renders: PluginRenderMap) => renders;
 
 type Props = {
@@ -70,10 +53,7 @@ type Props = {
 	className?: string;
 	style?: React.CSSProperties;
 	initialValue?: YooptaContentValue;
-	onValueChange?: (
-		value: YooptaContentValue,
-		options: YooptaOnChangeOptions,
-	) => void;
+	onValueChange?: (value: YooptaContentValue, options: YooptaOnChangeOptions) => void;
 	onSave?: () => void;
 	spaceId: string;
 	documentId: string;
@@ -226,10 +206,7 @@ function YooptaEditorWithTools({
 		[documentId, spaceId],
 	);
 
-	const marks = useMemo(
-		() => [Bold, Italic, Underline, Strike, CodeMark, Highlight],
-		[],
-	);
+	const marks = useMemo(() => [Bold, Italic, Underline, Strike, CodeMark, Highlight], []);
 
 	const tools: Partial<Tools> = useMemo(
 		() => ({

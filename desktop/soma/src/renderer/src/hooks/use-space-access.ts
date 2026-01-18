@@ -9,16 +9,10 @@ type UseSpaceAccessResult = {
 
 /** Access check backed by daemon GetSpace. */
 export function useSpaceAccess(spaceId?: string): UseSpaceAccessResult {
-	const enabled = useMemo(
-		() => Boolean(spaceId && spaceId.trim().length > 0),
-		[spaceId],
-	);
-	const { data, isLoading, isFetching, error } = api.useGetSpaceQuery(
-		spaceId ?? "",
-		{
-			skip: !enabled,
-		},
-	);
+	const enabled = useMemo(() => Boolean(spaceId && spaceId.trim().length > 0), [spaceId]);
+	const { data, isLoading, isFetching, error } = api.useGetSpaceQuery(spaceId ?? "", {
+		skip: !enabled,
+	});
 
 	return useMemo(
 		() => ({

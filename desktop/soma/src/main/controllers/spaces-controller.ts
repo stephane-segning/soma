@@ -1,8 +1,4 @@
-import type {
-	DaemonClient,
-	StoredSpace,
-	StoredSpaceMember,
-} from "../services/daemon-client";
+import type { DaemonClient, StoredSpace, StoredSpaceMember } from "../services/daemon-client";
 
 export type ListSpacesResult = {
 	spaces: StoredSpace[];
@@ -14,11 +10,7 @@ export type ListSpacesResult = {
 export class SpacesController {
 	constructor(private readonly daemon: DaemonClient) {}
 
-	list(input?: {
-		limit?: number;
-		offset?: number;
-		q?: string;
-	}): Promise<ListSpacesResult> {
+	list(input?: { limit?: number; offset?: number; q?: string }): Promise<ListSpacesResult> {
 		return this.daemon.listSpaces({
 			limit: input?.limit,
 			offset: input?.offset,
@@ -26,10 +18,7 @@ export class SpacesController {
 		});
 	}
 
-	create(input: {
-		spaceId?: string;
-		displayName?: string;
-	}): Promise<StoredSpace> {
+	create(input: { spaceId?: string; displayName?: string }): Promise<StoredSpace> {
 		return this.daemon.createSpace(input);
 	}
 
@@ -37,10 +26,7 @@ export class SpacesController {
 		return this.daemon.getSpace(spaceId);
 	}
 
-	update(input: {
-		spaceId: string;
-		displayName?: string;
-	}): Promise<StoredSpace> {
+	update(input: { spaceId: string; displayName?: string }): Promise<StoredSpace> {
 		return this.daemon.updateSpace(input);
 	}
 

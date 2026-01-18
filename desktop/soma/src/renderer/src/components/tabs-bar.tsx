@@ -13,12 +13,7 @@ type TabsBarProps = {
 	hasRight: boolean;
 };
 
-function TabsBar({
-	hasLeft,
-	hasRight,
-	toggleLeft,
-	toggleRight,
-}: TabsBarProps): React.JSX.Element {
+function TabsBar({ hasLeft, hasRight, toggleLeft, toggleRight }: TabsBarProps): React.JSX.Element {
 	const dispatch = useAppDispatch();
 	const tabs = useAppSelector(tabsSelectors.selectTabs);
 	const activeId = useAppSelector(tabsSelectors.selectActiveId);
@@ -28,21 +23,13 @@ function TabsBar({
 		<div className="flex min-w-0 items-center gap-2">
 			<div className="flex items-center gap-1" data-no-drag>
 				{hasLeft && (
-					<PolymorphButton
-						className="btn-soft"
-						onClick={toggleLeft}
-						size="sm"
-						type="button"
-					>
+					<PolymorphButton className="btn-soft" onClick={toggleLeft} size="sm" type="button">
 						<List className="size-4" />
 					</PolymorphButton>
 				)}
 			</div>
 
-			<div
-				className="no-scrollbar flex flex-1 items-center gap-2 overflow-x-auto"
-				data-drag-region
-			>
+			<div className="no-scrollbar flex flex-1 items-center gap-2 overflow-x-auto" data-drag-region>
 				{tabs.map((tab) => {
 					const isActive = tab.id === activeId;
 					return (
@@ -50,9 +37,7 @@ function TabsBar({
 							aria-selected={isActive}
 							className={cn(
 								"flex min-w-[8rem] items-center gap-2 rounded-lg px-3 py-2 text-sm transition [-webkit-app-region:no-drag]",
-								isActive
-									? "bg-primary/10 text-primary"
-									: "bg-base-200/60 text-base-content/70 hover:bg-base-200",
+								isActive ? "bg-primary/10 text-primary" : "bg-base-200/60 text-base-content/70 hover:bg-base-200",
 							)}
 							key={tab.id}
 							onClick={() => dispatch(tabsActions.selectTab(tab.id))}
@@ -93,12 +78,7 @@ function TabsBar({
 				</PolymorphButton>
 
 				{hasRight && (
-					<PolymorphButton
-						className="btn-soft"
-						onClick={toggleRight}
-						size="sm"
-						type="button"
-					>
+					<PolymorphButton className="btn-soft" onClick={toggleRight} size="sm" type="button">
 						<MessageCircle className="size-4" />
 					</PolymorphButton>
 				)}

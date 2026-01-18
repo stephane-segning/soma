@@ -25,16 +25,7 @@ type DraftRow = {
 const api = createApi({
 	reducerPath: "api",
 	baseQuery: fakeBaseQuery(),
-	tagTypes: [
-		"Settings",
-		"Spaces",
-		"Space",
-		"SpaceMembers",
-		"Pages",
-		"Draft",
-		"Search",
-		"AgentModels",
-	],
+	tagTypes: ["Settings", "Spaces", "Space", "SpaceMembers", "Pages", "Draft", "Search", "AgentModels"],
 	endpoints: (builder) => ({
 		getSetting: builder.query<unknown, string>({
 			queryFn: async (key) => {

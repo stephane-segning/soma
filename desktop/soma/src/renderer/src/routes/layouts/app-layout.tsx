@@ -29,11 +29,7 @@ function Component(): React.JSX.Element {
 							className="grid-max-content sticky top-0 z-40 grid h-12 select-none border-base-300 border-b bg-base-100/95 backdrop-blur"
 							data-drag-region
 						>
-							<div
-								className="flex h-full items-center gap-3 px-3"
-								data-drag-region
-								id="app-title"
-							>
+							<div className="flex h-full items-center gap-3 px-3" data-drag-region id="app-title">
 								<div data-no-drag>
 									<WindowControls />
 								</div>
@@ -54,13 +50,7 @@ function Component(): React.JSX.Element {
 				leftColumn={<SideMenu />}
 				mainClassName="bg-base-200/60 min-h-screen"
 				rightColumn={
-					<Suspense
-						fallback={
-							<div className="p-4 text-base-content/70 text-sm">
-								Loading chat…
-							</div>
-						}
-					>
+					<Suspense fallback={<div className="p-4 text-base-content/70 text-sm">Loading chat…</div>}>
 						<div className="h-full min-h-full">
 							<ChatSidebar />
 						</div>

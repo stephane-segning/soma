@@ -11,12 +11,8 @@ function useUpsertDocumentDraftMutation() {
 	return {
 		...state,
 		mutate,
-		mutateAsync: (input: {
-			spaceId: string;
-			documentId: string;
-			contentJson: string;
-			published: boolean;
-		}) => mutate(input).unwrap(),
+		mutateAsync: (input: { spaceId: string; documentId: string; contentJson: string; published: boolean }) =>
+			mutate(input).unwrap(),
 	};
 }
 
@@ -40,12 +36,8 @@ function useSyncPublishedDocumentMutation() {
 	return {
 		...state,
 		mutate,
-		mutateAsync: (input: {
-			spaceId: string;
-			documentId: string;
-			contentJson: string;
-			updatedAtMs: number;
-		}) => mutate(input).unwrap(),
+		mutateAsync: (input: { spaceId: string; documentId: string; contentJson: string; updatedAtMs: number }) =>
+			mutate(input).unwrap(),
 	};
 }
 

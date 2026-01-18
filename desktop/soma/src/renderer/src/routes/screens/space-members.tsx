@@ -32,15 +32,10 @@ function Component(): React.JSX.Element {
 
 	return (
 		<div className="space-y-4">
-			<h2 className="font-semibold text-lg">
-				{t("space.members.title", "Members")}
-			</h2>
+			<h2 className="font-semibold text-lg">{t("space.members.title", "Members")}</h2>
 			<div className="rounded-lg border border-base-300 bg-base-100">
 				<div className="border-base-300 border-b px-4 py-3 text-base-content/70 text-sm">
-					{t(
-						"space.members.subtitle",
-						"Roster and roles are pulled from the daemon.",
-					)}
+					{t("space.members.subtitle", "Roster and roles are pulled from the daemon.")}
 				</div>
 
 				{membersQuery.isLoading && (
@@ -53,35 +48,21 @@ function Component(): React.JSX.Element {
 
 				{membersQuery.isError && (
 					<div className="p-4 text-error">
-						{t(
-							"space.members.loadError",
-							"Could not load members from the daemon.",
-						)}
+						{t("space.members.loadError", "Could not load members from the daemon.")}
 					</div>
 				)}
 
-				{!membersQuery.isLoading &&
-					!membersQuery.isError &&
-					members.length === 0 && (
-						<div className="p-4 text-base-content/70">
-							{t("space.members.empty", "No members found for this space.")}
-						</div>
-					)}
+				{!membersQuery.isLoading && !membersQuery.isError && members.length === 0 && (
+					<div className="p-4 text-base-content/70">{t("space.members.empty", "No members found for this space.")}</div>
+				)}
 
 				{members.length > 0 && (
 					<div className="divide-y divide-base-300">
 						{members.map((member) => (
-							<div
-								className="flex items-center justify-between px-4 py-3"
-								key={member.peerId}
-							>
+							<div className="flex items-center justify-between px-4 py-3" key={member.peerId}>
 								<div className="space-y-1">
-									<div className="font-mono text-base-content text-sm">
-										{member.peerId}
-									</div>
-									<div className="text-base-content/60 text-xs">
-										{formatExpiry(member.expiresAt)}
-									</div>
+									<div className="font-mono text-base-content text-sm">{member.peerId}</div>
+									<div className="text-base-content/60 text-xs">{formatExpiry(member.expiresAt)}</div>
 								</div>
 								<span className="badge badge-outline badge-sm uppercase">
 									{member.role || t("space.members.roleUnknown", "unknown")}

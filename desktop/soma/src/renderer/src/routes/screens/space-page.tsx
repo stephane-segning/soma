@@ -11,9 +11,7 @@ type LoaderData = {
 	initialContentJson: string | null;
 };
 
-function parseContent(
-	contentJson: string | null,
-): YooptaContentValue | undefined {
+function parseContent(contentJson: string | null): YooptaContentValue | undefined {
 	if (!contentJson) return undefined;
 	try {
 		const parsed = JSON.parse(contentJson) as YooptaContentValue | null;
@@ -37,9 +35,7 @@ function isMeaningfulChange(options: YooptaOnChangeOptions): boolean {
 		}
 
 		if (operation.type === "set_slate") {
-			return operation.properties.slateOps.some(
-				(op) => op.type !== "set_selection",
-			);
+			return operation.properties.slateOps.some((op) => op.type !== "set_selection");
 		}
 
 		return true;
@@ -71,10 +67,7 @@ async function loader({ params }: LoaderFunctionArgs): Promise<LoaderData> {
 function Component(): React.JSX.Element {
 	const data = useLoaderData<LoaderData>();
 
-	const initialValue = useMemo(
-		() => parseContent(data.initialContentJson),
-		[data.initialContentJson],
-	);
+	const initialValue = useMemo(() => parseContent(data.initialContentJson), [data.initialContentJson]);
 
 	const latestValueRef = useRef<YooptaContentValue | undefined>(initialValue);
 	const dirtyRef = useRef(false);

@@ -7,13 +7,9 @@ type RendererApi = {
 	};
 };
 
-const api: RendererApi | undefined =
-	typeof window !== "undefined" ? (window as any).api : undefined;
+const api: RendererApi | undefined = typeof window !== "undefined" ? (window as any).api : undefined;
 
-export async function invoke<T = unknown>(
-	channel: string,
-	args?: unknown,
-): Promise<T> {
+export async function invoke<T = unknown>(channel: string, args?: unknown): Promise<T> {
 	if (!api?.invoke) {
 		throw new Error("IPC bridge unavailable");
 	}

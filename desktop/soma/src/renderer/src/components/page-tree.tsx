@@ -53,10 +53,7 @@ function buildTree(pages: PageRecord[]): TreeNode[] {
 		for (const parentId of node.page.parentPageIds) {
 			if (parentId === node.page.pageId) continue;
 			const parent = nodes.get(parentId);
-			if (
-				parent &&
-				!parent.children.some((c) => c.page.pageId === node.page.pageId)
-			) {
+			if (parent && !parent.children.some((c) => c.page.pageId === node.page.pageId)) {
 				parent.children.push(node);
 				attached = true;
 			}
@@ -72,9 +69,7 @@ function filterTree(nodes: TreeNode[], term: string): TreeNode[] {
 
 	const walk = (node: TreeNode): TreeNode | null => {
 		const title = node.page.title.toLowerCase();
-		const filteredChildren = node.children
-			.map((child) => walk(child))
-			.filter(Boolean) as TreeNode[];
+		const filteredChildren = node.children.map((child) => walk(child)).filter(Boolean) as TreeNode[];
 
 		if (title.includes(needle) || filteredChildren.length > 0) {
 			return {
@@ -88,12 +83,7 @@ function filterTree(nodes: TreeNode[], term: string): TreeNode[] {
 	return nodes.map((node) => walk(node)).filter(Boolean) as TreeNode[];
 }
 
-function PageTree({
-	spaceId,
-	activePageId,
-	filterTerm = "",
-	showNewButton = true,
-}: Props): React.JSX.Element | null {
+function PageTree({ spaceId, activePageId, filterTerm = "", showNewButton = true }: Props): React.JSX.Element | null {
 	const { data, isLoading } = usePagesQuery(spaceId);
 	const ensurePage = useEnsurePageMutation();
 	const updatePageTitle = useUpdatePageTitleMutation();
@@ -103,10 +93,7 @@ function PageTree({
 	const [activeDragId, setActiveDragId] = useState<string | null>(null);
 
 	const tree = useMemo(() => buildTree(data ?? []), [data]);
-	const filteredTree = useMemo(
-		() => filterTree(tree, filterTerm),
-		[filterTerm, tree],
-	);
+	const filteredTree = useMemo(() => filterTree(tree, filterTerm), [filterTerm, tree]);
 	const pagesById = useMemo(() => {
 		const map = new Map<string, PageRecord>();
 		for (const page of data ?? []) {
@@ -149,19 +136,13 @@ function PageTree({
 	};
 
 	const isDescendantOf = useCallback(
-		(
-			targetId: string,
-			ancestorId: string,
-			seen: Set<string> = new Set(),
-		): boolean => {
+		(targetId: string, ancestorId: string, seen: Set<string> = new Set()): boolean => {
 			if (targetId === ancestorId) return true;
 			if (seen.has(targetId)) return false;
 			seen.add(targetId);
 			const target = pagesById.get(targetId);
 			if (!target) return false;
-			return target.parentPageIds.some((parentId) =>
-				isDescendantOf(parentId, ancestorId, seen),
-			);
+			return target.parentPageIds.some((parentId) => isDescendantOf(parentId, ancestorId, seen));
 		},
 		[pagesById],
 	);
@@ -204,11 +185,7 @@ function PageTree({
 			<div className="space-y-2">
 				{showNewButton ? (
 					<div>
-						<PolymorphButton
-							disabled={ensurePage.isPending}
-							onClick={() => createPage([])}
-							variant="primary"
-						>
+						<PolymorphButton disabled={ensurePage.isPending} onClick={() => createPage([])} variant="primary">
 							<Plus className="size-4" />
 						</PolymorphButton>
 					</div>
@@ -271,10 +248,7 @@ function PageTreeList({
 	});
 
 	return (
-		<ul
-			className={`menu w-full ${isOver ? "outline outline-1 outline-primary/40" : ""}`}
-			ref={setNodeRef}
-		>
+		<ul className={`menu w-full ${isOver ? "outline outline-1 outline-primary/40" : ""}`} ref={setNodeRef}>
 			{isLoading && (
 				<li className="p-2">
 					<div className="skeleton h-6 w-full" />
@@ -296,9 +270,7 @@ function PageTreeList({
 					titleDraft={titleDraft}
 				/>
 			))}
-			{!isLoading && tree.length === 0 && (
-				<li className="p-2 text-base-content/60 text-xs">No pages yet</li>
-			)}
+			{!isLoading && tree.length === 0 && <li className="p-2 text-base-content/60 text-xs">No pages yet</li>}
 		</ul>
 	);
 }
@@ -333,9 +305,7 @@ function TreeItem({
 	if (depth > 8) {
 		return (
 			<li className="text-warning text-xs">
-				<Link to={`/spaces/${spaceId}/pages/${node.page.pageId}`}>
-					Loop detected…
-				</Link>
+				<Link to={`/spaces/${spaceId}/pages/${node.page.pageId}`}>Loop detected…</Link>
 			</li>
 		);
 	}
@@ -347,12 +317,7 @@ function TreeItem({
 	const draggable = useDraggable({
 		id: node.page.pageId,
 	});
-	const {
-		attributes,
-		listeners,
-		setNodeRef: setDragRef,
-		transform,
-	} = draggable;
+	const { attributes, listeners, setNodeRef: setDragRef, transform } = draggable;
 	const transition = (
 		draggable as {
 			transition?: string;
