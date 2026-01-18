@@ -1,3 +1,4 @@
+import type { StageRuntimeConfig } from "@soma/desktop-config";
 import { Container } from "inversify";
 import { CommandRegistry } from "./command-registry";
 import { AgentController } from "./controllers/agent-controller";
@@ -12,14 +13,13 @@ import { AppDataStore } from "./services/app-data-store";
 import { BlobProtocolRegistrar } from "./services/blob-protocol";
 import { DaemonClient } from "./services/daemon-client";
 import { AppLogger } from "./services/logger";
-import type { SomaRuntimeConfig } from "./services/stage-config";
 import { StartupService } from "./services/startup-service";
 import { TYPES } from "./types";
 
 export type ContainerOptions = {
 	logDir: string;
 	isDev: boolean;
-	runtimeConfig: SomaRuntimeConfig;
+	runtimeConfig: StageRuntimeConfig;
 };
 
 export function buildContainer(options: ContainerOptions): Container {

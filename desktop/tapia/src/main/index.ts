@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { StageConfigService } from "@soma/desktop-config";
 import { electronApp, is, optimizer } from "@electron-toolkit/utils";
 import { app, BrowserWindow, ipcMain, shell } from "electron";
 import { join } from "path";
@@ -10,30 +11,11 @@ import type {
 	LeaderboardEntry,
 } from "../shared/exercise";
 
-const tapiaAppName = app.getName();
-const tapiaStageFromName = tapiaAppName.toLowerCase().startsWith("tapia-")
-	? tapiaAppName.slice("tapia-".length)
-	: null;
-const tapiaRawStage =
-	process.env.TAPIA_STAGE ||
-	process.env.SOMA_STAGE ||
-	process.env.SOMA_CHANNEL ||
-	tapiaStageFromName ||
-	(is.dev ? "dev" : "prod");
-const tapiaNormalizedStage =
-	tapiaRawStage.trim().toLowerCase() === "production"
-		? "prod"
-		: tapiaRawStage.trim().toLowerCase();
-if (tapiaNormalizedStage !== "prod") {
-	const stageRoot = join(app.getPath("appData"), `tapia-${tapiaNormalizedStage}`);
-	app.setPath("appData", stageRoot);
-	app.setPath("userData", join(stageRoot, "user-data"));
-	app.setPath("sessionData", join(stageRoot, "session"));
-	app.setPath("logs", join(stageRoot, "logs"));
-	app.setPath("crashDumps", join(stageRoot, "crashes"));
-	app.setPath("cache", join(stageRoot, "cache"));
-	app.setName(`tapia-${tapiaNormalizedStage}`);
-}
+new StageConfigService({
+	appPrefix: "tapia",
+	isDev: is.dev,
+	stageEnvKeys: ["TAPIA_STAGE", "SOMA_STAGE", "SOMA_CHANNEL"],
+}).apply();
 
 type SpaceStub = {
 	id: string;
@@ -172,7 +154,7 @@ function createWindow(): void {
 		width: 900,
 		height: 670,
 		show: false,
-    titleBarStyle: 'hidden',
+		titleBarStyle: "hidden",
 		autoHideMenuBar: true,
 		...(process.platform === "linux" ? { icon } : {}),
 		webPreferences: {
