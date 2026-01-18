@@ -36,6 +36,17 @@ if [ "$OS" = "macos" ]; then
   xattr -cr "/Applications/soma.app" 2>/dev/null || true
   xattr -dr com.apple.quarantine "/Applications/tapia.app" 2>/dev/null || true
   xattr -cr "/Applications/tapia.app" 2>/dev/null || true
+  missing=0
+  for app in soma tapia; do
+    if [ ! -d "/Applications/$app.app" ]; then
+      echo "Missing /Applications/$app.app after install." >&2
+      missing=1
+    fi
+  done
+  if [ "$missing" -ne 0 ]; then
+    echo "Install appears incomplete. Check /var/log/install.log and pkgutil --files digital.camer.soma.bundle" >&2
+    exit 1
+  fi
   echo "Installed bundle package (includes soma-daemon, soma-agentd, soma, and tapia)"
 elif [ "$OS" = "linux" ]; then
   DEB="soma-bundle-$BUNDLE_VERSION-linux-$ARCH.deb"
