@@ -81,9 +81,14 @@ runs:
           ${DESKTOP_VERSION:+--desktop-version "$DESKTOP_VERSION"} \
           ${BUNDLE_VERSION:+--bundle-version "$BUNDLE_VERSION"} \
           | tee "$JSON_PATH"
-        JSON_LINE="$(grep -E '^\\{\"bundle_version\"' "$JSON_PATH" | tail -n 1)"
+        JSON_LINE="$(awk 'NF{line=$0} END{print line}' "$JSON_PATH")"
         if [ -z "$JSON_LINE" ]; then
           echo "Failed to locate xtask JSON output in $JSON_PATH" >&2
+          exit 1
+        fi
+        if ! echo "$JSON_LINE" | jq -e . >/dev/null 2>&1; then
+          echo "Last non-empty line is not valid JSON:" >&2
+          echo "$JSON_LINE" >&2
           exit 1
         fi
         echo "$JSON_LINE" > "$JSON_PATH"
