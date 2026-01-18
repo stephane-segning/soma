@@ -5,8 +5,8 @@ Shared layout + overlay components for Soma and Tapia desktop apps. Ships Tailwi
 ## Usage
 
 ```tsx
-import "soma-ui/styles.css";
-import { DesktopArea, DesktopShell, Dock, Taskbar, notify } from "soma-ui";
+import "@soma/ui/styles.css";
+import { DesktopArea, DesktopShell, Dock, Taskbar, notify } from "@soma/ui";
 
 export function Shell() {
   return (

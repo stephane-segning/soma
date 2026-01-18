@@ -7,7 +7,7 @@ export type StagedBlob = {
 	fileName?: string;
 };
 
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../lib/ipc";
 
 export async function stageBlob(input: {
 	bytes: Uint8Array;

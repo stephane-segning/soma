@@ -2,7 +2,7 @@ import { cn } from "@soma/lib/cn";
 import { useAppDispatch, useAppSelector } from "@soma/store/hooks";
 import { MAX_TABS, tabsActions, tabsSelectors } from "@soma/store/tabs";
 import { List, MessageCircle, Plus, X } from "react-feather";
-import { PolymorphButton } from "soma-ui/components/actions/polymorph-button";
+import { PolymorphButton } from "@soma/ui/components/actions/polymorph-button";
 
 type TabsBarProps = {
 	leftOpen: boolean;

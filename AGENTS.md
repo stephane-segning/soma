@@ -321,7 +321,7 @@ Shared frontend stack (Soma, Soma-app, Tapia):
 - Routing: `react-router` core (prefer memory/hash routers for Electron; not `react-router-dom`)
 - i18n: `react-i18next` + `i18next` with `i18next-chained-backend`, `i18next-http-backend`, `i18next-resources-to-backend`, `i18next-browser-languagedetector`
 - Command palette + hotkeys: `react-hotkeys-hook` and `react-cmdk`
-- `desktop/soma-ui` packaging: root export is intentionally disabled (`exports["."]=false`) and there is no `src/index.ts`. Import via subpaths (`soma-ui/components/*`, `soma-ui/hooks/*`, `soma-ui/utils/*`, `soma-ui/yoopta`, `soma-ui/types`). `tsup` builds multi-entry outputs for those folders and excludes stories.
+- `desktop/soma-ui` packaging: root export is intentionally disabled (`exports["."]=false`) and there is no `src/index.ts`. Import via subpaths (`@soma/ui/components/*`, `@soma/ui/hooks/*`, `@soma/ui/utils/*`, `@soma/ui/yoopta`, `@soma/ui/types`). `tsup` builds multi-entry outputs for those folders and excludes stories.
 
 Legacy Electron app (`desktop/soma`): removed/retired in favor of the Tauri app; do not add new code here.
 

@@ -1,5 +1,5 @@
 import { Outlet } from "react-router";
-import { AuroraWallpaper } from "soma-ui/components/layout/wallpaper";
+import { AuroraWallpaper } from "@soma/ui/components/layout/wallpaper";
 
 function ShellLayout() {
 	return (

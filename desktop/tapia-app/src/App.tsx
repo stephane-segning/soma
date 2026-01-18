@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useTauriStore } from "soma-ui/hooks/use-tauri-store";
+import { useTauriStore } from "@soma/ui/hooks/use-tauri-store";
 import "./App.css";
 
 type DeepLinkPayload = {

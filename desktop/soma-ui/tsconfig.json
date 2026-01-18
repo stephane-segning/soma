@@ -20,7 +20,7 @@
 		"types": ["vite/client"],
 		"baseUrl": ".",
 		"paths": {
-			"@soma-ui/*": ["src/*"]
+			"@soma/ui/*": ["src/*"]
 		}
 	},
 	"include": ["src", ".storybook"],

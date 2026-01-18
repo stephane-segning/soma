@@ -1,9 +1,9 @@
 import { useChatConversation } from "@soma/hooks/use-chat-conversation.ts";
 import { api } from "@soma/store/api";
 import { useEffect, useMemo, useState } from "react";
-import { AiChat } from "soma-ui/components/chat/ai-chat";
-import { AiConversation } from "soma-ui/components/chat/ai-conversation";
-import { AiInput } from "soma-ui/components/forms/ai-input";
+import { AiChat } from "@soma/ui/components/chat/ai-chat";
+import { AiConversation } from "@soma/ui/components/chat/ai-conversation";
+import { AiInput } from "@soma/ui/components/forms/ai-input";
 
 function ChatSidebar(): React.JSX.Element {
 	const { data, error } = api.useListAgentModelsQuery(undefined, {

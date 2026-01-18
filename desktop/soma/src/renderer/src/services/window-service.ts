@@ -1,15 +1,13 @@
-import { getCurrentWindow } from "@tauri-apps/api/window";
-
-const appWindow = getCurrentWindow();
+import { windowControls as ipcWindowControls } from "../lib/ipc";
 
 export const windowControls = {
 	minimize(): void {
-		appWindow?.minimize?.();
+		void ipcWindowControls.minimize();
 	},
 	toggleMaximize(): void {
-		appWindow?.toggleMaximize?.();
+		void ipcWindowControls.toggleMaximize();
 	},
 	close(): void {
-		appWindow?.close?.();
+		void ipcWindowControls.close();
 	},
 };

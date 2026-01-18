@@ -16,6 +16,6 @@
 - Header is a render-prop: receives `toggleLeft`, `toggleRight`, and open state so apps can control toggles (e.g., menu/info buttons).
 
 ### Storybook
-- Components live in the `soma-ui` package (`desktop/soma-ui`). Stories are under `src/stories`.
-- Build locally: `pnpm --filter soma-ui run storybook` (dev) or `pnpm --filter soma-ui run build:storybook`.
+- Components live in the `@soma/ui` package (`desktop/soma-ui`). Stories are under `src/stories`.
+- Build locally: `pnpm --filter @soma/ui run storybook` (dev) or `pnpm --filter @soma/ui run build:storybook`.
 - Docs pipeline: `just build-docs` now also builds Storybook into `site/storybook` after MkDocs runs.

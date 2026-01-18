@@ -4,7 +4,7 @@ import { TabsBar } from "@soma/components/tabs-bar.tsx";
 import { WindowControls } from "@soma/components/window-controls.tsx";
 import { lazy, Suspense } from "react";
 import { Outlet } from "react-router";
-import { DesktopShell } from "soma-ui/components/layout/desktop-shell";
+import { DesktopShell } from "@soma/ui/components/layout/desktop-shell";
 
 const ChatSidebar = lazy(() =>
 	import("@soma/routes/chat-sidebar").then((m) => ({

@@ -9,10 +9,7 @@ export type StreamEvent = {
 	ready?: boolean;
 };
 
-/**
- * Chat via daemon/agent; expects soma-daemon to forward to the agent service.
- */
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../lib/ipc";
 
 export type ChatOptions = {
 	model?: string;

@@ -1,5 +1,5 @@
 import { createId } from "@paralleldrive/cuid2";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../lib/ipc";
 
 type DraftRecord = {
 	spaceId: string;

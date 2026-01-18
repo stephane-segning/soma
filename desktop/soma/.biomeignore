@@ -1,0 +1,13 @@
+node_modules
+dist
+out
+resources
+build
+coverage
+.turbo
+.next
+.cache
+.idea
+.vscode
+.DS_Store
+*.log*

@@ -70,7 +70,7 @@
 		"remark-rehype": "^11.1.0",
 		"slate": "^0.120.0",
 		"slate-react": "^0.120.0",
-		"soma-ui": "workspace:*",
+		"@soma/ui": "workspace:*",
 		"tailwind-merge": "^3.4.0",
 		"unified": "^11.0.4"
 	},

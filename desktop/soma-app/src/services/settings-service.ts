@@ -1,5 +1,5 @@
+import { getTauriStore } from "@soma/ui/hooks/use-tauri-store";
 import type { LazyStore } from "@tauri-apps/plugin-store";
-import { getTauriStore } from "soma-ui/hooks/use-tauri-store";
 
 export const SETTINGS_STORE_NAME = "settings.json";
 

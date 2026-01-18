@@ -4,12 +4,12 @@ import { listen } from "@tauri-apps/api/event";
 import { useEffect, useMemo, useState } from "react";
 import { Activity, BarChart2, Clock, RefreshCw, Zap } from "react-feather";
 import { Link } from "react-router";
-import { PolymorphButton } from "soma-ui/components/actions/polymorph-button";
-import { DesktopArea } from "soma-ui/components/layout/desktop-area";
-import { DesktopShell } from "soma-ui/components/layout/desktop-shell";
-import { Taskbar } from "soma-ui/components/layout/taskbar";
-import { WindowChrome } from "soma-ui/components/layout/window-chrome";
-import type { DesktopIcon, RunningApp } from "soma-ui/types";
+import { PolymorphButton } from "@soma/ui/components/actions/polymorph-button";
+import { DesktopArea } from "@soma/ui/components/layout/desktop-area";
+import { DesktopShell } from "@soma/ui/components/layout/desktop-shell";
+import { Taskbar } from "@soma/ui/components/layout/taskbar";
+import { WindowChrome } from "@soma/ui/components/layout/window-chrome";
+import type { DesktopIcon, RunningApp } from "@soma/ui/types";
 import { usePersistentStatus } from "../../hooks/use-persistent-status";
 
 type DeepLinkPayload = {

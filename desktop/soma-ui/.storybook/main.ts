@@ -19,8 +19,8 @@ const config: StorybookConfig = {
 		config.resolve = config.resolve || {};
 		config.resolve.alias = {
 			...(config.resolve.alias || {}),
-			"@soma-ui": path.resolve(__dirname, "../src"),
-			"@soma-ui/*": path.resolve(__dirname, "../src/*"),
+			"@soma/ui": path.resolve(__dirname, "../src"),
+			"@soma/ui/*": path.resolve(__dirname, "../src/*"),
 		};
 
 		return config;

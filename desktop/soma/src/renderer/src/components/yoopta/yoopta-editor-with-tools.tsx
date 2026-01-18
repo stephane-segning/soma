@@ -34,7 +34,7 @@ import Table from "@yoopta/table";
 import type React from "react";
 import { useEffect, useMemo } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
-import { YooptaFilePlugin, YooptaImagePlugin } from "soma-ui/yoopta";
+import { YooptaFilePlugin, YooptaImagePlugin } from "@soma/ui/yoopta";
 import {
 	renderManagedAccordion,
 	renderManagedBlockquote,

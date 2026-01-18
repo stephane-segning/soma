@@ -2,9 +2,9 @@ import { RouterListener } from "@soma/components/router-listener";
 import { SideMenu } from "@soma/components/side/side-menu.tsx";
 import { TabsBar } from "@soma/components/tabs-bar.tsx";
 import { WindowControls } from "@soma/components/window-controls.tsx";
+import { DesktopShell } from "@soma/ui/components/layout/desktop-shell";
 import { lazy, Suspense } from "react";
 import { Outlet } from "react-router";
-import { DesktopShell } from "soma-ui/components/layout/desktop-shell";
 
 const ChatSidebar = lazy(() =>
 	import("@soma/routes/chat-sidebar").then((m) => ({

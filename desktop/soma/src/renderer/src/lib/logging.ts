@@ -1,5 +1,3 @@
-import { debug, error, info, trace, warn } from "@tauri-apps/plugin-log";
-
 const isDev = import.meta.env.DEV;
 const forwardEnabled = isDev || import.meta.env.VITE_FORWARD_CONSOLE === "true";
 
@@ -71,11 +69,19 @@ function forwardConsole(
 }
 
 if (forwardEnabled) {
-	// In production builds, forwarding every console call into Rust can overwhelm the IPC channel.
-	// Keep it opt-in via `VITE_FORWARD_CONSOLE=true`.
-	forwardConsole("log", trace);
-	forwardConsole("debug", debug);
-	forwardConsole("info", info);
-	forwardConsole("warn", warn);
-	forwardConsole("error", error);
+	// Forward console output to the main process for centralized logging.
+	const send = async (payload: { level: string; message: string }) => {
+		try {
+			const { invoke } = await import("./ipc");
+			await invoke("log:message", payload);
+		} catch {
+			// ignore
+		}
+	};
+
+	forwardConsole("log", (message) => send({ level: "log", message }));
+	forwardConsole("debug", (message) => send({ level: "debug", message }));
+	forwardConsole("info", (message) => send({ level: "info", message }));
+	forwardConsole("warn", (message) => send({ level: "warn", message }));
+	forwardConsole("error", (message) => send({ level: "error", message }));
 }

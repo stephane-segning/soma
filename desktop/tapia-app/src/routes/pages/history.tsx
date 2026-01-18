@@ -1,6 +1,6 @@
 import { Link } from "react-router";
-import { DesktopShell } from "soma-ui/components/layout/desktop-shell";
-import { WindowChrome } from "soma-ui/components/layout/window-chrome";
+import { DesktopShell } from "@soma/ui/components/layout/desktop-shell";
+import { WindowChrome } from "@soma/ui/components/layout/window-chrome";
 
 function HistoryPage() {
 	return (
