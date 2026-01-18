@@ -116,23 +116,35 @@ jobs:
         shell: bash
         run: pnpm install --frozen-lockfile
 
-      - name: Build Electron apps
+      - name: Build Electron apps (macOS)
+        if: matrix.os == 'macos'
         shell: bash
         env:
-          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          CSC_LINK: ${{ secrets.MACOS_CERT_P12 }}
+          CSC_KEY_PASSWORD: ${{ secrets.MACOS_CERT_P12_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           set -euo pipefail
           ARCH_FLAG="--x64"
           if [ "${{ matrix.arch }}" = "arm64" ]; then
             ARCH_FLAG="--arm64"
           fi
-          if [ "${{ matrix.os }}" = "linux" ]; then
-            pnpm --filter soma run build:linux -- "$ARCH_FLAG"
-            pnpm --filter tapia run build:linux -- "$ARCH_FLAG"
-          else
-            pnpm --filter soma run build:mac -- "$ARCH_FLAG"
-            pnpm --filter tapia run build:mac -- "$ARCH_FLAG"
+          pnpm --filter soma run build:mac -- "$ARCH_FLAG"
+          pnpm --filter tapia run build:mac -- "$ARCH_FLAG"
+
+      - name: Build Electron apps (linux)
+        if: matrix.os == 'linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          ARCH_FLAG="--x64"
+          if [ "${{ matrix.arch }}" = "arm64" ]; then
+            ARCH_FLAG="--arm64"
           fi
+          pnpm --filter soma run build:linux -- "$ARCH_FLAG"
+          pnpm --filter tapia run build:linux -- "$ARCH_FLAG"
 
       - name: Collect artifacts
         shell: bash
