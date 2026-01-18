@@ -150,10 +150,10 @@ fn create_icns(png_output_dir: &Path, mac_output_dir: &Path) -> Result<()> {
 
     let mut icon_family = IconFamily::new();
     for size in PNG_SIZES {
-        if IconType::from_pixel_size(size, size).is_none() {
+        let Some(icon_type) = icon_type_for_size(size) else {
             println!("Skipping ICNS size {size}x{size} (unsupported)");
             continue;
-        }
+        };
         let file_path = png_output_dir.join(format!("{size}.png"));
         let file = BufReader::new(
             File::open(&file_path).with_context(|| format!("open {}", file_path.display()))?,
@@ -161,8 +161,8 @@ fn create_icns(png_output_dir: &Path, mac_output_dir: &Path) -> Result<()> {
         let image = Image::read_png(file)
             .with_context(|| format!("read png {}", file_path.display()))?;
         icon_family
-            .add_icon(&image)
-            .with_context(|| format!("add png {}", file_path.display()))?;
+            .add_icon_with_type(&image, icon_type)
+            .with_context(|| format!("add png {} as {:?}", file_path.display(), icon_type))?;
     }
 
     let icns_path = mac_output_dir.join("icon.icns");
@@ -174,6 +174,20 @@ fn create_icns(png_output_dir: &Path, mac_output_dir: &Path) -> Result<()> {
         .with_context(|| format!("write {}", icns_path.display()))?;
 
     Ok(())
+}
+
+fn icon_type_for_size(size: u32) -> Option<IconType> {
+    match size {
+        16 => Some(IconType::RGBA32_16x16),
+        32 => Some(IconType::RGBA32_32x32),
+        48 => Some(IconType::RGB24_48x48),
+        64 => Some(IconType::RGBA32_64x64),
+        128 => Some(IconType::RGBA32_128x128),
+        256 => Some(IconType::RGBA32_256x256),
+        512 => Some(IconType::RGBA32_512x512),
+        1024 => Some(IconType::RGBA32_512x512_2x),
+        _ => None,
+    }
 }
 
 fn create_ico(png_output_dir: &Path, win_output_dir: &Path) -> Result<()> {
