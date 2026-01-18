@@ -346,6 +346,9 @@ importers:
       inversify:
         specifier: ^6.0.2
         version: 6.2.2(reflect-metadata@0.2.2)
+      long:
+        specifier: ^5.3.2
+        version: 5.3.2
       prop-types:
         specifier: ^15.8.1
         version: 15.8.1
