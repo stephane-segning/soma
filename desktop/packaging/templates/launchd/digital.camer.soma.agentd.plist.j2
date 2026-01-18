@@ -7,6 +7,10 @@
   <key>ProgramArguments</key>
   <array>
     <string>{{install_prefix}}/bin/soma-agentd</string>
+    <string>--socket-path</string>
+    <string>/tmp/soma-agentd.sock</string>
+    <string>--models-dir</string>
+    <string>{{install_prefix}}/share/soma/models</string>
   </array>
   <key>RunAtLoad</key>
   <true/>

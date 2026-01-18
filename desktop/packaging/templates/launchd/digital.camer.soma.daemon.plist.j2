@@ -7,7 +7,20 @@
   <key>ProgramArguments</key>
   <array>
     <string>{{install_prefix}}/bin/soma-daemon</string>
+    <string>--listen-addrs</string>
+    <string>/ip4/0.0.0.0/tcp/0,/ip4/0.0.0.0/udp/0/quic-v1,/ip4/0.0.0.0/tcp/0/ws</string>
+    <string>--db-path</string>
+    <string>{{install_prefix}}/share/soma/daemon.db</string>
+    <string>--blob-dir</string>
+    <string>{{install_prefix}}/share/soma/blobs</string>
+    <string>--socket-path</string>
+    <string>/tmp/soma-daemon.sock</string>
   </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>SOMA_DATA_DIR</key>
+    <string>{{install_prefix}}/share/soma/data</string>
+  </dict>
   <key>RunAtLoad</key>
   <true/>
   <key>KeepAlive</key>

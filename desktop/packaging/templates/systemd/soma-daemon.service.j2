@@ -5,7 +5,8 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart={{install_prefix}}/bin/soma-daemon --listen-addrs /ip4/0.0.0.0/tcp/0,/ip4/0.0.0.0/udp/0/quic-v1,/ip4/0.0.0.0/tcp/0/ws --db-path
+Environment="SOMA_DATA_DIR={{install_prefix}}/share/soma/data"
+ExecStart={{install_prefix}}/bin/soma-daemon --listen-addrs /ip4/0.0.0.0/tcp/0,/ip4/0.0.0.0/udp/0/quic-v1,/ip4/0.0.0.0/tcp/0/ws --db-path {{install_prefix}}/share/soma/daemon.db --blob-dir {{install_prefix}}/share/soma/blobs --socket-path /tmp/soma-daemon.sock
 Restart=on-failure
 RestartSec=5
 
