@@ -81,6 +81,12 @@ runs:
           ${DESKTOP_VERSION:+--desktop-version "$DESKTOP_VERSION"} \
           ${BUNDLE_VERSION:+--bundle-version "$BUNDLE_VERSION"} \
           | tee "$JSON_PATH"
+        JSON_LINE="$(grep -E '^\\{\"bundle_version\"' "$JSON_PATH" | tail -n 1)"
+        if [ -z "$JSON_LINE" ]; then
+          echo "Failed to locate xtask JSON output in $JSON_PATH" >&2
+          exit 1
+        fi
+        echo "$JSON_LINE" > "$JSON_PATH"
         PLATFORM_OUT="$(jq -r '.platform_out' "$JSON_PATH")"
         STAGING_DIR="$(jq -r '.staging_dir' "$JSON_PATH")"
         {
