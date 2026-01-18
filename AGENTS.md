@@ -20,7 +20,7 @@ In this repo, **VDF** refers to a **cache-only peer role** (sometimes casually w
 - `desktop/` – Desktop applications and packaging.
     - `desktop/soma/` – Soma Electron/Chromium app (primary packaged Soma desktop UI).
     - `desktop/proto/` – TypeScript protobuf+gRPC codegen (`@soma/proto`) for Node/Electron consumers.
-    - `desktop/tapia-app/` – Tapia Tauri v2 app (main Tapia UI; Rust main process). Legacy Electron app remains under `desktop/tapia` but is not the primary target.
+    - `desktop/tapia/` – Tapia Electron/Chromium app (primary packaged Tapia UI).
 - `docs/` – VitePress documentation (`docs/src/` for markdown, `docs/.vitepress` for config/navigation).
 - `proto/` – shared protocol definitions and codegen inputs.
 - `deploy/` – Helm charts and infrastructure manifests.
@@ -30,7 +30,7 @@ In this repo, **VDF** refers to a **cache-only peer role** (sometimes casually w
 When in doubt, place:
 
 - shared Rust logic under an appropriate `backend/crates/*`.
-- UI logic under `desktop/soma` (Soma) or `desktop/tapia-app` (Tapia).
+- UI logic under `desktop/soma` (Soma) or `desktop/tapia` (Tapia).
 - long-lived infra logic under `backend/crates/*`.
 - user-facing docs under `docs/src/`.
 
@@ -45,7 +45,7 @@ Repo automation (`xtask`):
 - `cargo xtask` is the preferred way to run CI-critical automation from the repo root (wired via `.cargo/config.toml`).
 - Version helpers:
   - `cargo xtask version workspace --path Cargo.toml`
-  - `cargo xtask version desktop --path desktop/tapia-app/package.json`
+  - `cargo xtask version desktop --path desktop/soma/package.json` (or `desktop/tapia/package.json`)
 - Bundle packaging (downloads published release assets and produces `.deb/.rpm` or `.pkg`):
   - `cargo xtask release bundle --os <linux|macos> --arch <amd64|arm64>`
   - Produces per-platform helper scripts `install.sh` and `uninstall.sh` alongside the packaged artifacts under `artifacts/bundle/<os>-<arch>/`.
@@ -54,7 +54,7 @@ Repo automation (`xtask`):
 ## Tech Stack
 
 - **Package manager**: `pnpm` (workspace at `pnpm-workspace.yaml`).
-- **Desktop apps**: Electron/Chromium (`desktop/soma`) + Tauri v2 (`desktop/tapia-app`).
+- **Desktop apps**: Electron/Chromium (`desktop/soma`, `desktop/tapia`).
 - **Backends**: Rust.
 
 ## CI, Packaging, and Releases
@@ -64,8 +64,6 @@ This repo uses GitHub Actions workflows that are designed to be triggered manual
 - **Daemon + agent releases**: `.github/workflows/release-daemons.yml`
   - Builds `soma-daemon` and `soma-agentd` for `linux/macos` × `amd64/arm64` using `cross` (via `.github/actions/cargo-cross-build/action.yml`).
   - Publishes assets to GitHub Releases (never “latest”) with OS/arch suffixes.
-- **Desktop releases (Tapia)**: `.github/workflows/release-desktop.yml`
-  - Builds Tapia desktop artifacts for `linux/macos` × `amd64/arm64` and publishes to GitHub Releases (never “latest”).
 - **Docker images**: `.github/workflows/docker-backend.yml`
   - Builds/pushes multi-target images from `Dockerfile` (manual-only), gated by a successful `soma-daemon` cross-build matrix.
 - **Bundle releases**: `.github/workflows/release.yml`
@@ -314,7 +312,7 @@ Shared frontend stack (Soma, Tapia):
 - Routing: `react-router` core (prefer memory/hash routers for Electron; not `react-router-dom`)
 - i18n: `react-i18next` + `i18next` with `i18next-chained-backend`, `i18next-http-backend`, `i18next-resources-to-backend`, `i18next-browser-languagedetector`
 - Command palette + hotkeys: `react-hotkeys-hook` and `react-cmdk`
-- `desktop/soma-ui` packaging: root export is intentionally disabled (`exports["."]=false`) and there is no `src/index.ts`. Import via subpaths (`@soma/ui/components/*`, `@soma/ui/hooks/*`, `@soma/ui/utils/*`, `@soma/ui/yoopta`, `@soma/ui/types`). `tsup` builds multi-entry outputs for those folders and excludes stories.
+- `desktop/desktp-ui` packaging: root export is intentionally disabled (`exports["."]=false`) and there is no `src/index.ts`. Import via subpaths (`@soma/ui/components/*`, `@soma/ui/hooks/*`, `@soma/ui/utils/*`, `@soma/ui/yoopta`, `@soma/ui/types`). `tsup` builds multi-entry outputs for those folders and excludes stories.
 
 Soma (`desktop/soma`) (Electron/Chromium):
 
@@ -328,15 +326,13 @@ Soma (`desktop/soma`) (Electron/Chromium):
 - Local LLM chat runs via `soma-agentd` (gRPC over Unix socket); for model selection and “base vs instruct” behavior, see `docs/src/development/agentd-models.md`.
 - Space members UI: `/spaces/:spaceId/members` simply lists the roster fetched via the daemon `ListSpaceMembers` RPC exposed as the `spaces_list_members` IPC command (`desktop/soma/src/renderer/src/routes/screens/space-members.tsx` + `@soma/queries/spaces`). Keep it lightweight/read-only; no bespoke member page beyond this list.
 
-Tapia (`desktop/tapia-app`):
+Tapia (`desktop/tapia`):
 
-- Uses a client to call the Soma peer/daemon over its Unix socket API (e.g., saving leaderboard state).
+- Electron/Chromium UI living under `desktop/tapia`.
 - Uses `simple-keyboard`.
 - Needs “text segmentation + cursor ranges” and a “diff/comparison engine”; choose stable, mature packages from the JavaScript package registry (common candidates: `graphemer` / `grapheme-splitter`, and `diff-match-patch` / `diff`).
 - Uses Motion for micro-interactions (cursor movement/layout animations, color transitions, correct/incorrect feedback).
 - Uses XState for state machines.
-- Uses the same Tauri command/controller conventions (see `docs/src/development/tauri-commands.md`), including shared `desktop/tauri-command-utils` for `AppError/AppResult` + `parse_params`.
-- Legacy Electron app remains under `desktop/tapia` but is not the primary packaged target.
 
 ## Binaries and Responsibilities
 
@@ -344,7 +340,7 @@ This repo intentionally has multiple binaries. Each has a distinct goal and depl
 
 ### Desktop vs Server (rule of thumb)
 
-- **Desktop**: `soma-daemon`, `soma-agentd`, `soma` (UI), `tapia-app` (UI) — **no Axum**.
+- **Desktop**: `soma-daemon`, `soma-agentd`, `soma` (UI), `tapia` (UI) — **no Axum**.
 - **Server**: `soma-botd`, `soma-relayd`, `soma-rendezvousd`, `soma-bffd`, `soma-serverd` — **Axum + metrics**.
 
 ### Desktop / Peer Backends (`backend/`)
@@ -438,11 +434,11 @@ This repo intentionally has multiple binaries. Each has a distinct goal and depl
   pnpm --filter soma run lint
   ```
 
-  and similarly for `desktop/tapia-app` (use `--filter tapia-app`).
+  and similarly for `desktop/tapia` (use `--filter tapia`).
 
 - Build desktop apps from the repo root:
   - Soma (Electron): `pnpm --filter soma run build`
-  - Tapia (Tauri): `pnpm --filter tapia-app tauri build`
+  - Tapia (Electron): `pnpm --filter tapia run build`
 
 - Keep unit tests small and focused; integration tests should run against local daemons where feasible.
 
@@ -450,7 +446,7 @@ This repo intentionally has multiple binaries. Each has a distinct goal and depl
 
 - For end-to-end checks:
     - Run `soma-daemon` from `backend/`.
-    - Start `desktop/soma` or `desktop/tapia-app` in dev mode.
+    - Start `desktop/soma` or `desktop/tapia` in dev mode.
     - Exercise join flows, class navigation, and basic messaging.
 
 ## Telemetry & Logging (Rust backends)

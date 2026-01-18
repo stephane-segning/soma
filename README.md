@@ -1,7 +1,6 @@
 # Soma
 
 [![Release Docs and Desktop Packages](https://github.com/stephane-segning/soma/actions/workflows/release-pages.yml/badge.svg)](https://github.com/stephane-segning/soma/actions/workflows/release-pages.yml)
-[![Release desktop (Soma)](https://github.com/stephane-segning/soma/actions/workflows/release-desktop.yml/badge.svg)](https://github.com/stephane-segning/soma/actions/workflows/release-desktop.yml)
 [![Release daemons (soma-daemon + soma-agentd)](https://github.com/stephane-segning/soma/actions/workflows/release-daemons.yml/badge.svg)](https://github.com/stephane-segning/soma/actions/workflows/release-daemons.yml)
 [![Release bundle](https://github.com/stephane-segning/soma/actions/workflows/release.yml/badge.svg)](https://github.com/stephane-segning/soma/actions/workflows/release.yml)
 [![Build backend Docker images](https://github.com/stephane-segning/soma/actions/workflows/docker-backend.yml/badge.svg)](https://github.com/stephane-segning/soma/actions/workflows/docker-backend.yml)
@@ -14,7 +13,7 @@ The monorepo is organized into clear, documented areas:
 - backend Rust workspace (`backend/`)
 - desktop apps (`desktop/`)
   - Soma desktop app: Electron/Chromium (`desktop/soma`).
-  - Tapia desktop app: Tauri v2 (`desktop/tapia-app`).
+  - Tapia desktop app: Electron/Chromium (`desktop/tapia`).
   - `desktop/proto` is a TypeScript protobuf+gRPC codegen package (`@soma/proto`) used by Node/Electron code.
 - deployment artifacts (`deploy/`)
 - Docker Compose bundles (`compose/`)

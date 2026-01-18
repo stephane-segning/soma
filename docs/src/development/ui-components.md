@@ -20,6 +20,6 @@
 - Electron (`desktop/soma`): use `data-drag-region` + CSS `-webkit-app-region: drag` (see `desktop/soma/src/renderer/src/styles/app.scss`). Mark interactive elements with `data-no-drag`.
 
 ### Storybook
-- Components live in the `@soma/ui` package (`desktop/soma-ui`). Stories are under `src/stories`.
+- Components live in the `@soma/ui` package (`desktop/desktp-ui`). Stories are under `src/stories`.
 - Build locally: `pnpm --filter @soma/ui run storybook` (dev) or `pnpm --filter @soma/ui run build:storybook`.
 - Docs pipeline: `just build-docs` now also builds Storybook into `site/storybook` after MkDocs runs.

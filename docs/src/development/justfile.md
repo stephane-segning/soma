@@ -22,6 +22,11 @@ If you need to extend workflows (e.g., add arguments or new targets), update the
 - **Electron Soma (`desktop/soma`)** – `just icons-soma /path/to/icon.png` (or `.svg`)
   - Writes into `desktop/soma/build/icons` and copies the output into `desktop/soma/build/icon.icns`, `desktop/soma/build/icon.ico`, and `desktop/soma/build/icon.png`.
   - Updates the runtime window icon at `desktop/soma/resources/icon.png`.
+  - Updates the renderer favicon at `desktop/soma/src/renderer/public/icon.png`.
+- **Electron Tapia (`desktop/tapia`)** – `just icons-tapia /path/to/icon.png` (or `.svg`)
+  - Writes into `desktop/tapia/build/icons` and copies the output into `desktop/tapia/build/icon.icns`, `desktop/tapia/build/icon.ico`, and `desktop/tapia/build/icon.png`.
+  - Updates the runtime window icon at `desktop/tapia/resources/icon.png`.
+  - Updates the renderer favicon at `desktop/tapia/src/renderer/public/icon.png`.
 - **Tauri Soma (`desktop/soma-app`)** – `just icons-soma-app /path/to/icon.png` (or `.svg`)
   - Writes into `desktop/soma-app/src-tauri/icons`.
   - Copies `256x256.png` to `128x128@2x.png` for the `tauri.conf.json` retina entry.

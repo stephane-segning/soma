@@ -6,7 +6,7 @@ Soma is deployed as a desktop application (for end users) plus optional server d
 
 - Soma is packaged as an Electron app (`desktop/soma`) and talks to `soma-daemon` over a Unix socket gRPC API.
 - Desktop IPC uses a Unix domain socket; no inbound HTTP ports are required for the desktop daemon.
-- Tapia is shipped as a separate Tauri app (`desktop/tapia-app`); it can reuse daemon APIs for shared state. The legacy Electron app (`desktop/tapia`) remains in the repo but is not the primary target.
+- Tapia is shipped as a separate Electron app (`desktop/tapia`); it can reuse daemon APIs for shared state.
 
 ## Server deployment (typical)
 

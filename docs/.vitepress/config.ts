@@ -78,7 +78,6 @@ const sidebar: DefaultTheme.Sidebar = {
                 {text: 'justfile', link: '/development/justfile'},
                 {text: 'Peer Events', link: '/development/peer-events'},
                 {text: 'Tauri Apps (commands)', link: '/development/tauri-commands'},
-                {text: 'Tapia Deep Links', link: '/development/tapia-deep-links'},
                 {text: 'Agentd IPC', link: '/development/agentd-ipc'},
                 {text: 'Local LLMs (agentd models)', link: '/development/agentd-models'},
                 {text: 'Daemon Testing (grpcurl)', link: '/development/daemon-grpcurl'},

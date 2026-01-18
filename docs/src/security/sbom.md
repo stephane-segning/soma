@@ -12,7 +12,6 @@ Soma generates Software Bills of Materials (SBOMs) in CI to improve supply-chain
 SBOMs are generated as part of the release and build workflows in `.github/workflows/`:
 
 - `release-daemons.yml`: produces `sbom-daemons-<version>-<os>-<arch>.spdx.json` alongside daemon/agent release assets.
-- `release-desktop.yml`: produces `sbom-desktop-<version>-<os>-<arch>.spdx.json` alongside desktop release assets.
 - `release.yml`: produces `sbom-bundle-<bundle_version>-<os>-<arch>.spdx.json` alongside bundle release assets.
 - `docker-backend.yml`: produces `sbom-image-<name>.spdx.json` for built backend images (and uploads it as an artifact).
 

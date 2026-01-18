@@ -4,7 +4,7 @@ This page documents a few “follow the bytes” flows across the repo so you ca
 
 ## 1) Desktop app ↔ daemon (local IPC)
 
-- Desktop apps live under `desktop/` (Soma: `desktop/soma`, Tapia: `desktop/tapia-app`).
+- Desktop apps live under `desktop/` (Soma: `desktop/soma`, Tapia: `desktop/tapia`).
 - The local daemon is `soma-daemon` (`backend/bins/daemon`) and exposes gRPC over a Unix socket (`SOMA_DAEMON_SOCKET`).
 - Protos: `proto/daemon/v1/daemon.proto` (compiled by `backend/crates/proto-build`).
 

@@ -5,7 +5,7 @@ Soma is a **desktop-first, local-first** platform with a small set of supporting
 On a user device you typically run:
 
 - **Soma desktop app** (`desktop/soma`, Electron + React) — the main UI for classes, documents, and chat.
-- **Tapia** (`desktop/tapia-app`, Tauri v2 + React) — a typing companion app that can reuse the same local daemon.
+- **Tapia** (`desktop/tapia`, Electron + React) — a typing companion app that can reuse the same local daemon.
 - **soma-daemon** (`backend/bins/daemon`) — the local Rust backend that owns the libp2p identity, storage, and networking.
 - **soma-agentd** (`backend/bins/agentd`, optional) — a local “CPU-heavy” worker (LLM inference, OCR, indexing, …).
 
@@ -20,12 +20,12 @@ This document explains how those pieces fit together and how optional infrastruc
 - persists identity material, memberships/capabilities, and other state needed across UI restarts.
 - exposes a **local IPC API** (gRPC over Unix socket) so desktop apps can issue commands without re-implementing libp2p.
 
-## Desktop apps: `desktop/soma` and `desktop/tapia-app`
+## Desktop apps: `desktop/soma` and `desktop/tapia`
 
 The desktop apps focus on user experience and talk to the local daemon over IPC:
 
 - **Soma desktop app (Electron)**: classes/spaces, documents, blobs, chat, onboarding flows.
-- **Tapia (Tauri)**: typing exercises and companion UX; it can read/write relevant data through the same daemon.
+- **Tapia (Electron)**: typing exercises and companion UX; it can read/write relevant data through the same daemon.
 
 The key design rule is: **desktop apps do not implement libp2p**; they delegate network and security to `soma-daemon`.
 
@@ -43,7 +43,7 @@ See `docs/src/development/agentd-ipc.md` for the recommended trust boundary.
 flowchart LR
   subgraph "User Device"
     SomaUI["Soma desktop app<br/>(Electron + React)"]
-    TapiaUI["Tapia companion app<br/>(Tauri + React)"]
+    TapiaUI["Tapia companion app<br/>(Electron + React)"]
     Daemon["soma-daemon<br/>(Rust libp2p peer + storage)"]
     Agent["soma-agentd (optional)<br/>(local AI/compute)"]
 

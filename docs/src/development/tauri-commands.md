@@ -1,8 +1,6 @@
 # Tauri Apps: Commands, Controllers, Errors
 
-This repo standardizes the Tauri command boundary for Tapia:
-
-- Tapia: `desktop/tapia-app/src-tauri`
+This repo formerly standardized the Tauri command boundary for Tapia, but Tapia now ships as an Electron app.
 
 ## Goals
 
@@ -45,10 +43,7 @@ tauri-command-utils = { workspace = true, features = [
 
 Each app registers a small set of “category controllers” via `.manage(...)`, then commands use `tauri::State<'_, Controller>` to access them.
 
-Examples:
-
-- Tapia controllers: `desktop/tapia-app/src-tauri/src/handlers/*`
-  - `GreetingController` (currently minimal)
+This document is kept for historical reference; current desktop apps are Electron-based.
 
 ### Rule: one `Params` struct per method
 
@@ -63,9 +58,8 @@ pub struct ExampleParams {
 }
 ```
 
-## Where it lives in code
+## Where it lives in code (legacy)
 
-- Tapia command entrypoints: `desktop/tapia-app/src-tauri/src/commands.rs`
 - Shared parsing + errors: `desktop/tauri-command-utils/src/lib.rs`
 
 ## Electron parity (development shell)

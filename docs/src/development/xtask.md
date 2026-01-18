@@ -16,7 +16,7 @@ Read versions used by CI:
 
 ```bash
 cargo xtask version workspace --path Cargo.toml
-cargo xtask version desktop --path desktop/tapia-app/package.json
+cargo xtask version desktop --path desktop/soma/package.json
 ```
 
 Build a release bundle (downloads release assets, renders templates, produces `.deb/.rpm` on Linux or `.pkg` on macOS, and prints JSON to stdout):

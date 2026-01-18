@@ -6,7 +6,7 @@ This section lists the major building blocks in the repo and how they relate.
 
 - **Desktop apps** (`desktop/`)
   - `desktop/soma`: main UI (Electron).
-  - `desktop/tapia-app`: typing companion UI (Tauri).
+  - `desktop/tapia`: typing companion UI (Electron).
 - **Backend workspace** (`backend/`)
   - Binaries under `backend/bins/*` (daemons/services).
   - Shared crates under `backend/crates/*` (peer runtime, storage, networking, metrics, …).

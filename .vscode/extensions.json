@@ -4,6 +4,7 @@
         "fill-labs.dependi",
         "sonarsource.sonarlint-vscode",
         "drblury.protobuf-vsc",
-        "wholroyd.jinja"
+        "wholroyd.jinja",
+        "dbaeumer.vscode-eslint"
     ]
 }

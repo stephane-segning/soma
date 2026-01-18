@@ -57,11 +57,23 @@ icons-soma input="desktop/soma/build/icon.png":
     cp desktop/soma/build/icons/icon.ico desktop/soma/build/icon.ico
     cp desktop/soma/build/icons/1024x1024.png desktop/soma/build/icon.png
     cp desktop/soma/build/icons/1024x1024.png desktop/soma/resources/icon.png
+    mkdir -p desktop/soma/src/renderer/public
+    cp desktop/soma/build/icons/1024x1024.png desktop/soma/src/renderer/public/icon.png
 
 # Generate icon assets for the Tauri-based Soma app (desktop/soma-app)
 icons-soma-app input="desktop/soma-app/src-tauri/icons/icon.png":
     input_path="{{input}}"; input_path="${input_path#input=}"; cargo icons --input "$input_path" --output desktop/soma-app/src-tauri --flatten
     cp desktop/soma-app/src-tauri/icons/256x256.png desktop/soma-app/src-tauri/icons/128x128@2x.png
+
+# Generate icon assets for the Electron-based Tapia app (desktop/tapia)
+icons-tapia input="desktop/tapia/build/icon.png":
+    input_path="{{input}}"; input_path="${input_path#input=}"; cargo icons --input "$input_path" --output desktop/tapia/build --flatten
+    cp desktop/tapia/build/icons/icon.icns desktop/tapia/build/icon.icns
+    cp desktop/tapia/build/icons/icon.ico desktop/tapia/build/icon.ico
+    cp desktop/tapia/build/icons/1024x1024.png desktop/tapia/build/icon.png
+    cp desktop/tapia/build/icons/1024x1024.png desktop/tapia/resources/icon.png
+    mkdir -p desktop/tapia/src/renderer/public
+    cp desktop/tapia/build/icons/1024x1024.png desktop/tapia/src/renderer/public/icon.png
 
 #
 # Docker Compose helpers
@@ -105,17 +117,17 @@ test-desktop-soma:
 
 # Typecheck the Tapia desktop app (Node + Web)
 test-desktop-tapia:
-    pnpm --filter tapia-app run typecheck
+    pnpm --filter tapia run typecheck
 
 # Run lint + typecheck for both desktop apps
 test-desktop-all:
     pnpm --filter soma run lint && pnpm --filter soma run typecheck
-    pnpm --filter tapia-app run lint && pnpm --filter tapia-app run typecheck
+    pnpm --filter tapia run lint && pnpm --filter tapia run typecheck
 
 # Build docs site (used in CI for gh-pages)
 build-docs:
     pnpm --filter @soma/docs run build
-    cd desktop/soma-ui && pnpm run build:storybook -- --output-dir ../../site/storybook
+    cd desktop/desktp-ui && pnpm run build:storybook -- --output-dir ../../site/storybook
 
 # CI helpers (combine existing recipes)
 
