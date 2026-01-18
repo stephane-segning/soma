@@ -1,6 +1,6 @@
-import { cn } from "@soma/lib/cn";
-import { useAppDispatch, useAppSelector } from "@soma/store/hooks";
-import { MAX_TABS, tabsActions, tabsSelectors } from "@soma/store/tabs";
+import { cn } from "@renderer/lib/cn";
+import { useAppDispatch, useAppSelector } from "@renderer/store/hooks";
+import { MAX_TABS, tabsActions, tabsSelectors } from "@renderer/store/tabs";
 import { List, MessageCircle, Plus, X } from "react-feather";
 import { PolymorphButton } from "@soma/ui/components/actions/polymorph-button";
 

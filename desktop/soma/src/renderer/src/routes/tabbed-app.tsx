@@ -1,12 +1,15 @@
-import { useSetSettingMutation, useSettingQuery } from "@soma/queries/settings";
-import { useAppDispatch, useAppSelector } from "@soma/store/hooks";
-import { store } from "@soma/store/store";
+import {
+	useSetSettingMutation,
+	useSettingQuery,
+} from "@renderer/queries/settings";
+import { useAppDispatch, useAppSelector } from "@renderer/store/hooks";
+import { store } from "@renderer/store/store";
 import {
 	createDefaultState,
 	isPersistedTabsStateV1,
 	tabsActions,
 	tabsSelectors,
-} from "@soma/store/tabs";
+} from "@renderer/store/tabs";
 import { useEffect, useMemo } from "react";
 import { RouterProvider } from "react-router";
 import { createTabRouter } from "./router";

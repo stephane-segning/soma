@@ -1,5 +1,5 @@
-import { AsideNavigation } from "@soma/components/side/aside-navigation.tsx";
-import { SpacesRail } from "@soma/components/spaces-rail.tsx";
+import { AsideNavigation } from "@renderer/components/side/aside-navigation.tsx";
+import { SpacesRail } from "@renderer/components/spaces-rail.tsx";
 
 function SideMenu() {
 	return (

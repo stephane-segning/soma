@@ -1,9 +1,9 @@
 import "./styles/app.scss";
 import "./lib/logging";
 
-import { App } from "@soma/app.tsx";
-import { AppErrorBoundary } from "@soma/components/app-error-boundary";
-import { store } from "@soma/store/store";
+import { App } from "@renderer/app.tsx";
+import { AppErrorBoundary } from "@renderer/components/app-error-boundary";
+import { store } from "@renderer/store/store";
 import { StrictMode } from "react";
 import { ConfigProvider } from "react-avatar";
 import { createRoot } from "react-dom/client";

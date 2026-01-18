@@ -1,4 +1,4 @@
-import { api } from "@soma/store/api";
+import { api } from "@renderer/store/api";
 import { useMemo, useState } from "react";
 import { useDebounce } from "react-use";
 import type { SearchResult } from "../services/search-service";

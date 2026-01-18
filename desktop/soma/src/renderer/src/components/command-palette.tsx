@@ -1,7 +1,7 @@
-import { useSearchQuery } from "@soma/queries/search";
-import { useAppDispatch, useAppSelector } from "@soma/store/hooks";
-import { store } from "@soma/store/store";
-import { uiActions, uiSelectors } from "@soma/store/ui";
+import { useSearchQuery } from "@renderer/queries/search";
+import { useAppDispatch, useAppSelector } from "@renderer/store/hooks";
+import { store } from "@renderer/store/store";
+import { uiActions, uiSelectors } from "@renderer/store/ui";
 import { useEffect, useMemo, useState } from "react";
 import CommandPalette, {
 	filterItems,

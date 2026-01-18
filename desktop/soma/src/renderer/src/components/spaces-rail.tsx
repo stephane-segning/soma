@@ -1,5 +1,5 @@
-import { cn } from "@soma/lib/cn.ts";
-import { useSpacesQuery } from "@soma/queries/spaces";
+import { cn } from "@renderer/lib/cn.ts";
+import { useSpacesQuery } from "@renderer/queries/spaces";
 import Avatar from "react-avatar";
 import { Plus } from "react-feather";
 import { Link, useParams } from "react-router";

@@ -1,4 +1,4 @@
-import { api } from "@soma/store/api";
+import { api } from "@renderer/store/api";
 
 type SetSettingInput = { key: string; value: unknown };
 

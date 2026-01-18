@@ -1,4 +1,4 @@
-import { api, type SpaceMember } from "@soma/store/api";
+import { api, type SpaceMember } from "@renderer/store/api";
 
 const useSpacesQuery = api.useListSpacesQuery;
 const useSpaceQuery = (spaceId: string) =>

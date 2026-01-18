@@ -1,4 +1,4 @@
-import { api } from "@soma/store/api";
+import { api } from "@renderer/store/api";
 import { useMemo } from "react";
 
 type UseSpaceAccessResult = {

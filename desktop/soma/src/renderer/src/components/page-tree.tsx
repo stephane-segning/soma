@@ -15,12 +15,12 @@ import {
 	usePagesQuery,
 	useSetPageParentsMutation,
 	useUpdatePageTitleMutation,
-} from "@soma/queries/pages";
+} from "@renderer/queries/pages";
+import { PolymorphButton } from "@soma/ui/components/actions/polymorph-button";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Edit2, File, Plus } from "react-feather";
 import { Link } from "react-router";
-import { PolymorphButton } from "@soma/ui/components/actions/polymorph-button";
 
 type TreeNode = {
 	page: PageRecord;

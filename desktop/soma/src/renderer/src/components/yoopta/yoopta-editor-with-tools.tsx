@@ -1,4 +1,4 @@
-import { uploadToBlob } from "@soma/lib/blob";
+import { uploadToBlob } from "@renderer/lib/blob";
 import Accordion from "@yoopta/accordion";
 import ActionMenuList, {
 	DefaultActionMenuRender,

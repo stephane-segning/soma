@@ -1,4 +1,4 @@
-import * as documentsService from "@soma/services/documents-service.ts";
+import * as documentsService from "@renderer/services/documents-service.ts";
 import { type LoaderFunctionArgs, redirect } from "react-router";
 
 async function loader({ params }: LoaderFunctionArgs): Promise<Response> {

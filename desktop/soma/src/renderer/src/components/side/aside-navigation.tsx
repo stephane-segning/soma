@@ -1,5 +1,5 @@
-import { PageTree } from "@soma/components/page-tree.tsx";
-import { useCreatePage } from "@soma/queries/pages";
+import { PageTree } from "@renderer/components/page-tree.tsx";
+import { useCreatePage } from "@renderer/queries/pages";
 import { Plus, Settings, Trash2 } from "react-feather";
 import { useTranslation } from "react-i18next";
 import { NavLink, useParams } from "react-router";

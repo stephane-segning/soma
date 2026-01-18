@@ -1,4 +1,4 @@
-import * as spacesService from "@soma/services/spaces-service.ts";
+import * as spacesService from "@renderer/services/spaces-service.ts";
 import { redirect } from "react-router";
 
 async function loader(): Promise<Response> {
