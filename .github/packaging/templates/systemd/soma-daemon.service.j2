@@ -6,6 +6,8 @@ Wants=network-online.target
 [Service]
 Type=simple
 Environment="SOMA_DATA_DIR={{install_prefix}}/share/soma/data"
+Environment="SOMA_LOGS_DIR=/var/log/soma/daemon"
+Environment="SOMA_LOG_FORMAT=json"
 ExecStart={{install_prefix}}/bin/soma-daemon --listen-addrs /ip4/0.0.0.0/tcp/0,/ip4/0.0.0.0/udp/0/quic-v1,/ip4/0.0.0.0/tcp/0/ws --db-path {{install_prefix}}/share/soma/daemon.db --blob-dir {{install_prefix}}/share/soma/blobs --socket-path /tmp/soma-daemon.sock
 Restart=on-failure
 RestartSec=5
