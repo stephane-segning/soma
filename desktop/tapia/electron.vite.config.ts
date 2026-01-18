@@ -1,7 +1,7 @@
 import { resolve } from "node:path";
 import react from "@vitejs/plugin-react";
 import VitePluginCssMediaSplitter from "css-media-splitter/vite-plugin";
-import { defineConfig } from "electron-vite";
+import { defineConfig, externalizeDepsPlugin } from "electron-vite";
 import type { PreRenderedAsset } from "rollup";
 import { ViteImageOptimizer } from "vite-plugin-image-optimizer";
 import { ViteMinifyPlugin } from "vite-plugin-minify";
@@ -11,8 +11,12 @@ import wasm from "vite-plugin-wasm";
 import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig((configEnv) => ({
-	main: {},
-	preload: {},
+	main: {
+		plugins: [externalizeDepsPlugin()],
+	},
+	preload: {
+		plugins: [externalizeDepsPlugin()],
+	},
 	renderer: {
 		resolve: {
 			alias: [{ find: "@app", replacement: resolve("src/renderer/src") }],
