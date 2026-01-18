@@ -779,14 +779,54 @@ async function stageMacosApp(
     );
   }
 
-  const appBundle = path.join(staging, `${appName}.app`);
-  if (!(await pathExists(appBundle))) {
-    throw new Error(`Expected ${appName}.app in ${staging}`);
-  }
+  const appBundle = await findStagedAppBundle(staging, appName);
   if (adhocSign) {
     await adhocSignApp(appBundle);
   }
   return appBundle;
+}
+
+async function findStagedAppBundle(staging: string, appName: string) {
+  const matches: string[] = [];
+  const targetPrefix = appName.toLowerCase();
+
+  const walk = async (dir: string, depth: number) => {
+    if (depth > 3) {
+      return;
+    }
+    const entries = await fs.readdir(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory()) {
+        continue;
+      }
+      const lowerName = entry.name.toLowerCase();
+      const entryPath = path.join(dir, entry.name);
+      if (lowerName.endsWith(".app")) {
+        if (lowerName.startsWith(targetPrefix)) {
+          matches.push(entryPath);
+        }
+        continue;
+      }
+      await walk(entryPath, depth + 1);
+    }
+  };
+
+  await walk(staging, 0);
+
+  if (matches.length === 1) {
+    return matches[0];
+  }
+
+  if (matches.length === 0) {
+    throw new Error(
+      `No ${appName} app bundle found in ${staging}. Pass --${appName}-app to override.`
+    );
+  }
+
+  const names = matches.map((match) => path.basename(match)).join(", ");
+  throw new Error(
+    `Multiple ${appName} app bundles found in ${staging}: ${names}. Pass --${appName}-app to select one.`
+  );
 }
 
 async function adhocSignApp(appPath: string) {

@@ -1,6 +1,5 @@
 import { resolve } from "node:path";
 import react from "@vitejs/plugin-react";
-import VitePluginCssMediaSplitter from "css-media-splitter/vite-plugin";
 import { defineConfig } from "electron-vite";
 import type { PreRenderedAsset } from "rollup";
 import { ViteImageOptimizer } from "vite-plugin-image-optimizer";
@@ -37,7 +36,6 @@ export default defineConfig((configEnv) => ({
 				ViteImageOptimizer({
 					/* pass your config */
 				}),
-			configEnv.command === "build" && VitePluginCssMediaSplitter(),
 			configEnv.command === "build" &&
 				vitePluginVersionMark({
 					ifShortSHA: true,

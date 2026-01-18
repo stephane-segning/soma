@@ -4,7 +4,7 @@ use soma_core::SomaResult;
 use tokio::net::UnixListener;
 use tonic::transport::Server;
 use tonic::transport::server::Router as TonicRouter;
-use tracing::info;
+use tracing::{info, warn};
 
 /// Serve a tonic gRPC router over a Unix Domain Socket, respecting a shutdown signal.
 #[inline]
@@ -22,6 +22,16 @@ pub async fn serve_grpc_unix(
     }
 
     let listener = UnixListener::bind(socket_path)?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        if let Err(error) = std::fs::set_permissions(
+            socket_path,
+            std::fs::Permissions::from_mode(0o666),
+        ) {
+            warn!(?error, path=?socket_path, "failed to set unix socket permissions");
+        }
+    }
     let incoming = tokio_stream::wrappers::UnixListenerStream::new(listener);
     info!(path=?socket_path, "serving gRPC over unix socket");
 
