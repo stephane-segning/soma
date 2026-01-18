@@ -15,93 +15,222 @@ import { AppLogger } from "./services/logger";
 import { StartupService } from "./services/startup-service";
 import { TYPES } from "./types";
 
-export type ContainerOptions = {
-	logDir: string;
-	isDev: boolean;
-};
+export type ContainerOptions =
+	{
+		logDir: string;
+		isDev: boolean;
+	};
 
-export function buildContainer(options: ContainerOptions): Container {
-	const container = new Container({ defaultScope: "Singleton" });
-
-	container
-		.bind<AppDataStore>(TYPES.AppDataStore)
-		.toConstantValue(new AppDataStore());
-	container
-		.bind<DaemonClient>(TYPES.DaemonClient)
-		.toDynamicValue(() => new DaemonClient());
-	container
-		.bind<AgentClient>(TYPES.AgentClient)
-		.toDynamicValue(() => new AgentClient());
-
-	container
-		.bind<AppLogger>(TYPES.Logger)
-		.toConstantValue(new AppLogger(options));
-
-	container
-		.bind<BlobProtocolRegistrar>(TYPES.BlobProtocol)
-		.toDynamicValue(
-			(ctx) => new BlobProtocolRegistrar(ctx.container.get(TYPES.DaemonClient)),
+export function buildContainer(
+	options: ContainerOptions,
+): Container {
+	const container =
+		new Container(
+			{
+				defaultScope:
+					"Singleton",
+			},
 		);
 
 	container
-		.bind<BlobsController>(TYPES.BlobsController)
-		.toDynamicValue(
-			(ctx) => new BlobsController(ctx.container.get(TYPES.DaemonClient)),
+		.bind<AppDataStore>(
+			TYPES.AppDataStore,
+		)
+		.toConstantValue(
+			new AppDataStore(),
 		);
 	container
-		.bind<DocumentsController>(TYPES.DocumentsController)
+		.bind<DaemonClient>(
+			TYPES.DaemonClient,
+		)
 		.toDynamicValue(
-			(ctx) => new DocumentsController(ctx.container.get(TYPES.DaemonClient)),
+			() =>
+				new DaemonClient(),
 		);
 	container
-		.bind<SpacesController>(TYPES.SpacesController)
+		.bind<AgentClient>(
+			TYPES.AgentClient,
+		)
 		.toDynamicValue(
-			(ctx) => new SpacesController(ctx.container.get(TYPES.DaemonClient)),
+			() =>
+				new AgentClient(),
 		);
-	container
-		.bind<AgentController>(TYPES.AgentController)
-		.toDynamicValue(
-			(ctx) => new AgentController(ctx.container.get(TYPES.AgentClient)),
-		);
-	container
-		.bind<SearchController>(TYPES.SearchController)
-		.toDynamicValue(
-			(ctx) => new SearchController(ctx.container.get(TYPES.DaemonClient)),
-		);
-	container
-		.bind<SettingsController>(TYPES.SettingsController)
-		.toDynamicValue(
-			(ctx) => new SettingsController(ctx.container.get(TYPES.AppDataStore)),
-		);
-	container
-		.bind<WindowController>(TYPES.WindowController)
-		.toDynamicValue(() => new WindowController());
 
 	container
-		.bind<CommandRegistry>(TYPES.CommandRegistry)
+		.bind<AppLogger>(
+			TYPES.Logger,
+		)
+		.toConstantValue(
+			new AppLogger(
+				options,
+			),
+		);
+
+	container
+		.bind<BlobProtocolRegistrar>(
+			TYPES.BlobProtocol,
+		)
 		.toDynamicValue(
-			(ctx) =>
-				new CommandRegistry(
-					ctx.container.get(TYPES.BlobsController),
-					ctx.container.get(TYPES.DocumentsController),
-					ctx.container.get(TYPES.SpacesController),
-					ctx.container.get(TYPES.AgentController),
-					ctx.container.get(TYPES.SearchController),
-					ctx.container.get(TYPES.SettingsController),
-					ctx.container.get(TYPES.WindowController),
-					ctx.container.get(TYPES.Logger),
+			(
+				ctx,
+			) =>
+				new BlobProtocolRegistrar(
+					ctx.container.get(
+						TYPES.DaemonClient,
+					),
 				),
 		);
 
 	container
-		.bind<StartupService>(TYPES.StartupService)
+		.bind<BlobsController>(
+			TYPES.BlobsController,
+		)
 		.toDynamicValue(
-			(ctx) =>
+			(
+				ctx,
+			) =>
+				new BlobsController(
+					ctx.container.get(
+						TYPES.DaemonClient,
+					),
+				),
+		);
+	container
+		.bind<DocumentsController>(
+			TYPES.DocumentsController,
+		)
+		.toDynamicValue(
+			(
+				ctx,
+			) =>
+				new DocumentsController(
+					ctx.container.get(
+						TYPES.DaemonClient,
+					),
+				),
+		);
+	container
+		.bind<SpacesController>(
+			TYPES.SpacesController,
+		)
+		.toDynamicValue(
+			(
+				ctx,
+			) =>
+				new SpacesController(
+					ctx.container.get(
+						TYPES.DaemonClient,
+					),
+				),
+		);
+	container
+		.bind<AgentController>(
+			TYPES.AgentController,
+		)
+		.toDynamicValue(
+			(
+				ctx,
+			) =>
+				new AgentController(
+					ctx.container.get(
+						TYPES.AgentClient,
+					),
+				),
+		);
+	container
+		.bind<SearchController>(
+			TYPES.SearchController,
+		)
+		.toDynamicValue(
+			(
+				ctx,
+			) =>
+				new SearchController(
+					ctx.container.get(
+						TYPES.DaemonClient,
+					),
+				),
+		);
+	container
+		.bind<SettingsController>(
+			TYPES.SettingsController,
+		)
+		.toDynamicValue(
+			(
+				ctx,
+			) =>
+				new SettingsController(
+					ctx.container.get(
+						TYPES.AppDataStore,
+					),
+				),
+		);
+	container
+		.bind<WindowController>(
+			TYPES.WindowController,
+		)
+		.toDynamicValue(
+			() =>
+				new WindowController(),
+		);
+
+	container
+		.bind<CommandRegistry>(
+			TYPES.CommandRegistry,
+		)
+		.toDynamicValue(
+			(
+				ctx,
+			) =>
+				new CommandRegistry(
+					ctx.container.get(
+						TYPES.BlobsController,
+					),
+					ctx.container.get(
+						TYPES.DocumentsController,
+					),
+					ctx.container.get(
+						TYPES.SpacesController,
+					),
+					ctx.container.get(
+						TYPES.AgentController,
+					),
+					ctx.container.get(
+						TYPES.SearchController,
+					),
+					ctx.container.get(
+						TYPES.SettingsController,
+					),
+					ctx.container.get(
+						TYPES.WindowController,
+					),
+					ctx.container.get(
+						TYPES.Logger,
+					),
+				),
+		);
+
+	container
+		.bind<StartupService>(
+			TYPES.StartupService,
+		)
+		.toDynamicValue(
+			(
+				ctx,
+			) =>
 				new StartupService(
-					ctx.container.get(TYPES.AppDataStore),
-					ctx.container.get(TYPES.Logger),
-					ctx.container.get(TYPES.BlobProtocol),
-					ctx.container.get(TYPES.CommandRegistry),
+					ctx.container.get(
+						TYPES.AppDataStore,
+					),
+					ctx.container.get(
+						TYPES.Logger,
+					),
+					ctx.container.get(
+						TYPES.BlobProtocol,
+					),
+					ctx.container.get(
+						TYPES.CommandRegistry,
+					),
 				),
 		);
 

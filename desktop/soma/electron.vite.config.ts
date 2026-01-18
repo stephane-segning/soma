@@ -1,7 +1,10 @@
 import { resolve } from "node:path";
 import react from "@vitejs/plugin-react";
 import VitePluginCssMediaSplitter from "css-media-splitter/vite-plugin";
-import { defineConfig, externalizeDepsPlugin } from "electron-vite";
+import {
+	defineConfig,
+	externalizeDepsPlugin,
+} from "electron-vite";
 import type { PreRenderedAsset } from "rollup";
 import { ViteImageOptimizer } from "vite-plugin-image-optimizer";
 import { ViteMinifyPlugin } from "vite-plugin-minify";
@@ -10,54 +13,106 @@ import { vitePluginVersionMark } from "vite-plugin-version-mark";
 import wasm from "vite-plugin-wasm";
 import tsconfigPaths from "vite-tsconfig-paths";
 
-export default defineConfig((configEnv) => ({
-	main: {
-		plugins: [externalizeDepsPlugin()],
-	},
-	preload: {
-		plugins: [externalizeDepsPlugin()],
-	},
-	renderer: {
-		resolve: {
-			alias: [{ find: "@app", replacement: resolve("src/renderer/src") }],
+export default defineConfig(
+	(
+		configEnv,
+	) => ({
+		main: {
+			plugins:
+				[
+					externalizeDepsPlugin(),
+				],
 		},
-		plugins: [
-			react(),
-			tsconfigPaths(),
-			configEnv.command === "build" &&
-				ViteImageOptimizer({
-					/* pass your config */
-				}),
-			configEnv.command === "build" && VitePluginCssMediaSplitter(),
-			configEnv.command === "build" &&
-				vitePluginVersionMark({
-					ifShortSHA: true,
-					ifMeta: true,
-					ifLog: true,
-					ifGlobal: true,
-				}),
-			configEnv.command === "build" && ViteMinifyPlugin({}),
-			wasm(),
-			topLevelAwait(),
-		],
-		build: {
-			chunkSizeWarningLimit: 5_000, // 5KB
-			rollupOptions: {
-				output: {
-					entryFileNames: "assets/js/[name]-[hash].js",
-					chunkFileNames: "assets/js/chunks/[name]-[hash].js",
-					assetFileNames: (assetInfo: PreRenderedAsset) => {
-						if (
-							assetInfo.names?.some((name) => name?.endsWith(".css")) ??
-							assetInfo.name?.endsWith(".css")
-						) {
-							return "assets/css/[name]-[hash][extname]";
-						}
-
-						return "assets/[name]-[hash][extname]";
-					},
-				},
+		preload:
+			{
+				plugins:
+					[
+						externalizeDepsPlugin(),
+					],
 			},
-		},
-	},
-}));
+		renderer:
+			{
+				resolve:
+					{
+						alias:
+							[
+								{
+									find: "@app",
+									replacement:
+										resolve(
+											"src/renderer/src",
+										),
+								},
+							],
+					},
+				plugins:
+					[
+						react(),
+						tsconfigPaths(),
+						configEnv.command ===
+							"build" &&
+							ViteImageOptimizer(
+								{
+									/* pass your config */
+								},
+							),
+						configEnv.command ===
+							"build" &&
+							VitePluginCssMediaSplitter(),
+						configEnv.command ===
+							"build" &&
+							vitePluginVersionMark(
+								{
+									ifShortSHA: true,
+									ifMeta: true,
+									ifLog: true,
+									ifGlobal: true,
+								},
+							),
+						configEnv.command ===
+							"build" &&
+							ViteMinifyPlugin(
+								{},
+							),
+						wasm(),
+						topLevelAwait(),
+					],
+				build:
+					{
+						chunkSizeWarningLimit: 5_000, // 5KB
+						rollupOptions:
+							{
+								output:
+									{
+										entryFileNames:
+											"assets/js/[name]-[hash].js",
+										chunkFileNames:
+											"assets/js/chunks/[name]-[hash].js",
+										assetFileNames:
+											(
+												assetInfo: PreRenderedAsset,
+											) => {
+												if (
+													assetInfo.names?.some(
+														(
+															name,
+														) =>
+															name?.endsWith(
+																".css",
+															),
+													) ??
+													assetInfo.name?.endsWith(
+														".css",
+													)
+												) {
+													return "assets/css/[name]-[hash][extname]";
+												}
+
+												return "assets/[name]-[hash][extname]";
+											},
+									},
+							},
+					},
+			},
+	}),
+);

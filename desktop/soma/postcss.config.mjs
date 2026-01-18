@@ -1,6 +1,9 @@
 export default {
-	plugins: {
-		"@tailwindcss/postcss": {},
-		cssnano: {},
-	},
+	plugins:
+		{
+			"@tailwindcss/postcss":
+				{},
+			cssnano:
+				{},
+		},
 };

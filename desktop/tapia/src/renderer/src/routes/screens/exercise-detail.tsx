@@ -2,7 +2,7 @@ import { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router";
 import type { ExerciseAttempt } from "../../../../shared/exercise";
-import { useAppLayoutContext } from "../../App";
+import { useAppLayoutContext } from "../../app";
 import { ExercisePlayer } from "../../components/exercise-player";
 import { useExercises } from "../../hooks/useExercises";
 

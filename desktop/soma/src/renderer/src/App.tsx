@@ -1,13 +1,26 @@
 import { lazy } from "react";
 
-const TabbedApp = lazy(() =>
-	import("@app/routes/tabbed-app").then((m) => ({
-		default: m.TabbedApp,
-	})),
-);
+const TabbedApp =
+	lazy(
+		() =>
+			import(
+				"@app/routes/tabbed-app"
+			).then(
+				(
+					m,
+				) => ({
+					default:
+						m.TabbedApp,
+				}),
+			),
+	);
 
 function App() {
-	return <TabbedApp />;
+	return (
+		<TabbedApp />
+	);
 }
 
-export { App };
+export {
+	App,
+};

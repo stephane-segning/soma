@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useAppLayoutContext } from "../../App";
+import { useAppLayoutContext } from "../../app";
 import { ExerciseCard } from "../../components/exercise-card";
 import { useExercises } from "../../hooks/useExercises";
 import { cn } from "../../lib/cn";

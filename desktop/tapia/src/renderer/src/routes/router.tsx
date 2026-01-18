@@ -1,5 +1,5 @@
 import { createHashRouter, Navigate } from "react-router";
-import { AppLayout } from "../App";
+import { AppLayout } from "../app";
 import { DEFAULT_SPACE_ID } from "./constants";
 import ExerciseDetail from "./screens/exercise-detail";
 import Exercises from "./screens/exercises";

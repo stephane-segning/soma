@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { useAppLayoutContext } from "../../App";
+import { useAppLayoutContext } from "../../app";
 
 function NotFound(): React.JSX.Element {
 	const { activeSpaceId } = useAppLayoutContext();

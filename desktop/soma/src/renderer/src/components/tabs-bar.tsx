@@ -1,17 +1,30 @@
 import { cn } from "@app/lib/cn";
-import { useAppDispatch, useAppSelector } from "@app/store/hooks";
-import { MAX_TABS, tabsActions, tabsSelectors } from "@app/store/tabs";
+import {
+	useAppDispatch,
+	useAppSelector,
+} from "@app/store/hooks";
+import {
+	MAX_TABS,
+	tabsActions,
+	tabsSelectors,
+} from "@app/store/tabs";
 import { PolymorphButton } from "@soma/ui/components/actions/polymorph-button";
-import { List, MessageCircle, Plus, X } from "react-feather";
+import {
+	List,
+	MessageCircle,
+	Plus,
+	X,
+} from "react-feather";
 
-type TabsBarProps = {
-	leftOpen: boolean;
-	rightOpen: boolean;
-	toggleLeft: () => void;
-	toggleRight: () => void;
-	hasLeft: boolean;
-	hasRight: boolean;
-};
+type TabsBarProps =
+	{
+		leftOpen: boolean;
+		rightOpen: boolean;
+		toggleLeft: () => void;
+		toggleRight: () => void;
+		hasLeft: boolean;
+		hasRight: boolean;
+	};
 
 function TabsBar({
 	hasLeft,
@@ -19,18 +32,32 @@ function TabsBar({
 	toggleLeft,
 	toggleRight,
 }: TabsBarProps): React.JSX.Element {
-	const dispatch = useAppDispatch();
-	const tabs = useAppSelector(tabsSelectors.selectTabs);
-	const activeId = useAppSelector(tabsSelectors.selectActiveId);
-	const atMaxTabs = tabs.length >= MAX_TABS;
+	const dispatch =
+		useAppDispatch();
+	const tabs =
+		useAppSelector(
+			tabsSelectors.selectTabs,
+		);
+	const activeId =
+		useAppSelector(
+			tabsSelectors.selectActiveId,
+		);
+	const atMaxTabs =
+		tabs.length >=
+		MAX_TABS;
 
 	return (
 		<div className="flex min-w-0 items-center gap-2">
-			<div className="flex items-center gap-1" data-no-drag>
+			<div
+				className="flex items-center gap-1"
+				data-no-drag
+			>
 				{hasLeft && (
 					<PolymorphButton
 						className="btn-soft"
-						onClick={toggleLeft}
+						onClick={
+							toggleLeft
+						}
 						size="sm"
 						type="button"
 					>
@@ -43,49 +70,97 @@ function TabsBar({
 				className="no-scrollbar flex flex-1 items-center gap-2 overflow-x-auto"
 				data-drag-region
 			>
-				{tabs.map((tab) => {
-					const isActive = tab.id === activeId;
-					return (
-						<div
-							aria-selected={isActive}
-							className={cn(
-								"flex min-w-[8rem] items-center gap-2 rounded-lg px-3 py-2 text-sm transition [-webkit-app-region:no-drag]",
-								isActive
-									? "bg-primary/10 text-primary"
-									: "bg-base-200/60 text-base-content/70 hover:bg-base-200",
-							)}
-							key={tab.id}
-							onClick={() => dispatch(tabsActions.selectTab(tab.id))}
-							onKeyDown={(e) => {
-								if (e.key === "Enter" || e.key === " ") {
-									dispatch(tabsActions.selectTab(tab.id));
+				{tabs.map(
+					(
+						tab,
+					) => {
+						const isActive =
+							tab.id ===
+							activeId;
+						return (
+							<div
+								aria-selected={
+									isActive
 								}
-							}}
-							role="tab"
-							tabIndex={0}
-						>
-							<span className="min-w-0 flex-1 truncate">{tab.title}</span>
-							<button
-								aria-label="Close tab"
-								className="btn btn-ghost btn-xs btn-circle [-webkit-app-region:no-drag]"
-								onClick={(e) => {
-									e.stopPropagation();
-									dispatch(tabsActions.closeTab(tab.id));
+								className={cn(
+									"flex min-w-[8rem] items-center gap-2 rounded-lg px-3 py-2 text-sm transition [-webkit-app-region:no-drag]",
+									isActive
+										? "bg-primary/10 text-primary"
+										: "bg-base-200/60 text-base-content/70 hover:bg-base-200",
+								)}
+								key={
+									tab.id
+								}
+								onClick={() =>
+									dispatch(
+										tabsActions.selectTab(
+											tab.id,
+										),
+									)
+								}
+								onKeyDown={(
+									e,
+								) => {
+									if (
+										e.key ===
+											"Enter" ||
+										e.key ===
+											" "
+									) {
+										dispatch(
+											tabsActions.selectTab(
+												tab.id,
+											),
+										);
+									}
 								}}
-								type="button"
+								role="tab"
+								tabIndex={
+									0
+								}
 							>
-								<X className="size-4" />
-							</button>
-						</div>
-					);
-				})}
+								<span className="min-w-0 flex-1 truncate">
+									{
+										tab.title
+									}
+								</span>
+								<button
+									aria-label="Close tab"
+									className="btn btn-ghost btn-xs btn-circle [-webkit-app-region:no-drag]"
+									onClick={(
+										e,
+									) => {
+										e.stopPropagation();
+										dispatch(
+											tabsActions.closeTab(
+												tab.id,
+											),
+										);
+									}}
+									type="button"
+								>
+									<X className="size-4" />
+								</button>
+							</div>
+						);
+					},
+				)}
 			</div>
 
-			<div className="flex items-center gap-1" data-no-drag>
+			<div
+				className="flex items-center gap-1"
+				data-no-drag
+			>
 				<PolymorphButton
 					className="btn-soft"
-					disabled={atMaxTabs}
-					onClick={() => dispatch(tabsActions.openTab())}
+					disabled={
+						atMaxTabs
+					}
+					onClick={() =>
+						dispatch(
+							tabsActions.openTab(),
+						)
+					}
 					size="sm"
 					type="button"
 				>
@@ -95,7 +170,9 @@ function TabsBar({
 				{hasRight && (
 					<PolymorphButton
 						className="btn-soft"
-						onClick={toggleRight}
+						onClick={
+							toggleRight
+						}
 						size="sm"
 						type="button"
 					>
@@ -107,4 +184,6 @@ function TabsBar({
 	);
 }
 
-export { TabsBar };
+export {
+	TabsBar,
+};

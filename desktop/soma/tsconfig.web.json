@@ -13,8 +13,12 @@
 		"allowImportingTsExtensions": true,
 		"baseUrl": ".",
 		"paths": {
-			"@app/*": ["src/renderer/src/*"],
-			"@main/*": ["src/main/*"]
+			"@app/*": [
+				"src/renderer/src/*"
+			],
+			"@main/*": [
+				"src/main/*"
+			]
 		}
 	}
 }

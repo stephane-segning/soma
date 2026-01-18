@@ -14,4 +14,6 @@ function SideMenu() {
 	);
 }
 
-export { SideMenu };
+export {
+	SideMenu,
+};
