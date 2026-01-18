@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   soma-botd:
     image: ${SOMA_BACKEND_IMAGE_PREFIX:-ghcr.io/stephane-segning/soma-backend}-botd:${SOMA_TAG:-latest}

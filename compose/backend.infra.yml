@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   soma-relayd:
     image: ${SOMA_BACKEND_IMAGE_PREFIX:-ghcr.io/stephane-segning/soma-backend}-relayd:${SOMA_TAG:-latest}

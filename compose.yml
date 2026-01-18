@@ -1,5 +1,3 @@
-version: "3.9"
-
 # Requires Docker Compose v2.20+ for `include`.
 # If you're on an older version, use the multi-file invocation listed in README.md.
 include:
