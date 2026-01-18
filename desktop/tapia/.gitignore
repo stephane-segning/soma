@@ -5,6 +5,12 @@ out
 *.log*
 .idea
 
+
+build/*
 !build
-!build/entitlements.mac.plist
-!build/icon.*
+!build/icons
+!build/icons/*.png
+!build/*.plist
+!build/*.icns
+!build/*.ico
+!build/*.png

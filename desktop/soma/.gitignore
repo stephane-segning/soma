@@ -5,7 +5,9 @@ out
 .biome
 *.log*
 
-build
+build/*
+!build
+!build/icons
 !build/icons/*.png
 !build/*.plist
 !build/*.icns
