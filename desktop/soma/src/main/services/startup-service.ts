@@ -1,6 +1,14 @@
 import { electronApp, is, optimizer } from "@electron-toolkit/utils";
-import { app, BrowserWindow, ipcMain, protocol, shell } from "electron";
+import {
+	app,
+	BrowserWindow,
+	ipcMain,
+	nativeImage,
+	protocol,
+	shell,
+} from "electron";
 import { join, resolve } from "path";
+import iconIcns from "../../../build/icon.icns?asset";
 import icon from "../../../resources/icon.png?asset";
 import type { CommandRegistry } from "../command-registry";
 import type { AppDataStore, WindowState } from "./app-data-store";
@@ -63,7 +71,12 @@ export class StartupService {
 
 	private onReady(): void {
 		// Set app user model id for windows
-		electronApp.setAppUserModelId("com.electron");
+		electronApp.setAppUserModelId("digital.camer.sschool.tapia");
+
+		const iconPath = join(__dirname, "../../build/icon.icns");
+		const nativeIcon = nativeImage.createFromPath(iconPath);
+		console.log("ICNS empty?", nativeIcon.isEmpty()); // should be false
+		void app.dock?.setIcon?.(nativeIcon);
 
 		this.registerDeepLinkProtocol();
 

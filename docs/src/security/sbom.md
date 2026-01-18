@@ -14,6 +14,7 @@ SBOMs are generated as part of the release and build workflows in `.github/workf
 - `release-daemons.yml`: produces `sbom-daemons-<version>-<os>-<arch>.spdx.json` alongside daemon/agent release assets.
 - `release.yml`: produces `sbom-bundle-<bundle_version>-<os>-<arch>.spdx.json` alongside bundle release assets.
 - `docker-backend.yml`: produces `sbom-image-<name>.spdx.json` for built backend images (and uploads it as an artifact).
+- `release-desktop.yml`: produces desktop release assets for Soma + Tapia (no SBOM step yet).
 
 ## How to consume
 

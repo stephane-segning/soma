@@ -5,7 +5,7 @@ Rendered by `cargo xtask release bundle` into the bundle staging dir.
 Variables available to all templates (Handlebars syntax: `{{var}}`):
 - `name` – package name (e.g. `soma-daemon`)
 - `version` – daemon/agent version (from `daemons_version`)
-- `desktop_version` – desktop app version (from `desktop_version`)
+- `desktop_version` – desktop app version (used for both Soma + Tapia desktop apps)
 - `bundle_version` – bundle version label
 - `os` / `arch` – target platform identifiers (`linux|macos`, `amd64|arm64`)
 - `install_prefix` – default `/usr/local`

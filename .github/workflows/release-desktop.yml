@@ -1,0 +1,171 @@
+name: Release desktop (Electron)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version label (defaults to desktop package.json version)
+        required: false
+        type: string
+      tag:
+        description: Git tag for the GitHub Release (defaults to desktop-v<version>)
+        required: false
+        type: string
+      prerelease:
+        description: Mark the GitHub Release as prerelease
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - id: meta
+        name: Resolve version + tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "${{ inputs.version }}" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="$(node -p "require('./desktop/soma/package.json').version")"
+          fi
+          TAPIA_VERSION="$(node -p "require('./desktop/tapia/package.json').version")"
+          if [ "$VERSION" != "$TAPIA_VERSION" ]; then
+            echo "Soma/Tapia versions must match for a shared desktop release." >&2
+            echo "soma=$VERSION tapia=$TAPIA_VERSION" >&2
+            exit 1
+          fi
+          if [ -n "${{ inputs.tag }}" ]; then
+            TAG="${{ inputs.tag }}"
+          else
+            TAG="desktop-v${VERSION}"
+          fi
+          {
+            echo "version=${VERSION}"
+            echo "tag=${TAG}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create/update GitHub Release (never latest)
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ steps.meta.outputs.tag }}
+          name: Desktop ${{ steps.meta.outputs.version }}
+          prerelease: ${{ inputs.prerelease }}
+          allowUpdates: true
+          makeLatest: false
+          draft: false
+          body: |
+            Soma + Tapia desktop builds for Linux and macOS.
+
+            Assets are suffixed with OS/arch.
+
+  build:
+    name: Build + publish (${{ matrix.os }} / ${{ matrix.arch }})
+    needs: prepare
+    runs-on: ${{ matrix.runs_on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: linux
+            arch: amd64
+            runs_on: ubuntu-latest
+          - os: linux
+            arch: arm64
+            runs_on: ubuntu-24.04-arm
+          - os: macos
+            arch: amd64
+            runs_on: macos-15-intel
+          - os: macos
+            arch: arm64
+            runs_on: macos-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+
+      - name: Enable corepack (pnpm)
+        shell: bash
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.0.0 --activate
+
+      - name: Install dependencies
+        shell: bash
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Electron apps
+        shell: bash
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: |
+          set -euo pipefail
+          ARCH_FLAG="--x64"
+          if [ "${{ matrix.arch }}" = "arm64" ]; then
+            ARCH_FLAG="--arm64"
+          fi
+          if [ "${{ matrix.os }}" = "linux" ]; then
+            pnpm --filter soma run build:linux -- "$ARCH_FLAG"
+            pnpm --filter tapia run build:linux -- "$ARCH_FLAG"
+          else
+            pnpm --filter soma run build:mac -- "$ARCH_FLAG"
+            pnpm --filter tapia run build:mac -- "$ARCH_FLAG"
+          fi
+
+      - name: Collect artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ needs.prepare.outputs.version }}"
+          OUT_DIR="$GITHUB_WORKSPACE/artifacts/desktop/${{ matrix.os }}-${{ matrix.arch }}"
+          mkdir -p "$OUT_DIR"
+
+          if [ "${{ matrix.os }}" = "linux" ]; then
+            EXT="AppImage"
+            SOMA_FILE="$(find desktop/soma/dist -maxdepth 1 -name '*.AppImage' -print | head -n 1)"
+            TAPIA_FILE="$(find desktop/tapia/dist -maxdepth 1 -name '*.AppImage' -print | head -n 1)"
+          else
+            EXT="zip"
+            SOMA_FILE="$(find desktop/soma/dist -maxdepth 1 -name '*.zip' -print | head -n 1)"
+            TAPIA_FILE="$(find desktop/tapia/dist -maxdepth 1 -name '*.zip' -print | head -n 1)"
+          fi
+
+          if [ -z "$SOMA_FILE" ] || [ -z "$TAPIA_FILE" ]; then
+            echo "Missing artifacts. soma=$SOMA_FILE tapia=$TAPIA_FILE" >&2
+            exit 1
+          fi
+
+          SOMA_OUT="$OUT_DIR/soma-desktop-${VERSION}-${{ matrix.os }}-${{ matrix.arch }}.${EXT}"
+          TAPIA_OUT="$OUT_DIR/tapia-desktop-${VERSION}-${{ matrix.os }}-${{ matrix.arch }}.${EXT}"
+          cp "$SOMA_FILE" "$SOMA_OUT"
+          cp "$TAPIA_FILE" "$TAPIA_OUT"
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.prepare.outputs.tag }}
+          files: |
+            artifacts/desktop/${{ matrix.os }}-${{ matrix.arch }}/soma-desktop-${{ needs.prepare.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}.*
+            artifacts/desktop/${{ matrix.os }}-${{ matrix.arch }}/tapia-desktop-${{ needs.prepare.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}.*

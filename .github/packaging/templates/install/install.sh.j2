@@ -31,10 +31,12 @@ if [ "$OS" = "macos" ]; then
   curl -fsSL "$URL" -o "$tmp/$PKG"
   echo "Downloaded $PKG"
   sudo installer -pkg "$tmp/$PKG" -target /
-  # Clear quarantine on the installed unsigned app (dev distribution).
+  # Clear quarantine on the installed unsigned apps (dev distribution).
   xattr -dr com.apple.quarantine "/Applications/soma.app" 2>/dev/null || true
   xattr -cr "/Applications/soma.app" 2>/dev/null || true
-  echo "Installed bundle package (includes soma-daemon, soma-agentd, and soma)"
+  xattr -dr com.apple.quarantine "/Applications/tapia.app" 2>/dev/null || true
+  xattr -cr "/Applications/tapia.app" 2>/dev/null || true
+  echo "Installed bundle package (includes soma-daemon, soma-agentd, soma, and tapia)"
 elif [ "$OS" = "linux" ]; then
   DEB="soma-bundle-$BUNDLE_VERSION-linux-$ARCH.deb"
   RPM="soma-bundle-$BUNDLE_VERSION-linux-$ARCH.rpm"
@@ -43,13 +45,13 @@ elif [ "$OS" = "linux" ]; then
     curl -fsSL "$URL" -o "$tmp/$DEB"
     echo "Downloaded $DEB"
     sudo dpkg -i "$tmp/$DEB"
-    echo "Installed bundle package (includes soma-daemon, soma-agentd, and soma AppImage)"
+    echo "Installed bundle package (includes soma-daemon, soma-agentd, soma AppImage, and tapia AppImage)"
   elif command -v rpm >/dev/null 2>&1; then
     URL="$base/$BUNDLE_TAG/$RPM"
     curl -fsSL "$URL" -o "$tmp/$RPM"
     echo "Downloaded $RPM"
     sudo rpm -Uvh "$tmp/$RPM"
-    echo "Installed bundle package (includes soma-daemon, soma-agentd, and soma AppImage)"
+    echo "Installed bundle package (includes soma-daemon, soma-agentd, soma AppImage, and tapia AppImage)"
   else
     echo "No supported package manager found (need dpkg or rpm)" >&2
     exit 1

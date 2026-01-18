@@ -219,8 +219,16 @@ impl BundleArgs {
             self.os.as_str(),
             self.arch.as_str(),
         )?;
-        let desktop_asset = resolve_desktop_asset(
+        let soma_desktop_asset = resolve_desktop_asset(
             &rel_desktop.assets,
+            "soma",
+            &desktop_version,
+            self.os.as_str(),
+            &resolved_arch,
+        )?;
+        let tapia_desktop_asset = resolve_desktop_asset(
+            &rel_desktop.assets,
+            "tapia",
             &desktop_version,
             self.os.as_str(),
             &resolved_arch,
@@ -254,8 +262,10 @@ impl BundleArgs {
                 .arg(&staging),
         )?;
 
-        let desktop_path = staging.join(&desktop_asset.name);
-        client.download_asset(&desktop_asset.url, &desktop_path)?;
+        let soma_desktop_path = staging.join(&soma_desktop_asset.name);
+        let tapia_desktop_path = staging.join(&tapia_desktop_asset.name);
+        client.download_asset(&soma_desktop_asset.url, &soma_desktop_path)?;
+        client.download_asset(&tapia_desktop_asset.url, &tapia_desktop_path)?;
 
         let template_root = PathBuf::from(".github/packaging/templates");
         let pages_url = pages_url_from_repo(&repo);
@@ -338,7 +348,8 @@ impl BundleArgs {
                 &staging,
                 &systemd_path,
                 &systemd_agent_path,
-                &desktop_path,
+                &soma_desktop_path,
+                &tapia_desktop_path,
                 &bundle_version,
                 &resolved_arch,
                 &pages_url,
@@ -351,8 +362,10 @@ impl BundleArgs {
                 &staging,
                 &plist_path,
                 &plist_agent_path,
-                &desktop_asset.name,
-                &desktop_path,
+                &soma_desktop_asset.name,
+                &soma_desktop_path,
+                &tapia_desktop_asset.name,
+                &tapia_desktop_path,
                 &bundle_version,
                 &resolved_arch,
                 &pages_url,
@@ -564,19 +577,27 @@ fn resolve_daemon_assets(
     )
 }
 
-fn resolve_desktop_asset(assets: &[Asset], version: &str, os: &str, arch: &str) -> Result<Asset> {
+fn resolve_desktop_asset(
+    assets: &[Asset],
+    app: &str,
+    version: &str,
+    os: &str,
+    arch: &str,
+) -> Result<Asset> {
     let candidates = ["AppImage", "tar.gz", "app", "zip"];
     for ext in candidates {
         let pat = if ext == "app" {
             format!(
-                "soma-desktop-{}-{}-{}\\.app",
+                "{}-desktop-{}-{}-{}\\.app",
+                regex::escape(app),
                 regex::escape(version),
                 regex::escape(os),
                 regex::escape(arch)
             )
         } else {
             format!(
-                "soma-desktop-{}-{}-{}\\.{}",
+                "{}-desktop-{}-{}-{}\\.{}",
+                regex::escape(app),
                 regex::escape(version),
                 regex::escape(os),
                 regex::escape(arch),
@@ -588,7 +609,8 @@ fn resolve_desktop_asset(assets: &[Asset], version: &str, os: &str, arch: &str) 
         }
     }
     bail!(
-        "desktop artifact not found for {}-{} ({})",
+        "desktop artifact not found for {} ({}-{} {})",
+        app,
         os,
         arch,
         version
@@ -636,7 +658,8 @@ fn build_linux_packages(
     staging: &Path,
     systemd_daemon: &Path,
     systemd_agent: &Path,
-    desktop_path: &Path,
+    soma_desktop_path: &Path,
+    tapia_desktop_path: &Path,
     bundle_version: &str,
     arch: &str,
     pages_url: &str,
@@ -676,24 +699,30 @@ fn build_linux_packages(
         &pkgroot.join("usr/lib/systemd/system/soma-agentd.service"),
     )?;
 
-    if !desktop_path
-        .file_name()
-        .and_then(|n| n.to_str())
-        .map(|n| n.ends_with(".AppImage"))
-        .unwrap_or(false)
-    {
-        bail!(
-            "unexpected linux desktop artifact (expected .AppImage): {}",
-            path_string(desktop_path)
-        );
+    for (app_name, desktop_path) in [
+        ("soma", soma_desktop_path),
+        ("tapia", tapia_desktop_path),
+    ] {
+        if !desktop_path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .map(|n| n.ends_with(".AppImage"))
+            .unwrap_or(false)
+        {
+            bail!(
+                "unexpected linux desktop artifact for {} (expected .AppImage): {}",
+                app_name,
+                path_string(desktop_path)
+            );
+        }
+        let appimage_dst = pkgroot.join(format!("usr/local/bin/{app_name}.AppImage"));
+        copy_file(desktop_path, &appimage_dst)?;
+        let app_symlink = pkgroot.join(format!("usr/local/bin/{app_name}"));
+        if app_symlink.exists() || app_symlink.is_symlink() {
+            fs::remove_file(&app_symlink)?;
+        }
+        create_symlink(Path::new(&format!("{app_name}.AppImage")), &app_symlink)?;
     }
-    let appimage_dst = pkgroot.join("usr/local/bin/soma.AppImage");
-    copy_file(desktop_path, &appimage_dst)?;
-    let app_symlink = pkgroot.join("usr/local/bin/soma");
-    if app_symlink.exists() || app_symlink.is_symlink() {
-        fs::remove_file(&app_symlink)?;
-    }
-    create_symlink(Path::new("soma.AppImage"), &app_symlink)?;
 
     let deb_out = platform_out.join(format!("soma-bundle-{bundle_version}-linux-{arch}.deb"));
     let rpm_out = platform_out.join(format!("soma-bundle-{bundle_version}-linux-{arch}.rpm"));
@@ -715,7 +744,7 @@ fn build_linux_packages(
                 .arg("-a")
                 .arg(fmt_arch)
                 .arg("--description")
-                .arg("Soma bundle (daemon + agentd + desktop app)")
+                .arg("Soma bundle (daemon + agentd + desktop apps)")
                 .arg("--url")
                 .arg(pages_url)
                 .arg("--prefix")
@@ -738,8 +767,10 @@ fn build_macos_package(
     staging: &Path,
     plist_daemon: &Path,
     plist_agent: &Path,
-    desktop_asset_name: &str,
-    desktop_path: &Path,
+    soma_asset_name: &str,
+    soma_desktop_path: &Path,
+    tapia_asset_name: &str,
+    tapia_desktop_path: &Path,
     bundle_version: &str,
     arch: &str,
     pages_url: &str,
@@ -775,36 +806,23 @@ fn build_macos_package(
         &pkg_root.join("Library/LaunchDaemons/digital.camer.soma.agentd.plist"),
     )?;
 
-    let app_name = "soma.app";
-    let staged_app = if desktop_asset_name.ends_with(".tar.gz") {
-        run_command(
-            ctx,
-            Command::new("tar")
-                .arg("-xzf")
-                .arg(desktop_path)
-                .arg("-C")
-                .arg(staging),
-        )?;
-        staging.join(app_name)
-    } else if desktop_asset_name.ends_with(".app") {
-        desktop_path.to_path_buf()
-    } else {
-        bail!(
-            "unexpected macOS desktop artifact (expected .tar.gz or .app): {}",
-            desktop_asset_name
-        );
-    };
-    if !staged_app.is_dir() {
-        bail!(
-            "expected .app bundle not found after extract: {}",
-            path_string(&staged_app)
-        );
+    let soma_app = stage_macos_app(ctx, staging, soma_asset_name, soma_desktop_path, "soma.app")?;
+    let tapia_app =
+        stage_macos_app(ctx, staging, tapia_asset_name, tapia_desktop_path, "tapia.app")?;
+
+    for (app_name, staged_app) in [("soma.app", soma_app), ("tapia.app", tapia_app)] {
+        if !staged_app.is_dir() {
+            bail!(
+                "expected .app bundle not found after extract: {}",
+                path_string(&staged_app)
+            );
+        }
+        let app_dst = pkg_root.join("Applications").join(app_name);
+        if app_dst.exists() {
+            fs::remove_dir_all(&app_dst)?;
+        }
+        copy_dir(&staged_app, &app_dst)?;
     }
-    let app_dst = pkg_root.join("Applications").join(app_name);
-    if app_dst.exists() {
-        fs::remove_dir_all(&app_dst)?;
-    }
-    copy_dir(&staged_app, &app_dst)?;
 
     let pkg_out = platform_out.join(format!("soma-bundle-{bundle_version}-macos-{arch}.pkg"));
     run_command(
@@ -828,6 +846,44 @@ fn build_macos_package(
         pages_url
     );
     Ok(())
+}
+
+fn stage_macos_app(
+    ctx: &ExecContext,
+    staging: &Path,
+    asset_name: &str,
+    desktop_path: &Path,
+    app_name: &str,
+) -> Result<PathBuf> {
+    if asset_name.ends_with(".tar.gz") {
+        run_command(
+            ctx,
+            Command::new("tar")
+                .arg("-xzf")
+                .arg(desktop_path)
+                .arg("-C")
+                .arg(staging),
+        )?;
+        return Ok(staging.join(app_name));
+    }
+    if asset_name.ends_with(".zip") {
+        run_command(
+            ctx,
+            Command::new("unzip")
+                .arg("-q")
+                .arg(desktop_path)
+                .arg("-d")
+                .arg(staging),
+        )?;
+        return Ok(staging.join(app_name));
+    }
+    if asset_name.ends_with(".app") {
+        return Ok(desktop_path.to_path_buf());
+    }
+    bail!(
+        "unexpected macOS desktop artifact (expected .tar.gz, .zip, or .app): {}",
+        asset_name
+    );
 }
 
 fn render_template(template_path: &Path, dest: &Path, ctx: &HashMap<String, String>) -> Result<()> {

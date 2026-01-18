@@ -64,6 +64,8 @@ This repo uses GitHub Actions workflows that are designed to be triggered manual
 - **Daemon + agent releases**: `.github/workflows/release-daemons.yml`
   - Builds `soma-daemon` and `soma-agentd` for `linux/macos` × `amd64/arm64` using `cross` (via `.github/actions/cargo-cross-build/action.yml`).
   - Publishes assets to GitHub Releases (never “latest”) with OS/arch suffixes.
+- **Desktop releases (Electron)**: `.github/workflows/release-desktop.yml`
+  - Builds Soma + Tapia Electron artifacts for `linux/macos` × `amd64/arm64` and publishes to a `desktop-v*` GitHub Release (never “latest”).
 - **Docker images**: `.github/workflows/docker-backend.yml`
   - Builds/pushes multi-target images from `Dockerfile` (manual-only), gated by a successful `soma-daemon` cross-build matrix.
 - **Bundle releases**: `.github/workflows/release.yml`
