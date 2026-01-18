@@ -1,4 +1,4 @@
-import { api, type DraftRow } from "@renderer/store/api";
+import { api, type DraftRow } from "@app/store/api";
 
 const useDocumentDraftQuery = (spaceId: string, documentId: string) =>
 	api.useGetDraftQuery({ spaceId, documentId });

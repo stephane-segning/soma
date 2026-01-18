@@ -1,7 +1,7 @@
 import { lazy } from "react";
 
 const TabbedApp = lazy(() =>
-	import("@renderer/routes/tabbed-app").then((m) => ({
+	import("@app/routes/tabbed-app").then((m) => ({
 		default: m.TabbedApp,
 	})),
 );

@@ -1,5 +1,5 @@
-import { PageTree } from "@renderer/components/page-tree.tsx";
-import { useCreatePage } from "@renderer/queries/pages";
+import { PageTree } from "@app/components/page-tree.tsx";
+import { useCreatePage } from "@app/queries/pages";
 import { Plus, Settings, Trash2 } from "react-feather";
 import { useTranslation } from "react-i18next";
 import { NavLink, useParams } from "react-router";

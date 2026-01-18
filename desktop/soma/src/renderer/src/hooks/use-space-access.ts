@@ -1,4 +1,4 @@
-import { api } from "@renderer/store/api";
+import { api } from "@app/store/api";
 import { useMemo } from "react";
 
 type UseSpaceAccessResult = {

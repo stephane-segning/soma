@@ -1,4 +1,4 @@
-import { YooptaEditorWithTools } from "@renderer/components/yoopta/yoopta-editor-with-tools";
+import { YooptaEditorWithTools } from "@app/components/yoopta/yoopta-editor-with-tools";
 import type { YooptaContentValue, YooptaOnChangeOptions } from "@yoopta/editor";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { HotkeysProvider } from "react-hotkeys-hook";

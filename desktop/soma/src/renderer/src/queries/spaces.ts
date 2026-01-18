@@ -1,4 +1,4 @@
-import { api, type SpaceMember } from "@renderer/store/api";
+import { api, type SpaceMember } from "@app/store/api";
 
 const useSpacesQuery = api.useListSpacesQuery;
 const useSpaceQuery = (spaceId: string) =>

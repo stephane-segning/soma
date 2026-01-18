@@ -1,4 +1,4 @@
-import { useSpaceMembersQuery } from "@renderer/queries/spaces";
+import { useSpaceMembersQuery } from "@app/queries/spaces";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router";

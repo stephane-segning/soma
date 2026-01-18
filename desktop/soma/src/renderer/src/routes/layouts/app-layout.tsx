@@ -1,19 +1,19 @@
-import { RouterListener } from "@renderer/components/router-listener";
-import { SideMenu } from "@renderer/components/side/side-menu.tsx";
-import { TabsBar } from "@renderer/components/tabs-bar.tsx";
-import { WindowControls } from "@renderer/components/window-controls.tsx";
+import { RouterListener } from "@app/components/router-listener";
+import { SideMenu } from "@app/components/side/side-menu.tsx";
+import { TabsBar } from "@app/components/tabs-bar.tsx";
+import { WindowControls } from "@app/components/window-controls.tsx";
 import { DesktopShell } from "@soma/ui/components/layout/desktop-shell";
 import { lazy, Suspense } from "react";
 import { Outlet } from "react-router";
 
 const ChatSidebar = lazy(() =>
-	import("@renderer/routes/chat-sidebar").then((m) => ({
+	import("@app/routes/chat-sidebar").then((m) => ({
 		default: m.ChatSidebar,
 	})),
 );
 
 const CommandPaletteShell = lazy(() =>
-	import("@renderer/components/command-palette").then((m) => ({
+	import("@app/components/command-palette").then((m) => ({
 		default: m.CommandPaletteShell,
 	})),
 );

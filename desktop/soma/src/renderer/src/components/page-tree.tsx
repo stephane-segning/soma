@@ -15,7 +15,7 @@ import {
 	usePagesQuery,
 	useSetPageParentsMutation,
 	useUpdatePageTitleMutation,
-} from "@renderer/queries/pages";
+} from "@app/queries/pages";
 import { PolymorphButton } from "@soma/ui/components/actions/polymorph-button";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";

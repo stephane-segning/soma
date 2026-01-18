@@ -1,4 +1,4 @@
-import { api } from "@renderer/store/api";
+import { api } from "@app/store/api";
 
 type SetSettingInput = { key: string; value: unknown };
 

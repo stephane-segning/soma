@@ -1,5 +1,5 @@
-import { useChatConversation } from "@renderer/hooks/use-chat-conversation.ts";
-import { api } from "@renderer/store/api";
+import { useChatConversation } from "@app/hooks/use-chat-conversation.ts";
+import { api } from "@app/store/api";
 import { AiChat } from "@soma/ui/components/chat/ai-chat";
 import { AiConversation } from "@soma/ui/components/chat/ai-conversation";
 import { AiInput } from "@soma/ui/components/forms/ai-input";

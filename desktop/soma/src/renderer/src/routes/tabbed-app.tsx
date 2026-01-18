@@ -1,15 +1,15 @@
 import {
 	useSetSettingMutation,
 	useSettingQuery,
-} from "@renderer/queries/settings";
-import { useAppDispatch, useAppSelector } from "@renderer/store/hooks";
-import { store } from "@renderer/store/store";
+} from "@app/queries/settings";
+import { useAppDispatch, useAppSelector } from "@app/store/hooks";
+import { store } from "@app/store/store";
 import {
 	createDefaultState,
 	isPersistedTabsStateV1,
 	tabsActions,
 	tabsSelectors,
-} from "@renderer/store/tabs";
+} from "@app/store/tabs";
 import { useEffect, useMemo } from "react";
 import { RouterProvider } from "react-router";
 import { createTabRouter } from "./router";

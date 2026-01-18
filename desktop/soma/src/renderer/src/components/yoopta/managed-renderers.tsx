@@ -1,4 +1,4 @@
-import { cn } from "@renderer/lib/cn";
+import { cn } from "@app/lib/cn";
 import type { CalloutTheme } from "@yoopta/callout/dist/types";
 import type { PluginElementRenderProps } from "@yoopta/editor/dist/plugins/types";
 import { cva } from "class-variance-authority";

@@ -1,4 +1,4 @@
-import { api, type PageRecord } from "@renderer/store/api";
+import { api, type PageRecord } from "@app/store/api";
 import { useCallback } from "react";
 import { useNavigate } from "react-router";
 

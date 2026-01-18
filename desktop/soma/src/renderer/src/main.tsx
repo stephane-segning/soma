@@ -1,9 +1,9 @@
 import "./styles/app.scss";
 import "./lib/logging";
 
-import { App } from "@renderer/app.tsx";
-import { AppErrorBoundary } from "@renderer/components/app-error-boundary";
-import { store } from "@renderer/store/store";
+import { App } from "@app/app.tsx";
+import { AppErrorBoundary } from "@app/components/app-error-boundary";
+import { store } from "@app/store/store";
 import { StrictMode } from "react";
 import { ConfigProvider } from "react-avatar";
 import { createRoot } from "react-dom/client";

@@ -8,10 +8,7 @@ export default defineConfig({
 	preload: {},
 	renderer: {
 		resolve: {
-			alias: {
-				"@renderer": resolve("src/renderer/src"),
-				"@soma": resolve("src/renderer/src"),
-			},
+			alias: [{ find: "@app", replacement: resolve("src/renderer/src") }],
 		},
 		plugins: [react(), tsconfigPaths()],
 	},

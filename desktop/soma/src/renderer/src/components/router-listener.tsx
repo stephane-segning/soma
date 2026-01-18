@@ -1,5 +1,5 @@
-import { useAppDispatch, useAppSelector } from "@renderer/store/hooks";
-import { tabsActions, tabsSelectors } from "@renderer/store/tabs";
+import { useAppDispatch, useAppSelector } from "@app/store/hooks";
+import { tabsActions, tabsSelectors } from "@app/store/tabs";
 import { useEffect, useMemo } from "react";
 import { useLocation, useMatches } from "react-router";
 

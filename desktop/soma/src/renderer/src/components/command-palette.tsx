@@ -1,7 +1,7 @@
-import { useSearchQuery } from "@renderer/queries/search";
-import { useAppDispatch, useAppSelector } from "@renderer/store/hooks";
-import { store } from "@renderer/store/store";
-import { uiActions, uiSelectors } from "@renderer/store/ui";
+import { useSearchQuery } from "@app/queries/search";
+import { useAppDispatch, useAppSelector } from "@app/store/hooks";
+import { store } from "@app/store/store";
+import { uiActions, uiSelectors } from "@app/store/ui";
 import { useEffect, useMemo, useState } from "react";
 import CommandPalette, {
 	filterItems,
