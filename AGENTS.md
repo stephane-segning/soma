@@ -22,6 +22,7 @@ In this repo, **VDF** refers to a **cache-only peer role** (sometimes casually w
     - `desktop/desktp-proto/` – TypeScript protobuf+gRPC codegen (`@soma/proto`) for Node/Electron consumers.
     - `desktop/desktp-ui/` – Shared UI components (`@soma/ui`).
     - `desktop/packaging/` – Local TypeScript CLI for bundle packaging tests.
+    - `desktop/desktp-config/` – Shared StageConfig service (`@soma/desktop-config`) that normalizes stage detection, paths, and sockets for the desktop apps.
     - `desktop/tapia/` – Tapia Electron/Chromium app (primary packaged Tapia UI).
 - `docs/` – VitePress documentation (`docs/src/` for markdown, `docs/.vitepress` for config/navigation).
 - `proto/` – shared protocol definitions and codegen inputs.
@@ -319,6 +320,7 @@ Shared frontend stack (Soma, Tapia):
 - Routing: `react-router` core (prefer memory/hash routers for Electron; not `react-router-dom`)
 - i18n: `react-i18next` + `i18next` with `i18next-chained-backend`, `i18next-http-backend`, `i18next-resources-to-backend`, `i18next-browser-languagedetector`
 - Command palette + hotkeys: `react-hotkeys-hook` and `react-cmdk`
+- Stage configuration service: `desktop/desktp-config` (`@soma/desktop-config`) exposes `StageConfigService`, which rewrites `appData`/`userData`/`logs` and selects `/tmp/<binary>-<stage>.sock` defaults when the stage is not `prod`; packaged apps ignore `SOMA_STAGE`/`SOMA_CHANNEL`, so stage-specific installs should start daemons with matching `--socket-path` values (dev builds may still use the env overrides).
 - `desktop/desktp-ui` packaging: root export is intentionally disabled (`exports["."]=false`) and there is no `src/index.ts`. Import via subpaths (`@soma/ui/components/*`, `@soma/ui/hooks/*`, `@soma/ui/utils/*`, `@soma/ui/yoopta`, `@soma/ui/types`). `tsup` builds multi-entry outputs for those folders and excludes stories.
 
 Soma (`desktop/soma`) (Electron/Chromium):
@@ -330,6 +332,7 @@ Soma (`desktop/soma`) (Electron/Chromium):
   - Yoopta JSON drafts/content: `Daemon/UpsertDocument` + `Daemon/GetDocument`
   - Page list/tree metadata: `Daemon/EnsurePage`, `Daemon/ListPages`, `Daemon/UpdatePageTitle`, `Daemon/SetPageParents`
 - No local blob persistence/caching in the desktop app: uploads go to `soma-daemon`, and renderers should use `soma-blob://daemon/{space_id}/{cid}` (served by the Electron `soma-blob` protocol via `Daemon/ReadBlob`) for blob references.
+- Stage detection / sockets: `desktop/desktp-config` runs before Soma starts and ensures the current build stage (dev/staging/prod) rewrites `appData`/`userData`/`logs` to stage-specific folders and selects `/tmp/soma-daemon-<stage>.sock` + `/tmp/soma-agentd-<stage>.sock` (defaults to `/tmp/...` when stage = `prod`). Non-prod daemons must start with matching `--socket-path` arguments or you can override `SOMA_DAEMON_SOCKET` / `SOMA_AGENTD_SOCKET` while developing.
 - Local LLM chat runs via `soma-agentd` (gRPC over Unix socket); for model selection and “base vs instruct” behavior, see `docs/src/development/agentd-models.md`.
 - Space members UI: `/spaces/:spaceId/members` simply lists the roster fetched via the daemon `ListSpaceMembers` RPC exposed as the `spaces_list_members` IPC command (`desktop/soma/src/renderer/src/routes/screens/space-members.tsx` + `@soma/queries/spaces`). Keep it lightweight/read-only; no bespoke member page beyond this list.
 

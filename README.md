@@ -18,6 +18,7 @@ The monorepo is organized into clear, documented areas:
   - `desktop/desktp-proto` is a TypeScript protobuf+gRPC codegen package (`@soma/proto`) used by Node/Electron code.
   - `desktop/desktp-ui` is the shared UI component package (`@soma/ui`).
   - `desktop/packaging` is a local CLI for bundle packaging tests.
+  - `desktop/desktp-config` contains the shared `@soma/desktop-config` StageConfig service that normalizes staged builds (paths + socket naming) for Soma and Tapia.
 - deployment artifacts (`deploy/`)
 - Docker Compose bundles (`compose/`)
 - shared protocol definitions (`proto/`)
@@ -125,6 +126,13 @@ Most backends expose configuration via CLI flags (clap) and mirror those flags a
 
 - `SOMA_DATA_DIR`: base directory for embedded service identities (defaults to `./data`).
 - `HTTP_ADDR`: relay (`relay`), rendezvous (`rendezvous`), or bff (`bff`) HTTP bind addr (defaults: `8081/8082/8083`).
+
+### Desktop stage configuration (Soma + Tapia)
+
+- `@soma/desktop-config` (`desktop/desktp-config`) exposes `StageConfigService`, which both Electron apps invoke before wiring their IPC transports. The shared package is built as part of the desktop scripts so stage detection stays in sync (`pnpm --filter @soma/desktop-config run build` precedes `pnpm --filter soma run build`, etc.).
+- Stages come from `SOMA_STAGE`, `SOMA_CHANNEL`, or the packaged app name (`soma-dev`, `tapia-staging`). In packaged builds these env overrides are ignored; only dev/unpacked runs honor them.
+- Non-prod stages rewrite Electron paths (`appData`, `userData`, `sessionData`, `logs`, `cache`, `crashDumps`) to stage-prefixed folders and set stage-specific names so dev/staging installs keep isolated caches and sockets.
+- Socket files default to `/tmp/soma-daemon.sock` / `/tmp/soma-agentd.sock` for production and `/tmp/<binary>-<stage>.sock` for other stages. Run each stage’s daemons with matching `--socket-path` (or set `SOMA_DAEMON_SOCKET`/`SOMA_AGENTD_SOCKET` while developing) so the desktop apps connect only to their assigned backend.
 
 ## License
 

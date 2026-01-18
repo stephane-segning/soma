@@ -71,6 +71,7 @@ const sidebar: DefaultTheme.Sidebar = {
             text: 'Development',
             items: [
                 {text: 'Dependencies', link: '/development/dependencies'},
+                {text: 'Desktop config', link: '/development/desktop-config'},
                 {text: 'Protos & Codegen', link: '/development/protos'},
                 {text: 'Database & Migrations', link: '/development/database'},
                 {text: 'Telemetry & Logging', link: '/development/telemetry-logging'},
