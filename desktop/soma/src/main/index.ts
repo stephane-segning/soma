@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import { is } from "@electron-toolkit/utils";
 import { app } from "electron";
-import { join } from "path";
+import { join } from "node:path";
 import { buildContainer } from "./container";
 import type { StartupService } from "./services/startup-service";
 import { TYPES } from "./types";

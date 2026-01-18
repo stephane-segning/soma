@@ -7,6 +7,8 @@ import {
 	protocol,
 	shell,
 } from "electron";
+import { existsSync, statSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { join, resolve } from "path";
 import iconIcns from "../../../build/icon.icns?asset";
 import icon from "../../../resources/icon.png?asset";
@@ -73,10 +75,23 @@ export class StartupService {
 		// Set app user model id for windows
 		electronApp.setAppUserModelId("digital.camer.sschool.tapia");
 
-		const iconPath = join(__dirname, "../../build/icon.icns");
-		const nativeIcon = nativeImage.createFromPath(iconPath);
-		console.log("ICNS empty?", nativeIcon.isEmpty()); // should be false
-		void app.dock?.setIcon?.(nativeIcon);
+		const dockIconPath = pickDockIconPath(iconIcns);
+		if (!dockIconPath) {
+			console.warn("dock icon path not found", {
+				asset: iconIcns,
+			});
+		} else {
+			const nativeIcon = nativeImage.createFromPath(dockIconPath);
+			if (nativeIcon.isEmpty()) {
+				console.warn("dock icon load failed", {
+					iconPath: dockIconPath,
+					exists: existsSync(dockIconPath),
+					size: safeFileSize(dockIconPath),
+				});
+			} else {
+				void app.dock?.setIcon?.(nativeIcon);
+			}
+		}
 
 		this.registerDeepLinkProtocol();
 
@@ -247,5 +262,32 @@ export class StartupService {
 		if (this.mainWindow.isMinimized()) this.mainWindow.restore();
 		this.mainWindow.show();
 		this.mainWindow.focus();
+	}
+}
+
+function pickDockIconPath(assetPath: string): string | null {
+	const assetCandidate = assetPath.startsWith("file:")
+		? fileURLToPath(assetPath)
+		: assetPath;
+	const devCandidate = join(app.getAppPath(), "..", "..", "build", "icon.icns");
+	const prodCandidate = join(process.resourcesPath, "icon.icns");
+	const candidates = [devCandidate, assetCandidate, prodCandidate].filter(
+		(candidate) => candidate.length > 0,
+	);
+
+	for (const candidate of candidates) {
+		if (existsSync(candidate)) {
+			return candidate;
+		}
+	}
+
+	return null;
+}
+
+function safeFileSize(path: string): number | null {
+	try {
+		return statSync(path).size;
+	} catch {
+		return null;
 	}
 }
