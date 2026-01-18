@@ -1,6 +1,6 @@
 # Local LLMs with `soma-agentd` (GGUF models)
 
-This page documents how to run `soma-agentd` with local GGUF models and how model choice affects chat behavior in `desktop/soma-app` (Tauri).
+This page documents how to run `soma-agentd` with local GGUF models and how model choice affects chat behavior in `desktop/soma` (Electron).
 
 If you see “nonsense completions” (weather snippets, timestamps, role-play, or the model inventing `User:`/`System:` lines), it is almost always caused by **using a base model for chat** or a **missing/incorrect chat template**.
 
@@ -80,12 +80,12 @@ Why this helps:
 - instruct models are trained on “prompt → helpful answer” formatting
 - they usually embed a usable chat template (or at least behave more predictably with one)
 
-## How `desktop/soma-app` chooses the model
+## How `desktop/soma` chooses the model
 
 UI now lists agentd chat models and lets you pick one per session:
 
-- Model list: `agent_list_models` Tauri command (IPC → agentd `ListModels`), wired via `desktop/soma-app/src/services/chat-service.ts`.
-- UI select: `desktop/soma-app/src/routes/chat-sidebar.tsx` shows a compact select (defaults to the first chat model, falls back to agentd default).
+- Model list: `agent_list_models` IPC command (IPC → agentd `ListModels`), wired via `desktop/soma/src/renderer/src/services/chat-service.ts`.
+- UI select: `desktop/soma/src/renderer/src/routes/chat-sidebar.tsx` shows a compact select (defaults to the first chat model, falls back to agentd default).
 - Chat invocation: `useChatConversation` passes the selected model to `agent_chat_stream`.
 
 If no model is selected or the select is empty, agentd still falls back to `--default-chat-model`.
@@ -116,7 +116,7 @@ This prevents “instant failure” when the UI asks for an impossible number of
 
 ### Practical guidance
 
-- Keep `max_tokens` modest in the UI (defaults to `256` in `desktop/soma-app/src/services/chat-service.ts`).
+- Keep `max_tokens` modest in the UI (defaults to `256` in `desktop/soma/src/renderer/src/services/chat-service.ts`).
 - If you want longer answers, increase `max_tokens` *and* ensure `SOMA_AGENTD_CTX_SIZE` is large enough.
 - For “thinking” models, you often need more output budget than for a small instruct model.
 

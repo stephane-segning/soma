@@ -50,7 +50,7 @@ enum VersionKind {
     },
     /// Read desktop app version from package.json.
     Desktop {
-        #[arg(long, default_value = "desktop/soma-app/package.json")]
+        #[arg(long, default_value = "desktop/soma/package.json")]
         path: PathBuf,
     },
 }
@@ -687,13 +687,13 @@ fn build_linux_packages(
             path_string(desktop_path)
         );
     }
-    let appimage_dst = pkgroot.join("usr/local/bin/soma-app.AppImage");
+    let appimage_dst = pkgroot.join("usr/local/bin/soma.AppImage");
     copy_file(desktop_path, &appimage_dst)?;
-    let app_symlink = pkgroot.join("usr/local/bin/soma-app");
+    let app_symlink = pkgroot.join("usr/local/bin/soma");
     if app_symlink.exists() || app_symlink.is_symlink() {
         fs::remove_file(&app_symlink)?;
     }
-    create_symlink(Path::new("soma-app.AppImage"), &app_symlink)?;
+    create_symlink(Path::new("soma.AppImage"), &app_symlink)?;
 
     let deb_out = platform_out.join(format!("soma-bundle-{bundle_version}-linux-{arch}.deb"));
     let rpm_out = platform_out.join(format!("soma-bundle-{bundle_version}-linux-{arch}.rpm"));
@@ -775,7 +775,7 @@ fn build_macos_package(
         &pkg_root.join("Library/LaunchDaemons/digital.camer.soma.agentd.plist"),
     )?;
 
-    let app_name = "soma-app.app";
+    let app_name = "soma.app";
     let staged_app = if desktop_asset_name.ends_with(".tar.gz") {
         run_command(
             ctx,

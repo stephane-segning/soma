@@ -82,7 +82,8 @@
 		"slate": "^0.120.0",
 		"slate-react": "^0.120.0",
 		"tailwind-merge": "^3.4.0",
-		"unified": "^11.0.4"
+		"unified": "^11.0.4",
+		"winston": "^3.17.0"
 	},
 	"devDependencies": {
 		"@0xbigboss/vite-console-forward-plugin": "^2.3.3",

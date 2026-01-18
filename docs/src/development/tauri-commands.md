@@ -1,8 +1,7 @@
 # Tauri Apps: Commands, Controllers, Errors
 
-This repo standardizes the Tauri command boundary for both desktop apps:
+This repo standardizes the Tauri command boundary for Tapia:
 
-- Soma: `desktop/soma-app/src-tauri`
 - Tapia: `desktop/tapia-app/src-tauri`
 
 ## Goals
@@ -48,8 +47,6 @@ Each app registers a small set of “category controllers” via `.manage(...)`,
 
 Examples:
 
-- Soma controllers: `desktop/soma-app/src-tauri/src/handlers/*`
-  - `DocumentsController`, `SpacesController`, `BlobsController`, `AgentController`, `SearchController`
 - Tapia controllers: `desktop/tapia-app/src-tauri/src/handlers/*`
   - `GreetingController` (currently minimal)
 
@@ -68,7 +65,6 @@ pub struct ExampleParams {
 
 ## Where it lives in code
 
-- Soma command entrypoints: `desktop/soma-app/src-tauri/src/commands.rs`
 - Tapia command entrypoints: `desktop/tapia-app/src-tauri/src/commands.rs`
 - Shared parsing + errors: `desktop/tauri-command-utils/src/lib.rs`
 
@@ -79,9 +75,9 @@ The Electron/Chromium desktop shell (`desktop/soma`) mirrors the same command na
 - Main-process command registry: `desktop/soma/src/main/command-registry.ts`
 - Preload invoke bridge: `desktop/soma/src/preload/index.ts` (`window.api.invoke`)
 
-### Newly added (Soma)
+### Electron parity (Soma)
 
-- `agent_list_models`: returns agentd model metadata for the chat UI select.
-- `agent_rerank`: forwards rerank requests (query + candidates) to agentd.
-- `agent_resolve_drift`: merges two Yjs updates (base64 → bytes) via agentd to fix drifted documents.
-- `spaces_list_members`: IPC wrapper over daemon `ListSpaceMembers` to return the space roster; used by the `/spaces/:spaceId/members` screen (read-only list, no custom member page beyond this).
+The Electron/Chromium Soma app (`desktop/soma`) mirrors these command names via IPC:
+
+- Main-process command registry: `desktop/soma/src/main/command-registry.ts`
+- Preload invoke bridge: `desktop/soma/src/preload/index.ts` (`window.api.invoke`)

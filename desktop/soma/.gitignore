@@ -4,3 +4,10 @@ out
 .DS_Store
 .biome
 *.log*
+
+build
+!build/icons/*.png
+!build/*.plist
+!build/*.icns
+!build/*.ico
+!build/*.png

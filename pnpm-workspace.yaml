@@ -3,7 +3,6 @@ packages:
   - 'docs'
   - 'desktop/proto'
   - 'desktop/soma'
-  - 'desktop/soma-app'
   - 'desktop/soma-ui'
   - 'desktop/tapia'
   - 'desktop/tapia-app'

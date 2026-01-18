@@ -3,7 +3,7 @@
 `soma-agentd` is a long-running, CPU-heavy worker (OCR, hashing, indexing, Yjs reconciliation, local LLM inference). It should not be exposed directly to the desktop renderer.
 
 !!! note
-    `desktop/soma-app` (Tauri) and `desktop/soma` (Electron) currently wire the renderer → app main process → `soma-agentd` directly for chat.
+    `desktop/soma` (Electron) and `desktop/tapia-app` (Tauri) currently wire the renderer → app main process → `soma-agentd` directly for chat.
     The long-term recommended topology is still “UI → daemon → agentd” so that the daemon can enforce authn/authz and policy centrally.
 
 ## Recommended Topology

@@ -11,9 +11,16 @@ import { AgentClient } from "./services/agent-client";
 import { AppDataStore } from "./services/app-data-store";
 import { BlobProtocolRegistrar } from "./services/blob-protocol";
 import { DaemonClient } from "./services/daemon-client";
+import { AppLogger } from "./services/logger";
+import { StartupService } from "./services/startup-service";
 import { TYPES } from "./types";
 
-export function buildContainer(): Container {
+export type ContainerOptions = {
+	logDir: string;
+	isDev: boolean;
+};
+
+export function buildContainer(options: ContainerOptions): Container {
 	const container = new Container({ defaultScope: "Singleton" });
 
 	container
@@ -25,6 +32,10 @@ export function buildContainer(): Container {
 	container
 		.bind<AgentClient>(TYPES.AgentClient)
 		.toDynamicValue(() => new AgentClient());
+
+	container
+		.bind<AppLogger>(TYPES.Logger)
+		.toConstantValue(new AppLogger(options));
 
 	container
 		.bind<BlobProtocolRegistrar>(TYPES.BlobProtocol)
@@ -78,6 +89,19 @@ export function buildContainer(): Container {
 					ctx.container.get(TYPES.SearchController),
 					ctx.container.get(TYPES.SettingsController),
 					ctx.container.get(TYPES.WindowController),
+					ctx.container.get(TYPES.Logger),
+				),
+		);
+
+	container
+		.bind<StartupService>(TYPES.StartupService)
+		.toDynamicValue(
+			(ctx) =>
+				new StartupService(
+					ctx.container.get(TYPES.AppDataStore),
+					ctx.container.get(TYPES.Logger),
+					ctx.container.get(TYPES.BlobProtocol),
+					ctx.container.get(TYPES.CommandRegistry),
 				),
 		);
 

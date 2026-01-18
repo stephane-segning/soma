@@ -47,6 +47,23 @@ run-serverd:
     export SOMA_DATA_DIR=$PWD/.data && cargo run -p soma-serverd
 
 #
+# Desktop icon helpers
+#
+
+# Generate icon assets for the Electron-based Soma app (desktop/soma)
+icons-soma input="desktop/soma/build/icon.png":
+    input_path="{{input}}"; input_path="${input_path#input=}"; cargo icons --input "$input_path" --output desktop/soma/build --flatten
+    cp desktop/soma/build/icons/icon.icns desktop/soma/build/icon.icns
+    cp desktop/soma/build/icons/icon.ico desktop/soma/build/icon.ico
+    cp desktop/soma/build/icons/1024x1024.png desktop/soma/build/icon.png
+    cp desktop/soma/build/icons/1024x1024.png desktop/soma/resources/icon.png
+
+# Generate icon assets for the Tauri-based Soma app (desktop/soma-app)
+icons-soma-app input="desktop/soma-app/src-tauri/icons/icon.png":
+    input_path="{{input}}"; input_path="${input_path#input=}"; cargo icons --input "$input_path" --output desktop/soma-app/src-tauri --flatten
+    cp desktop/soma-app/src-tauri/icons/256x256.png desktop/soma-app/src-tauri/icons/128x128@2x.png
+
+#
 # Docker Compose helpers
 #
 
@@ -84,7 +101,7 @@ test-rendezvousd-smoke:
 
 # Typecheck the Soma desktop app (Node + Web)
 test-desktop-soma:
-    pnpm --filter soma-app run typecheck
+    pnpm --filter soma run typecheck
 
 # Typecheck the Tapia desktop app (Node + Web)
 test-desktop-tapia:
@@ -92,7 +109,7 @@ test-desktop-tapia:
 
 # Run lint + typecheck for both desktop apps
 test-desktop-all:
-    pnpm --filter soma-app run lint && pnpm --filter soma-app run typecheck
+    pnpm --filter soma run lint && pnpm --filter soma run typecheck
     pnpm --filter tapia-app run lint && pnpm --filter tapia-app run typecheck
 
 # Build docs site (used in CI for gh-pages)
@@ -108,10 +125,10 @@ ci-verify:
     just test-desktop-all
 
 run-soma-desktop:
-    pnpm --filter soma-app tauri dev
+    pnpm --filter soma dev
 
 build-soma:
-    pnpm --filter soma-app tauri build -b app
+    pnpm --filter soma run build
 
 # Show available just recipes
 help:

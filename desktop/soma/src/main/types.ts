@@ -11,6 +11,8 @@ export const TYPES = {
 	SearchController: Symbol("SearchController"),
 	SettingsController: Symbol("SettingsController"),
 	WindowController: Symbol("WindowController"),
+	Logger: Symbol("Logger"),
+	StartupService: Symbol("StartupService"),
 } as const;
 
 export type TypeKey = (typeof TYPES)[keyof typeof TYPES];

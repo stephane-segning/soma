@@ -1,5 +1,5 @@
 name: package-desktop
-description: Build and package a Tauri desktop app (Soma or Tapia) for the runner OS/arch.
+description: Build and package a Tauri desktop app (Tapia) for the runner OS/arch.
 
 inputs:
   project_dir:
@@ -7,9 +7,9 @@ inputs:
     required: false
     default: .
   app:
-    description: Workspace app to build (soma-app or tapia-app)
+    description: Workspace app to build (tapia-app)
     required: false
-    default: soma-app
+    default: tapia-app
   arch:
     description: Target architecture for packaging (x64 or arm64). Defaults to host arch.
     required: false

@@ -33,6 +33,33 @@ export type AgentModel = {
 	sizeBytes?: number;
 };
 
+export type RerankCandidate = {
+	id: string;
+	content: string;
+};
+
+export type RerankParams = {
+	query: string;
+	candidates: RerankCandidate[];
+	model?: string;
+	topN?: number;
+};
+
+export type RerankResult = {
+	id: string;
+	score: number;
+	rank: number;
+};
+
+export type ResolveDriftParams = {
+	leftUpdateBase64: string;
+	rightUpdateBase64: string;
+};
+
+export type ResolveDriftResult = {
+	mergedUpdateBase64: string;
+};
+
 const AGENT_SOCKET = process.env.SOMA_AGENTD_SOCKET || "/tmp/soma-agentd.sock";
 
 export class AgentClient {
@@ -106,6 +133,62 @@ export class AgentClient {
 			}
 			throw err;
 		}
+	}
+
+	async rerank(params: RerankParams): Promise<RerankResult[]> {
+		if (!params.query?.trim()) {
+			throw new Error("query is required");
+		}
+		if (!params.candidates?.length) {
+			throw new Error("at least one candidate is required");
+		}
+
+		const res = await new Promise<{ results?: RerankResult[] }>(
+			(resolve, reject) => {
+				this.client.rerank(
+					{
+						query: params.query,
+						candidates: params.candidates,
+						model: params.model ?? "",
+						topN: params.topN ?? 0,
+					},
+					(err, response) => {
+						if (err) return reject(err);
+						resolve(response);
+					},
+				);
+			},
+		);
+
+		const results = res.results ?? [];
+		return results.slice().sort((a, b) => a.rank - b.rank);
+	}
+
+	async resolveDrift(params: ResolveDriftParams): Promise<ResolveDriftResult> {
+		if (!params.leftUpdateBase64?.trim()) {
+			throw new Error("leftUpdateBase64 is required");
+		}
+		if (!params.rightUpdateBase64?.trim()) {
+			throw new Error("rightUpdateBase64 is required");
+		}
+
+		const leftUpdate = Buffer.from(params.leftUpdateBase64, "base64");
+		const rightUpdate = Buffer.from(params.rightUpdateBase64, "base64");
+
+		const res = await new Promise<{ mergedUpdate?: Buffer }>(
+			(resolve, reject) => {
+				this.client.resolveDrift(
+					{ leftUpdate, rightUpdate },
+					(err, response) => {
+						if (err) return reject(err);
+						resolve(response);
+					},
+				);
+			},
+		);
+
+		const merged = res.mergedUpdate ?? Buffer.alloc(0);
+		return { mergedUpdateBase64: merged.toString("base64") };
 	}
 
 	private normalizeKind(kind: ModelKind): AgentModel["kind"] {

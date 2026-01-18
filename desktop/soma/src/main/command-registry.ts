@@ -6,6 +6,7 @@ import type { SearchController } from "./controllers/search-controller";
 import type { SettingsController } from "./controllers/settings-controller";
 import type { SpacesController } from "./controllers/spaces-controller";
 import type { WindowController } from "./controllers/window-controller";
+import type { AppLogger } from "./services/logger";
 
 export class CommandRegistry {
 	constructor(
@@ -16,6 +17,7 @@ export class CommandRegistry {
 		private readonly search: SearchController,
 		private readonly settings: SettingsController,
 		private readonly windows: WindowController,
+		private readonly logger: AppLogger,
 	) {}
 
 	register(ipc: IpcMain): void {
@@ -50,6 +52,22 @@ export class CommandRegistry {
 			this.agent.chatStream(params?.messages ?? [], params ?? {}),
 		);
 		ipc.handle("agent_list_models", () => this.agent.listModels());
+		ipc.handle("agent_rerank", (_event, params) =>
+			this.agent.rerank({
+				query: params?.query ?? "",
+				candidates: params?.candidates ?? [],
+				model: params?.model,
+				topN: params?.topN ?? params?.top_n ?? 0,
+			}),
+		);
+		ipc.handle("agent_resolve_drift", (_event, params) =>
+			this.agent.resolveDrift({
+				leftUpdateBase64:
+					params?.leftUpdateBase64 ?? params?.left_update_base64 ?? "",
+				rightUpdateBase64:
+					params?.rightUpdateBase64 ?? params?.right_update_base64 ?? "",
+			}),
+		);
 
 		ipc.handle("search", (_event, params) =>
 			this.search.search(params?.query ?? ""),
@@ -93,10 +111,24 @@ export class CommandRegistry {
 		});
 
 		ipc.handle("log:message", (_event, params) => {
-			const level = params?.level ?? "info";
+			const level = normalizeLogLevel(params?.level ?? "info");
 			const message = params?.message ?? "";
-			// eslint-disable-next-line no-console
-			console[level] ? console[level](message) : console.log(message);
+			this.logger.log(level, message);
 		});
+	}
+}
+
+function normalizeLogLevel(level: string): "error" | "warn" | "info" | "debug" {
+	switch (level) {
+		case "error":
+			return "error";
+		case "warn":
+			return "warn";
+		case "debug":
+			return "debug";
+		case "info":
+		case "log":
+		default:
+			return "info";
 	}
 }

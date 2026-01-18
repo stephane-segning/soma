@@ -18,8 +18,7 @@ In this repo, **VDF** refers to a **cache-only peer role** (sometimes casually w
     - Server peer/infra binaries: `soma-botd`, `soma-relayd`, `soma-rendezvousd`, `soma-bffd`, `soma-serverd`.
     - Crates: core domain, networking, storage, API, relay, rendezvous, BFF, and shared utilities.
 - `desktop/` – Desktop applications and packaging.
-    - `desktop/soma-app/` – Soma Tauri v2 app (primary packaged Soma desktop UI; Rust main process).
-    - `desktop/soma/` – Soma Electron/Chromium shell (development/testing and parity work; not the primary packaged app).
+    - `desktop/soma/` – Soma Electron/Chromium app (primary packaged Soma desktop UI).
     - `desktop/proto/` – TypeScript protobuf+gRPC codegen (`@soma/proto`) for Node/Electron consumers.
     - `desktop/tapia-app/` – Tapia Tauri v2 app (main Tapia UI; Rust main process). Legacy Electron app remains under `desktop/tapia` but is not the primary target.
 - `docs/` – VitePress documentation (`docs/src/` for markdown, `docs/.vitepress` for config/navigation).
@@ -31,7 +30,7 @@ In this repo, **VDF** refers to a **cache-only peer role** (sometimes casually w
 When in doubt, place:
 
 - shared Rust logic under an appropriate `backend/crates/*`.
-- UI logic under `desktop/soma-app` or `desktop/tapia-app` by default; use `desktop/soma` only when explicitly working on the Electron/Chromium shell.
+- UI logic under `desktop/soma` (Soma) or `desktop/tapia-app` (Tapia).
 - long-lived infra logic under `backend/crates/*`.
 - user-facing docs under `docs/src/`.
 
@@ -46,7 +45,7 @@ Repo automation (`xtask`):
 - `cargo xtask` is the preferred way to run CI-critical automation from the repo root (wired via `.cargo/config.toml`).
 - Version helpers:
   - `cargo xtask version workspace --path Cargo.toml`
-  - `cargo xtask version desktop --path desktop/soma-app/package.json`
+  - `cargo xtask version desktop --path desktop/tapia-app/package.json`
 - Bundle packaging (downloads published release assets and produces `.deb/.rpm` or `.pkg`):
   - `cargo xtask release bundle --os <linux|macos> --arch <amd64|arm64>`
   - Produces per-platform helper scripts `install.sh` and `uninstall.sh` alongside the packaged artifacts under `artifacts/bundle/<os>-<arch>/`.
@@ -55,7 +54,7 @@ Repo automation (`xtask`):
 ## Tech Stack
 
 - **Package manager**: `pnpm` (workspace at `pnpm-workspace.yaml`).
-- **Desktop apps**: Tauri v2 + React (`desktop/soma-app`, `desktop/tapia-app`), plus an Electron/Chromium shell (`desktop/soma`) used for development/testing.
+- **Desktop apps**: Electron/Chromium (`desktop/soma`) + Tauri v2 (`desktop/tapia-app`).
 - **Backends**: Rust.
 
 ## CI, Packaging, and Releases
@@ -65,8 +64,8 @@ This repo uses GitHub Actions workflows that are designed to be triggered manual
 - **Daemon + agent releases**: `.github/workflows/release-daemons.yml`
   - Builds `soma-daemon` and `soma-agentd` for `linux/macos` × `amd64/arm64` using `cross` (via `.github/actions/cargo-cross-build/action.yml`).
   - Publishes assets to GitHub Releases (never “latest”) with OS/arch suffixes.
-- **Desktop releases (Soma)**: `.github/workflows/release-desktop.yml`
-  - Builds desktop artifacts for `linux/macos` × `amd64/arm64` and publishes to GitHub Releases (never “latest”).
+- **Desktop releases (Tapia)**: `.github/workflows/release-desktop.yml`
+  - Builds Tapia desktop artifacts for `linux/macos` × `amd64/arm64` and publishes to GitHub Releases (never “latest”).
 - **Docker images**: `.github/workflows/docker-backend.yml`
   - Builds/pushes multi-target images from `Dockerfile` (manual-only), gated by a successful `soma-daemon` cross-build matrix.
 - **Bundle releases**: `.github/workflows/release.yml`
@@ -79,14 +78,6 @@ Packaging templates:
 - Templates live under `.github/packaging/templates/` and are rendered by `cargo xtask release bundle`.
 - See `.github/packaging/templates/README.md` for the template variables and file list.
   - Installer/uninstaller templates live under `.github/packaging/templates/install/` (`install.sh.j2`, `uninstall.sh.j2`).
-
-## Known Desktop Issue (Tauri/WebKit, Yoopta editor)
-
-- Symptom: In `desktop/soma-app` running under Tauri on macOS (WKWebView), pressing Enter in the Yoopta editor inserts a new line but focus/typing stops until clicking back into the editor. This does **not** reproduce in Electron/Chromium.
-- Current state: All experimental Enter/focus hacks were reverted; `desktop/soma-app/src/components/yoopta/yoopta-editor-view.tsx` is the original minimal wrapper to avoid crashes. The bug remains.
-- Repro: Launch Soma app (Tauri), open a space page, type text, press Enter → caret disappears/typing stops until refocus.
-- Suspected cause: WebKit-specific `contenteditable`/Slate selection loss; focus jumps off the editable. Electron (Chromium) does not show the issue.
-- Mitigation: None in Tauri yet. If stability is required, prefer Electron/Chromium for now until a WebKit-safe Yoopta/Slate workaround lands.
 
 ## Dependency Policy
 
@@ -134,7 +125,7 @@ Where to wire this:
 #### Read and serving (desktop → daemon IPC)
 
 - Desktop renderers should load bytes via `soma-blob://daemon/{space_id}/{cid}` (never read blob files directly).
-- The Tauri custom protocol handler lives at `desktop/soma-app/src-tauri/src/protocol.rs` and reads bytes via `Daemon/ReadBlob` (proto `proto/daemon/v1/daemon.proto`, implemented in `backend/bins/daemon/src/grpc.rs`).
+- The Electron custom protocol handler lives at `desktop/soma/src/main/services/blob-protocol.ts` and reads bytes via `Daemon/ReadBlob` (proto `proto/daemon/v1/daemon.proto`, implemented in `backend/bins/daemon/src/grpc.rs`).
 - Tauri URI scheme handlers may run before `.setup(...)`; any state used by a protocol handler must be registered via `.manage(...)` **before** `register_uri_scheme_protocol(...)`.
 
 #### Network distribution (fetch + cache)
@@ -245,7 +236,7 @@ Use this list to track domain flows and where the API lives. Mark items off as y
     - Daemon gRPC also exposes manual approval surfaces: `Daemon/ListJoinRequests`, `Daemon/DecideJoin` and membership queries via `Daemon/ListMyMemberships`.
 - [x] Blob upload & read (desktop IPC)
     - Daemon gRPC: `Daemon/UploadBlob`, `Daemon/ReadBlob` (Unix socket, proto `proto/daemon/v1/daemon.proto`)
-    - Desktop: `soma-blob://daemon/{space_id}/{cid}` protocol handler in `desktop/soma-app/src-tauri/src/protocol.rs`
+    - Desktop: `soma-blob://daemon/{space_id}/{cid}` protocol handler in `desktop/soma/src/main/services/blob-protocol.ts`
 - [ ] Space create & ownership genesis (verifyable)
     - Add a real “space genesis” artifact (owner-signed record) that other peers can verify; current `spaces.owner_peer_id` is DB-local metadata only.
 - [ ] Issuer capability lifecycle (secure)
@@ -310,7 +301,7 @@ Migrations are centralized in `backend/crates/storage/migrations` and embedded b
 
 ### Frontends (Desktop Apps)
 
-Shared frontend stack (Soma, Soma-app, Tapia):
+Shared frontend stack (Soma, Tapia):
 
 - `pnpm` workspace under `desktop/`
 - `tailwindcss` v4 + `daisyui` v5
@@ -325,25 +316,17 @@ Shared frontend stack (Soma, Soma-app, Tapia):
 - Command palette + hotkeys: `react-hotkeys-hook` and `react-cmdk`
 - `desktop/soma-ui` packaging: root export is intentionally disabled (`exports["."]=false`) and there is no `src/index.ts`. Import via subpaths (`@soma/ui/components/*`, `@soma/ui/hooks/*`, `@soma/ui/utils/*`, `@soma/ui/yoopta`, `@soma/ui/types`). `tsup` builds multi-entry outputs for those folders and excludes stories.
 
-Electron/Chromium shell (`desktop/soma`): used for development/testing and parity work (not the primary packaged app). Unless you are explicitly working on the Electron shell, new Soma desktop work should land in `desktop/soma-app` (Tauri).
+Soma (`desktop/soma`) (Electron/Chromium):
 
-Soma-app (`desktop/soma-app`) (Tauri v2):
-
-- Main Soma UI; Rust main process lives under `desktop/soma-app/src-tauri`.
-- Renderer → main process uses `@tauri-apps/api/core` `invoke(...)` (no Electron preload bridge; no `window.api`).
-- Tauri command state must be registered via `.manage(...)` and accessed with `tauri::State<'_, T>`.
-- Command boundary convention (shared with Tapia):
-  - Commands accept `tauri::ipc::Request<'_>` and manually deserialize params via `tauri_command_utils::parse_params(...)`.
-  - Each command delegates to a managed “category controller” under `desktop/*/src-tauri/src/handlers/*` (e.g. `DocumentsController`, `SpacesController`), with one `Params` struct per method (`#[derive(Deserialize)]`, `camelCase`).
-  - Do not define app-local `AppError`/`AppResult`; they are provided by `desktop/tauri-command-utils` and re-exported from each app’s `src/error.rs`.
-  - `tauri-command-utils` features control which `AppError` variants are compiled (`bad-request`, `json-error`, `io`, `anyhow`, `daemon`, `agent`); apps should enable only what they use.
+- Main Soma UI; renderer lives under `desktop/soma/src/renderer`, main process under `desktop/soma/src/main`.
+- Renderer → main uses the preload bridge (`window.api.invoke`) rather than Tauri commands.
 - Desktop assumes `soma-daemon` is already running; do not start daemons from the renderer.
 - Documents + page navigation metadata are daemon-owned:
   - Yoopta JSON drafts/content: `Daemon/UpsertDocument` + `Daemon/GetDocument`
   - Page list/tree metadata: `Daemon/EnsurePage`, `Daemon/ListPages`, `Daemon/UpdatePageTitle`, `Daemon/SetPageParents`
-- No local blob persistence/caching in the desktop app: uploads go to `soma-daemon`, and renderers should use `soma-blob://daemon/{space_id}/{cid}` (served by the Tauri `soma-blob` protocol via `Daemon/ReadBlob`) for blob references.
+- No local blob persistence/caching in the desktop app: uploads go to `soma-daemon`, and renderers should use `soma-blob://daemon/{space_id}/{cid}` (served by the Electron `soma-blob` protocol via `Daemon/ReadBlob`) for blob references.
 - Local LLM chat runs via `soma-agentd` (gRPC over Unix socket); for model selection and “base vs instruct” behavior, see `docs/src/development/agentd-models.md`.
-- Space members UI: `/spaces/:spaceId/members` simply lists the roster fetched via the daemon `ListSpaceMembers` RPC exposed as the `spaces_list_members` Tauri command (`desktop/soma-app/src/routes/screens/space-members.tsx` + `@soma/queries/spaces`). Keep it lightweight/read-only; no bespoke member page beyond this list.
+- Space members UI: `/spaces/:spaceId/members` simply lists the roster fetched via the daemon `ListSpaceMembers` RPC exposed as the `spaces_list_members` IPC command (`desktop/soma/src/renderer/src/routes/screens/space-members.tsx` + `@soma/queries/spaces`). Keep it lightweight/read-only; no bespoke member page beyond this list.
 
 Tapia (`desktop/tapia-app`):
 
@@ -352,8 +335,8 @@ Tapia (`desktop/tapia-app`):
 - Needs “text segmentation + cursor ranges” and a “diff/comparison engine”; choose stable, mature packages from the JavaScript package registry (common candidates: `graphemer` / `grapheme-splitter`, and `diff-match-patch` / `diff`).
 - Uses Motion for micro-interactions (cursor movement/layout animations, color transitions, correct/incorrect feedback).
 - Uses XState for state machines.
-- Uses the same Tauri command/controller conventions as Soma-app (see above), including shared `desktop/tauri-command-utils` for `AppError/AppResult` + `parse_params`.
-- Electron shells exist under `desktop/soma` (used for development/testing and parity work) and `desktop/tapia` (legacy); neither is the primary packaged target.
+- Uses the same Tauri command/controller conventions (see `docs/src/development/tauri-commands.md`), including shared `desktop/tauri-command-utils` for `AppError/AppResult` + `parse_params`.
+- Legacy Electron app remains under `desktop/tapia` but is not the primary packaged target.
 
 ## Binaries and Responsibilities
 
@@ -361,7 +344,7 @@ This repo intentionally has multiple binaries. Each has a distinct goal and depl
 
 ### Desktop vs Server (rule of thumb)
 
-- **Desktop**: `soma-daemon`, `soma-agentd`, `soma-app` (UI), `tapia-app` (UI) — **no Axum**.
+- **Desktop**: `soma-daemon`, `soma-agentd`, `soma` (UI), `tapia-app` (UI) — **no Axum**.
 - **Server**: `soma-botd`, `soma-relayd`, `soma-rendezvousd`, `soma-bffd`, `soma-serverd` — **Axum + metrics**.
 
 ### Desktop / Peer Backends (`backend/`)
@@ -411,8 +394,8 @@ This repo intentionally has multiple binaries. Each has a distinct goal and depl
 - Keep side effects (I/O, daemon calls) in dedicated hooks or services, not inside presentational components.
 - Run the formatter/linter (`pnpm run format` / `pnpm run lint`) before committing.
 - **State management (desktop apps)**:
-  - Soma desktop uses Redux Toolkit slices in `desktop/soma-app/src/store/` (`store.ts` wires reducers/middleware; slices like `tabs.ts`, `ui.ts`, `documents.ts` own local UI state).
-  - Data fetching/caching uses **RTK Query** (`desktop/soma-app/src/store/api.ts`); prefer `api.injectEndpoints` for new HTTP/IPC calls.
+  - Soma desktop uses Redux Toolkit slices in `desktop/soma/src/renderer/src/store/` (`store.ts` wires reducers/middleware; slices like `tabs.ts`, `ui.ts`, `documents.ts` own local UI state).
+  - Data fetching/caching uses **RTK Query** (`desktop/soma/src/renderer/src/store/api.ts`); prefer `api.injectEndpoints` for new HTTP/IPC calls.
   - Do **not** add new Zustand stores and do **not** reintroduce TanStack Query in Soma; wrap RTK Query hooks in `src/queries/*` if you need app-specific helpers.
   - When adding endpoints, tag data for cache invalidation and expose thin wrappers from `src/queries/*` to keep components simple.
 
@@ -451,13 +434,15 @@ This repo intentionally has multiple binaries. Each has a distinct goal and depl
   ```bash
   cd desktop
   pnpm install
-  pnpm --filter soma-app run typecheck
-  pnpm --filter soma-app run lint
+  pnpm --filter soma run typecheck
+  pnpm --filter soma run lint
   ```
 
   and similarly for `desktop/tapia-app` (use `--filter tapia-app`).
 
-- Build desktop apps from the repo root (Tauri runs the frontend build): `pnpm --filter soma-app tauri build -b app` on macOS or `pnpm --filter soma-app tauri build -b appimage` on Linux (replace `soma-app` with `tapia-app` as needed).
+- Build desktop apps from the repo root:
+  - Soma (Electron): `pnpm --filter soma run build`
+  - Tapia (Tauri): `pnpm --filter tapia-app tauri build`
 
 - Keep unit tests small and focused; integration tests should run against local daemons where feasible.
 
@@ -465,7 +450,7 @@ This repo intentionally has multiple binaries. Each has a distinct goal and depl
 
 - For end-to-end checks:
     - Run `soma-daemon` from `backend/`.
-    - Start `desktop/soma-app` or `desktop/tapia-app` in dev mode.
+    - Start `desktop/soma` or `desktop/tapia-app` in dev mode.
     - Exercise join flows, class navigation, and basic messaging.
 
 ## Telemetry & Logging (Rust backends)
@@ -819,23 +804,17 @@ For how peers (`soma-daemon`, `soma-botd`) use mDNS, rendezvous, and relay clien
 
 ### Desktop (Electron/React) — `desktop/soma`
 
-- Electron/Chromium desktop shell used for development/testing and parity work (not the primary packaged app; most product work still lands in `desktop/soma-app`).
+- Electron/Chromium desktop app (primary Soma UI).
 - Frameless window chrome: `desktop/soma/src/main/index.ts` uses `frame: false` and (on macOS) hides native window buttons via `mainWindow.setWindowButtonVisibility(false)`.
 - Draggable regions: mark non-interactive DOM with `data-drag-region` and opt interactive elements out with `data-no-drag` (CSS in `desktop/soma/src/renderer/src/styles/app.scss` uses `-webkit-app-region`).
 - Renderer code imports local modules via `@app/*` (see `desktop/soma/tsconfig.web.json` + `desktop/soma/electron.vite.config.ts`).
 - Renderer → main uses a preload bridge (`desktop/soma/src/preload/index.ts`) with `window.api.invoke(...)`; main registers handlers in `desktop/soma/src/main/command-registry.ts`.
 - Node/Electron gRPC stubs are generated in `desktop/proto` (`@soma/proto`) and imported from Electron main-process services.
-
-### Desktop (Tauri/React) — `desktop/soma-app`
-
-- Renderer integration uses `@tauri-apps/api/*` (no preload bridge). Treat Rust commands as controllers: keep them thin and delegate to service structs/traits.
-- State management:
-  - Register shared state with `.manage(...)` during app setup.
-  - Commands that need shared services should take `State<'_, ManagedState>` (or similar) parameters.
-- Do not add local file/blob storage in the desktop app. All blob writes go to `soma-daemon` (content-addressed), and the UI should store only blob references (CID, mime, size, name).
-- For local LLM chat:
-  - Prefer instruct/chat models for assistant UX; base models will “complete text” and can return unrelated continuations.
-  - See `docs/src/development/agentd-models.md` for exact run commands and troubleshooting.
+- Deep links: `soma://...` are registered by Electron, forwarded via `app:deep-link` to the renderer, and secondary launches are routed through the single-instance lock (`desktop/soma/src/main/services/startup-service.ts`).
+- Window state persistence: `electron-store` keeps `windowState` (bounds + maximized/fullscreen) in `desktop/soma/src/main/services/app-data-store.ts`.
+- Logging: main process uses Winston with file output under `app.getPath("userData")/logs/main.log` (console logs in dev).
+- Agent IPC: `agent_rerank` and `agent_resolve_drift` are supported in the Electron main process and forward to `soma-agentd` via gRPC.
+- Startup flow is centralized in `desktop/soma/src/main/services/startup-service.ts`; `desktop/soma/src/main/index.ts` just builds the container and calls `startup.run()`.
 
 ### Server
 

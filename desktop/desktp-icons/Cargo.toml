@@ -1,0 +1,15 @@
+[package]
+name = "desktp-icons"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+anyhow = { workspace = true }
+clap = { workspace = true }
+image = { workspace = true }
+icns = { workspace = true }
+ico = { workspace = true }
+resvg = { workspace = true }

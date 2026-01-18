@@ -1,7 +1,19 @@
 import ElectronStore from "electron-store";
 
+export type WindowState = {
+	bounds?: {
+		x: number;
+		y: number;
+		width: number;
+		height: number;
+	};
+	isMaximized?: boolean;
+	isFullScreen?: boolean;
+};
+
 type StoreSchema = {
 	settings: Record<string, unknown>;
+	windowState?: WindowState | null;
 };
 
 export class AppDataStore {
@@ -26,5 +38,13 @@ export class AppDataStore {
 
 	set settings(value: Record<string, unknown>) {
 		this.store.set("settings", value);
+	}
+
+	get windowState(): WindowState | null {
+		return this.store.get("windowState", null);
+	}
+
+	set windowState(value: WindowState | null) {
+		this.store.set("windowState", value);
 	}
 }

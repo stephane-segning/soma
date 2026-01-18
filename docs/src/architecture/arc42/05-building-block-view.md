@@ -5,7 +5,7 @@ This section lists the major building blocks in the repo and how they relate.
 ## Level 1: System decomposition
 
 - **Desktop apps** (`desktop/`)
-  - `desktop/soma-app`: main UI.
+  - `desktop/soma`: main UI (Electron).
   - `desktop/tapia-app`: typing companion UI (Tauri).
 - **Backend workspace** (`backend/`)
   - Binaries under `backend/bins/*` (daemons/services).

@@ -3,6 +3,10 @@ import type {
 	AgentModel,
 	ChatMessage,
 	ChatOptions,
+	RerankParams,
+	RerankResult,
+	ResolveDriftParams,
+	ResolveDriftResult,
 	StreamEvent,
 } from "../services/agent-client";
 
@@ -18,5 +22,13 @@ export class AgentController {
 
 	listModels(): Promise<AgentModel[]> {
 		return this.agent.listModels();
+	}
+
+	rerank(params: RerankParams): Promise<RerankResult[]> {
+		return this.agent.rerank(params);
+	}
+
+	resolveDrift(params: ResolveDriftParams): Promise<ResolveDriftResult> {
+		return this.agent.resolveDrift(params);
 	}
 }

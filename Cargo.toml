@@ -23,9 +23,9 @@ members = [
     "backend/bins/rendezvousd",
     "backend/bins/bffd",
     "backend/bins/serverd",
-    "desktop/soma-app/src-tauri",
     "desktop/tapia-app/src-tauri",
     "desktop/tauri-command-utils",
+    "desktop/desktp-icons",
     "xtask"
 ]
 
@@ -100,6 +100,10 @@ regex = "1.12"
 toml = "0.9"
 time = { version = "0.3", features = ["formatting", "macros"] }
 handlebars = "6.3.2"
+image = { version = "0.25", default-features = false, features = ["png"] }
+icns = "0.3.1"
+ico = "0.5"
+resvg = "0.46.0"
 
 tauri = { version = "2", features = ["tray-icon", "tracing", "macos-private-api"] }
 tauri-plugin-opener = "2"

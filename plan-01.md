@@ -119,7 +119,7 @@ Acceptance criteria:
    - Avoid showing `spaceId` alone as proof of access.
 
 10) Ensure caches are scoped and cleared:
-   - Document draft cache in `desktop/soma-app/src-tauri/src/handlers/documents.rs` is keyed by `(space_id, document_id)` already; keep it that way.
+   - Document drafts are daemon-owned and scoped by `(space_id, document_id)` in storage; keep it that way.
    - When a membership is revoked/removed (future work), clear any cached drafts/pages for that space.
 
 Acceptance criteria:

@@ -2,10 +2,11 @@
 
 Electron desktop shell (React + TypeScript) used for development/testing and parity work.
 
-- Renderer: `desktop/soma/src/renderer` (ported from `desktop/soma-app/src`)
+- Renderer: `desktop/soma/src/renderer`
 - Main process (Node/Electron): `desktop/soma/src/main` (Inversify DI + IPC command registry)
+- Startup orchestration: `desktop/soma/src/main/services/startup-service.ts`
 
-The primary packaged Soma desktop app is still the Tauri app in `desktop/soma-app`.
+This is the primary Soma desktop app.
 
 ## Window chrome (frameless)
 
@@ -33,14 +34,35 @@ Node/Electron code imports generated TS gRPC stubs from the workspace package:
 
 - `desktop/proto` (`@soma/proto`)
 
-## Missing parity (vs `desktop/soma-app`)
+## Desktop integrations
 
-This shell does not yet implement all Tauri main-process features:
+### Deep links + single instance
 
-- Deep-link handling (`soma://...`) and single-instance behavior (Tauri has `tauri-plugin-deep-link` + `tauri-plugin-single-instance`).
-- Window state persistence (Tauri has `tauri-plugin-window-state`).
-- File-based logging equivalent to `@tauri-apps/plugin-log` (currently forwards renderer console → main console).
-- IPC commands for `agent_rerank` and `agent_resolve_drift` (present in the Tauri main process).
+- Scheme: `soma://...` (registered in `desktop/soma/electron-builder.yml`).
+- Main process emits `app:deep-link` to the renderer with the URL payload.
+- Secondary launches forward the URL to the existing window (`second-instance`).
+
+Renderer usage example:
+
+```ts
+window.electron.ipcRenderer.on("app:deep-link", (_event, url) => {
+  // handle soma://... URL
+});
+```
+
+### Window state persistence
+
+- Stored via `electron-store` in `desktop/soma/src/main/services/app-data-store.ts`.
+- Window bounds + maximized/fullscreen flags are saved under `windowState`.
+
+### Logging
+
+- Main process logs to `winston` file transport.
+- Location: `app.getPath("userData")/logs/main.log` (console logs enabled in dev).
+
+### Agent IPC
+
+- `agent_rerank` and `agent_resolve_drift` are handled in the main process and forward to `soma-agentd` via gRPC.
 
 ## Recommended IDE setup
 

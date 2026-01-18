@@ -1,4 +1,4 @@
-name: Release desktop (Soma)
+name: Release desktop (Tapia)
 
 on:
   workflow_dispatch:
@@ -45,7 +45,7 @@ jobs:
           if [ -n "${{ inputs.version }}" ]; then
             VERSION="${{ inputs.version }}"
           else
-            VERSION="$(cargo xtask version desktop --path desktop/soma-app/package.json)"
+            VERSION="$(cargo xtask version desktop --path desktop/tapia-app/package.json)"
           fi
           if [ -n "${{ inputs.tag }}" ]; then
             TAG="${{ inputs.tag }}"
@@ -67,7 +67,7 @@ jobs:
           makeLatest: false
           draft: false
           body: |
-            Soma desktop builds for Linux and macOS.
+            Tapia desktop builds for Linux and macOS.
 
             Assets are suffixed with OS/arch.
 
@@ -109,7 +109,7 @@ jobs:
         uses: ./.github/actions/package-desktop
         with:
           project_dir: .
-          app: soma-app
+          app: tapia-app
           arch: ${{ matrix.arch == 'amd64' && 'x64' || 'arm64' }}
           artifact_dir: artifacts/desktop/${{ matrix.os }}-${{ matrix.arch }}
 

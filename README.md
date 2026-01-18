@@ -13,8 +13,8 @@ Soma is a local-first learning and collaboration platform for schools, designed 
 The monorepo is organized into clear, documented areas:
 - backend Rust workspace (`backend/`)
 - desktop apps (`desktop/`)
-  - Primary UIs are the Tauri apps (`desktop/soma-app`, `desktop/tapia-app`).
-  - `desktop/soma` is an Electron/Chromium desktop shell used for development/testing and parity work (not the primary packaged app).
+  - Soma desktop app: Electron/Chromium (`desktop/soma`).
+  - Tapia desktop app: Tauri v2 (`desktop/tapia-app`).
   - `desktop/proto` is a TypeScript protobuf+gRPC codegen package (`@soma/proto`) used by Node/Electron code.
 - deployment artifacts (`deploy/`)
 - Docker Compose bundles (`compose/`)

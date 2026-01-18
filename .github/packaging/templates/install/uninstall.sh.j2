@@ -35,7 +35,7 @@ if [ "$OS" = "macos" ]; then
   sudo rm -f "$INSTALL_PREFIX/bin/soma-agentd"
   sudo rm -f "$INSTALL_PREFIX/share/soma/README.md"
   sudo rmdir "$INSTALL_PREFIX/share/soma" 2>/dev/null || true
-  sudo rm -rf "/Applications/soma-app.app"
+  sudo rm -rf "/Applications/soma.app"
 
   # Drop the pkg receipt if present.
   sudo pkgutil --forget "digital.camer.soma.bundle" >/dev/null 2>&1 || true
