@@ -17,7 +17,7 @@ If you need to extend workflows (e.g., add arguments or new targets), update the
 
 ## Desktop icon updates (Soma)
 
-`desktp-icons` generates PNG, ICNS, and ICO assets from a single 1024x1024 PNG or SVG. The `justfile` includes two recipes that wire it into the Soma app layouts:
+`desktp-icons` generates PNG, ICNS, and ICO assets from a single 1024x1024 PNG or SVG. The `justfile` includes recipes that wire it into the desktop app layouts:
 
 - **Electron Soma (`desktop/soma`)** – `just icons-soma /path/to/icon.png` (or `.svg`)
   - Writes into `desktop/soma/build/icons` and copies the output into `desktop/soma/build/icon.icns`, `desktop/soma/build/icon.ico`, and `desktop/soma/build/icon.png`.
@@ -27,13 +27,7 @@ If you need to extend workflows (e.g., add arguments or new targets), update the
   - Writes into `desktop/tapia/build/icons` and copies the output into `desktop/tapia/build/icon.icns`, `desktop/tapia/build/icon.ico`, and `desktop/tapia/build/icon.png`.
   - Updates the runtime window icon at `desktop/tapia/resources/icon.png`.
   - Updates the renderer favicon at `desktop/tapia/src/renderer/public/icon.png`.
-- **Tauri Soma (`desktop/soma-app`)** – `just icons-soma-app /path/to/icon.png` (or `.svg`)
-  - Writes into `desktop/soma-app/src-tauri/icons`.
-  - Copies `256x256.png` to `128x128@2x.png` for the `tauri.conf.json` retina entry.
-
 Note: these recipes take a single positional path argument; `just` treats `--input` as another recipe name.
-
-`desktp-icons` does not generate Android/iOS or Windows Store icon variants for Tauri apps; those remain managed by the existing Tauri icon pipeline.
 
 ## Shell ergonomics
 

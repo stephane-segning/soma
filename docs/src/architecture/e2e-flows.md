@@ -87,7 +87,7 @@ sequenceDiagram
 
 ## 5) Local AI chat streaming (renderer → main → agent)
 
-The desktop renderer initiates a streaming chat request via Tauri IPC. The Tauri main process coordinates the agent process (`soma-agentd`) and forwards token events back to the renderer.
+The desktop renderer initiates a streaming chat request via Electron IPC. The Electron main process coordinates the agent process (`soma-agentd`) and forwards token events back to the renderer.
 
 Relevant code (desktop side):
 
@@ -97,7 +97,7 @@ Relevant code (desktop side):
 ```mermaid
 sequenceDiagram
   participant R as Renderer (React)
-  participant M as Tauri main
+  participant M as Electron main
   participant A as soma-agentd
 
   R->>M: chatStream(messages)

@@ -70,7 +70,7 @@ Teachers can remove a bot at any time, which:
 
 ### Architecture (high level)
 
-- **Desktop UI** (Tauri v2 + React)
+- **Desktop UI** (Electron/Chromium + React)
 - **Local daemon** (Rust, gRPC over Unix socket)
 - **Agent service** (local AI, optional)
 - **Bot daemons** (cache + onboarding)

@@ -19,7 +19,9 @@ In this repo, **VDF** refers to a **cache-only peer role** (sometimes casually w
     - Crates: core domain, networking, storage, API, relay, rendezvous, BFF, and shared utilities.
 - `desktop/` – Desktop applications and packaging.
     - `desktop/soma/` – Soma Electron/Chromium app (primary packaged Soma desktop UI).
-    - `desktop/proto/` – TypeScript protobuf+gRPC codegen (`@soma/proto`) for Node/Electron consumers.
+    - `desktop/desktp-proto/` – TypeScript protobuf+gRPC codegen (`@soma/proto`) for Node/Electron consumers.
+    - `desktop/desktp-ui/` – Shared UI components (`@soma/ui`).
+    - `desktop/packaging/` – Local TypeScript CLI for bundle packaging tests.
     - `desktop/tapia/` – Tapia Electron/Chromium app (primary packaged Tapia UI).
 - `docs/` – VitePress documentation (`docs/src/` for markdown, `docs/.vitepress` for config/navigation).
 - `proto/` – shared protocol definitions and codegen inputs.
@@ -50,6 +52,9 @@ Repo automation (`xtask`):
   - `cargo xtask release bundle --os <linux|macos> --arch <amd64|arm64>`
   - Produces per-platform helper scripts `install.sh` and `uninstall.sh` alongside the packaged artifacts under `artifacts/bundle/<os>-<arch>/`.
   - Requires `GITHUB_REPOSITORY` + `GITHUB_TOKEN` (or `--repo/--token`), and platform tools (`fpm` on Linux, `pkgbuild` on macOS).
+- Local packaging (uses local build artifacts):
+  - `pnpm --filter @soma/packaging run bundle -- --os <linux|macos> --arch <amd64|arm64>`
+  - Outputs to `artifacts/bundle-local/<os>-<arch>/` by default.
 
 ## Tech Stack
 
@@ -84,7 +89,7 @@ Packaging templates:
 ### Rust (Cargo workspace)
 
 - Third-party dependency versions are declared **only** in the repo root `Cargo.toml` under `[workspace.dependencies]`.
-- All crates and binaries under `backend/crates/*`, `backend/bins/*`, and `desktop/*/src-tauri` must depend on third-party crates using `{ workspace = true }`.
+- All crates and binaries under `backend/crates/*` and `backend/bins/*` must depend on third-party crates using `{ workspace = true }`.
 - If a crate needs optional capabilities, add `features = [...]` on the `{ workspace = true }` dependency in that leaf `Cargo.toml`.
 - Do not add `version = "..."` for third-party crates anywhere except the root `Cargo.toml`.
 
@@ -126,7 +131,6 @@ Where to wire this:
 
 - Desktop renderers should load bytes via `soma-blob://daemon/{space_id}/{cid}` (never read blob files directly).
 - The Electron custom protocol handler lives at `desktop/soma/src/main/services/blob-protocol.ts` and reads bytes via `Daemon/ReadBlob` (proto `proto/daemon/v1/daemon.proto`, implemented in `backend/bins/daemon/src/grpc.rs`).
-- Tauri URI scheme handlers may run before `.setup(...)`; any state used by a protocol handler must be registered via `.manage(...)` **before** `register_uri_scheme_protocol(...)`.
 
 #### Network distribution (fetch + cache)
 
@@ -319,7 +323,7 @@ Shared frontend stack (Soma, Tapia):
 Soma (`desktop/soma`) (Electron/Chromium):
 
 - Main Soma UI; renderer lives under `desktop/soma/src/renderer`, main process under `desktop/soma/src/main`.
-- Renderer → main uses the preload bridge (`window.api.invoke`) rather than Tauri commands.
+- Renderer → main uses the preload bridge (`window.api.invoke`).
 - Desktop assumes `soma-daemon` is already running; do not start daemons from the renderer.
 - Documents + page navigation metadata are daemon-owned:
   - Yoopta JSON drafts/content: `Daemon/UpsertDocument` + `Daemon/GetDocument`
@@ -807,7 +811,7 @@ For how peers (`soma-daemon`, `soma-botd`) use mDNS, rendezvous, and relay clien
 - Draggable regions: mark non-interactive DOM with `data-drag-region` and opt interactive elements out with `data-no-drag` (CSS in `desktop/soma/src/renderer/src/styles/app.scss` uses `-webkit-app-region`).
 - Renderer code imports local modules via `@app/*` (see `desktop/soma/tsconfig.web.json` + `desktop/soma/electron.vite.config.ts`).
 - Renderer → main uses a preload bridge (`desktop/soma/src/preload/index.ts`) with `window.api.invoke(...)`; main registers handlers in `desktop/soma/src/main/command-registry.ts`.
-- Node/Electron gRPC stubs are generated in `desktop/proto` (`@soma/proto`) and imported from Electron main-process services.
+- Node/Electron gRPC stubs are generated in `desktop/desktp-proto` (`@soma/proto`) and imported from Electron main-process services.
 - Deep links: `soma://...` are registered by Electron, forwarded via `app:deep-link` to the renderer, and secondary launches are routed through the single-instance lock (`desktop/soma/src/main/services/startup-service.ts`).
 - Window state persistence: `electron-store` keeps `windowState` (bounds + maximized/fullscreen) in `desktop/soma/src/main/services/app-data-store.ts`.
 - Logging: main process uses Winston with file output under `app.getPath("userData")/logs/main.log` (console logs in dev).

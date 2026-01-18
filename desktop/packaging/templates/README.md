@@ -1,6 +1,6 @@
 # Packaging templates
 
-Rendered by `cargo xtask release bundle` into the bundle staging dir.
+Rendered by the local packaging CLI (`pnpm --filter @soma/packaging run bundle`) into the bundle staging dir.
 
 Variables available to all templates (compatible with Handlebars + Nunjucks syntax: `{{var}}`):
 - `name` – package name (e.g. `soma-daemon`)
@@ -26,7 +26,7 @@ Templates:
 - `readme/README.md.j2` – bundle README.
 
 How they are used:
-- `cargo xtask release bundle` renders all templates into the bundle staging dir for each OS/arch matrix run.
+- `pnpm --filter @soma/packaging run bundle` renders all templates into the bundle staging dir for local builds.
 - The bundle output directory includes standalone `install.sh` and `uninstall.sh` helper scripts next to the packaged artifacts.
 - Linux package contents include: binaries, README, systemd units.
 - macOS package contents include: binaries, README, launchd plists, desktop app.
@@ -35,4 +35,4 @@ How they are used:
 Conventions:
 - Binaries are expected at `{{install_prefix}}/bin/soma-daemon` and `{{install_prefix}}/bin/soma-agentd`.
 - Services are not auto-enabled; operators should `systemctl enable --now soma-daemon` (and `soma-agentd`) or load the LaunchDaemons via `launchctl`.
-- Update the template context in `xtask` when adding new template variables.
+- Keep these templates in sync with `.github/packaging/templates` (used by `cargo xtask release bundle` in CI).

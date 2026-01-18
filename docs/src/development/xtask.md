@@ -35,6 +35,19 @@ Optional flags:
 - `--bundle-version <label>` (otherwise uses a timestamp)
 - `--out-dir <path>` (default `artifacts/bundle`)
 
+## Local packaging (desktop/packaging)
+
+For local packaging tests (using local build artifacts), use the TypeScript CLI under `desktop/packaging`:
+
+```bash
+pnpm --filter @soma/packaging run bundle -- --os linux --arch amd64
+```
+
+This outputs to `artifacts/bundle-local/<os>-<arch>/` by default and expects:
+
+- daemon + agent binaries at `target/release/`
+- desktop artifacts in `desktop/soma/dist` and `desktop/tapia/dist`
+
 ## Packaging templates (`install.sh` / `uninstall.sh`)
 
 The bundle build renders templates from `.github/packaging/templates/` into the per-platform staging directory, including `install.sh` and `uninstall.sh`.

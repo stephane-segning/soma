@@ -8,7 +8,7 @@
 
 ## Recommended Topology
 
-- Tauri (renderer) → Tauri (main) → `soma-daemon` → `soma-agentd`
+- Electron (renderer) → Electron (main) → `soma-daemon` → `soma-agentd`
 - The UI only talks to `soma-daemon`.
 - `soma-daemon` mediates access to `soma-agentd` and enforces permissions and policy.
 
@@ -59,7 +59,7 @@ Keep the socket UDS-bound and mode 0600; treat all APIs as local-only IPC.
 
 For Node/Electron consumers (e.g. `desktop/soma`), this repo provides a workspace package that generates typed gRPC stubs:
 
-- Package: `desktop/proto` (`@soma/proto`)
+- Package: `desktop/desktp-proto` (`@soma/proto`)
 - Generator: `ts-proto` targeting `grpc-js`
 - Build: `pnpm --filter @soma/proto build`
 

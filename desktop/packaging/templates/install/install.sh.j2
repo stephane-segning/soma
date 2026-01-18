@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+BUNDLE_VERSION="{{bundle_version}}"
+BUNDLE_TAG="bundle-{{bundle_version}}"
+REPO="{{repo}}"
+
+os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+arch="$(uname -m)"
+
+case "$os" in
+  linux) OS=linux ;;
+  darwin) OS=macos ;;
+  *) echo "unsupported OS: $os" >&2; exit 1 ;;
+esac
+
+case "$arch" in
+  x86_64|amd64) ARCH=amd64 ;;
+  arm64|aarch64) ARCH=arm64 ;;
+  *) echo "unsupported arch: $arch" >&2; exit 1 ;;
+esac
+
+base="https://github.com/$REPO/releases/download"
+
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
+
+if [ "$OS" = "macos" ]; then
+  PKG="soma-bundle-$BUNDLE_VERSION-macos-$ARCH.pkg"
+  URL="$base/$BUNDLE_TAG/$PKG"
+  curl -fsSL "$URL" -o "$tmp/$PKG"
+  echo "Downloaded $PKG"
+  sudo installer -pkg "$tmp/$PKG" -target /
+  # Clear quarantine on the installed unsigned apps (dev distribution).
+  xattr -dr com.apple.quarantine "/Applications/soma.app" 2>/dev/null || true
+  xattr -cr "/Applications/soma.app" 2>/dev/null || true
+  xattr -dr com.apple.quarantine "/Applications/tapia.app" 2>/dev/null || true
+  xattr -cr "/Applications/tapia.app" 2>/dev/null || true
+  echo "Installed bundle package (includes soma-daemon, soma-agentd, soma, and tapia)"
+elif [ "$OS" = "linux" ]; then
+  DEB="soma-bundle-$BUNDLE_VERSION-linux-$ARCH.deb"
+  RPM="soma-bundle-$BUNDLE_VERSION-linux-$ARCH.rpm"
+  if command -v dpkg >/dev/null 2>&1; then
+    URL="$base/$BUNDLE_TAG/$DEB"
+    curl -fsSL "$URL" -o "$tmp/$DEB"
+    echo "Downloaded $DEB"
+    sudo dpkg -i "$tmp/$DEB"
+    echo "Installed bundle package (includes soma-daemon, soma-agentd, soma AppImage, and tapia AppImage)"
+  elif command -v rpm >/dev/null 2>&1; then
+    URL="$base/$BUNDLE_TAG/$RPM"
+    curl -fsSL "$URL" -o "$tmp/$RPM"
+    echo "Downloaded $RPM"
+    sudo rpm -Uvh "$tmp/$RPM"
+    echo "Installed bundle package (includes soma-daemon, soma-agentd, soma AppImage, and tapia AppImage)"
+  else
+    echo "No supported package manager found (need dpkg or rpm)" >&2
+    exit 1
+  fi
+fi
+
+echo "Release page: https://github.com/$REPO/releases/tag/$BUNDLE_TAG"

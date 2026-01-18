@@ -21,7 +21,7 @@ This page captures a practical threat model for Soma’s current architecture. I
 
 ### Desktop boundary
 
-- **Renderer (untrusted UI surface)** → **Tauri main process** → **`soma-daemon` (trusted local backend)**.
+- **Renderer (untrusted UI surface)** → **Electron main process** → **`soma-daemon` (trusted local backend)**.
 - `soma-daemon` exposes gRPC over a **Unix domain socket** (no TCP listener by default) to minimize attack surface.
 
 ### P2P boundary

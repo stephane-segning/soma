@@ -33,7 +33,7 @@ The key design rule is: **desktop apps do not implement libp2p**; they delegate 
 
 `soma-agentd` is a desktop-only helper process intended for long-running CPU/GPU tasks (LLMs, embeddings, OCR, indexing).
 
-In the current desktop implementation, the renderer initiates LLM streaming through Electron IPC (Soma) or Tauri IPC (Tapia), and the main process coordinates the agent process.
+In the current desktop implementation, the renderer initiates LLM streaming through Electron IPC and the main process coordinates the agent process.
 
 See `docs/src/development/agentd-ipc.md` for the recommended trust boundary.
 

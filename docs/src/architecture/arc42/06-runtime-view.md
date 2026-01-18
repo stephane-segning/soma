@@ -49,7 +49,7 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
   participant Renderer as Renderer (React)
-  participant Main as Tauri main
+  participant Main as Electron main
   participant Agent as soma-agentd
 
   Renderer->>Main: ipc: chatStream(messages)

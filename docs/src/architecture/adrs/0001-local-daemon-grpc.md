@@ -15,7 +15,7 @@ Use a **local daemon** communicating with the UI via **gRPC over Unix Domain Soc
 ## Consequences
 + Secure by default
 + Easy to reason about
-− Requires IPC support in the desktop shell (Tauri main process)
+− Requires IPC support in the desktop shell (Electron main process)
 
 ## Implementation status
 

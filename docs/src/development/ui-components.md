@@ -15,8 +15,7 @@
 - The main column enforces `overflow-auto` with `max-h-full`, so long content scrolls while sidebars stay fixed.
 - Header is a render-prop: receives `toggleLeft`, `toggleRight`, and open state so apps can control toggles (e.g., menu/info buttons).
 
-### Window drag regions (Tauri vs Electron)
-- Tauri: use `data-tauri-drag-region` (Tauri recognizes this attribute for draggable regions).
+### Window drag regions (Electron)
 - Electron (`desktop/soma`): use `data-drag-region` + CSS `-webkit-app-region: drag` (see `desktop/soma/src/renderer/src/styles/app.scss`). Mark interactive elements with `data-no-drag`.
 
 ### Storybook

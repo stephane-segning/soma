@@ -60,11 +60,6 @@ icons-soma input="desktop/soma/build/icon.png":
     mkdir -p desktop/soma/src/renderer/public
     cp desktop/soma/build/icons/1024x1024.png desktop/soma/src/renderer/public/icon.png
 
-# Generate icon assets for the Tauri-based Soma app (desktop/soma-app)
-icons-soma-app input="desktop/soma-app/src-tauri/icons/icon.png":
-    input_path="{{input}}"; input_path="${input_path#input=}"; cargo icons --input "$input_path" --output desktop/soma-app/src-tauri --flatten
-    cp desktop/soma-app/src-tauri/icons/256x256.png desktop/soma-app/src-tauri/icons/128x128@2x.png
-
 # Generate icon assets for the Electron-based Tapia app (desktop/tapia)
 icons-tapia input="desktop/tapia/build/icon.png":
     input_path="{{input}}"; input_path="${input_path#input=}"; cargo icons --input "$input_path" --output desktop/tapia/build --flatten
