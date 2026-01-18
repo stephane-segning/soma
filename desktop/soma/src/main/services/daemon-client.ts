@@ -1,8 +1,7 @@
-import fs from "fs";
 import * as grpc from "@grpc/grpc-js";
 import {
-	DaemonClient as GrpcDaemonClient,
 	type GetDocumentResponse,
+	DaemonClient as GrpcDaemonClient,
 	type ListPagesResponse,
 	type ListSpacesResponse,
 	type PageRecord,
@@ -11,7 +10,7 @@ import {
 	type SpaceMember,
 	type UploadBlobResponse,
 } from "@soma/proto/daemon/v1/daemon";
-import { AppDataStore, type StoredBlob } from "./app-data-store";
+import Long from "long";
 
 export type UploadBlobInput = {
 	spaceId: string;
@@ -71,7 +70,7 @@ const DAEMON_SOCKET = process.env.SOMA_DAEMON_SOCKET || "/tmp/soma-daemon.sock";
 export class DaemonClient {
 	private client: GrpcDaemonClient;
 
-	constructor(private readonly store: AppDataStore) {
+	constructor() {
 		const address = `unix://${DAEMON_SOCKET}`;
 		this.client = new GrpcDaemonClient(
 			address,
@@ -79,48 +78,22 @@ export class DaemonClient {
 		);
 	}
 
-	private unary<TResponse>(
-		method: keyof GrpcDaemonClient,
-		payload: unknown,
-	): Promise<TResponse> {
-		return new Promise((resolve, reject) => {
-			const fn = (this.client[method] as any)?.bind(this.client);
-			if (!fn)
-				return reject(new Error(`Daemon method not found: ${String(method)}`));
-			fn(payload, (err: grpc.ServiceError | null, res: TResponse) => {
-				if (err) return reject(err);
-				resolve(res);
-			});
-		});
-	}
-
 	async uploadBlob(input: UploadBlobInput): Promise<UploadBlobResult> {
-		const res = await this.unary<UploadBlobResponse>("uploadBlob", {
-			spaceId: input.spaceId,
-			data: Buffer.from(input.bytes),
-			mime: input.mime,
-			name: input.name,
-			docId: input.docId ?? "",
+		const res = await new Promise<UploadBlobResponse>((resolve, reject) => {
+			this.client.uploadBlob(
+				{
+					spaceId: input.spaceId,
+					data: Buffer.from(input.bytes),
+					mime: input.mime,
+					name: input.name,
+					docId: input.docId ?? "",
+				},
+				(err, response) => {
+					if (err) return reject(err);
+					resolve(response);
+				},
+			);
 		});
-
-		await this.store.persistBlobBytes(
-			input.spaceId,
-			res.cid,
-			Buffer.from(input.bytes),
-		);
-		const record: StoredBlob = {
-			cid: res.cid,
-			spaceId: input.spaceId,
-			docId: input.docId,
-			mime: res.mime ?? input.mime,
-			name: res.name ?? input.name,
-			size: Number(res.size ?? input.bytes.length),
-			createdAtMs: Date.now(),
-		};
-		this.store.blobs = [
-			...this.store.blobs.filter((b) => b.cid !== record.cid),
-			record,
-		];
 
 		return {
 			cid: res.cid,
@@ -130,24 +103,16 @@ export class DaemonClient {
 		};
 	}
 
-	async readBlob(spaceId: string, cid: string): Promise<Buffer | null> {
-		const cachedPath = this.store.getBlobPath(spaceId, cid);
+	async readBlob(spaceId: string, cid: string): Promise<ReadBlobResponse | null> {
 		try {
-			const bytes = await fs.promises.readFile(cachedPath);
-			return bytes;
-		} catch {
-			// fetch from daemon
-		}
-
-		try {
-			const res = await this.unary<ReadBlobResponse>("readBlob", {
-				spaceId,
-				cid,
+			const res = await new Promise<ReadBlobResponse>((resolve, reject) => {
+				this.client.readBlob({ spaceId, cid }, (err, response) => {
+					if (err) return reject(err);
+					resolve(response);
+				});
 			});
 			if (!res?.data || !res.data.length) return null;
-			const data = Buffer.from(res.data);
-			await this.store.persistBlobBytes(spaceId, cid, data);
-			return data;
+			return res;
 		} catch (error: any) {
 			if (error?.code === grpc.status.NOT_FOUND) return null;
 			throw error;
@@ -155,12 +120,20 @@ export class DaemonClient {
 	}
 
 	async upsertDocument(doc: StoredDocument): Promise<void> {
-		await this.unary("upsertDocument", {
-			spaceId: doc.spaceId,
-			documentId: doc.documentId,
-			contentJson: doc.contentJson,
-			published: doc.published,
-			updatedAtMs: doc.updatedAtMs,
+		await new Promise<void>((resolve, reject) => {
+			this.client.upsertDocument(
+				{
+					spaceId: doc.spaceId,
+					documentId: doc.documentId,
+					contentJson: doc.contentJson,
+					published: doc.published,
+					updatedAtMs: Long.fromNumber(doc.updatedAtMs),
+				},
+				(err) => {
+					if (err) return reject(err);
+					resolve();
+				},
+			);
 		});
 	}
 
@@ -169,9 +142,11 @@ export class DaemonClient {
 		documentId: string,
 	): Promise<StoredDocument | null> {
 		try {
-			const res = await this.unary<GetDocumentResponse>("getDocument", {
-				spaceId,
-				documentId,
+			const res = await new Promise<GetDocumentResponse>((resolve, reject) => {
+				this.client.getDocument({ spaceId, documentId }, (err, response) => {
+					if (err) return reject(err);
+					resolve(response);
+				});
 			});
 			if (!res) return null;
 			return {
@@ -188,13 +163,21 @@ export class DaemonClient {
 	}
 
 	async ensurePage(page: StoredPage): Promise<StoredPage> {
-		const res = await this.unary<{ page?: PageRecord }>("ensurePage", {
-			spaceId: page.spaceId,
-			pageId: page.pageId,
-			title: page.title,
-			parentPageIds: page.parentPageIds,
-			createdAtMs: page.createdAtMs,
-			updatedAtMs: page.updatedAtMs,
+		const res = await new Promise<{ page?: PageRecord }>((resolve, reject) => {
+			this.client.ensurePage(
+					{
+						spaceId: page.spaceId,
+						pageId: page.pageId,
+						title: page.title,
+						parentPageIds: page.parentPageIds,
+						createdAtMs: Long.fromNumber(page.createdAtMs),
+						updatedAtMs: Long.fromNumber(page.updatedAtMs),
+					},
+				(err, response) => {
+					if (err) return reject(err);
+					resolve(response);
+				},
+			);
 		});
 		const p = res.page;
 		if (!p) throw new Error("Daemon returned empty page");
@@ -202,7 +185,12 @@ export class DaemonClient {
 	}
 
 	async listPages(spaceId: string): Promise<StoredPage[]> {
-		const res = await this.unary<ListPagesResponse>("listPages", { spaceId });
+		const res = await new Promise<ListPagesResponse>((resolve, reject) => {
+			this.client.listPages({ spaceId }, (err, response) => {
+				if (err) return reject(err);
+				resolve(response);
+			});
+		});
 		return (res.pages ?? []).map((p) => this.fromPageRecord(p));
 	}
 
@@ -212,10 +200,14 @@ export class DaemonClient {
 		title: string,
 	): Promise<StoredPage | null> {
 		try {
-			const res = await this.unary<{ page?: PageRecord }>("updatePageTitle", {
-				spaceId,
-				pageId,
-				title,
+			const res = await new Promise<{ page?: PageRecord }>((resolve, reject) => {
+				this.client.updatePageTitle(
+					{ spaceId, pageId, title },
+					(err, response) => {
+						if (err) return reject(err);
+						resolve(response);
+					},
+				);
 			});
 			return res.page ? this.fromPageRecord(res.page) : null;
 		} catch (error: any) {
@@ -230,10 +222,14 @@ export class DaemonClient {
 		parentPageIds: string[],
 	): Promise<StoredPage | null> {
 		try {
-			const res = await this.unary<{ page?: PageRecord }>("setPageParents", {
-				spaceId,
-				pageId,
-				parentPageIds,
+			const res = await new Promise<{ page?: PageRecord }>((resolve, reject) => {
+				this.client.setPageParents(
+					{ spaceId, pageId, parentPageIds },
+					(err, response) => {
+						if (err) return reject(err);
+						resolve(response);
+					},
+				);
 			});
 			return res.page ? this.fromPageRecord(res.page) : null;
 		} catch (error: any) {
@@ -247,10 +243,18 @@ export class DaemonClient {
 		offset?: number;
 		query?: string;
 	}): Promise<ListSpacesResult> {
-		const res = await this.unary<ListSpacesResponse>("listSpaces", {
-			limit: options?.limit ?? 50,
-			offset: options?.offset ?? 0,
-			q: options?.query,
+		const res = await new Promise<ListSpacesResponse>((resolve, reject) => {
+			this.client.listSpaces(
+				{
+					limit: options?.limit ?? 50,
+					offset: options?.offset ?? 0,
+					q: options?.query,
+				},
+				(err, response) => {
+					if (err) return reject(err);
+					resolve(response);
+				},
+			);
 		});
 		return {
 			spaces: (res.spaces ?? []).map((s) => this.fromSpace(s)),
@@ -264,11 +268,18 @@ export class DaemonClient {
 		spaceId?: string;
 		displayName?: string;
 	}): Promise<StoredSpace> {
-		const res = await this.unary<{ spaceId: string; ownerPeerId: string }>(
-			"createSpace",
-			{
-				spaceId: input.spaceId ?? "",
-				displayName: input.displayName ?? "",
+		const res = await new Promise<{ spaceId: string; ownerPeerId: string }>(
+			(resolve, reject) => {
+				this.client.createSpace(
+					{
+						spaceId: input.spaceId ?? "",
+						displayName: input.displayName ?? "",
+					},
+					(err, response) => {
+						if (err) return reject(err);
+						resolve(response);
+					},
+				);
 			},
 		);
 		return {
@@ -281,7 +292,12 @@ export class DaemonClient {
 
 	async getSpace(spaceId: string): Promise<StoredSpace | null> {
 		try {
-			const res = await this.unary<{ space?: Space }>("getSpace", { spaceId });
+			const res = await new Promise<{ space?: Space }>((resolve, reject) => {
+				this.client.getSpace({ spaceId }, (err, response) => {
+					if (err) return reject(err);
+					resolve(response);
+				});
+			});
 			return res.space ? this.fromSpace(res.space) : null;
 		} catch (error: any) {
 			if (error?.code === grpc.status.NOT_FOUND) return null;
@@ -293,9 +309,17 @@ export class DaemonClient {
 		spaceId: string;
 		displayName?: string;
 	}): Promise<StoredSpace> {
-		const res = await this.unary<{ space?: Space }>("updateSpace", {
-			spaceId: input.spaceId,
-			displayName: input.displayName ?? "",
+		const res = await new Promise<{ space?: Space }>((resolve, reject) => {
+			this.client.updateSpace(
+				{
+					spaceId: input.spaceId,
+					displayName: input.displayName ?? "",
+				},
+				(err, response) => {
+					if (err) return reject(err);
+					resolve(response);
+				},
+			);
 		});
 		return this.fromSpace(
 			res.space ??
@@ -309,18 +333,23 @@ export class DaemonClient {
 	}
 
 	async deleteSpace(spaceId: string): Promise<boolean> {
-		const res = await this.unary<{ deleted: boolean }>("deleteSpace", {
-			spaceId,
+		const res = await new Promise<{ deleted: boolean }>((resolve, reject) => {
+			this.client.deleteSpace({ spaceId }, (err, response) => {
+				if (err) return reject(err);
+				resolve(response);
+			});
 		});
 		return !!res.deleted;
 	}
 
 	async listSpaceMembers(spaceId: string): Promise<StoredSpaceMember[]> {
 		if (!spaceId) return [];
-		const res = await this.unary<{ members: SpaceMember[] }>(
-			"listSpaceMembers",
-			{ spaceId },
-		);
+		const res = await new Promise<{ members: SpaceMember[] }>((resolve, reject) => {
+			this.client.listSpaceMembers({ spaceId }, (err, response) => {
+				if (err) return reject(err);
+				resolve(response);
+			});
+		});
 		return (res.members ?? []).map((m) => ({
 			spaceId: m.spaceId,
 			peerId: m.peerId,

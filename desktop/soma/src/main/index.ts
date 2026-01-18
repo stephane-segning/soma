@@ -20,9 +20,8 @@ function createWindow(): void {
 		height: 670,
 		show: false,
 		titleBarStyle: "hidden",
-		// expose window controls in Windows/Linux
-		...(process.platform !== "darwin" ? { titleBarOverlay: true } : {}),
 		autoHideMenuBar: true,
+		titleBarOverlay: false,
 		...(process.platform === "linux" ? { icon } : {}),
 		webPreferences: {
 			preload: join(__dirname, "../preload/index.js"),

@@ -1,17 +1,11 @@
 import { protocol } from "electron";
-import fs from "fs/promises";
-import path from "path";
-import { AppDataStore } from "./app-data-store";
-import { DaemonClient } from "./daemon-client";
+import type { DaemonClient } from "./daemon-client";
 
 export class BlobProtocolRegistrar {
-	constructor(
-		private readonly store: AppDataStore,
-		private readonly daemon: DaemonClient,
-	) {}
+	constructor(private readonly daemon: DaemonClient) {}
 
 	register(): void {
-		protocol.registerFileProtocol("soma-blob", async (request, callback) => {
+		protocol.registerBufferProtocol("soma-blob", async (request, callback) => {
 			const url = request.url.replace("soma-blob://", "");
 			const [, spaceId, cid] = url.split("/");
 			if (!spaceId || !cid) {
@@ -19,20 +13,20 @@ export class BlobProtocolRegistrar {
 				return;
 			}
 
-			const blobPath = this.store.getBlobPath(spaceId, cid);
 			try {
-				await fs.access(blobPath);
-			} catch {
-				const bytes = await this.daemon.readBlob(spaceId, cid);
-				if (!bytes) {
+				const res = await this.daemon.readBlob(spaceId, cid);
+				if (!res?.data || !res.data.length) {
 					callback({ error: -6 }); // ERR_FILE_NOT_FOUND
 					return;
 				}
-				await this.store.persistBlobBytes(spaceId, cid, bytes);
+				const data = Buffer.from(res.data);
+				callback({
+					data,
+					mimeType: res.mime || "application/octet-stream",
+				});
+			} catch (error) {
+				callback({ error: -2 }); // ERR_FAILED
 			}
-
-			const normalized = path.normalize(blobPath);
-			callback({ path: normalized });
 		});
 	}
 }

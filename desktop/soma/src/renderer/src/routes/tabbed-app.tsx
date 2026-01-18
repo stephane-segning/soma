@@ -1,7 +1,4 @@
-import {
-	useSetSettingMutation,
-	useSettingQuery,
-} from "@app/queries/settings";
+import { useSetSettingMutation, useSettingQuery } from "@app/queries/settings";
 import { useAppDispatch, useAppSelector } from "@app/store/hooks";
 import { store } from "@app/store/store";
 import {

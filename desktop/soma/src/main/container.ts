@@ -21,9 +21,7 @@ export function buildContainer(): Container {
 		.toConstantValue(new AppDataStore());
 	container
 		.bind<DaemonClient>(TYPES.DaemonClient)
-		.toDynamicValue(
-			(ctx) => new DaemonClient(ctx.container.get(TYPES.AppDataStore)),
-		);
+		.toDynamicValue(() => new DaemonClient());
 	container
 		.bind<AgentClient>(TYPES.AgentClient)
 		.toDynamicValue(() => new AgentClient());
@@ -31,11 +29,7 @@ export function buildContainer(): Container {
 	container
 		.bind<BlobProtocolRegistrar>(TYPES.BlobProtocol)
 		.toDynamicValue(
-			(ctx) =>
-				new BlobProtocolRegistrar(
-					ctx.container.get(TYPES.AppDataStore),
-					ctx.container.get(TYPES.DaemonClient),
-				),
+			(ctx) => new BlobProtocolRegistrar(ctx.container.get(TYPES.DaemonClient)),
 		);
 
 	container

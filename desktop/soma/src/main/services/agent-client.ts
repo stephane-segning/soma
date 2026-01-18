@@ -46,21 +46,6 @@ export class AgentClient {
 		);
 	}
 
-	private unary<TResponse>(
-		method: keyof GrpcAgentClient,
-		payload: unknown,
-	): Promise<TResponse> {
-		return new Promise((resolve, reject) => {
-			const fn = (this.client[method] as any)?.bind(this.client);
-			if (!fn)
-				return reject(new Error(`Agent method not found: ${String(method)}`));
-			fn(payload, (err: grpc.ServiceError | null, res: TResponse) => {
-				if (err) return reject(err);
-				resolve(res);
-			});
-		});
-	}
-
 	async chatStream(
 		messages: ChatMessage[],
 		options: ChatOptions = {},
@@ -90,7 +75,12 @@ export class AgentClient {
 
 	async listModels(): Promise<AgentModel[]> {
 		try {
-			const res = await this.unary<ListModelsResponse>("listModels", {});
+			const res = await new Promise<ListModelsResponse>((resolve, reject) => {
+				this.client.listModels({}, (err, response) => {
+					if (err) return reject(err);
+					resolve(response);
+				});
+			});
 			return (res.models ?? []).map((m) => ({
 				name: m.name,
 				kind: this.normalizeKind(m.kind),
@@ -100,7 +90,12 @@ export class AgentClient {
 			}));
 		} catch (err: any) {
 			if (err?.code === grpc.status.UNIMPLEMENTED) {
-				const status: any = await this.unary("status", {});
+				const status: any = await new Promise((resolve, reject) => {
+					this.client.status({}, (error, response) => {
+						if (error) return reject(error);
+						resolve(response);
+					});
+				});
 				return (status.models ?? []).map((m: any) => ({
 					name: m.name,
 					kind: this.normalizeKind(m.kind),
