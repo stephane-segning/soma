@@ -1,4 +1,4 @@
-import { AppDataStore } from "../services/app-data-store";
+import type { AppDataStore } from "../services/app-data-store";
 
 export class SettingsController {
 	constructor(private readonly store: AppDataStore) {}

@@ -1,12 +1,12 @@
 import "reflect-metadata";
-import { app, shell, BrowserWindow, ipcMain, protocol } from "electron";
+import { electronApp, is, optimizer } from "@electron-toolkit/utils";
+import { app, BrowserWindow, ipcMain, protocol, shell } from "electron";
 import { join } from "path";
-import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import icon from "../../resources/icon.png?asset";
+import type { CommandRegistry } from "./command-registry";
 import { buildContainer } from "./container";
+import type { BlobProtocolRegistrar } from "./services/blob-protocol";
 import { TYPES } from "./types";
-import { BlobProtocolRegistrar } from "./services/blob-protocol";
-import { CommandRegistry } from "./command-registry";
 
 const container = buildContainer();
 protocol.registerSchemesAsPrivileged([
@@ -70,7 +70,7 @@ app.whenReady().then(() => {
 
 	createWindow();
 
-	app.on("activate", function () {
+	app.on("activate", () => {
 		// On macOS it's common to re-create a window in the app when the
 		// dock icon is clicked and there are no other windows open.
 		if (BrowserWindow.getAllWindows().length === 0) createWindow();

@@ -1,17 +1,17 @@
 import { Container } from "inversify";
-import { TYPES } from "./types";
-import { AppDataStore } from "./services/app-data-store";
-import { DaemonClient } from "./services/daemon-client";
-import { AgentClient } from "./services/agent-client";
-import { BlobProtocolRegistrar } from "./services/blob-protocol";
 import { CommandRegistry } from "./command-registry";
+import { AgentController } from "./controllers/agent-controller";
 import { BlobsController } from "./controllers/blobs-controller";
 import { DocumentsController } from "./controllers/documents-controller";
-import { SpacesController } from "./controllers/spaces-controller";
-import { AgentController } from "./controllers/agent-controller";
 import { SearchController } from "./controllers/search-controller";
 import { SettingsController } from "./controllers/settings-controller";
+import { SpacesController } from "./controllers/spaces-controller";
 import { WindowController } from "./controllers/window-controller";
+import { AgentClient } from "./services/agent-client";
+import { AppDataStore } from "./services/app-data-store";
+import { BlobProtocolRegistrar } from "./services/blob-protocol";
+import { DaemonClient } from "./services/daemon-client";
+import { TYPES } from "./types";
 
 export function buildContainer(): Container {
 	const container = new Container({ defaultScope: "Singleton" });

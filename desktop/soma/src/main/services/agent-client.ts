@@ -1,9 +1,9 @@
 import * as grpc from "@grpc/grpc-js";
 import {
-	AgentClient as GrpcAgentClient,
-	ModelKind,
 	type ChatStreamEvent,
+	AgentClient as GrpcAgentClient,
 	type ListModelsResponse,
+	ModelKind,
 } from "@soma/proto/agent/v1/agent";
 import Long from "long";
 

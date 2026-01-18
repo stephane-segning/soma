@@ -1,11 +1,11 @@
-import { BrowserWindow, IpcMain } from "electron";
-import { BlobsController } from "./controllers/blobs-controller";
-import { DocumentsController } from "./controllers/documents-controller";
-import { SpacesController } from "./controllers/spaces-controller";
-import { AgentController } from "./controllers/agent-controller";
-import { SearchController } from "./controllers/search-controller";
-import { SettingsController } from "./controllers/settings-controller";
-import { WindowController } from "./controllers/window-controller";
+import { BrowserWindow, type IpcMain } from "electron";
+import type { AgentController } from "./controllers/agent-controller";
+import type { BlobsController } from "./controllers/blobs-controller";
+import type { DocumentsController } from "./controllers/documents-controller";
+import type { SearchController } from "./controllers/search-controller";
+import type { SettingsController } from "./controllers/settings-controller";
+import type { SpacesController } from "./controllers/spaces-controller";
+import type { WindowController } from "./controllers/window-controller";
 
 export class CommandRegistry {
 	constructor(

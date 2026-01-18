@@ -1,4 +1,5 @@
 import ElectronStore from "electron-store";
+
 type StoreSchema = {
 	settings: Record<string, unknown>;
 };

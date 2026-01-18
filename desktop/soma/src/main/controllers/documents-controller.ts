@@ -1,8 +1,8 @@
 import { createId } from "@paralleldrive/cuid2";
-import {
+import type {
 	DaemonClient,
-	type StoredDocument,
-	type StoredPage,
+	StoredDocument,
+	StoredPage,
 } from "../services/daemon-client";
 
 export type DraftRecord = {

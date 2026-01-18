@@ -103,7 +103,10 @@ export class DaemonClient {
 		};
 	}
 
-	async readBlob(spaceId: string, cid: string): Promise<ReadBlobResponse | null> {
+	async readBlob(
+		spaceId: string,
+		cid: string,
+	): Promise<ReadBlobResponse | null> {
 		try {
 			const res = await new Promise<ReadBlobResponse>((resolve, reject) => {
 				this.client.readBlob({ spaceId, cid }, (err, response) => {
@@ -165,14 +168,14 @@ export class DaemonClient {
 	async ensurePage(page: StoredPage): Promise<StoredPage> {
 		const res = await new Promise<{ page?: PageRecord }>((resolve, reject) => {
 			this.client.ensurePage(
-					{
-						spaceId: page.spaceId,
-						pageId: page.pageId,
-						title: page.title,
-						parentPageIds: page.parentPageIds,
-						createdAtMs: Long.fromNumber(page.createdAtMs),
-						updatedAtMs: Long.fromNumber(page.updatedAtMs),
-					},
+				{
+					spaceId: page.spaceId,
+					pageId: page.pageId,
+					title: page.title,
+					parentPageIds: page.parentPageIds,
+					createdAtMs: Long.fromNumber(page.createdAtMs),
+					updatedAtMs: Long.fromNumber(page.updatedAtMs),
+				},
 				(err, response) => {
 					if (err) return reject(err);
 					resolve(response);
@@ -200,15 +203,17 @@ export class DaemonClient {
 		title: string,
 	): Promise<StoredPage | null> {
 		try {
-			const res = await new Promise<{ page?: PageRecord }>((resolve, reject) => {
-				this.client.updatePageTitle(
-					{ spaceId, pageId, title },
-					(err, response) => {
-						if (err) return reject(err);
-						resolve(response);
-					},
-				);
-			});
+			const res = await new Promise<{ page?: PageRecord }>(
+				(resolve, reject) => {
+					this.client.updatePageTitle(
+						{ spaceId, pageId, title },
+						(err, response) => {
+							if (err) return reject(err);
+							resolve(response);
+						},
+					);
+				},
+			);
 			return res.page ? this.fromPageRecord(res.page) : null;
 		} catch (error: any) {
 			if (error?.code === grpc.status.NOT_FOUND) return null;
@@ -222,15 +227,17 @@ export class DaemonClient {
 		parentPageIds: string[],
 	): Promise<StoredPage | null> {
 		try {
-			const res = await new Promise<{ page?: PageRecord }>((resolve, reject) => {
-				this.client.setPageParents(
-					{ spaceId, pageId, parentPageIds },
-					(err, response) => {
-						if (err) return reject(err);
-						resolve(response);
-					},
-				);
-			});
+			const res = await new Promise<{ page?: PageRecord }>(
+				(resolve, reject) => {
+					this.client.setPageParents(
+						{ spaceId, pageId, parentPageIds },
+						(err, response) => {
+							if (err) return reject(err);
+							resolve(response);
+						},
+					);
+				},
+			);
 			return res.page ? this.fromPageRecord(res.page) : null;
 		} catch (error: any) {
 			if (error?.code === grpc.status.NOT_FOUND) return null;
@@ -344,12 +351,14 @@ export class DaemonClient {
 
 	async listSpaceMembers(spaceId: string): Promise<StoredSpaceMember[]> {
 		if (!spaceId) return [];
-		const res = await new Promise<{ members: SpaceMember[] }>((resolve, reject) => {
-			this.client.listSpaceMembers({ spaceId }, (err, response) => {
-				if (err) return reject(err);
-				resolve(response);
-			});
-		});
+		const res = await new Promise<{ members: SpaceMember[] }>(
+			(resolve, reject) => {
+				this.client.listSpaceMembers({ spaceId }, (err, response) => {
+					if (err) return reject(err);
+					resolve(response);
+				});
+			},
+		);
 		return (res.members ?? []).map((m) => ({
 			spaceId: m.spaceId,
 			peerId: m.peerId,

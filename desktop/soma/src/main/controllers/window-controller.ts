@@ -1,4 +1,4 @@
-import { BrowserWindow } from "electron";
+import type { BrowserWindow } from "electron";
 
 export class WindowController {
 	minimize(window?: BrowserWindow | null): void {

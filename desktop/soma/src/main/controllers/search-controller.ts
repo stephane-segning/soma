@@ -1,4 +1,4 @@
-import { DaemonClient } from "../services/daemon-client";
+import type { DaemonClient } from "../services/daemon-client";
 
 export type SearchResult = {
 	id: string;

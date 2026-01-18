@@ -1,4 +1,12 @@
 import {
+	type PageRecord,
+	useCreatePage,
+	useEnsurePageMutation,
+	usePagesQuery,
+	useSetPageParentsMutation,
+	useUpdatePageTitleMutation,
+} from "@app/queries/pages";
+import {
 	DndContext,
 	type DragEndEvent,
 	PointerSensor,
@@ -8,14 +16,6 @@ import {
 	useSensors,
 } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import {
-	type PageRecord,
-	useCreatePage,
-	useEnsurePageMutation,
-	usePagesQuery,
-	useSetPageParentsMutation,
-	useUpdatePageTitleMutation,
-} from "@app/queries/pages";
 import { PolymorphButton } from "@soma/ui/components/actions/polymorph-button";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";

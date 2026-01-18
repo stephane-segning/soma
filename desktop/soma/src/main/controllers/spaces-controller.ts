@@ -1,7 +1,7 @@
-import {
+import type {
 	DaemonClient,
-	type StoredSpace,
-	type StoredSpaceMember,
+	StoredSpace,
+	StoredSpaceMember,
 } from "../services/daemon-client";
 
 export type ListSpacesResult = {
