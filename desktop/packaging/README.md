@@ -22,6 +22,7 @@ Common flags:
 - `--os <linux|macos>`
 - `--arch <amd64|arm64>`
 - `--out-dir <path>` (default: `artifacts/bundle-local`)
+- `--adhoc-sign-macos` / `--no-adhoc-sign-macos` (default: enabled)
 - `--daemon-path <path>` (default: `target/release/soma-daemon`)
 - `--agent-path <path>` (default: `target/release/soma-agentd`)
 - `--soma-app <path>` / `--tapia-app <path>`

@@ -120,11 +120,7 @@ jobs:
         if: matrix.os == 'macos'
         shell: bash
         env:
-          CSC_LINK: ${{ secrets.MACOS_CERT_P12 }}
-          CSC_KEY_PASSWORD: ${{ secrets.MACOS_CERT_P12_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
         run: |
           set -euo pipefail
           ARCH_FLAG="--x64"
@@ -133,6 +129,33 @@ jobs:
           fi
           pnpm --filter soma run build:mac -- "$ARCH_FLAG"
           pnpm --filter tapia run build:mac -- "$ARCH_FLAG"
+
+      - name: Ad-hoc sign + rezip macOS apps
+        if: matrix.os == 'macos'
+        shell: bash
+        run: |
+          set -euo pipefail
+          sign_and_zip() {
+            local app_name="$1"
+            local dist_dir="$2"
+            local app_path
+            app_path="$(find "$dist_dir" -maxdepth 2 -name "${app_name}.app" -print -quit)"
+            if [ -z "$app_path" ]; then
+              echo "Missing ${app_name}.app in ${dist_dir}" >&2
+              exit 1
+            fi
+            codesign --force --deep --sign - "$app_path"
+            local zip_path
+            zip_path="$(find "$dist_dir" -maxdepth 1 -name "${app_name}*.zip" ! -name "*.blockmap" -print -quit)"
+            if [ -z "$zip_path" ]; then
+              zip_path="${dist_dir}/${app_name}.zip"
+            else
+              rm -f "$zip_path"
+            fi
+            ditto -c -k --sequesterRsrc --keepParent "$app_path" "$zip_path"
+          }
+          sign_and_zip "soma" "desktop/soma/dist"
+          sign_and_zip "tapia" "desktop/tapia/dist"
 
       - name: Build Electron apps (linux)
         if: matrix.os == 'linux'

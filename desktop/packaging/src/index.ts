@@ -21,6 +21,7 @@ type BundleArgs = {
   os: "linux" | "macos";
   arch: "amd64" | "arm64";
   outDir: string;
+  adhocSignMacos: boolean;
   bundleVersion?: string;
   daemonsVersion?: string;
   desktopVersion?: string;
@@ -65,6 +66,11 @@ async function main() {
             default: DEFAULT_OUT_DIR,
             describe: "Output directory",
             type: "string",
+          })
+          .option("adhoc-sign-macos", {
+            default: true,
+            describe: "Ad-hoc sign macOS app bundles after unpacking",
+            type: "boolean",
           })
           .option("bundle-version", {
             describe: "Bundle version label",
@@ -139,6 +145,7 @@ async function runBundle(args: BundleArgs) {
     : await findRepoRoot(process.cwd());
   const outDir = path.resolve(repoRoot, args.outDir);
   const templateRoot = path.resolve(repoRoot, args.templates);
+  const adhocSignMacos = args.adhocSignMacos ?? true;
 
   const bundleVersion =
     args.bundleVersion && args.bundleVersion.trim().length > 0
@@ -234,6 +241,7 @@ async function runBundle(args: BundleArgs) {
       bundleVersion,
       arch: args.arch,
       docsUrl,
+      adhocSign: adhocSignMacos,
     });
   }
 
@@ -679,6 +687,7 @@ type MacBundleArgs = {
   bundleVersion: string;
   arch: "amd64" | "arm64";
   docsUrl: string;
+  adhocSign: boolean;
 };
 
 async function buildMacosBundle(args: MacBundleArgs) {
@@ -711,8 +720,18 @@ async function buildMacosBundle(args: MacBundleArgs) {
     path.join(pkgroot, "Library/LaunchDaemons/digital.camer.soma.agentd.plist")
   );
 
-  const somaApp = await stageMacosApp(args.staging, "soma", args.somaDesktopPath);
-  const tapiaApp = await stageMacosApp(args.staging, "tapia", args.tapiaDesktopPath);
+  const somaApp = await stageMacosApp(
+    args.staging,
+    "soma",
+    args.somaDesktopPath,
+    args.adhocSign
+  );
+  const tapiaApp = await stageMacosApp(
+    args.staging,
+    "tapia",
+    args.tapiaDesktopPath,
+    args.adhocSign
+  );
 
   await fse.copy(somaApp, path.join(pkgroot, "Applications", "soma.app"));
   await fse.copy(tapiaApp, path.join(pkgroot, "Applications", "tapia.app"));
@@ -739,10 +758,14 @@ async function buildMacosBundle(args: MacBundleArgs) {
 async function stageMacosApp(
   staging: string,
   appName: string,
-  artifactPath: string
+  artifactPath: string,
+  adhocSign: boolean
 ) {
   const lower = path.basename(artifactPath).toLowerCase();
   if (lower.endsWith(".app")) {
+    if (adhocSign) {
+      await adhocSignApp(artifactPath);
+    }
     return artifactPath;
   }
 
@@ -760,7 +783,17 @@ async function stageMacosApp(
   if (!(await pathExists(appBundle))) {
     throw new Error(`Expected ${appName}.app in ${staging}`);
   }
+  if (adhocSign) {
+    await adhocSignApp(appBundle);
+  }
   return appBundle;
+}
+
+async function adhocSignApp(appPath: string) {
+  if (process.platform !== "darwin") {
+    throw new Error("Ad-hoc signing requires macOS (codesign)");
+  }
+  await runCommand("codesign", ["--force", "--deep", "--sign", "-", appPath]);
 }
 
 async function createSymlink(source: string, target: string) {
