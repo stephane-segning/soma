@@ -9,6 +9,7 @@
 	"scripts": {
 		"build": "tsc -p tsconfig.json",
 		"bundle": "pnpm run build && node dist/index.js",
+		"bundle:release": "pnpm run build && node dist/index.js release",
 		"format": "biome format --write .",
 		"lint": "biome check --write .",
 		"typecheck": "tsc --noEmit -p tsconfig.json"

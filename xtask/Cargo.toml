@@ -6,14 +6,8 @@ publish = false
 
 [dependencies]
 anyhow = { workspace = true }
-clap = { workspace = true, features = ["derive", "env"] }
-regex = { workspace = true }
-reqwest = { workspace = true, features = ["blocking", "json", "rustls-tls"] }
-serde = { workspace = true, features = ["derive"] }
-serde_json = { workspace = true }
-time = { workspace = true }
+clap = { workspace = true, features = ["derive"] }
 toml = { workspace = true }
-tracing = { workspace = true }
-tracing-subscriber = { workspace = true, features = ["fmt", "env-filter"] }
+
+[dev-dependencies]
 tempfile = { workspace = true }
-handlebars = { workspace = true }

@@ -33,4 +33,4 @@ pnpm docs:build   # outputs to ./site
 
 ## Repo automation (`cargo xtask`)
 
-Repo automation lives in `xtask/` and is invoked via `cargo xtask ...` (wired through `.cargo/config.toml`). This is used by CI for version resolution and bundle packaging.
+Repo automation lives in `xtask/` and is invoked via `cargo xtask ...` (wired through `.cargo/config.toml`). CI uses this for Cargo workspace version resolution; bundle packaging is handled by the TypeScript CLI under `desktop/packaging`.

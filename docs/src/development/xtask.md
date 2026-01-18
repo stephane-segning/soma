@@ -16,24 +16,7 @@ Read versions used by CI:
 
 ```bash
 cargo xtask version workspace --path Cargo.toml
-cargo xtask version desktop --path desktop/soma/package.json
 ```
-
-Build a release bundle (downloads release assets, renders templates, produces `.deb/.rpm` on Linux or `.pkg` on macOS, and prints JSON to stdout):
-
-```bash
-export GITHUB_REPOSITORY=owner/repo
-export GITHUB_TOKEN=...
-
-cargo xtask release bundle --os linux --arch amd64
-```
-
-Optional flags:
-
-- `--daemons-version <x.y.z>` (otherwise resolves latest `daemons-v*`)
-- `--desktop-version <x.y.z>` (otherwise resolves latest `desktop-v*`)
-- `--bundle-version <label>` (otherwise uses a timestamp)
-- `--out-dir <path>` (default `artifacts/bundle`)
 
 ## Local packaging (desktop/packaging)
 
@@ -48,21 +31,39 @@ This outputs to `artifacts/bundle-local/<os>-<arch>/` by default and expects:
 - daemon + agent binaries at `target/release/`
 - desktop artifacts in `desktop/soma/dist` and `desktop/tapia/dist`
 
+## Release bundle (CI / GitHub assets)
+
+The CI release bundle is built with the same TypeScript CLI, but it pulls published assets from GitHub releases and prints a JSON payload for workflow outputs:
+
+```bash
+export GITHUB_REPOSITORY=owner/repo
+export GITHUB_TOKEN=...
+
+pnpm --filter @soma/packaging run bundle:release -- --os linux --arch amd64
+```
+
+Optional flags:
+
+- `--daemons-version <x.y.z>` (otherwise resolves latest `daemons-v*`)
+- `--desktop-version <x.y.z>` (otherwise resolves latest `desktop-v*`)
+- `--bundle-version <label>` (otherwise uses a timestamp)
+- `--out-dir <path>` (default `artifacts/bundle`)
+
 ## Packaging templates (`install.sh` / `uninstall.sh`)
 
-The bundle build renders templates from `.github/packaging/templates/` into the per-platform staging directory, including `install.sh` and `uninstall.sh`.
+The bundle build renders templates from `desktop/packaging/templates/` into the per-platform staging directory, including `install.sh` and `uninstall.sh`.
 
 Notes:
 
-- Templates use **Handlebars** syntax (`{{var}}`) and are rendered by `cargo xtask` in strict mode (missing vars fail the build).
+- Templates use **Nunjucks** syntax (`{{var}}`) and are rendered in strict mode (missing vars fail the build).
 - `install.sh` / `uninstall.sh` are intentionally shipped as artifacts; they are generated during the bundle build and placed next to the packaged artifacts under `artifacts/bundle/<os>-<arch>/`.
 
 ## CI integration
 
-GitHub Actions workflows and composite actions call `cargo xtask ...` instead of repo-local python helpers:
+GitHub Actions workflows use `cargo xtask` for Cargo workspace version resolution and `@soma/packaging` for bundle packaging:
 
-- Version resolution: `cargo xtask version ...`
-- Bundle build: `cargo xtask release bundle ...` (prints JSON used to set action outputs)
+- Version resolution: `cargo xtask version workspace ...`
+- Bundle build: `pnpm --filter @soma/packaging run bundle:release ...` (prints JSON used to set action outputs)
 
 ## Extending xtask
 

@@ -2,7 +2,7 @@
 
 This repository exposes a `justfile` at the workspace root that captures recommended build/run/test flows across the backend, desktop apps, and compose stack.
 
-Note: CI-critical automation is moving to `cargo xtask` (see `docs/src/development/xtask.md`). The `justfile` remains a convenient shorthand for local development.
+Note: CI-critical automation uses `cargo xtask` for Cargo workspace tasks and `@soma/packaging` for bundle packaging (see `docs/src/development/xtask.md`). The `justfile` remains a convenient shorthand for local development.
 
 ## Run targets
 

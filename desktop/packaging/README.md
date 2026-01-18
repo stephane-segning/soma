@@ -17,6 +17,14 @@ From the repo root:
 pnpm --filter @soma/packaging run bundle -- --os linux --arch amd64
 ```
 
+Release bundle (downloads published assets and prints JSON for CI; default output `artifacts/bundle`):
+
+```bash
+pnpm --filter @soma/packaging run bundle:release -- --os linux --arch amd64
+```
+
+Requires `GITHUB_REPOSITORY` and `GITHUB_TOKEN` (or `--repo`/`--token`).
+
 Common flags:
 
 - `--os <linux|macos>`
@@ -31,4 +39,4 @@ If `--soma-app` or `--tapia-app` are omitted, the CLI attempts to auto-detect ar
 
 ## Templates
 
-Template sources live under `desktop/packaging/templates` and use Nunjucks (Jinja-compatible) syntax. The same `{{var}}` variables are compatible with the CI `xtask` renderer.
+Template sources live under `desktop/packaging/templates` and use Nunjucks (Jinja-compatible) syntax.

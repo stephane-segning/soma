@@ -43,8 +43,20 @@ outputs:
 runs:
   using: composite
   steps:
-    - name: Setup Rust toolchain
-      uses: dtolnay/rust-toolchain@stable
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: "24"
+
+    - name: Enable corepack (pnpm)
+      shell: bash
+      run: |
+        corepack enable
+        corepack prepare pnpm@9.0.0 --activate
+
+    - name: Install pnpm dependencies
+      shell: bash
+      run: pnpm install --frozen-lockfile
 
     - name: Install packaging deps (Linux)
       if: runner.os == 'Linux'
@@ -69,21 +81,23 @@ runs:
       run: |
         set -euo pipefail
         if ! command -v jq >/dev/null 2>&1; then
-          echo "jq is required to parse xtask JSON output (not found on PATH)" >&2
+          echo "jq is required to parse JSON output (not found on PATH)" >&2
           exit 1
         fi
         JSON_PATH="$RUNNER_TEMP/release_bundle.json"
-        cargo xtask release bundle \
+        pnpm --filter @soma/packaging run bundle:release -- \
           --os "$BUNDLE_OS" \
           --arch "$BUNDLE_ARCH" \
           --out-dir "$OUT_DIR" \
+          --repo "${GITHUB_REPOSITORY}" \
           ${DAEMONS_VERSION:+--daemons-version "$DAEMONS_VERSION"} \
           ${DESKTOP_VERSION:+--desktop-version "$DESKTOP_VERSION"} \
           ${BUNDLE_VERSION:+--bundle-version "$BUNDLE_VERSION"} \
+          ${DOCKER_IMAGES:+--docker-images "$DOCKER_IMAGES"} \
           | tee "$JSON_PATH"
         JSON_LINE="$(awk 'NF{line=$0} END{print line}' "$JSON_PATH")"
         if [ -z "$JSON_LINE" ]; then
-          echo "Failed to locate xtask JSON output in $JSON_PATH" >&2
+          echo "Failed to locate packaging JSON output in $JSON_PATH" >&2
           exit 1
         fi
         if ! echo "$JSON_LINE" | jq -e . >/dev/null 2>&1; then

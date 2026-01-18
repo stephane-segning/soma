@@ -1,8 +1,10 @@
 import { execa } from "execa";
 import fse from "fs-extra";
 import nunjucks from "nunjucks";
-import { promises as fs } from "node:fs";
+import { createWriteStream, promises as fs } from "node:fs";
 import path from "node:path";
+import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 import yargs from "yargs/yargs";
 import { hideBin } from "yargs/helpers";
 
@@ -38,6 +40,22 @@ type BundleArgs = {
   tapiaApp?: string;
 };
 
+type ReleaseBundleArgs = {
+  os: "linux" | "macos";
+  arch: "amd64" | "arm64";
+  outDir: string;
+  adhocSignMacos: boolean;
+  bundleVersion?: string;
+  daemonsVersion?: string;
+  desktopVersion?: string;
+  repo?: string;
+  token?: string;
+  dockerImages?: string;
+  installPrefix: string;
+  templates: string;
+  repoRoot?: string;
+};
+
 async function main() {
   const argv = hideBin(process.argv);
   if (argv[0] === "--") {
@@ -45,9 +63,78 @@ async function main() {
   }
   await yargs(argv)
     .scriptName("soma-packaging")
+    .command<ReleaseBundleArgs>(
+      "release",
+      "Build a release Soma + Tapia bundle from GitHub assets",
+      (command) =>
+        command
+          .option("os", {
+            choices: ["linux", "macos"] as const,
+            demandOption: true,
+            describe: "Target OS",
+            type: "string",
+          })
+          .option("arch", {
+            choices: ["amd64", "arm64"] as const,
+            demandOption: true,
+            describe: "Target arch",
+            type: "string",
+          })
+          .option("out-dir", {
+            default: "artifacts/bundle",
+            describe: "Output directory",
+            type: "string",
+          })
+          .option("adhoc-sign-macos", {
+            default: false,
+            describe: "Ad-hoc sign macOS app bundles after unpacking",
+            type: "boolean",
+          })
+          .option("bundle-version", {
+            describe: "Bundle version label (default: timestamp)",
+            type: "string",
+          })
+          .option("daemons-version", {
+            describe: "Daemons release version (default: latest daemons-v*)",
+            type: "string",
+          })
+          .option("desktop-version", {
+            describe: "Desktop release version (default: latest desktop-v*)",
+            type: "string",
+          })
+          .option("repo", {
+            describe: "GitHub repo (owner/name)",
+            type: "string",
+          })
+          .option("token", {
+            describe: "GitHub token (defaults to env:GITHUB_TOKEN)",
+            type: "string",
+          })
+          .option("docker-images", {
+            describe: "Docker images to embed in README",
+            type: "string",
+          })
+          .option("install-prefix", {
+            default: DEFAULT_INSTALL_PREFIX,
+            describe: "Install prefix",
+            type: "string",
+          })
+          .option("templates", {
+            default: DEFAULT_TEMPLATE_ROOT,
+            describe: "Templates root",
+            type: "string",
+          })
+          .option("repo-root", {
+            describe: "Repo root (default: auto-detect)",
+            type: "string",
+          }),
+      async (commandArgs) => {
+        await runReleaseBundle(commandArgs);
+      }
+    )
     .command<BundleArgs>(
       "$0",
-      "Build a local Soma + Tapia bundle",
+      "Build a local Soma + Tapia bundle from local build artifacts",
       (command) =>
         command
           .option("os", {
@@ -248,6 +335,171 @@ async function runBundle(args: BundleArgs) {
   console.log(
     `Bundle ready: ${path.join(platformOut, "install.sh")} (version ${bundleVersion})`
   );
+}
+
+async function runReleaseBundle(args: ReleaseBundleArgs) {
+  const repoRoot = args.repoRoot
+    ? path.resolve(args.repoRoot)
+    : await findRepoRoot(process.cwd());
+  const outDir = path.resolve(repoRoot, args.outDir);
+  const templateRoot = path.resolve(repoRoot, args.templates);
+  const adhocSignMacos = args.adhocSignMacos ?? false;
+
+  const repo = args.repo || process.env.GITHUB_REPOSITORY;
+  if (!repo) {
+    throw new Error("GITHUB_REPOSITORY or --repo is required");
+  }
+  const token = args.token || process.env.GITHUB_TOKEN;
+  if (!token) {
+    throw new Error("GITHUB_TOKEN or --token is required");
+  }
+
+  const bundleVersion =
+    args.bundleVersion && args.bundleVersion.trim().length > 0
+      ? args.bundleVersion.trim()
+      : currentTimestampLabel();
+
+  const { tag: daemonsTag, version: daemonsVersion } =
+    args.daemonsVersion && args.daemonsVersion.trim().length > 0
+      ? {
+          tag: `daemons-v${args.daemonsVersion.trim()}`,
+          version: args.daemonsVersion.trim(),
+        }
+      : await resolveLatestReleaseTag(repo, "daemons-v", token);
+
+  const { tag: desktopTag, version: desktopVersion } =
+    args.desktopVersion && args.desktopVersion.trim().length > 0
+      ? {
+          tag: `desktop-v${args.desktopVersion.trim()}`,
+          version: args.desktopVersion.trim(),
+        }
+      : await resolveLatestReleaseTag(repo, "desktop-v", token);
+
+  logInfo(
+    `Using daemons=${daemonsTag} desktop=${desktopTag} bundle_version=${bundleVersion}`
+  );
+
+  const daemonsRelease = await fetchReleaseByTag(repo, daemonsTag, token);
+  const desktopRelease = await fetchReleaseByTag(repo, desktopTag, token);
+  logInfo(
+    `Release assets: daemons=${assetNames(
+      daemonsRelease.assets
+    )} desktop=${assetNames(desktopRelease.assets)}`
+  );
+
+  const {
+    daemonAsset,
+    agentAsset,
+    resolvedArch,
+  } = resolveDaemonAssets(
+    daemonsRelease.assets,
+    daemonsVersion,
+    args.os,
+    args.arch
+  );
+  const somaDesktopAsset = resolveDesktopAsset(
+    desktopRelease.assets,
+    "soma",
+    desktopVersion,
+    args.os,
+    resolvedArch
+  );
+  const tapiaDesktopAsset = resolveDesktopAsset(
+    desktopRelease.assets,
+    "tapia",
+    desktopVersion,
+    args.os,
+    resolvedArch
+  );
+
+  const platformOut = path.join(outDir, `${args.os}-${resolvedArch}`);
+  const staging = path.join(platformOut, "staging");
+  await fse.remove(platformOut);
+  await fse.ensureDir(staging);
+
+  const daemonArchive = path.join(staging, daemonAsset.name);
+  const agentArchive = path.join(staging, agentAsset.name);
+  await downloadReleaseAsset(daemonAsset.url, daemonArchive, token);
+  await downloadReleaseAsset(agentAsset.url, agentArchive, token);
+
+  await stageBinary("soma-daemon", daemonArchive, staging);
+  await stageBinary("soma-agentd", agentArchive, staging);
+
+  const somaDesktopPath = path.join(staging, somaDesktopAsset.name);
+  const tapiaDesktopPath = path.join(staging, tapiaDesktopAsset.name);
+  await downloadReleaseAsset(somaDesktopAsset.url, somaDesktopPath, token);
+  await downloadReleaseAsset(tapiaDesktopAsset.url, tapiaDesktopPath, token);
+
+  const pagesUrl = pagesUrlFromRepo(repo);
+  const templateCtx = buildTemplateContext({
+    name: "soma-daemon",
+    version: daemonsVersion,
+    desktopVersion,
+    bundleVersion,
+    os: args.os,
+    arch: resolvedArch,
+    installPrefix: args.installPrefix,
+    serviceLabelDaemon: DEFAULT_SERVICE_LABEL_DAEMON,
+    serviceLabelAgent: DEFAULT_SERVICE_LABEL_AGENT,
+    homepage: pagesUrl,
+    docsUrl: pagesUrl,
+    dockerImages: args.dockerImages,
+    repo,
+  });
+
+  const rendered = await renderTemplates(templateRoot, staging, templateCtx);
+
+  const produced: string[] = [];
+  produced.push(await copyToOutput(platformOut, rendered.installScript, "install.sh"));
+  produced.push(
+    await copyToOutput(platformOut, rendered.uninstallScript, "uninstall.sh")
+  );
+
+  if (args.os === "linux") {
+    const linuxArtifacts = await buildLinuxBundle({
+      platformOut,
+      staging,
+      systemdDaemon: rendered.systemdDaemon,
+      systemdAgent: rendered.systemdAgent,
+      somaDesktopPath,
+      tapiaDesktopPath,
+      bundleVersion,
+      arch: resolvedArch,
+      docsUrl: pagesUrl,
+    });
+    produced.push(...linuxArtifacts);
+  } else {
+    const macArtifacts = await buildMacosBundle({
+      platformOut,
+      staging,
+      plistDaemon: rendered.plistDaemon,
+      plistAgent: rendered.plistAgent,
+      somaDesktopPath,
+      tapiaDesktopPath,
+      bundleVersion,
+      arch: resolvedArch,
+      docsUrl: pagesUrl,
+      adhocSign: adhocSignMacos,
+    });
+    produced.push(...macArtifacts);
+  }
+
+  const outputs = {
+    bundle_version: bundleVersion,
+    daemons_tag: daemonsTag,
+    daemons_version: daemonsVersion,
+    desktop_tag: desktopTag,
+    desktop_version: desktopVersion,
+    platform_out: platformOut,
+    staging_dir: staging,
+    produced,
+    pages_url: pagesUrl,
+  };
+
+  const outputsPath = path.join(platformOut, "outputs.json");
+  await fse.ensureDir(path.dirname(outputsPath));
+  await fs.writeFile(outputsPath, JSON.stringify(outputs, null, 2), "utf8");
+  console.log(JSON.stringify(outputs));
 }
 
 async function findRepoRoot(startDir: string) {
@@ -480,6 +732,173 @@ async function copyToOutput(outputDir: string, source: string, name: string) {
   return target;
 }
 
+type GithubRelease = {
+  tag_name?: string;
+  assets: GithubReleaseAsset[];
+};
+
+type GithubReleaseAsset = {
+  name: string;
+  url: string;
+};
+
+async function resolveLatestReleaseTag(
+  repo: string,
+  prefix: string,
+  token: string
+) {
+  const releases = await githubGetJson<GithubRelease[]>(
+    `https://api.github.com/repos/${repo}/releases?per_page=100`,
+    token
+  );
+  for (const release of releases) {
+    if (release.tag_name && release.tag_name.startsWith(prefix)) {
+      const version = release.tag_name.slice(prefix.length);
+      return { tag: release.tag_name, version };
+    }
+  }
+  throw new Error(`No GitHub release found with tag prefix ${prefix}`);
+}
+
+async function fetchReleaseByTag(repo: string, tag: string, token: string) {
+  return githubGetJson<GithubRelease>(
+    `https://api.github.com/repos/${repo}/releases/tags/${tag}`,
+    token
+  );
+}
+
+async function githubGetJson<T>(url: string, token: string): Promise<T> {
+  const response = await fetch(url, {
+    headers: {
+      Accept: "application/vnd.github+json",
+      Authorization: `Bearer ${token}`,
+      "User-Agent": "soma-packaging",
+    },
+  });
+  if (!response.ok) {
+    throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
+  }
+  return (await response.json()) as T;
+}
+
+async function downloadReleaseAsset(
+  url: string,
+  dest: string,
+  token: string
+) {
+  await fse.ensureDir(path.dirname(dest));
+  if (await pathExists(dest)) {
+    await fs.unlink(dest);
+  }
+  logInfo(`Downloading ${url} -> ${dest}`);
+  const response = await fetch(url, {
+    headers: {
+      Accept: "application/octet-stream",
+      Authorization: `Bearer ${token}`,
+      "User-Agent": "soma-packaging",
+    },
+  });
+  if (!response.ok) {
+    throw new Error(
+      `Failed to download asset ${url}: ${response.status} ${response.statusText}`
+    );
+  }
+  if (!response.body) {
+    throw new Error(`Missing response body for asset ${url}`);
+  }
+  await pipeline(
+    Readable.fromWeb(response.body as unknown as any),
+    createWriteStream(dest)
+  );
+}
+
+function resolveDaemonAssets(
+  assets: GithubReleaseAsset[],
+  version: string,
+  os: string,
+  arch: string
+) {
+  for (const candidateArch of archAliases(arch)) {
+    const daemonPattern = `soma-daemon-${escapeRegex(version)}-${escapeRegex(
+      os
+    )}-${escapeRegex(candidateArch)}\\.tar\\.gz`;
+    const agentPattern = `soma-agentd-${escapeRegex(version)}-${escapeRegex(
+      os
+    )}-${escapeRegex(candidateArch)}\\.tar\\.gz`;
+
+    const daemonAsset = findAsset(assets, daemonPattern);
+    const agentAsset = findAsset(assets, agentPattern);
+    if (daemonAsset && agentAsset) {
+      return { daemonAsset, agentAsset, resolvedArch: candidateArch };
+    }
+  }
+  throw new Error(
+    `daemon/agent assets not found for ${os}-${arch} (aliases tried: ${archAliases(
+      arch
+    ).join(", ")})`
+  );
+}
+
+function resolveDesktopAsset(
+  assets: GithubReleaseAsset[],
+  appName: string,
+  version: string,
+  os: string,
+  arch: string
+) {
+  const candidates = ["AppImage", "tar.gz", "app", "zip"];
+  for (const ext of candidates) {
+    const pattern =
+      ext === "app"
+        ? `${escapeRegex(appName)}-desktop-${escapeRegex(
+            version
+          )}-${escapeRegex(os)}-${escapeRegex(arch)}\\.app`
+        : `${escapeRegex(appName)}-desktop-${escapeRegex(
+            version
+          )}-${escapeRegex(os)}-${escapeRegex(arch)}\\.${escapeRegex(ext)}`;
+    const asset = findAsset(assets, pattern);
+    if (asset) {
+      return asset;
+    }
+  }
+  throw new Error(
+    `desktop artifact not found for ${appName} (${os}-${arch} ${version})`
+  );
+}
+
+function findAsset(assets: GithubReleaseAsset[], pattern: string) {
+  const anchored = new RegExp(`^(?:${pattern})$`);
+  const anchoredMatch = assets.find((asset) => anchored.test(asset.name));
+  if (anchoredMatch) {
+    return anchoredMatch;
+  }
+  const fallback = new RegExp(pattern);
+  const fallbackMatch = assets.find((asset) => fallback.test(asset.name));
+  if (fallbackMatch) {
+    logInfo(`Fallback regex match for pattern=${pattern} -> ${fallbackMatch.name}`);
+    return fallbackMatch;
+  }
+  return null;
+}
+
+function archAliases(arch: string) {
+  if (arch === "arm64") {
+    return ["arm64", "aarch64"];
+  }
+  if (arch === "amd64") {
+    return ["amd64", "x86_64"];
+  }
+  return [arch];
+}
+
+function escapeRegex(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function assetNames(assets: GithubReleaseAsset[]) {
+  return assets.map((asset) => asset.name).join(", ");
+}
+
 type DesktopResolveArgs = {
   repoRoot: string;
   os: "linux" | "macos";
@@ -558,11 +977,11 @@ type LinuxBundleArgs = {
   somaDesktopPath: string;
   tapiaDesktopPath: string;
   bundleVersion: string;
-  arch: "amd64" | "arm64";
+  arch: string;
   docsUrl: string;
 };
 
-async function buildLinuxBundle(args: LinuxBundleArgs) {
+async function buildLinuxBundle(args: LinuxBundleArgs): Promise<string[]> {
   const pkgroot = path.join(args.platformOut, "pkgroot");
   await fse.remove(pkgroot);
 
@@ -651,6 +1070,8 @@ async function buildLinuxBundle(args: LinuxBundleArgs) {
     rpmOut,
     ".",
   ]);
+
+  return [debOut, rpmOut];
 }
 
 async function stageLinuxAppImage(
@@ -685,12 +1106,12 @@ type MacBundleArgs = {
   somaDesktopPath: string;
   tapiaDesktopPath: string;
   bundleVersion: string;
-  arch: "amd64" | "arm64";
+  arch: string;
   docsUrl: string;
   adhocSign: boolean;
 };
 
-async function buildMacosBundle(args: MacBundleArgs) {
+async function buildMacosBundle(args: MacBundleArgs): Promise<string[]> {
   const pkgroot = path.join(args.platformOut, "pkgroot");
   await fse.remove(pkgroot);
 
@@ -753,6 +1174,7 @@ async function buildMacosBundle(args: MacBundleArgs) {
   ]);
 
   console.log(`Package built: ${pkgOut} (docs at ${args.docsUrl})`);
+  return [pkgOut];
 }
 
 async function stageMacosApp(
@@ -846,6 +1268,10 @@ async function createSymlink(source: string, target: string) {
 
 async function runCommand(command: string, args: string[]) {
   await execa(command, args, { stdio: "inherit" });
+}
+
+function logInfo(message: string) {
+  console.error(message);
 }
 
 main().catch((error) => {

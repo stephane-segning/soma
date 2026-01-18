@@ -13,11 +13,13 @@ export class StageConfigService {
 		const stageFromName = appName.toLowerCase().startsWith("soma-")
 			? appName.slice("soma-".length)
 			: null;
-		const rawStage =
-			process.env.SOMA_STAGE ||
-			process.env.SOMA_CHANNEL ||
-			stageFromName ||
-			(this.isDev ? "dev" : "prod");
+		const allowEnvOverride = !app.isPackaged;
+		const rawStage = allowEnvOverride
+			? process.env.SOMA_STAGE ||
+				process.env.SOMA_CHANNEL ||
+				stageFromName ||
+				(this.isDev ? "dev" : "prod")
+			: stageFromName || "prod";
 		const normalizedStage =
 			rawStage.trim().toLowerCase() === "production"
 				? "prod"

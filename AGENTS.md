@@ -44,14 +44,15 @@ Docs quickstart:
 
 Repo automation (`xtask`):
 
-- `cargo xtask` is the preferred way to run CI-critical automation from the repo root (wired via `.cargo/config.toml`).
+- `cargo xtask` is the preferred way to run CI-critical Cargo automation from the repo root (wired via `.cargo/config.toml`).
 - Version helpers:
   - `cargo xtask version workspace --path Cargo.toml`
-  - `cargo xtask version desktop --path desktop/soma/package.json` (or `desktop/tapia/package.json`)
-- Bundle packaging (downloads published release assets and produces `.deb/.rpm` or `.pkg`):
-  - `cargo xtask release bundle --os <linux|macos> --arch <amd64|arm64>`
-  - Produces per-platform helper scripts `install.sh` and `uninstall.sh` alongside the packaged artifacts under `artifacts/bundle/<os>-<arch>/`.
-  - Requires `GITHUB_REPOSITORY` + `GITHUB_TOKEN` (or `--repo/--token`), and platform tools (`fpm` on Linux, `pkgbuild` on macOS).
+
+Bundle packaging (downloads published release assets and produces `.deb/.rpm` or `.pkg`) is handled by the TypeScript CLI:
+
+- `pnpm --filter @soma/packaging run bundle:release -- --os <linux|macos> --arch <amd64|arm64>`
+- Produces per-platform helper scripts `install.sh` and `uninstall.sh` alongside the packaged artifacts under `artifacts/bundle/<os>-<arch>/`.
+- Requires `GITHUB_REPOSITORY` + `GITHUB_TOKEN` (or `--repo/--token`), and platform tools (`fpm` on Linux, `pkgbuild` on macOS).
 - Local packaging (uses local build artifacts):
   - `pnpm --filter @soma/packaging run bundle -- --os <linux|macos> --arch <amd64|arm64>`
   - Outputs to `artifacts/bundle-local/<os>-<arch>/` by default.
@@ -80,9 +81,9 @@ SBOM:
 - SBOMs are generated in CI using `anchore/sbom-action` (Syft). There is no `sbom/` scripts folder anymore.
 
 Packaging templates:
-- Templates live under `.github/packaging/templates/` and are rendered by `cargo xtask release bundle`.
-- See `.github/packaging/templates/README.md` for the template variables and file list.
-  - Installer/uninstaller templates live under `.github/packaging/templates/install/` (`install.sh.j2`, `uninstall.sh.j2`).
+- Templates live under `desktop/packaging/templates/` and are rendered by `pnpm --filter @soma/packaging run bundle:release`.
+- See `desktop/packaging/templates/README.md` for the template variables and file list.
+  - Installer/uninstaller templates live under `desktop/packaging/templates/install/` (`install.sh.j2`, `uninstall.sh.j2`).
 
 ## Dependency Policy
 

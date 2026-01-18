@@ -13,11 +13,13 @@ export default defineConfig((configEnv) => ({
 	main: {
 		build: {
 			externalizeDeps: true,
+			bytecode: true,
 		},
 	},
 	preload: {
 		build: {
 			externalizeDeps: true,
+			bytecode: true,
 		},
 	},
 	renderer: {
