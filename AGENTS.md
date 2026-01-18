@@ -18,7 +18,9 @@ In this repo, **VDF** refers to a **cache-only peer role** (sometimes casually w
     - Server peer/infra binaries: `soma-botd`, `soma-relayd`, `soma-rendezvousd`, `soma-bffd`, `soma-serverd`.
     - Crates: core domain, networking, storage, API, relay, rendezvous, BFF, and shared utilities.
 - `desktop/` – Desktop applications and packaging.
-    - `desktop/soma-app/` – Soma Tauri v2 app (main/only Soma desktop UI; Rust main process).
+    - `desktop/soma-app/` – Soma Tauri v2 app (primary packaged Soma desktop UI; Rust main process).
+    - `desktop/soma/` – Soma Electron/Chromium shell (development/testing and parity work; not the primary packaged app).
+    - `desktop/proto/` – TypeScript protobuf+gRPC codegen (`@soma/proto`) for Node/Electron consumers.
     - `desktop/tapia-app/` – Tapia Tauri v2 app (main Tapia UI; Rust main process). Legacy Electron app remains under `desktop/tapia` but is not the primary target.
 - `docs/` – VitePress documentation (`docs/src/` for markdown, `docs/.vitepress` for config/navigation).
 - `proto/` – shared protocol definitions and codegen inputs.
@@ -29,7 +31,7 @@ In this repo, **VDF** refers to a **cache-only peer role** (sometimes casually w
 When in doubt, place:
 
 - shared Rust logic under an appropriate `backend/crates/*`.
-- UI logic under `desktop/soma-app` or `desktop/tapia-app` (legacy Electron code remains in `desktop/tapia` but should not be extended).
+- UI logic under `desktop/soma-app` or `desktop/tapia-app` by default; use `desktop/soma` only when explicitly working on the Electron/Chromium shell.
 - long-lived infra logic under `backend/crates/*`.
 - user-facing docs under `docs/src/`.
 
@@ -53,7 +55,7 @@ Repo automation (`xtask`):
 ## Tech Stack
 
 - **Package manager**: `pnpm` (workspace at `pnpm-workspace.yaml`).
-- **Desktop apps**: Tauri v2 + React (`desktop/soma-app`, `desktop/tapia-app`).
+- **Desktop apps**: Tauri v2 + React (`desktop/soma-app`, `desktop/tapia-app`), plus an Electron/Chromium shell (`desktop/soma`) used for development/testing.
 - **Backends**: Rust.
 
 ## CI, Packaging, and Releases
@@ -323,7 +325,7 @@ Shared frontend stack (Soma, Soma-app, Tapia):
 - Command palette + hotkeys: `react-hotkeys-hook` and `react-cmdk`
 - `desktop/soma-ui` packaging: root export is intentionally disabled (`exports["."]=false`) and there is no `src/index.ts`. Import via subpaths (`@soma/ui/components/*`, `@soma/ui/hooks/*`, `@soma/ui/utils/*`, `@soma/ui/yoopta`, `@soma/ui/types`). `tsup` builds multi-entry outputs for those folders and excludes stories.
 
-Legacy Electron app (`desktop/soma`): removed/retired in favor of the Tauri app; do not add new code here.
+Electron/Chromium shell (`desktop/soma`): used for development/testing and parity work (not the primary packaged app). Unless you are explicitly working on the Electron shell, new Soma desktop work should land in `desktop/soma-app` (Tauri).
 
 Soma-app (`desktop/soma-app`) (Tauri v2):
 
@@ -351,7 +353,7 @@ Tapia (`desktop/tapia-app`):
 - Uses Motion for micro-interactions (cursor movement/layout animations, color transitions, correct/incorrect feedback).
 - Uses XState for state machines.
 - Uses the same Tauri command/controller conventions as Soma-app (see above), including shared `desktop/tauri-command-utils` for `AppError/AppResult` + `parse_params`.
-- Legacy Electron app remains in `desktop/tapia` but is not the primary target.
+- Electron shells exist under `desktop/soma` (used for development/testing and parity work) and `desktop/tapia` (legacy); neither is the primary packaged target.
 
 ## Binaries and Responsibilities
 
@@ -817,7 +819,12 @@ For how peers (`soma-daemon`, `soma-botd`) use mDNS, rendezvous, and relay clien
 
 ### Desktop (Electron/React) — `desktop/soma`
 
-- Legacy Electron app (removed). Do not add new code; all Soma desktop work lives in `desktop/soma-app` (Tauri).
+- Electron/Chromium desktop shell used for development/testing and parity work (not the primary packaged app; most product work still lands in `desktop/soma-app`).
+- Frameless window chrome: `desktop/soma/src/main/index.ts` uses `frame: false` and (on macOS) hides native window buttons via `mainWindow.setWindowButtonVisibility(false)`.
+- Draggable regions: mark non-interactive DOM with `data-drag-region` and opt interactive elements out with `data-no-drag` (CSS in `desktop/soma/src/renderer/src/styles/app.scss` uses `-webkit-app-region`).
+- Renderer code imports local modules via `@app/*` (see `desktop/soma/tsconfig.web.json` + `desktop/soma/electron.vite.config.ts`).
+- Renderer → main uses a preload bridge (`desktop/soma/src/preload/index.ts`) with `window.api.invoke(...)`; main registers handlers in `desktop/soma/src/main/command-registry.ts`.
+- Node/Electron gRPC stubs are generated in `desktop/proto` (`@soma/proto`) and imported from Electron main-process services.
 
 ### Desktop (Tauri/React) — `desktop/soma-app`
 

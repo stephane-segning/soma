@@ -5,7 +5,8 @@ Soma is a **desktop-first, local-first** platform with a small set of supporting
 On a user device you typically run:
 
 - **Soma desktop app** (`desktop/soma-app`, Tauri v2 + React) — the main UI for classes, documents, and chat.
-- **Tapia** (`desktop/tapia-app`, Tauri v2 + React) — a typing companion app that can reuse the same local daemon. The legacy Electron app remains in `desktop/tapia` but is no longer the primary target.
+- **Tapia** (`desktop/tapia-app`, Tauri v2 + React) — a typing companion app that can reuse the same local daemon.
+- Optional: **Soma Electron shell** (`desktop/soma`, Electron + React) — a Chromium-based desktop shell used for development/testing and parity work (not the primary packaged app).
 - **soma-daemon** (`backend/bins/daemon`) — the local Rust backend that owns the libp2p identity, storage, and networking.
 - **soma-agentd** (`backend/bins/agentd`, optional) — a local “CPU-heavy” worker (LLM inference, OCR, indexing, …).
 

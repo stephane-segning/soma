@@ -49,7 +49,7 @@ Each app registers a small set of “category controllers” via `.manage(...)`,
 Examples:
 
 - Soma controllers: `desktop/soma-app/src-tauri/src/handlers/*`
-  - `RememberController`, `DocumentsController`, `SpacesController`, `BlobsController`, `AgentController`, `SettingsController`, `SearchController`
+  - `DocumentsController`, `SpacesController`, `BlobsController`, `AgentController`, `SearchController`
 - Tapia controllers: `desktop/tapia-app/src-tauri/src/handlers/*`
   - `GreetingController` (currently minimal)
 
@@ -71,6 +71,13 @@ pub struct ExampleParams {
 - Soma command entrypoints: `desktop/soma-app/src-tauri/src/commands.rs`
 - Tapia command entrypoints: `desktop/tapia-app/src-tauri/src/commands.rs`
 - Shared parsing + errors: `desktop/tauri-command-utils/src/lib.rs`
+
+## Electron parity (development shell)
+
+The Electron/Chromium desktop shell (`desktop/soma`) mirrors the same command names via IPC:
+
+- Main-process command registry: `desktop/soma/src/main/command-registry.ts`
+- Preload invoke bridge: `desktop/soma/src/preload/index.ts` (`window.api.invoke`)
 
 ### Newly added (Soma)
 

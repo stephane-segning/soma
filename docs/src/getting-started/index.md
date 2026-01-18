@@ -45,6 +45,20 @@ pnpm tauri:dev
 - Soma expects the local daemon to already be running at the configured Unix socket path (`SOMA_DAEMON_SOCKET`) and surfaces errors if it cannot connect (check the developer console).
 - Development builds use Vite for the renderer (hot reload) and Tauri for the desktop shell/main process.
 
+## 3b. Start Soma (Electron/Chromium shell, optional)
+
+This repo also contains an Electron/Chromium desktop shell under `desktop/soma` used for development/testing and parity work.
+
+```bash
+cd desktop/soma
+pnpm dev
+```
+
+Notes:
+
+- It uses the same daemon socket env vars (`SOMA_DAEMON_SOCKET`, `SOMA_AGENTD_SOCKET`).
+- It does not yet implement all Tauri main-process features (deep links, window-state persistence, etc.).
+
 ## 4. Start Tapia (optional)
 
 ```bash

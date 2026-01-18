@@ -3,7 +3,7 @@
 `soma-agentd` is a long-running, CPU-heavy worker (OCR, hashing, indexing, Yjs reconciliation, local LLM inference). It should not be exposed directly to the desktop renderer.
 
 !!! note
-    `desktop/soma-app` (Tauri) is currently wiring the renderer → Tauri main process → `soma-agentd` directly for chat.
+    `desktop/soma-app` (Tauri) and `desktop/soma` (Electron) currently wire the renderer → app main process → `soma-agentd` directly for chat.
     The long-term recommended topology is still “UI → daemon → agentd” so that the daemon can enforce authn/authz and policy centrally.
 
 ## Recommended Topology
@@ -54,6 +54,14 @@ Proto: `proto/agent/v1/agent.proto` (generated into `soma_proto_build::agent`).
 - `ResolveDrift`: merges two Yjs updates (bytes) and returns a merged update; use this when reconciling document drift.
 
 Keep the socket UDS-bound and mode 0600; treat all APIs as local-only IPC.
+
+## TypeScript codegen (Node/Electron)
+
+For Node/Electron consumers (e.g. `desktop/soma`), this repo provides a workspace package that generates typed gRPC stubs:
+
+- Package: `desktop/proto` (`@soma/proto`)
+- Generator: `ts-proto` targeting `grpc-js`
+- Build: `pnpm --filter @soma/proto build`
 
 ## Bidirectional Communication Patterns
 

@@ -1,7 +1,42 @@
-# Tauri + React + Typescript
+# `desktop/soma-app` (Tauri)
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+Soma desktop UI (Tauri v2 + React).
 
-## Recommended IDE Setup
+- Renderer: `desktop/soma-app/src`
+- Main process (Rust): `desktop/soma-app/src-tauri`
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+## Prerequisites
+
+- Rust toolchain (for the Tauri main process)
+- Node.js + `pnpm` (workspace)
+- `soma-daemon` running locally (desktop apps do not start it)
+
+Optional:
+
+- `soma-agentd` running locally (for chat/rerank/drift helpers)
+
+## Development
+
+From the repo root:
+
+```bash
+pnpm --filter soma-app tauri:dev
+```
+
+Or from this folder:
+
+```bash
+pnpm tauri:dev
+```
+
+## Environment variables
+
+- `SOMA_DAEMON_SOCKET` (default: `/tmp/soma-daemon.sock`)
+- `SOMA_AGENTD_SOCKET` (default: `/tmp/soma-agentd.sock`)
+
+## Blobs
+
+Blobs are daemon-owned and content-addressed:
+
+- Uploads go to `soma-daemon` (`UploadBlob`)
+- Renderer reads bytes via `soma-blob://daemon/{space_id}/{cid}` (custom protocol backed by `Daemon/ReadBlob`)
