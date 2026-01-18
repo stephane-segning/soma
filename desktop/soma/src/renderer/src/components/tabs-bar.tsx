@@ -26,7 +26,7 @@ function TabsBar({
 
 	return (
 		<div className="flex min-w-0 items-center gap-2">
-			<div className="flex items-center gap-1">
+			<div className="flex items-center gap-1" data-no-drag>
 				{hasLeft && (
 					<PolymorphButton
 						className="btn-soft"
@@ -41,7 +41,7 @@ function TabsBar({
 
 			<div
 				className="no-scrollbar flex flex-1 items-center gap-2 overflow-x-auto"
-				data-tauri-drag-region
+				data-drag-region
 			>
 				{tabs.map((tab) => {
 					const isActive = tab.id === activeId;
@@ -81,7 +81,7 @@ function TabsBar({
 				})}
 			</div>
 
-			<div className="flex items-center gap-1">
+			<div className="flex items-center gap-1" data-no-drag>
 				<PolymorphButton
 					className="btn-soft"
 					disabled={atMaxTabs}

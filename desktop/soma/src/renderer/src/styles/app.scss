@@ -46,11 +46,11 @@ html, body, #root {
   @apply grid-cols-[auto_max-content];
 }
 
-*[data-tauri-drag-region] {
-  app-region: drag;
+*[data-drag-region] {
+  -webkit-app-region: drag;
 }
 
 [data-no-drag],
 [data-no-drag] * {
-  app-region: no-drag;
+  -webkit-app-region: no-drag;
 }

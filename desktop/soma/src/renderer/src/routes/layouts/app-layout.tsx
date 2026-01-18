@@ -27,10 +27,11 @@ function Component(): React.JSX.Element {
 					<>
 						<header
 							className="grid-max-content sticky top-0 z-40 grid h-12 select-none border-base-300 border-b bg-base-100/95 backdrop-blur"
-							data-tauri-drag-region
+							data-drag-region
 						>
 							<div
 								className="flex h-full items-center gap-3 px-3"
+								data-drag-region
 								id="app-title"
 							>
 								<div data-no-drag>
@@ -38,7 +39,7 @@ function Component(): React.JSX.Element {
 								</div>
 								<div
 									className="font-semibold text-base-content/70 text-xs uppercase tracking-[0.12em]"
-									data-tauri-drag-region
+									data-drag-region
 								>
 									Soma
 								</div>

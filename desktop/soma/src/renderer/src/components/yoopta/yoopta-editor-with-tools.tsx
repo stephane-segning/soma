@@ -1,5 +1,4 @@
 import { uploadToBlob } from "@app/lib/blob";
-import { YooptaFilePlugin, YooptaImagePlugin } from "@soma/ui/yoopta";
 import Accordion from "@yoopta/accordion";
 import ActionMenuList, {
 	DefaultActionMenuRender,
@@ -18,7 +17,9 @@ import type { SlateElement } from "@yoopta/editor/dist/editor/types";
 import type { YooptaPlugin } from "@yoopta/editor/dist/plugins";
 import type { PluginElementRenderProps } from "@yoopta/editor/dist/plugins/types";
 import Embed from "@yoopta/embed";
+import File from "@yoopta/file";
 import { HeadingOne, HeadingThree, HeadingTwo } from "@yoopta/headings";
+import Image from "@yoopta/image";
 import Link from "@yoopta/link";
 import LinkTool, { DefaultLinkToolRender } from "@yoopta/link-tool";
 import { BulletedList, NumberedList, TodoList } from "@yoopta/lists";
@@ -181,7 +182,7 @@ function YooptaEditorWithTools({
 						embed: renderManagedEmbed,
 					}),
 				}),
-				YooptaImagePlugin.extend({
+				Image.extend({
 					renders: asPluginRenders({
 						image: renderManagedImage,
 					}),
@@ -199,7 +200,7 @@ function YooptaEditorWithTools({
 						},
 					},
 				}),
-				YooptaFilePlugin.extend({
+				File.extend({
 					renders: asPluginRenders({ file: renderManagedFile }),
 					options: {
 						onUpload: async (file) => {

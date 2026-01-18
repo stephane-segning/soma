@@ -83,11 +83,6 @@
 			"import": "./dist/index.js",
 			"require": "./dist/index.cjs"
 		},
-		"./yoopta": {
-			"types": "./dist/yoopta/index.d.ts",
-			"import": "./dist/yoopta/index.js",
-			"require": "./dist/yoopta/index.cjs"
-		},
 		"./types": {
 			"types": "./dist/types.d.ts",
 			"import": "./dist/types.js",

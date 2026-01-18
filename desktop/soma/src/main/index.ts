@@ -19,6 +19,7 @@ function createWindow(): void {
 		width: 900,
 		height: 670,
 		show: false,
+		frame: false,
 		titleBarStyle: "hidden",
 		autoHideMenuBar: true,
 		titleBarOverlay: false,
@@ -29,6 +30,10 @@ function createWindow(): void {
 			contextIsolation: true,
 		},
 	});
+
+	if (process.platform === "darwin") {
+		mainWindow.setWindowButtonVisibility(false);
+	}
 
 	mainWindow.on("ready-to-show", () => {
 		mainWindow.show();
