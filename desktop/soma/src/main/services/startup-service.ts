@@ -95,7 +95,6 @@ export class StartupService {
 	}
 
 	private createWindow(windowState: WindowState | null): BrowserWindow {
-		// Create the browser window.
 		const bounds = windowState?.bounds ?? ({} as WindowState["bounds"]);
 		const mainWindow = new BrowserWindow({
 			width: bounds?.width ?? 900,
@@ -107,7 +106,7 @@ export class StartupService {
 			titleBarStyle: "hidden",
 			autoHideMenuBar: true,
 			titleBarOverlay: false,
-			...(process.platform === "linux" ? { icon } : {}),
+			icon,
 			webPreferences: {
 				preload: join(__dirname, "../preload/index.js"),
 				sandbox: false,
