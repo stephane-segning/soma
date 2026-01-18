@@ -267,7 +267,7 @@ impl BundleArgs {
         client.download_asset(&soma_desktop_asset.url, &soma_desktop_path)?;
         client.download_asset(&tapia_desktop_asset.url, &tapia_desktop_path)?;
 
-        let template_root = PathBuf::from(".github/packaging/templates");
+        let template_root = PathBuf::from("desktop/packaging/templates");
         let pages_url = pages_url_from_repo(&repo);
         let ctx_map = build_template_ctx(
             "soma-daemon",
