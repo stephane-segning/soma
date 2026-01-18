@@ -1,11 +1,7 @@
 import { Component as SpacesComponent } from "./spaces";
 
 function Component(): React.JSX.Element {
-	return (
-		<SpacesComponent />
-	);
+	return <SpacesComponent />;
 }
 
-export {
-	Component,
-};
+export { Component };

@@ -1,62 +1,18 @@
-export const TYPES =
-	{
-		AppDataStore:
-			Symbol(
-				"AppDataStore",
-			),
-		DaemonClient:
-			Symbol(
-				"DaemonClient",
-			),
-		AgentClient:
-			Symbol(
-				"AgentClient",
-			),
-		BlobProtocol:
-			Symbol(
-				"BlobProtocol",
-			),
-		CommandRegistry:
-			Symbol(
-				"CommandRegistry",
-			),
-		BlobsController:
-			Symbol(
-				"BlobsController",
-			),
-		DocumentsController:
-			Symbol(
-				"DocumentsController",
-			),
-		SpacesController:
-			Symbol(
-				"SpacesController",
-			),
-		AgentController:
-			Symbol(
-				"AgentController",
-			),
-		SearchController:
-			Symbol(
-				"SearchController",
-			),
-		SettingsController:
-			Symbol(
-				"SettingsController",
-			),
-		WindowController:
-			Symbol(
-				"WindowController",
-			),
-		Logger:
-			Symbol(
-				"Logger",
-			),
-		StartupService:
-			Symbol(
-				"StartupService",
-			),
-	} as const;
+export const TYPES = {
+	AppDataStore: Symbol("AppDataStore"),
+	DaemonClient: Symbol("DaemonClient"),
+	AgentClient: Symbol("AgentClient"),
+	BlobProtocol: Symbol("BlobProtocol"),
+	CommandRegistry: Symbol("CommandRegistry"),
+	BlobsController: Symbol("BlobsController"),
+	DocumentsController: Symbol("DocumentsController"),
+	SpacesController: Symbol("SpacesController"),
+	AgentController: Symbol("AgentController"),
+	SearchController: Symbol("SearchController"),
+	SettingsController: Symbol("SettingsController"),
+	WindowController: Symbol("WindowController"),
+	Logger: Symbol("Logger"),
+	StartupService: Symbol("StartupService"),
+} as const;
 
-export type TypeKey =
-	(typeof TYPES)[keyof typeof TYPES];
+export type TypeKey = (typeof TYPES)[keyof typeof TYPES];

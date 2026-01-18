@@ -1,21 +1,11 @@
 import { useTranslation } from "react-i18next";
 
 function Component(): React.JSX.Element {
-	const {
-		t,
-	} =
-		useTranslation(
-			"common",
-		);
+	const { t } = useTranslation("common");
 
 	return (
 		<div className="space-y-4">
-			<h1 className="font-semibold text-xl">
-				{t(
-					"app.title",
-					"Soma",
-				)}
-			</h1>
+			<h1 className="font-semibold text-xl">{t("app.title", "Soma")}</h1>
 			<p className="text-base-content/70">
 				{t(
 					"home.subtitle",
@@ -33,6 +23,4 @@ function Component(): React.JSX.Element {
 	);
 }
 
-export {
-	Component,
-};
+export { Component };
