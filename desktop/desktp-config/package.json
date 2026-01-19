@@ -3,19 +3,21 @@
 	"version": "0.1.0",
 	"private": true,
 	"type": "module",
-	"main": "./dist/stage-config.js",
+	"main": "./dist/stage-config.cjs",
+	"module": "./dist/stage-config.js",
 	"types": "./dist/stage-config.d.ts",
 	"exports": {
 		".": {
 			"types": "./dist/stage-config.d.ts",
-			"import": "./dist/stage-config.js"
+			"import": "./dist/stage-config.js",
+			"require": "./dist/stage-config.cjs"
 		}
 	},
 	"files": [
 		"dist"
 	],
 	"scripts": {
-		"build": "tsc -p tsconfig.json",
+		"build": "tsup",
 		"typecheck": "tsc --noEmit -p tsconfig.json",
 		"format": "biome format --write .",
 		"lint": "biome check --write ."
@@ -27,6 +29,7 @@
 		"@biomejs/biome": "^2.3.10",
 		"@types/node": "^22.19.1",
 		"electron": "^39.2.6",
+		"tsup": "^7.1.0",
 		"typescript": "^5.9.3"
 	}
 }

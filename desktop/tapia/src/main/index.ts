@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
-import { StageConfigService } from "@soma/desktop-config";
 import { electronApp, is, optimizer } from "@electron-toolkit/utils";
+import { StageConfigService } from "@soma/desktop-config";
 import { app, BrowserWindow, ipcMain, shell } from "electron";
 import { join } from "path";
 import icon from "../../resources/icon.png?asset";

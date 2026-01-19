@@ -12,11 +12,11 @@ build-daemons:
 
 # Run the desktop soma-daemon peer for local development
 run-daemon:
-	export SOMA_DATA_DIR="$PWD/.data" && cargo run -p soma-daemon -- --socket-path "$PWD/.data/tmp/soma-daemon.sock" --db-path $SOMA_DATA_DIR/db/daemon.db --blob-dir $SOMA_DATA_DIR/blobs/daemon --listen-addrs /ip4/0.0.0.0/tcp/0/ws
+	export SOMA_DATA_DIR="$PWD/.data" && cargo run -p soma-daemon -- --socket-path "/tmp/soma-daemon-dev.sock" --db-path $SOMA_DATA_DIR/db/daemon.db --blob-dir $SOMA_DATA_DIR/blobs/daemon --listen-addrs /ip4/0.0.0.0/tcp/0/ws
 
 # Run the soma-agentd helper process
 run-agentd:
-    export SOMA_DATA_DIR="$PWD/.data" && cargo run -p soma-agentd -- --socket-path "$PWD/.data/tmp/soma-agentd.sock" --models-dir $SOMA_DATA_DIR/models --default-chat-model Meta-Llama-3-8B-Instruct.Q4_K_M.gguf
+    export SOMA_DATA_DIR="$PWD/.data" && cargo run -p soma-agentd -- --socket-path "/tmp/soma-agentd-dev.sock" --models-dir $SOMA_DATA_DIR/models --default-chat-model Meta-Llama-3-8B-Instruct.Q4_K_M.gguf
 
 #
 # Server binaries
