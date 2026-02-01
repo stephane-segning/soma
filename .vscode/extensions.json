@@ -2,7 +2,6 @@
     "recommendations": [
         "skellock.just",
         "fill-labs.dependi",
-        "sonarsource.sonarlint-vscode",
         "drblury.protobuf-vsc",
         "wholroyd.jinja",
         "dbaeumer.vscode-eslint"

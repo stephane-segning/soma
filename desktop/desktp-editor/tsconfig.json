@@ -1,0 +1,27 @@
+{
+	"compilerOptions": {
+		"target": "ES2020",
+		"module": "ESNext",
+		"lib": ["ES2020", "DOM", "DOM.Iterable"],
+		"moduleResolution": "bundler",
+		"allowSyntheticDefaultImports": true,
+		"allowImportingTsExtensions": true,
+		"resolveJsonModule": true,
+		"isolatedModules": true,
+		"jsx": "react-jsx",
+		"strict": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"noFallthroughCasesInSwitch": true,
+		"skipLibCheck": true,
+		"declaration": true,
+		"declarationMap": true,
+		"outDir": "./dist",
+		"baseUrl": ".",
+		"paths": {
+			"@soma/editor/*": ["src/*"]
+		}
+	},
+	"include": ["src"],
+	"exclude": ["dist", "node_modules", "tsup.config.ts"]
+}

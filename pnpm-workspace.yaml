@@ -3,6 +3,7 @@ packages:
   - 'docs'
   - 'desktop/desktp-proto'
   - 'desktop/desktp-config'
+  - 'desktop/desktp-editor'
   - 'desktop/desktp-ui'
   - 'desktop/packaging'
   - 'desktop/soma'

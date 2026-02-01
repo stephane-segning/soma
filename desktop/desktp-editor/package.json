@@ -1,0 +1,81 @@
+{
+	"name": "@soma/editor",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"description": "Shared TipTap/ProseMirror editor package for Soma desktop apps.",
+	"main": "./dist/index.cjs",
+	"module": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"files": [
+		"dist"
+	],
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js",
+			"require": "./dist/index.cjs"
+		},
+		"./components/*": {
+			"types": "./dist/components/*.d.ts",
+			"import": "./dist/components/*.js",
+			"require": "./dist/components/*.cjs"
+		},
+		"./extensions/*": {
+			"types": "./dist/extensions/*.d.ts",
+			"import": "./dist/extensions/*.js",
+			"require": "./dist/extensions/*.cjs"
+		},
+		"./menus/*": {
+			"types": "./dist/menus/*.d.ts",
+			"import": "./dist/menus/*.js",
+			"require": "./dist/menus/*.cjs"
+		}
+	},
+	"scripts": {
+		"build": "tsup",
+		"typecheck": "tsc --noEmit -p tsconfig.json",
+		"format": "biome format --write .",
+		"lint": "biome check --write ."
+	},
+	"peerDependencies": {
+		"react": "^19.1.0",
+		"react-dom": "^19.1.0",
+		"@floating-ui/react": "^0.27.16"
+	},
+	"dependencies": {
+		"@paralleldrive/cuid2": "^3.0.0",
+		"@tiptap/core": "^2.26.2",
+		"@tiptap/react": "^2.26.2",
+		"@tiptap/pm": "^2.26.2",
+		"@tiptap/suggestion": "^2.26.2",
+		"@tiptap/extension-blockquote": "^2.26.2",
+		"@tiptap/extension-bold": "^2.26.2",
+		"@tiptap/extension-bullet-list": "^2.26.2",
+		"@tiptap/extension-code": "^2.26.2",
+		"@tiptap/extension-code-block": "^2.26.2",
+		"@tiptap/extension-document": "^2.26.2",
+		"@tiptap/extension-dropcursor": "^2.26.2",
+		"@tiptap/extension-heading": "^2.26.2",
+		"@tiptap/extension-horizontal-rule": "^2.26.2",
+		"@tiptap/extension-italic": "^2.26.2",
+		"@tiptap/extension-link": "^2.26.2",
+		"@tiptap/extension-list-item": "^2.26.2",
+		"@tiptap/extension-ordered-list": "^2.26.2",
+		"@tiptap/extension-paragraph": "^2.26.2",
+		"@tiptap/extension-placeholder": "^2.26.2",
+		"@tiptap/extension-strike": "^2.26.2",
+		"@tiptap/extension-task-item": "^2.26.2",
+		"@tiptap/extension-task-list": "^2.26.2",
+		"@tiptap/extension-text": "^2.26.2",
+		"@tiptap/extension-underline": "^2.26.2"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.3.10",
+		"@types/react": "^19.2.7",
+		"@types/react-dom": "^19.2.3",
+		"tsup": "^8.5.1",
+		"typescript": "^5.9.3"
+	}
+}
+
