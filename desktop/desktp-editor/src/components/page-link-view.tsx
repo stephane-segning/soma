@@ -119,7 +119,7 @@ export function PageLinkView({
 		<NodeViewWrapper as="div" className="page-link" contentEditable={false}>
 			<button
 				type="button"
-				className="flex w-full items-center gap-3 rounded-lg border border-base-300 bg-base-100 px-3 py-2 text-left text-sm shadow-sm hover:bg-base-200/60"
+				className="card bg-primary text-primary-content"
 				onContextMenu={(event) => {
 					event.preventDefault();
 					setMenuPosition({ x: event.clientX, y: event.clientY });

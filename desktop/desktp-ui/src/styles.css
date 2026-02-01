@@ -5,8 +5,8 @@
 
 @plugin "daisyui" {
 	themes:
-		lemonade --default,
-		dark;
+		cmyk --default,
+		luxury;
 }
 
 @theme {
