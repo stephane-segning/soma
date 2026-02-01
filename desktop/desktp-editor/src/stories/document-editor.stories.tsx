@@ -23,8 +23,11 @@ function pickFile(accept: string): Promise<File | null> {
 		const onFocus = () => {
 			setTimeout(() => {
 				if (settled) return;
-				resolve(input.files?.[0] ?? null);
-				cleanup();
+				if (input.files?.length) {
+					resolve(input.files?.[0] ?? null);
+					cleanup();
+					return;
+				}
 			}, 0);
 		};
 		input.type = "file";

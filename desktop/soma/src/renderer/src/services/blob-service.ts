@@ -5,6 +5,15 @@ export type StagedBlob = {
 	createdAtMs: number;
 	url: string;
 	fileName?: string;
+	variants?: {
+		cid: string;
+		size: number;
+		mime: string;
+		name: string;
+		url: string;
+		width?: number;
+		height?: number;
+	}[];
 };
 
 import { invoke } from "../lib/ipc";
@@ -22,6 +31,15 @@ export async function stageBlob(input: {
 		mime: string;
 		name: string;
 		url: string;
+		variants?: {
+			cid: string;
+			size: number;
+			mime: string;
+			name: string;
+			url: string;
+			width?: number;
+			height?: number;
+		}[];
 	}>("blobs_stage", {
 		spaceId: input.spaceId,
 		docId: input.docId,
@@ -36,6 +54,7 @@ export async function stageBlob(input: {
 		byteLength: response.size,
 		createdAtMs: Date.now(),
 		url: response.url,
-		fileName: input.fileName,
+		fileName: response.name,
+		variants: response.variants,
 	};
 }

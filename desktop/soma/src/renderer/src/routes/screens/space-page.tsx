@@ -1,10 +1,16 @@
-import { DocumentEditor, type EditorCommand, type JSONContent, type MentionProvider, defaultCommands } from "@soma/editor";
 import { uploadToBlob } from "@app/lib/blob";
+import { useAppDispatch } from "@app/store/hooks";
+import { tabsActions } from "@app/store/tabs";
+import {
+	DocumentEditor,
+	defaultCommands,
+	type EditorCommand,
+	type JSONContent,
+	type MentionProvider,
+} from "@soma/editor";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { HotkeysProvider } from "react-hotkeys-hook";
 import { type LoaderFunctionArgs, useLoaderData } from "react-router";
-import { useAppDispatch } from "@app/store/hooks";
-import { tabsActions } from "@app/store/tabs";
 import * as documentsService from "../../services/documents-service";
 import * as spacesService from "../../services/spaces-service";
 
@@ -243,6 +249,23 @@ function Component(): React.JSX.Element {
 						spaceId: data.spaceId,
 						docId: data.pageId,
 					});
+					const sources =
+						staged.variants && staged.variants.length > 0
+							? [
+									{
+										src: staged.url,
+										alt: staged.name,
+										width: staged.width,
+										height: staged.height,
+									},
+									...staged.variants.map((variant) => ({
+										src: variant.url,
+										alt: variant.name,
+										width: variant.width,
+										height: variant.height,
+									})),
+								]
+							: null;
 
 					editor
 						.chain()
@@ -252,6 +275,7 @@ function Component(): React.JSX.Element {
 							attrs: {
 								cid: staged.asset_id,
 								src: staged.url,
+								sources,
 								mime: staged.format,
 								size: staged.bytes,
 								name: staged.name,
@@ -317,9 +341,28 @@ function Component(): React.JSX.Element {
 				docId: data.pageId,
 			});
 
+			const sources =
+				staged.variants && staged.variants.length > 0
+					? [
+							{
+								src: staged.url,
+								alt: staged.name,
+								width: staged.width,
+								height: staged.height,
+							},
+							...staged.variants.map((variant) => ({
+								src: variant.url,
+								alt: variant.name,
+								width: variant.width,
+								height: variant.height,
+							})),
+						]
+					: null;
+
 			return {
 				cid: staged.asset_id,
 				src: staged.url,
+				sources,
 				mime: staged.format,
 				size: staged.bytes,
 				name: staged.name,
@@ -438,9 +481,9 @@ function Component(): React.JSX.Element {
 			<HotkeysProvider initiallyActiveScopes={["rich-text"]}>
 				<DocumentEditor
 					className="w-full"
+					commands={commands}
 					initialContent={initialValue}
 					key={`${data.spaceId}:${data.pageId}`}
-					commands={commands}
 					mentionProviders={mentionProviders}
 					onChange={handleValueChange}
 					onOpenPageLink={handleOpenPageLink}
@@ -553,40 +596,40 @@ function PageLinkPicker({
 	return (
 		<div className="fixed inset-0 z-50 flex items-start justify-center bg-black/30 pt-24">
 			<div className="w-[520px] max-w-[90vw] overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-2xl">
-				<div className="border-b border-base-200 px-4 py-3">
+				<div className="border-base-200 border-b px-4 py-3">
 					<input
 						autoFocus
 						className="input input-bordered w-full"
-						placeholder="Search pages..."
-						value={query}
 						onChange={(event) => setQuery(event.target.value)}
 						onKeyDown={handleKeyDown}
+						placeholder="Search pages..."
+						value={query}
 					/>
 				</div>
 				<div className="max-h-80 overflow-y-auto p-2">
 					{loading ? (
-						<div className="px-3 py-2 text-sm text-base-content/60">Loading pages…</div>
+						<div className="px-3 py-2 text-base-content/60 text-sm">Loading pages…</div>
 					) : filteredPages.length === 0 ? (
-						<div className="px-3 py-2 text-sm text-base-content/60">No pages found.</div>
+						<div className="px-3 py-2 text-base-content/60 text-sm">No pages found.</div>
 					) : (
 						filteredPages.map((page, index) => (
 							<button
-								type="button"
-								key={page.pageId}
-								onClick={() => onSelect(page)}
 								className={[
 									"flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm",
 									index === activeIndex ? "bg-base-200" : "hover:bg-base-200/60",
 								].join(" ")}
+								key={page.pageId}
+								onClick={() => onSelect(page)}
+								type="button"
 							>
 								<span className="truncate font-medium">{page.title || "Untitled"}</span>
-								<span className="shrink-0 text-xs text-base-content/50">{page.pageId}</span>
+								<span className="shrink-0 text-base-content/50 text-xs">{page.pageId}</span>
 							</button>
 						))
 					)}
 				</div>
-				<div className="flex items-center justify-end gap-2 border-t border-base-200 px-3 py-2">
-					<button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>
+				<div className="flex items-center justify-end gap-2 border-base-200 border-t px-3 py-2">
+					<button className="btn btn-ghost btn-sm" onClick={onClose} type="button">
 						Close
 					</button>
 				</div>

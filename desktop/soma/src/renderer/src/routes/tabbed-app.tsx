@@ -2,7 +2,7 @@ import { tabsCollection } from "@app/data/db";
 import { useAppDispatch, useAppSelector } from "@app/store/hooks";
 import { store } from "@app/store/store";
 import { createDefaultState, tabsActions, tabsSelectors } from "@app/store/tabs";
-import { TABS_RECORD_ID, createTabsRecord, isTabsRecord, tabsRecordToSnapshot } from "@soma/desktop-db";
+import { createTabsRecord, isTabsRecord, TABS_RECORD_ID, tabsRecordToSnapshot } from "@soma/desktop-db";
 import { useEffect, useMemo } from "react";
 import { RouterProvider } from "react-router";
 import { createTabRouter } from "./router";

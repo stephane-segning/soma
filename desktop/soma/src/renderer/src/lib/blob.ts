@@ -9,6 +9,15 @@ export type MediaObject = {
 	version_id: string;
 	name: string;
 	bytes: number;
+	variants?: {
+		cid: string;
+		size: number;
+		mime: string;
+		name: string;
+		url: string;
+		width?: number;
+		height?: number;
+	}[];
 };
 
 export type ImageObject = MediaObject;
@@ -92,11 +101,12 @@ export const uploadToBlob = async (
 			height,
 			url: staged.url,
 			asset_id: staged.cid,
-			format: file.type || "application/octet-stream",
+			format: staged.mime,
 			public_id: staged.cid,
 			version_id: String(staged.createdAtMs),
-			name: file.name,
+			name: staged.fileName ?? file.name,
 			bytes: staged.byteLength,
+			variants: staged.variants,
 		};
 	} catch (error) {
 		return Promise.reject(error);

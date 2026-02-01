@@ -13,6 +13,15 @@ export type BlobImageUploadResult = {
 	name?: string;
 	width?: number;
 	height?: number;
+	variants?: {
+		cid: string;
+		url: string;
+		mime: string;
+		size: number;
+		name: string;
+		width?: number;
+		height?: number;
+	}[];
 };
 
 type BlobImageOptions = {
@@ -45,11 +54,15 @@ export const BlobImageNode = Node.create<BlobImageOptions>({
 			uploadId: { default: null },
 			cid: { default: null },
 			src: { default: null },
+			sources: { default: null },
 			mime: { default: null },
 			size: { default: null },
 			name: { default: null },
 			width: { default: null },
 			height: { default: null },
+			displayWidth: { default: null },
+			displayHeight: { default: null },
+			layout: { default: "center" },
 		};
 	},
 
@@ -76,11 +89,29 @@ export const BlobImageNode = Node.create<BlobImageOptions>({
 				if (node.attrs.uploadId !== uploadId) return;
 
 				found = true;
+				const sources =
+					result.variants && result.variants.length > 0
+						? [
+								{
+									src: result.src,
+									alt: result.name ?? file.name,
+									width: result.width ?? null,
+									height: result.height ?? null,
+								},
+								...result.variants.map((variant) => ({
+									src: variant.url,
+									alt: variant.name,
+									width: variant.width ?? null,
+									height: variant.height ?? null,
+								})),
+							]
+						: null;
 				tr.setNodeMarkup(pos, undefined, {
 					...node.attrs,
 					uploadId: null,
 					cid: result.cid,
 					src: result.src,
+					sources,
 					mime: result.mime,
 					size: result.size,
 					name: result.name ?? file.name,
