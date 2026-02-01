@@ -88,6 +88,16 @@ const initialContent: JSONContent = {
 			},
 		},
 		{
+			type: "codeBlock",
+			attrs: { language: "typescript" },
+			content: [
+				{
+					type: "text",
+					text: "type Space = { id: string; name: string };\n\nconst byId = (space: Space) => space.id;\n",
+				},
+			],
+		},
+		{
 			type: "paragraph",
 			content: [
 				{

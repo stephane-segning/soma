@@ -3,7 +3,6 @@ import Blockquote from "@tiptap/extension-blockquote";
 import Bold from "@tiptap/extension-bold";
 import BulletList from "@tiptap/extension-bullet-list";
 import Code from "@tiptap/extension-code";
-import CodeBlock from "@tiptap/extension-code-block";
 import Document from "@tiptap/extension-document";
 import Dropcursor from "@tiptap/extension-dropcursor";
 import Heading from "@tiptap/extension-heading";
@@ -24,6 +23,7 @@ import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import { useMemo } from "react";
 
 import { defaultCommands } from "../commands/default-commands";
+import { CodeBlockExtension } from "../extensions/code-block";
 import {
 	BlobFileNode,
 	type BlobFileUploadResult,
@@ -89,7 +89,7 @@ export function DocumentEditor({
 		const DraggableParagraph = Paragraph.extend({ draggable: true });
 		const DraggableHeading = Heading.extend({ draggable: true });
 		const DraggableBlockquote = Blockquote.extend({ draggable: true });
-		const DraggableCodeBlock = CodeBlock.extend({ draggable: true });
+		const DraggableCodeBlock = CodeBlockExtension.extend({ draggable: true });
 		const DraggableRule = HorizontalRule.extend({ draggable: true });
 		const CountRule = CharacterCount.configure({
 			limit,

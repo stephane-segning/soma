@@ -53,7 +53,7 @@
 		"@tiptap/extension-bold": "^3.18.0",
 		"@tiptap/extension-bullet-list": "^3.18.0",
 		"@tiptap/extension-code": "^3.18.0",
-		"@tiptap/extension-code-block": "^3.18.0",
+		"@tiptap/extension-code-block-lowlight": "^3.18.0",
 		"@tiptap/extension-document": "^3.18.0",
 		"@tiptap/extension-dropcursor": "^3.18.0",
 		"@tiptap/extension-heading": "^3.18.0",
@@ -74,6 +74,8 @@
 		"@tiptap/react": "^3.18.0",
 		"@tiptap/suggestion": "^3.18.0",
 		"add": "^2.0.6",
+		"highlight.js": "^11.11.1",
+		"lowlight": "^3.3.0",
 		"motion": "^12.29.2",
 		"react-feather": "^2.0.10"
 	},
