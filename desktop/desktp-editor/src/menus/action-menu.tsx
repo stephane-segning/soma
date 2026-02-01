@@ -109,10 +109,10 @@ export function ActionMenu({
 			setMenuState({ ...hovered, rect });
 		};
 
-			const handleScroll = () => {
-				setMenuState({ show: false });
-				setAddMenuOpen(false);
-			};
+		const handleScroll = () => {
+			setMenuState({ show: false });
+			setAddMenuOpen(false);
+		};
 
 		view.dom.addEventListener("mousemove", handleMouseMove);
 		view.dom.addEventListener("scroll", handleScroll, true);
@@ -123,14 +123,14 @@ export function ActionMenu({
 		};
 	}, [editor]);
 
-	if (!editor || !menuState.show) return null;
-
 	const insertAt = (content: Record<string, unknown>) => {
+		if (!editor) return;
 		const pos = addMenuTargetPos ?? menuState.pos;
 		editor.chain().focus().insertContentAt(pos, content).run();
 	};
 
 	const openAddMenu = useCallback(() => {
+		if (!editor) return;
 		const button = addButtonRef.current;
 		if (!button) return;
 		const rect = button.getBoundingClientRect();
@@ -222,6 +222,8 @@ export function ActionMenu({
 		],
 		[addMenuTargetPos, menuState.pos],
 	);
+
+	if (!editor || !menuState.show) return null;
 
 	return (
 		<FloatingPortal>

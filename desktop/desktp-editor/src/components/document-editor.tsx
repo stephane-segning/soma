@@ -33,8 +33,8 @@ import {
 	BlobImageNode,
 	type BlobImageUploadResult,
 } from "../extensions/blob-image";
-import { CodeBlockExtensionFn } from "../extensions/code-block";
 import { CarouselNode } from "../extensions/carousel";
+import { CodeBlockExtensionFn } from "../extensions/code-block";
 import {
 	CommanderExtension,
 	type EditorCommand,
