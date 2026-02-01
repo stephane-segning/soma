@@ -34,6 +34,7 @@ import {
 	type BlobImageUploadResult,
 } from "../extensions/blob-image";
 import { CodeBlockExtensionFn } from "../extensions/code-block";
+import { CarouselNode } from "../extensions/carousel";
 import {
 	CommanderExtension,
 	type EditorCommand,
@@ -43,6 +44,7 @@ import {
 	type MentionProvider,
 } from "../extensions/link-mention";
 import { PageLinkNode } from "../extensions/page-link";
+import { TextRotateNode } from "../extensions/text-rotate";
 import { ActionMenu } from "../menus/action-menu";
 
 export type DocumentEditorProps = {
@@ -118,6 +120,8 @@ export function DocumentEditor({
 				onOpen: onOpenPageLink,
 				onRename: onRenamePageLink,
 			}),
+			TextRotateNode,
+			CarouselNode,
 
 			Bold,
 			Italic,
@@ -188,7 +192,7 @@ export function DocumentEditor({
 					"focus:outline-none",
 					"prose dark:prose-invert prose-slate md:prose-lg lg:prose-xl max-w-none",
 					"prose-p:leading-7",
-					"prose-img:rounded-xl prose-headings:text-secondary prose-a:text-blue-600",
+					"prose-img:rounded-xl prose-headings:text-secondary prose-a:text-blue-600 prose-a:underline prose-a:decoration-blue-300 prose-a:underline-offset-2",
 				].join(" "),
 			},
 		},

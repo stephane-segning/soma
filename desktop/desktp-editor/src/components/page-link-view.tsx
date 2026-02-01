@@ -7,12 +7,24 @@ import { NodeViewWrapper } from "@tiptap/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link2 } from "react-feather";
 
+function formatLinkLabel(href: string): string {
+	try {
+		if (href.startsWith("/") || href.startsWith("#")) return href;
+		const url = new URL(href, "https://example.com");
+		const host = url.hostname.replace(/^www\./, "");
+		const path = url.pathname === "/" ? "" : url.pathname;
+		return `${host}${path}`;
+	} catch {
+		return href;
+	}
+}
+
 export function PageLinkView({
 	node,
 	extension,
 	updateAttributes,
 }: NodeViewProps): React.JSX.Element {
-	const title = (node.attrs.title as string | undefined) ?? "Untitled page";
+	const title = (node.attrs.title as string | undefined) ?? "Untitled link";
 	const pageId = node.attrs.pageId as string | undefined;
 	const href = node.attrs.href as string | undefined;
 	const [menuOpen, setMenuOpen] = useState(false);
@@ -56,8 +68,13 @@ export function PageLinkView({
 	}, [isRenaming]);
 
 	const handleOpen = useCallback(() => {
-		if (!pageId || !onOpenPage) return;
-		onOpenPage(pageId, title, href);
+		if (pageId && onOpenPage) {
+			onOpenPage(pageId, title, href);
+			return;
+		}
+		if (href) {
+			window.open(href, "_blank", "noreferrer");
+		}
 	}, [href, onOpenPage, pageId, title]);
 
 	const handleCopy = useCallback(async () => {
@@ -71,12 +88,13 @@ export function PageLinkView({
 	}, [href, pageId]);
 
 	const handleRename = useCallback(async () => {
-		if (!pageId || !onRenamePage) {
+		const trimmed = draftTitle.trim();
+		if (!trimmed || trimmed === title) {
 			setIsRenaming(false);
 			return;
 		}
-		const trimmed = draftTitle.trim();
-		if (!trimmed || trimmed === title) {
+		if (!pageId || !onRenamePage) {
+			updateAttributes({ title: trimmed });
 			setIsRenaming(false);
 			return;
 		}
@@ -91,8 +109,8 @@ export function PageLinkView({
 		return [
 			{
 				id: "open",
-				label: "Open in new tab",
-				disabled: !pageId || !onOpenPage,
+				label: pageId ? "Open page" : "Open link",
+				disabled: (!pageId || !onOpenPage) && !href,
 				onSelect: handleOpen,
 			},
 			{
@@ -106,7 +124,7 @@ export function PageLinkView({
 			{
 				id: "rename",
 				label: "Rename",
-				disabled: !pageId || !onRenamePage,
+				disabled: pageId ? !onRenamePage : false,
 				onSelect: () => {
 					setDraftTitle(title);
 					setIsRenaming(true);
@@ -115,11 +133,21 @@ export function PageLinkView({
 		];
 	}, [handleCopy, handleOpen, href, onOpenPage, onRenamePage, pageId, title]);
 
+	const subtitle = useMemo(() => {
+		if (pageId) return pageId;
+		if (href) return formatLinkLabel(href);
+		return null;
+	}, [href, pageId]);
+
 	return (
-		<NodeViewWrapper as="div" className="page-link" contentEditable={false}>
+		<NodeViewWrapper
+			as="div"
+			className="page-link text-[1em]"
+			contentEditable={false}
+		>
 			<button
 				type="button"
-				className="card bg-primary text-primary-content"
+				className="card bg-primary text-primary-content text-[0.95em]"
 				onContextMenu={(event) => {
 					event.preventDefault();
 					setMenuPosition({ x: event.clientX, y: event.clientY });
@@ -127,15 +155,15 @@ export function PageLinkView({
 				}}
 				onClick={handleOpen}
 			>
-				<Link2 />
+				<Link2 className="size-[1.2em]" />
 				<div className="flex-1">
 					<div className="truncate font-medium">{title}</div>
-					{pageId ? (
-						<div className="text-xs text-base-content/50">{pageId}</div>
+					{subtitle ? (
+						<div className="text-[0.75em] text-base-content/60">
+							{subtitle}
+						</div>
 					) : null}
 				</div>
-
-				<div className="text-xs text-base-content/50">{pageId}</div>
 			</button>
 
 			{isRenaming ? (

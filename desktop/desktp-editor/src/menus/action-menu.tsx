@@ -1,6 +1,10 @@
 import { FloatingPortal, offset, shift, useFloating } from "@floating-ui/react";
+import {
+	ContextMenu,
+	type ContextMenuItem,
+} from "@soma/ui/components/overlays/context-menu";
 import type { Editor } from "@tiptap/react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MoreVertical, MousePointer, Plus } from "react-feather";
 
 type MenuState =
@@ -57,6 +61,10 @@ export function ActionMenu({
 	editor: Editor | null;
 }): React.JSX.Element | null {
 	const [menuState, setMenuState] = useState<MenuState>({ show: false });
+	const [addMenuOpen, setAddMenuOpen] = useState(false);
+	const [addMenuPosition, setAddMenuPosition] = useState({ x: 0, y: 0 });
+	const [addMenuTargetPos, setAddMenuTargetPos] = useState<number | null>(null);
+	const addButtonRef = useRef<HTMLButtonElement | null>(null);
 
 	const { refs, floatingStyles } = useFloating({
 		placement: "left-start",
@@ -101,9 +109,10 @@ export function ActionMenu({
 			setMenuState({ ...hovered, rect });
 		};
 
-		const handleScroll = () => {
-			setMenuState({ show: false });
-		};
+			const handleScroll = () => {
+				setMenuState({ show: false });
+				setAddMenuOpen(false);
+			};
 
 		view.dom.addEventListener("mousemove", handleMouseMove);
 		view.dom.addEventListener("scroll", handleScroll, true);
@@ -116,6 +125,104 @@ export function ActionMenu({
 
 	if (!editor || !menuState.show) return null;
 
+	const insertAt = (content: Record<string, unknown>) => {
+		const pos = addMenuTargetPos ?? menuState.pos;
+		editor.chain().focus().insertContentAt(pos, content).run();
+	};
+
+	const openAddMenu = useCallback(() => {
+		const button = addButtonRef.current;
+		if (!button) return;
+		const rect = button.getBoundingClientRect();
+		setAddMenuPosition({ x: rect.right + 8, y: rect.top });
+		setAddMenuTargetPos(menuState.pos);
+		setAddMenuOpen(true);
+	}, [menuState.pos]);
+
+	const addMenuItems = useMemo<ContextMenuItem[]>(
+		() => [
+			{
+				id: "add-paragraph",
+				label: "Paragraph",
+				onSelect: () => insertAt({ type: "paragraph" }),
+			},
+			{
+				id: "add-heading-2",
+				label: "Heading",
+				onSelect: () =>
+					insertAt({ type: "heading", attrs: { level: 2 } }),
+			},
+			{
+				id: "add-divider",
+				label: "Divider",
+				onSelect: () => insertAt({ type: "horizontalRule" }),
+			},
+			{
+				id: "add-code",
+				label: "Code block",
+				onSelect: () => insertAt({ type: "codeBlock" }),
+			},
+			{
+				id: "add-page-link",
+				label: "Page link",
+				onSelect: () =>
+					insertAt({
+						type: "pageLink",
+						attrs: {
+							pageId: "page_demo_789",
+							title: "New page link",
+							href: "/spaces/demo/pages/page_demo_789",
+						},
+					}),
+			},
+			{
+				id: "add-external-link",
+				label: "External link",
+				onSelect: () =>
+					insertAt({
+						type: "pageLink",
+						attrs: {
+							title: "DaisyUI",
+							href: "https://daisyui.com",
+						},
+					}),
+			},
+			{
+				id: "add-text-rotate",
+				label: "Text rotate",
+				onSelect: () =>
+					insertAt({
+						type: "textRotate",
+						attrs: {
+							items: ["Design", "Ship", "Iterate"],
+						},
+					}),
+			},
+			{
+				id: "add-carousel",
+				label: "Carousel",
+				onSelect: () =>
+					insertAt({
+						type: "carousel",
+						attrs: {
+							items: [
+								{
+									src: "https://placehold.co/600x320/png?text=Slide+1",
+								},
+								{
+									src: "https://placehold.co/600x320/png?text=Slide+2",
+								},
+								{
+									src: "https://placehold.co/600x320/png?text=Slide+3",
+								},
+							],
+						},
+					}),
+			},
+		],
+		[addMenuTargetPos, menuState.pos],
+	);
+
 	return (
 		<FloatingPortal>
 			<div
@@ -125,15 +232,12 @@ export function ActionMenu({
 			>
 				<button
 					type="button"
+					ref={addButtonRef}
 					className="btn btn-soft btn-sm btn-circle"
-					onMouseDown={(e) => {
-						e.preventDefault();
-						e.stopPropagation();
-						editor
-							.chain()
-							.insertContentAt(menuState.pos, { type: "paragraph" })
-							.focus()
-							.run();
+					onMouseDown={(event) => {
+						event.preventDefault();
+						event.stopPropagation();
+						openAddMenu();
 					}}
 				>
 					<Plus className="size-4" />
@@ -150,6 +254,12 @@ export function ActionMenu({
 					<MoreVertical className="size-4" />
 				</button>
 			</div>
+			<ContextMenu
+				open={addMenuOpen}
+				position={addMenuPosition}
+				items={addMenuItems}
+				onClose={() => setAddMenuOpen(false)}
+			/>
 		</FloatingPortal>
 	);
 }

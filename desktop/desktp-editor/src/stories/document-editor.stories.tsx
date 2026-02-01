@@ -75,7 +75,36 @@ const initialContent: JSONContent = {
 			content: [
 				{
 					type: "text",
-					text: "Try the slash menu, drag handle, and page link context menu.",
+					text: "Try the slash menu, add popover, drag handle, and link context menu.",
+				},
+			],
+		},
+		{
+			type: "paragraph",
+			content: [
+				{ type: "text", text: "Links are rendered with typography styling, e.g. " },
+				{
+					type: "text",
+					text: "daisyui.com",
+					marks: [
+						{
+							type: "link",
+							attrs: { href: "https://daisyui.com", target: "_blank" },
+						},
+					],
+				},
+				{ type: "text", text: "." },
+			],
+		},
+		{
+			type: "paragraph",
+			content: [
+				{ type: "text", text: "Text rotate: " },
+				{
+					type: "textRotate",
+					attrs: {
+						items: ["Design", "Build", "Ship"],
+					},
 				},
 			],
 		},
@@ -86,6 +115,54 @@ const initialContent: JSONContent = {
 				title: "Project Brief",
 				href: "/spaces/demo/pages/page_demo_123",
 			},
+		},
+		{
+			type: "pageLink",
+			attrs: {
+				title: "DaisyUI components",
+				href: "https://daisyui.com/components/",
+			},
+		},
+		{
+			type: "carousel",
+			attrs: {
+				items: [
+					{ src: "https://placehold.co/640x360/png?text=Slide+1" },
+					{ src: "https://placehold.co/640x360/png?text=Slide+2" },
+					{ src: "https://placehold.co/640x360/png?text=Slide+3" },
+				],
+			},
+		},
+		{
+			type: "blockquote",
+			content: [
+				{
+					type: "paragraph",
+					content: [
+						{
+							type: "text",
+							text: "Blockquote, lists, and tasks are included in the default editor setup.",
+						},
+					],
+				},
+			],
+		},
+		{
+			type: "bulletList",
+			content: [
+				{
+					type: "listItem",
+					content: [
+						{ type: "paragraph", content: [{ type: "text", text: "Bulleted list" }] },
+					],
+				},
+				{
+					type: "listItem",
+					content: [
+						{ type: "paragraph", content: [{ type: "text", text: "Typography + links" }] },
+					],
+				},
+			],
 		},
 		{
 			type: "codeBlock",
@@ -102,7 +179,32 @@ const initialContent: JSONContent = {
 			content: [
 				{
 					type: "text",
-					text: "Miaou",
+					text: "Task list example:",
+				},
+			],
+		},
+		{
+			type: "taskList",
+			content: [
+				{
+					type: "taskItem",
+					attrs: { checked: true },
+					content: [
+						{
+							type: "paragraph",
+							content: [{ type: "text", text: "Ships with default commands" }],
+						},
+					],
+				},
+				{
+					type: "taskItem",
+					attrs: { checked: false },
+					content: [
+						{
+							type: "paragraph",
+							content: [{ type: "text", text: "Add more custom blocks" }],
+						},
+					],
 				},
 			],
 		},
@@ -213,6 +315,50 @@ export const Playground: Story = {
 									pageId: "page_demo_456",
 									title: "Design Notes",
 									href: "/spaces/demo/pages/page_demo_456",
+								},
+							})
+							.run();
+					},
+				},
+				{
+					key: "insert-text-rotate",
+					name: "Text rotate",
+					description: "Insert a rotating text component",
+					handler: ({ editor, range }) => {
+						editor
+							.chain()
+							.focus()
+							.deleteRange(range)
+							.insertContent({
+								type: "paragraph",
+								content: [
+									{ type: "text", text: "Rotating words: " },
+									{
+										type: "textRotate",
+										attrs: { items: ["Design", "Build", "Ship"] },
+									},
+								],
+							})
+							.run();
+					},
+				},
+				{
+					key: "insert-carousel",
+					name: "Carousel",
+					description: "Insert a carousel block",
+					handler: ({ editor, range }) => {
+						editor
+							.chain()
+							.focus()
+							.deleteRange(range)
+							.insertContent({
+								type: "carousel",
+								attrs: {
+									items: [
+										{ src: "https://placehold.co/640x360/png?text=Slide+1" },
+										{ src: "https://placehold.co/640x360/png?text=Slide+2" },
+										{ src: "https://placehold.co/640x360/png?text=Slide+3" },
+									],
 								},
 							})
 							.run();
