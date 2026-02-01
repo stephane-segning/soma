@@ -1,6 +1,7 @@
 import { mkdirSync } from "fs-extra";
 import { join } from "path";
 import winston from "winston";
+import "winston-daily-rotate-file";
 
 export type LogLevel = "error" | "warn" | "info" | "debug";
 
@@ -17,25 +18,50 @@ export class AppLogger {
 			recursive: true,
 		});
 
+		const timeFormat = winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" });
+
+		const fileFormat = winston.format.combine(
+			timeFormat,
+			winston.format.errors({ stack: true }),
+			winston.format.splat(),
+		);
+
 		const transports: winston.transport[] = [
 			new winston.transports.File({
 				filename: join(options.logDir, "main.log"),
 				level: "info",
-				maxsize: 5_000_000,
+				maxsize: 1_000_000,
 				maxFiles: 5,
 			}),
+			new winston.transports.DailyRotateFile({
+				level: options.isDev ? "debug" : "info",
+				filename: join(options.logDir, "daily-%DATE%.log"),
+				datePattern: "YYYY-MM-DD",
+				zippedArchive: true,
+				maxSize: "20m",
+				maxFiles: "14d",
+				format: fileFormat,
+			}),
 		];
+
 		const formats: winston.Logform.Format[] = [
-			winston.format.timestamp(),
+			timeFormat,
 			winston.format.errors({
 				stack: true,
 			}),
 		];
 
 		if (options.isDev) {
+			const consoleFormat = winston.format.combine(
+				winston.format.colorize({ all: true }),
+				timeFormat,
+				winston.format.printf((info) => `${info.timestamp} ${info.level}: ${info.message}`),
+			);
+
 			transports.push(
 				new winston.transports.Console({
 					level: "debug",
+					format: consoleFormat,
 				}),
 			);
 		} else {
