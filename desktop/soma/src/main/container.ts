@@ -3,6 +3,7 @@ import { Container } from "inversify";
 import { CommandRegistry } from "./command-registry";
 import { AgentController } from "./controllers/agent-controller";
 import { BlobsController } from "./controllers/blobs-controller";
+import { DbStorageController } from "./controllers/db-storage-controller";
 import { DocumentsController } from "./controllers/documents-controller";
 import { SearchController } from "./controllers/search-controller";
 import { SettingsController } from "./controllers/settings-controller";
@@ -59,6 +60,9 @@ export function buildContainer(options: ContainerOptions): Container {
 	container
 		.bind<SettingsController>(TYPES.SettingsController)
 		.toDynamicValue((ctx) => new SettingsController(ctx.container.get(TYPES.AppDataStore)));
+	container
+		.bind<DbStorageController>(TYPES.DbStorageController)
+		.toDynamicValue((ctx) => new DbStorageController(ctx.container.get(TYPES.AppDataStore)));
 	container.bind<WindowController>(TYPES.WindowController).toDynamicValue(() => new WindowController());
 
 	container
@@ -72,6 +76,7 @@ export function buildContainer(options: ContainerOptions): Container {
 					ctx.container.get(TYPES.AgentController),
 					ctx.container.get(TYPES.SearchController),
 					ctx.container.get(TYPES.SettingsController),
+					ctx.container.get(TYPES.DbStorageController),
 					ctx.container.get(TYPES.WindowController),
 					ctx.container.get(TYPES.Logger),
 				),

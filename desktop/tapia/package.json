@@ -29,8 +29,10 @@
 	"dependencies": {
 		"@electron-toolkit/preload": "^3.0.2",
 		"@electron-toolkit/utils": "^4.0.0",
+		"@soma/desktop-db": "workspace:*",
 		"@soma/desktop-config": "workspace:*",
 		"class-variance-authority": "^0.7.1",
+		"electron-store": "^11.0.2",
 		"i18next": "^25.8.0",
 		"i18next-browser-languagedetector": "^8.2.0",
 		"i18next-chained-backend": "^5.0.2",

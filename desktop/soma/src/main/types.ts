@@ -10,6 +10,7 @@ export const TYPES = {
 	AgentController: Symbol("AgentController"),
 	SearchController: Symbol("SearchController"),
 	SettingsController: Symbol("SettingsController"),
+	DbStorageController: Symbol("DbStorageController"),
 	WindowController: Symbol("WindowController"),
 	Logger: Symbol("Logger"),
 	StartupService: Symbol("StartupService"),

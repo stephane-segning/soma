@@ -39,6 +39,7 @@
 		"@headlessui/react": "^2.2.9",
 		"@paralleldrive/cuid2": "^3.3.0",
 		"@reduxjs/toolkit": "^2.11.2",
+		"@soma/desktop-db": "workspace:*",
 		"@soma/desktop-config": "workspace:*",
 		"@soma/editor": "workspace:*",
 		"@soma/proto": "workspace:*",

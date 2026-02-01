@@ -1,5 +1,5 @@
 import { electronAPI } from "@electron-toolkit/preload";
-import { contextBridge } from "electron";
+import { contextBridge, ipcRenderer } from "electron";
 import type {
 	Exercise,
 	ExerciseAttempt,
@@ -9,6 +9,18 @@ import type {
 
 // Custom APIs for renderer
 const api = {
+	invoke: (channel: string, args?: unknown) => ipcRenderer.invoke(channel, args),
+	dbStorage: {
+		getItem: (key: string) => ipcRenderer.sendSync("db_storage_get", key) as string | null,
+		setItem: (key: string, value: string) =>
+			ipcRenderer.sendSync("db_storage_set", {
+				key,
+				value,
+			}),
+		removeItem: (key: string) => ipcRenderer.sendSync("db_storage_remove", key),
+		clear: () => ipcRenderer.sendSync("db_storage_clear"),
+		keys: () => ipcRenderer.sendSync("db_storage_keys") as string[],
+	},
 	daemon: {
 		listExercises: (spaceId: string): Promise<Exercise[]> =>
 			electronAPI.ipcRenderer.invoke(

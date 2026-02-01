@@ -19,6 +19,7 @@ export { BlobImageNode } from "./extensions/blob-image";
 export { PageLinkNode } from "./extensions/page-link";
 export { TextRotateNode } from "./extensions/text-rotate";
 export { CarouselNode } from "./extensions/carousel";
+export { AccordionNode } from "./extensions/accordion";
 
 export type { MentionItem, MentionProvider } from "./extensions/link-mention";
 export { createLinkMentionExtension } from "./extensions/link-mention";

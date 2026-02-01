@@ -3,6 +3,17 @@ import { contextBridge, ipcRenderer } from "electron";
 
 const api = {
 	invoke: (channel: string, args?: unknown) => ipcRenderer.invoke(channel, args),
+	dbStorage: {
+		getItem: (key: string) => ipcRenderer.sendSync("db_storage_get", key) as string | null,
+		setItem: (key: string, value: string) =>
+			ipcRenderer.sendSync("db_storage_set", {
+				key,
+				value,
+			}),
+		removeItem: (key: string) => ipcRenderer.sendSync("db_storage_remove", key),
+		clear: () => ipcRenderer.sendSync("db_storage_clear"),
+		keys: () => ipcRenderer.sendSync("db_storage_keys") as string[],
+	},
 	windowControls: {
 		minimize: () =>
 			ipcRenderer.invoke("window:control", {

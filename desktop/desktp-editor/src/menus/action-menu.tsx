@@ -219,6 +219,27 @@ export function ActionMenu({
 						},
 					}),
 			},
+			{
+				id: "add-accordion",
+				label: "Accordion",
+				onSelect: () =>
+					insertAt({
+						type: "accordion",
+						attrs: {
+							collapseType: "arrow",
+							items: [
+								{
+									title: "Accordion Item 1",
+									content: "Add accordion content here.",
+								},
+								{
+									title: "Accordion Item 2",
+									content: "Second item details.",
+								},
+							],
+						},
+					}),
+			},
 		],
 		[addMenuTargetPos, menuState.pos],
 	);

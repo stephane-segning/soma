@@ -6,6 +6,7 @@ import type { SearchController } from "./controllers/search-controller";
 import type { SettingsController } from "./controllers/settings-controller";
 import type { SpacesController } from "./controllers/spaces-controller";
 import type { WindowController } from "./controllers/window-controller";
+import type { DbStorageController } from "./controllers/db-storage-controller";
 import type { AppLogger } from "./services/logger";
 
 export class CommandRegistry {
@@ -16,6 +17,7 @@ export class CommandRegistry {
 		private readonly agent: AgentController,
 		private readonly search: SearchController,
 		private readonly settings: SettingsController,
+		private readonly dbStorage: DbStorageController,
 		private readonly windows: WindowController,
 		private readonly logger: AppLogger,
 	) {}
@@ -61,6 +63,33 @@ export class CommandRegistry {
 		ipc.handle("settings_get", (_event, params) => this.settings.get(params?.key));
 		ipc.handle("settings_set", (_event, params) => {
 			this.settings.set(params?.key, params?.value);
+		});
+
+		ipc.on("db_storage_get", (event, key) => {
+			const targetKey = typeof key === "string" ? key : key?.key;
+			event.returnValue = targetKey ? this.dbStorage.getItem(targetKey) : null;
+		});
+
+		ipc.on("db_storage_set", (event, payload) => {
+			const key = typeof payload?.key === "string" ? payload.key : "";
+			const value = typeof payload?.value === "string" ? payload.value : "";
+			if (key) this.dbStorage.setItem(key, value);
+			event.returnValue = true;
+		});
+
+		ipc.on("db_storage_remove", (event, key) => {
+			const targetKey = typeof key === "string" ? key : key?.key;
+			if (targetKey) this.dbStorage.removeItem(targetKey);
+			event.returnValue = true;
+		});
+
+		ipc.on("db_storage_clear", (event) => {
+			this.dbStorage.clear();
+			event.returnValue = true;
+		});
+
+		ipc.on("db_storage_keys", (event) => {
+			event.returnValue = this.dbStorage.keys();
 		});
 
 		ipc.handle("window:control", (event, params) => {

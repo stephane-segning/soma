@@ -5,7 +5,7 @@ import {
 import type { NodeViewProps } from "@tiptap/core";
 import { NodeViewWrapper } from "@tiptap/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link2 } from "react-feather";
+import { ArrowRight, Link2 } from "react-feather";
 
 function formatLinkLabel(href: string): string {
 	try {
@@ -147,7 +147,7 @@ export function PageLinkView({
 		>
 			<button
 				type="button"
-				className="card bg-primary text-primary-content text-[0.95em]"
+				className="flex w-full items-center gap-4 rounded-lg border border-primary bg-primary/10 px-3 py-2 my-2 text-left text-[0.95em] cursor-pointer"
 				onContextMenu={(event) => {
 					event.preventDefault();
 					setMenuPosition({ x: event.clientX, y: event.clientY });
@@ -155,14 +155,15 @@ export function PageLinkView({
 				}}
 				onClick={handleOpen}
 			>
-				<Link2 className="size-[1.2em]" />
+				<Link2 className="size-[1.2em] text-primary" />
 				<div className="flex-1">
 					<div className="truncate font-medium">{title}</div>
 					{subtitle ? (
-						<div className="text-[0.75em] text-base-content/60">
-							{subtitle}
-						</div>
+						<div className="text-[0.75em] text-base-content/60">{subtitle}</div>
 					) : null}
+				</div>
+				<div>
+					<ArrowRight className="size-[1.2em] text-primary" />
 				</div>
 			</button>
 

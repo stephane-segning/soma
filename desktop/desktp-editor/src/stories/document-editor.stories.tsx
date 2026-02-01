@@ -134,6 +134,22 @@ const initialContent: JSONContent = {
 			},
 		},
 		{
+			type: "accordion",
+			attrs: {
+				collapseType: "plus",
+				items: [
+					{
+						title: "Accordion Item 1",
+						content: "Add accordion content here.",
+					},
+					{
+						title: "Accordion Item 2",
+						content: "Second item details.",
+					},
+				],
+			},
+		},
+		{
 			type: "blockquote",
 			content: [
 				{
@@ -358,6 +374,34 @@ export const Playground: Story = {
 										{ src: "https://placehold.co/640x360/png?text=Slide+1" },
 										{ src: "https://placehold.co/640x360/png?text=Slide+2" },
 										{ src: "https://placehold.co/640x360/png?text=Slide+3" },
+									],
+								},
+							})
+							.run();
+					},
+				},
+				{
+					key: "insert-accordion",
+					name: "Accordion",
+					description: "Insert an accordion block",
+					handler: ({ editor, range }) => {
+						editor
+							.chain()
+							.focus()
+							.deleteRange(range)
+							.insertContent({
+								type: "accordion",
+								attrs: {
+									collapseType: "arrow",
+									items: [
+										{
+											title: "Accordion Item 1",
+											content: "Add accordion content here.",
+										},
+										{
+											title: "Accordion Item 2",
+											content: "Second item details.",
+										},
 									],
 								},
 							})

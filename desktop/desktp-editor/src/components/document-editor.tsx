@@ -33,6 +33,7 @@ import {
 	BlobImageNode,
 	type BlobImageUploadResult,
 } from "../extensions/blob-image";
+import { AccordionNode } from "../extensions/accordion";
 import { CarouselNode } from "../extensions/carousel";
 import { CodeBlockExtensionFn } from "../extensions/code-block";
 import {
@@ -122,6 +123,7 @@ export function DocumentEditor({
 			}),
 			TextRotateNode,
 			CarouselNode,
+			AccordionNode,
 
 			Bold,
 			Italic,
