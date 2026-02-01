@@ -135,6 +135,7 @@ function MentionList({
 							const active = index === selectedIndex;
 							return (
 								<div
+									role="menu"
 									key={item.id}
 									className={[
 										"cursor-default select-none rounded-lg px-3 py-2",

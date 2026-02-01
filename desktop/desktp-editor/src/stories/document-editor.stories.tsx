@@ -223,7 +223,7 @@ export const Playground: Story = {
 		);
 
 		return (
-			<div className="min-h-screen bg-base-100 px-32 py-12">
+			<div className="min-h-screen bg-base-100 px-4 md:px-16 lg:px-32 py-12">
 				<DocumentEditor
 					commands={commands}
 					initialContent={initialContent}

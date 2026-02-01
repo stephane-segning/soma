@@ -1,3 +1,6 @@
+import { LimitPercentage } from "@soma/editor/components/limit-percentage.tsx";
+import { useLowlight } from "@soma/editor/hooks/lowlight.ts";
+import { ContextualMenu } from "@soma/editor/menus/contextual-menu.tsx";
 import type { JSONContent } from "@tiptap/core";
 import Blockquote from "@tiptap/extension-blockquote";
 import Bold from "@tiptap/extension-bold";
@@ -19,11 +22,9 @@ import TaskList from "@tiptap/extension-task-list";
 import Text from "@tiptap/extension-text";
 import Underline from "@tiptap/extension-underline";
 import { CharacterCount } from "@tiptap/extensions";
-import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
+import { EditorContent, useEditor } from "@tiptap/react";
 import { useMemo } from "react";
-
 import { defaultCommands } from "../commands/default-commands";
-import { CodeBlockExtension } from "../extensions/code-block";
 import {
 	BlobFileNode,
 	type BlobFileUploadResult,
@@ -32,6 +33,7 @@ import {
 	BlobImageNode,
 	type BlobImageUploadResult,
 } from "../extensions/blob-image";
+import { CodeBlockExtensionFn } from "../extensions/code-block";
 import {
 	CommanderExtension,
 	type EditorCommand,
@@ -75,6 +77,7 @@ export function DocumentEditor({
 	limit = 10_000,
 }: DocumentEditorProps): React.JSX.Element {
 	const effectiveCommands = commands ?? defaultCommands;
+	const lowlight = useLowlight();
 
 	const CustomDocument = useMemo(
 		() =>
@@ -89,7 +92,9 @@ export function DocumentEditor({
 		const DraggableParagraph = Paragraph.extend({ draggable: true });
 		const DraggableHeading = Heading.extend({ draggable: true });
 		const DraggableBlockquote = Blockquote.extend({ draggable: true });
-		const DraggableCodeBlock = CodeBlockExtension.extend({ draggable: true });
+		const DraggableCodeBlock = CodeBlockExtensionFn(lowlight).extend({
+			draggable: true,
+		});
 		const DraggableRule = HorizontalRule.extend({ draggable: true });
 		const CountRule = CharacterCount.configure({
 			limit,
@@ -170,6 +175,7 @@ export function DocumentEditor({
 		uploadImage,
 		CustomDocument,
 		limit,
+		lowlight,
 	]);
 
 	const editor = useEditor({
@@ -180,8 +186,9 @@ export function DocumentEditor({
 				class: [
 					"min-h-[70vh] w-full",
 					"focus:outline-none",
-					"prose max-w-none",
+					"prose dark:prose-invert prose-slate md:prose-lg lg:prose-xl max-w-none",
 					"prose-p:leading-7",
+					"prose-img:rounded-xl prose-headings:text-secondary prose-a:text-blue-600",
 				].join(" "),
 			},
 		},
@@ -190,39 +197,14 @@ export function DocumentEditor({
 		},
 	});
 
-	const { characterCount } = useEditorState({
-		editor,
-		selector: (ctx) => {
-			return {
-				characterCount: ctx.editor.storage.characterCount.characters(),
-			};
-		},
-	});
-
-	const percentage = editor ? Math.round((100 / limit) * characterCount) : 0;
-
 	return (
 		<div className={className}>
 			<div className="relative">
 				<ActionMenu editor={editor} />
 				<EditorContent editor={editor} />
 
-				{editor && (
-					<div className="flex items-center gap-4 pt-24">
-						<div
-							className="radial-progress text-primary"
-							style={{
-								// @ts-expect-error
-								"--value": percentage,
-								"--size": "24px",
-								"--thickness": "4px",
-							}}
-							aria-valuenow={percentage}
-							role="progressbar"
-						/>
-						{editor.storage.characterCount.characters()} / {limit} characters
-					</div>
-				)}
+				{editor && <ContextualMenu editor={editor} />}
+				{editor && <LimitPercentage editor={editor} limit={limit} />}
 			</div>
 		</div>
 	);

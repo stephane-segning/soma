@@ -1,7 +1,7 @@
 import { FloatingPortal, offset, shift, useFloating } from "@floating-ui/react";
 import type { Editor } from "@tiptap/react";
 import { useEffect, useMemo, useState } from "react";
-import { MoreVertical, Plus } from "react-feather";
+import { MoreVertical, MousePointer, Plus } from "react-feather";
 
 type MenuState =
 	| { show: false }
@@ -59,8 +59,8 @@ export function ActionMenu({
 	const [menuState, setMenuState] = useState<MenuState>({ show: false });
 
 	const { refs, floatingStyles } = useFloating({
-		placement: "left",
-		middleware: [offset(-10), shift()],
+		placement: "left-start",
+		middleware: [offset(-5), shift()],
 		strategy: "fixed",
 	});
 
@@ -121,7 +121,7 @@ export function ActionMenu({
 			<div
 				ref={refs.setFloating}
 				style={floatingStyles}
-				className="z-40 flex items-center gap-1 p-1 mr-1"
+				className="z-40 flex flex-col items-center gap-1 p-1 mr-1"
 			>
 				<button
 					type="button"
@@ -136,7 +136,7 @@ export function ActionMenu({
 							.run();
 					}}
 				>
-					<Plus className="size-5" />
+					<Plus className="size-4" />
 				</button>
 				<div
 					role="toolbar"
@@ -144,8 +144,11 @@ export function ActionMenu({
 					draggable
 					className="btn btn-soft btn-circle btn-sm cursor-grab active:cursor-grabbing"
 				>
-					<MoreVertical className="size-5" />
+					<MousePointer className="size-4" />
 				</div>
+				<button type="button" className="btn btn-soft btn-sm btn-circle">
+					<MoreVertical className="size-4" />
+				</button>
 			</div>
 		</FloatingPortal>
 	);
