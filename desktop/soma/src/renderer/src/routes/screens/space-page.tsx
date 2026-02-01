@@ -202,6 +202,7 @@ function Component(): React.JSX.Element {
 						attrs: {
 							pageId: created.pageId,
 							title: created.title || "Untitled",
+							href: `/spaces/${data.spaceId}/pages/${created.pageId}`,
 						},
 					})
 					.run();
@@ -270,6 +271,20 @@ function Component(): React.JSX.Element {
 		[data.spaceId, dispatch],
 	);
 
+	const handleRenamePageLink = useCallback(
+		async (pageId: string, nextTitle: string) => {
+			const trimmed = nextTitle.trim();
+			if (!trimmed) return null;
+			const updated = await documentsService.updatePageTitle({
+				spaceId: data.spaceId,
+				pageId,
+				title: trimmed,
+			});
+			return updated?.title ?? trimmed;
+		},
+		[data.spaceId],
+	);
+
 	return (
 		<div className="h-full min-h-full px-14">
 			<HotkeysProvider initiallyActiveScopes={["rich-text"]}>
@@ -280,6 +295,7 @@ function Component(): React.JSX.Element {
 					commands={commands}
 					onChange={handleValueChange}
 					onOpenPageLink={handleOpenPageLink}
+					onRenamePageLink={handleRenamePageLink}
 					placeholder="Start writing..."
 					uploadFile={uploadFile}
 					uploadImage={uploadImage}

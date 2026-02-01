@@ -35,7 +35,6 @@
 		"@tauri-apps/plugin-dialog": "~2",
 		"@tauri-apps/plugin-fs": "~2",
 		"@tauri-apps/plugin-store": "~2",
-		"@yoopta/editor": "^4.9.9",
 		"clsx": "^2.1.1",
 		"daisyui": "^5.5.14",
 		"motion": "^12.23.26",

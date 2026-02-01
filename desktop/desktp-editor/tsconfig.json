@@ -19,7 +19,8 @@
 		"outDir": "./dist",
 		"baseUrl": ".",
 		"paths": {
-			"@soma/editor/*": ["src/*"]
+			"@soma/editor/*": ["src/*"],
+			"@soma/ui/*": ["../desktp-ui/src/*"]
 		}
 	},
 	"include": ["src"],

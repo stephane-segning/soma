@@ -37,6 +37,7 @@ export type DocumentEditorProps = {
 	uploadImage?: (file: File) => Promise<BlobImageUploadResult>;
 	uploadFile?: (file: File) => Promise<BlobFileUploadResult>;
 	onOpenPageLink?: (pageId: string, title?: string, href?: string) => void;
+	onRenamePageLink?: (pageId: string, nextTitle: string, currentTitle?: string) => string | null | Promise<string | null>;
 	onChange?: (doc: JSONContent) => void;
 };
 
@@ -48,6 +49,7 @@ export function DocumentEditor({
 	uploadImage,
 	uploadFile,
 	onOpenPageLink,
+	onRenamePageLink,
 	onChange,
 }: DocumentEditorProps): React.JSX.Element {
 	const effectiveCommands = commands ?? defaultCommands;
@@ -73,7 +75,7 @@ export function DocumentEditor({
 			TaskItem.configure({ nested: true }),
 			DraggableCodeBlock,
 			DraggableRule,
-			PageLinkNode.configure({ onOpen: onOpenPageLink }),
+			PageLinkNode.configure({ onOpen: onOpenPageLink, onRename: onRenamePageLink }),
 
 			Bold,
 			Italic,
@@ -101,7 +103,7 @@ export function DocumentEditor({
 		}
 
 		return base;
-	}, [effectiveCommands, onOpenPageLink, placeholder, uploadFile, uploadImage]);
+	}, [effectiveCommands, onOpenPageLink, onRenamePageLink, placeholder, uploadFile, uploadImage]);
 
 	const editor = useEditor({
 		extensions,

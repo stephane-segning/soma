@@ -5,7 +5,7 @@ import { PageLinkView } from "../components/page-link-view";
 
 type PageLinkOptions = {
 	onOpen?: (pageId: string, title?: string, href?: string) => void;
-	onRename?: (pageId: string, currentTitle?: string) => string | null | Promise<string | null>;
+	onRename?: (pageId: string, nextTitle: string, currentTitle?: string) => string | null | Promise<string | null>;
 };
 
 export const PageLinkNode = Node.create<PageLinkOptions>({

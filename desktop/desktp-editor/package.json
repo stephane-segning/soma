@@ -34,6 +34,8 @@
 	},
 	"scripts": {
 		"build": "tsup",
+		"storybook": "storybook dev -p 6007",
+		"build:storybook": "storybook build",
 		"typecheck": "tsc --noEmit -p tsconfig.json",
 		"format": "biome format --write .",
 		"lint": "biome check --write ."
@@ -45,6 +47,7 @@
 	},
 	"dependencies": {
 		"@paralleldrive/cuid2": "^3.0.0",
+		"@soma/ui": "workspace:*",
 		"@tiptap/core": "^2.26.2",
 		"@tiptap/react": "^2.26.2",
 		"@tiptap/pm": "^2.26.2",
@@ -72,10 +75,18 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.3.10",
+		"@storybook/addon-essentials": "^8.6.15",
+		"@storybook/addon-interactions": "^8.6.15",
+		"@storybook/addon-links": "^8.6.15",
+		"@storybook/react-vite": "^8.6.15",
+		"@types/node": "^25.0.9",
 		"@types/react": "^19.2.7",
 		"@types/react-dom": "^19.2.3",
+		"react": "^19.1.0",
+		"react-dom": "^19.1.0",
+		"react-router": "^7.11.0",
+		"storybook": "^8.6.15",
 		"tsup": "^8.5.1",
 		"typescript": "^5.9.3"
 	}
 }
-
