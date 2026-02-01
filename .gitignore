@@ -22,3 +22,5 @@ data
 site
 gen
 artifacts
+
+storybook-static
