@@ -2,7 +2,7 @@ import type { Decorator, Preview } from "@storybook/react";
 import React from "react";
 import { MotionConfig } from "motion/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
-import "../../desktp-ui/src/styles.css";
+import "./storybook.css";
 
 const withMemoryRouter: Decorator = (Story, context) => {
 	const initialEntries = context.parameters?.router?.initialEntries ?? context.parameters?.router?.path ?? ["/"];

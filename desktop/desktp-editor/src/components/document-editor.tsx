@@ -26,6 +26,7 @@ import { defaultCommands } from "../commands/default-commands";
 import { BlobFileNode, type BlobFileUploadResult } from "../extensions/blob-file";
 import { BlobImageNode, type BlobImageUploadResult } from "../extensions/blob-image";
 import { CommanderExtension, type EditorCommand } from "../extensions/commander";
+import { type MentionProvider, createLinkMentionExtension } from "../extensions/link-mention";
 import { PageLinkNode } from "../extensions/page-link";
 import { ActionMenu } from "../menus/action-menu";
 
@@ -38,6 +39,7 @@ export type DocumentEditorProps = {
 	uploadFile?: (file: File) => Promise<BlobFileUploadResult>;
 	onOpenPageLink?: (pageId: string, title?: string, href?: string) => void;
 	onRenamePageLink?: (pageId: string, nextTitle: string, currentTitle?: string) => string | null | Promise<string | null>;
+	mentionProviders?: MentionProvider[];
 	onChange?: (doc: JSONContent) => void;
 };
 
@@ -50,6 +52,7 @@ export function DocumentEditor({
 	uploadFile,
 	onOpenPageLink,
 	onRenamePageLink,
+	mentionProviders,
 	onChange,
 }: DocumentEditorProps): React.JSX.Element {
 	const effectiveCommands = commands ?? defaultCommands;
@@ -86,6 +89,10 @@ export function DocumentEditor({
 				autolink: true,
 				openOnClick: true,
 				linkOnPaste: true,
+				HTMLAttributes: {
+					rel: "noreferrer",
+					target: "_blank",
+				},
 			}),
 
 			Dropcursor,
@@ -93,6 +100,10 @@ export function DocumentEditor({
 
 			CommanderExtension.configure({ commands: effectiveCommands }),
 		];
+
+		if (mentionProviders && mentionProviders.length > 0) {
+			base.push(...mentionProviders.map((provider) => createLinkMentionExtension(provider)));
+		}
 
 		if (uploadImage) {
 			base.splice(base.length - 1, 0, BlobImageNode.configure({ upload: uploadImage }));
@@ -103,7 +114,7 @@ export function DocumentEditor({
 		}
 
 		return base;
-	}, [effectiveCommands, onOpenPageLink, onRenamePageLink, placeholder, uploadFile, uploadImage]);
+	}, [effectiveCommands, mentionProviders, onOpenPageLink, onRenamePageLink, placeholder, uploadFile, uploadImage]);
 
 	const editor = useEditor({
 		extensions,

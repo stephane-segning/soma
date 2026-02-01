@@ -17,3 +17,6 @@ export type { BlobImageUploadResult } from "./extensions/blob-image";
 export { BlobImageNode } from "./extensions/blob-image";
 
 export { PageLinkNode } from "./extensions/page-link";
+
+export type { MentionItem, MentionProvider } from "./extensions/link-mention";
+export { createLinkMentionExtension } from "./extensions/link-mention";

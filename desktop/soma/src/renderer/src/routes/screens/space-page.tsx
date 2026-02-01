@@ -1,4 +1,4 @@
-import { DocumentEditor, type EditorCommand, type JSONContent, defaultCommands } from "@soma/editor";
+import { DocumentEditor, type EditorCommand, type JSONContent, type MentionProvider, defaultCommands } from "@soma/editor";
 import { uploadToBlob } from "@app/lib/blob";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { HotkeysProvider } from "react-hotkeys-hook";
@@ -6,6 +6,7 @@ import { type LoaderFunctionArgs, useLoaderData } from "react-router";
 import { useAppDispatch } from "@app/store/hooks";
 import { tabsActions } from "@app/store/tabs";
 import * as documentsService from "../../services/documents-service";
+import * as spacesService from "../../services/spaces-service";
 
 type LoaderData = {
 	spaceId: string;
@@ -141,6 +142,23 @@ function Component(): React.JSX.Element {
 		[scheduleAutosave],
 	);
 
+	const pickFiles = useCallback(
+		(options: { accept?: string; multiple?: boolean }) =>
+			new Promise<File[]>((resolve) => {
+				const input = document.createElement("input");
+				input.type = "file";
+				input.accept = options.accept ?? "";
+				input.multiple = options.multiple ?? false;
+				input.onchange = () => {
+					const files = input.files ? Array.from(input.files) : [];
+					resolve(files);
+					input.remove();
+				};
+				input.click();
+			}),
+		[],
+	);
+
 	const handleOpenPagePicker = useCallback((editor: EditorLike, range: { from: number; to: number }) => {
 		pendingPageInsertRef.current = { editor, range };
 		setIsPagePickerOpen(true);
@@ -209,6 +227,77 @@ function Component(): React.JSX.Element {
 			},
 		});
 		base.push({
+			key: "insert-image",
+			name: "Image",
+			description: "Insert an image from disk",
+			keywords: ["image", "photo", "picture"],
+			handler: async ({ editor, range }) => {
+				const files = await pickFiles({ accept: "image/*", multiple: true });
+				if (files.length === 0) return;
+
+				editor.chain().focus().deleteRange(range).run();
+
+				for (const file of files) {
+					if (!file.type.startsWith("image/")) continue;
+					const staged = await uploadToBlob(file, "image", {
+						spaceId: data.spaceId,
+						docId: data.pageId,
+					});
+
+					editor
+						.chain()
+						.focus()
+						.insertContent({
+							type: "blobImage",
+							attrs: {
+								cid: staged.asset_id,
+								src: staged.url,
+								mime: staged.format,
+								size: staged.bytes,
+								name: staged.name,
+								width: staged.width,
+								height: staged.height,
+							},
+						})
+						.run();
+				}
+			},
+		});
+		base.push({
+			key: "insert-file",
+			name: "File",
+			description: "Insert a file from disk",
+			keywords: ["file", "attachment", "upload"],
+			handler: async ({ editor, range }) => {
+				const files = await pickFiles({ multiple: true });
+				if (files.length === 0) return;
+
+				editor.chain().focus().deleteRange(range).run();
+
+				for (const file of files) {
+					const staged = await uploadToBlob(file, "file", {
+						spaceId: data.spaceId,
+						docId: data.pageId,
+					});
+
+					editor
+						.chain()
+						.focus()
+						.insertContent({
+							type: "blobFile",
+							attrs: {
+								cid: staged.asset_id,
+								href: staged.url,
+								mime: staged.format,
+								size: staged.bytes,
+								name: staged.name,
+							},
+						})
+						.run();
+				}
+			},
+		});
+		base.push({
 			key: "link-to-page",
 			name: "Link to page",
 			description: "Insert a link to an existing page",
@@ -219,7 +308,7 @@ function Component(): React.JSX.Element {
 		});
 
 		return base;
-	}, [data.pageId, data.spaceId, handleOpenPagePicker]);
+	}, [data.pageId, data.spaceId, handleOpenPagePicker, pickFiles]);
 
 	const uploadImage = useCallback(
 		async (file: File) => {
@@ -285,6 +374,65 @@ function Component(): React.JSX.Element {
 		[data.spaceId],
 	);
 
+	const mentionProviders = useMemo<MentionProvider[]>(() => {
+		const peerMention: MentionProvider = {
+			name: "peerMention",
+			char: "@",
+			placeholder: "Mention a peer",
+			items: async (query) => {
+				const members = await spacesService.listSpaceMembers(data.spaceId);
+				const trimmed = query.trim().toLowerCase();
+				return members
+					.filter((member) => (trimmed ? member.peerId.toLowerCase().includes(trimmed) : true))
+					.map((member) => ({
+						id: member.peerId,
+						label: member.peerId,
+						detail: member.role,
+						href: `/spaces/${data.spaceId}/members?peerId=${member.peerId}`,
+					}));
+			},
+		};
+
+		const spaceMention: MentionProvider = {
+			name: "spaceMention",
+			char: "%",
+			placeholder: "Mention a space",
+			items: async (query) => {
+				const result = await spacesService.listSpaces({ query });
+				return result.spaces.map((space) => ({
+					id: space.spaceId,
+					label: space.displayName || space.spaceId,
+					detail: space.spaceId,
+					href: `/spaces/${space.spaceId}`,
+				}));
+			},
+		};
+
+		const pageMention: MentionProvider = {
+			name: "pageMention",
+			char: "#",
+			placeholder: "Mention a page",
+			items: async (query) => {
+				const pages = await documentsService.listPages({ spaceId: data.spaceId });
+				const trimmed = query.trim().toLowerCase();
+				return pages
+					.filter((page) => {
+						if (!trimmed) return true;
+						const title = (page.title ?? "").toLowerCase();
+						return title.includes(trimmed) || page.pageId.toLowerCase().includes(trimmed);
+					})
+					.map((page) => ({
+						id: page.pageId,
+						label: page.title || page.pageId,
+						detail: page.pageId,
+						href: `/spaces/${data.spaceId}/pages/${page.pageId}`,
+					}));
+			},
+		};
+
+		return [peerMention, spaceMention, pageMention];
+	}, [data.spaceId]);
+
 	return (
 		<div className="h-full min-h-full px-14">
 			<HotkeysProvider initiallyActiveScopes={["rich-text"]}>
@@ -293,6 +441,7 @@ function Component(): React.JSX.Element {
 					initialContent={initialValue}
 					key={`${data.spaceId}:${data.pageId}`}
 					commands={commands}
+					mentionProviders={mentionProviders}
 					onChange={handleValueChange}
 					onOpenPageLink={handleOpenPageLink}
 					onRenamePageLink={handleRenamePageLink}
