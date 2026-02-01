@@ -19,14 +19,27 @@ import TaskItem from "@tiptap/extension-task-item";
 import TaskList from "@tiptap/extension-task-list";
 import Text from "@tiptap/extension-text";
 import Underline from "@tiptap/extension-underline";
-import { EditorContent, useEditor } from "@tiptap/react";
+import { CharacterCount } from "@tiptap/extensions";
+import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import { useMemo } from "react";
 
 import { defaultCommands } from "../commands/default-commands";
-import { BlobFileNode, type BlobFileUploadResult } from "../extensions/blob-file";
-import { BlobImageNode, type BlobImageUploadResult } from "../extensions/blob-image";
-import { CommanderExtension, type EditorCommand } from "../extensions/commander";
-import { type MentionProvider, createLinkMentionExtension } from "../extensions/link-mention";
+import {
+	BlobFileNode,
+	type BlobFileUploadResult,
+} from "../extensions/blob-file";
+import {
+	BlobImageNode,
+	type BlobImageUploadResult,
+} from "../extensions/blob-image";
+import {
+	CommanderExtension,
+	type EditorCommand,
+} from "../extensions/commander";
+import {
+	createLinkMentionExtension,
+	type MentionProvider,
+} from "../extensions/link-mention";
 import { PageLinkNode } from "../extensions/page-link";
 import { ActionMenu } from "../menus/action-menu";
 
@@ -38,9 +51,14 @@ export type DocumentEditorProps = {
 	uploadImage?: (file: File) => Promise<BlobImageUploadResult>;
 	uploadFile?: (file: File) => Promise<BlobFileUploadResult>;
 	onOpenPageLink?: (pageId: string, title?: string, href?: string) => void;
-	onRenamePageLink?: (pageId: string, nextTitle: string, currentTitle?: string) => string | null | Promise<string | null>;
+	onRenamePageLink?: (
+		pageId: string,
+		nextTitle: string,
+		currentTitle?: string,
+	) => string | null | Promise<string | null>;
 	mentionProviders?: MentionProvider[];
 	onChange?: (doc: JSONContent) => void;
+	limit?: number;
 };
 
 export function DocumentEditor({
@@ -54,8 +72,17 @@ export function DocumentEditor({
 	onRenamePageLink,
 	mentionProviders,
 	onChange,
+	limit = 10_000,
 }: DocumentEditorProps): React.JSX.Element {
 	const effectiveCommands = commands ?? defaultCommands;
+
+	const CustomDocument = useMemo(
+		() =>
+			Document.extend({
+				content: "heading block*",
+			}),
+		[],
+	);
 
 	const extensions = useMemo(() => {
 		// We explicitly extend core block nodes to be draggable so the ActionMenu can move them.
@@ -64,10 +91,14 @@ export function DocumentEditor({
 		const DraggableBlockquote = Blockquote.extend({ draggable: true });
 		const DraggableCodeBlock = CodeBlock.extend({ draggable: true });
 		const DraggableRule = HorizontalRule.extend({ draggable: true });
+		const CountRule = CharacterCount.configure({
+			limit,
+		});
 
 		const base = [
-			Document,
+			CustomDocument,
 			Text,
+			CountRule,
 			DraggableParagraph,
 			DraggableHeading.configure({ levels: [1, 2, 3] }),
 			DraggableBlockquote,
@@ -78,7 +109,10 @@ export function DocumentEditor({
 			TaskItem.configure({ nested: true }),
 			DraggableCodeBlock,
 			DraggableRule,
-			PageLinkNode.configure({ onOpen: onOpenPageLink, onRename: onRenamePageLink }),
+			PageLinkNode.configure({
+				onOpen: onOpenPageLink,
+				onRename: onRenamePageLink,
+			}),
 
 			Bold,
 			Italic,
@@ -102,19 +136,41 @@ export function DocumentEditor({
 		];
 
 		if (mentionProviders && mentionProviders.length > 0) {
-			base.push(...mentionProviders.map((provider) => createLinkMentionExtension(provider)));
+			base.push(
+				...mentionProviders.map((provider) =>
+					createLinkMentionExtension(provider),
+				),
+			);
 		}
 
 		if (uploadImage) {
-			base.splice(base.length - 1, 0, BlobImageNode.configure({ upload: uploadImage }));
+			base.splice(
+				base.length - 1,
+				0,
+				BlobImageNode.configure({ upload: uploadImage }),
+			);
 		}
 
 		if (uploadFile) {
-			base.splice(base.length - 1, 0, BlobFileNode.configure({ upload: uploadFile }));
+			base.splice(
+				base.length - 1,
+				0,
+				BlobFileNode.configure({ upload: uploadFile }),
+			);
 		}
 
 		return base;
-	}, [effectiveCommands, mentionProviders, onOpenPageLink, onRenamePageLink, placeholder, uploadFile, uploadImage]);
+	}, [
+		effectiveCommands,
+		mentionProviders,
+		onOpenPageLink,
+		onRenamePageLink,
+		placeholder,
+		uploadFile,
+		uploadImage,
+		CustomDocument,
+		limit,
+	]);
 
 	const editor = useEditor({
 		extensions,
@@ -124,7 +180,7 @@ export function DocumentEditor({
 				class: [
 					"min-h-[70vh] w-full",
 					"focus:outline-none",
-					"prose prose-sm max-w-none",
+					"prose max-w-none",
 					"prose-p:leading-7",
 				].join(" "),
 			},
@@ -134,11 +190,39 @@ export function DocumentEditor({
 		},
 	});
 
+	const { characterCount } = useEditorState({
+		editor,
+		selector: (ctx) => {
+			return {
+				characterCount: ctx.editor.storage.characterCount.characters(),
+			};
+		},
+	});
+
+	const percentage = editor ? Math.round((100 / limit) * characterCount) : 0;
+
 	return (
 		<div className={className}>
 			<div className="relative">
 				<ActionMenu editor={editor} />
 				<EditorContent editor={editor} />
+
+				{editor && (
+					<div className="flex items-center gap-4 pt-24">
+						<div
+							className="radial-progress text-primary"
+							style={{
+								// @ts-expect-error
+								"--value": percentage,
+								"--size": "24px",
+								"--thickness": "4px",
+							}}
+							aria-valuenow={percentage}
+							role="progressbar"
+						/>
+						{editor.storage.characterCount.characters()} / {limit} characters
+					</div>
+				)}
 			</div>
 		</div>
 	);

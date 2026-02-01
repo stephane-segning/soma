@@ -1,7 +1,7 @@
 import { FloatingPortal, offset, shift, useFloating } from "@floating-ui/react";
-import { Editor } from "@tiptap/react";
-import { NodeSelection, TextSelection } from "@tiptap/pm/state";
+import type { Editor } from "@tiptap/react";
 import { useEffect, useMemo, useState } from "react";
+import { MoreVertical, Plus } from "react-feather";
 
 type MenuState =
 	| { show: false }
@@ -9,7 +9,10 @@ type MenuState =
 
 const LEFT_MARGIN_PX = 45;
 
-function findHoveredBlock(editor: Editor, event: MouseEvent): Omit<Extract<MenuState, { show: true }>, "rect"> | null {
+function findHoveredBlock(
+	editor: Editor,
+	event: MouseEvent,
+): Omit<Extract<MenuState, { show: true }>, "rect"> | null {
 	const view = editor.view;
 	const editorRect = view.dom.getBoundingClientRect();
 
@@ -21,7 +24,10 @@ function findHoveredBlock(editor: Editor, event: MouseEvent): Omit<Extract<MenuS
 
 	if (!mouseOverEditor) return null;
 
-	const posAtCoords = view.posAtCoords({ left: event.clientX, top: event.clientY });
+	const posAtCoords = view.posAtCoords({
+		left: event.clientX,
+		top: event.clientY,
+	});
 	if (!posAtCoords) return null;
 
 	const $pos = view.state.doc.resolve(posAtCoords.pos);
@@ -32,7 +38,11 @@ function findHoveredBlock(editor: Editor, event: MouseEvent): Omit<Extract<MenuS
 		const pos = $pos.before(depth);
 		const nodeDom = view.nodeDOM(pos);
 		const element =
-			nodeDom instanceof HTMLElement ? nodeDom : (nodeDom as Node | null)?.parentElement instanceof HTMLElement ? (nodeDom as Node).parentElement : null;
+			nodeDom instanceof HTMLElement
+				? nodeDom
+				: (nodeDom as Node | null)?.parentElement instanceof HTMLElement
+					? (nodeDom as Node).parentElement
+					: null;
 		if (!element) continue;
 
 		return { show: true, pos, domNode: element };
@@ -41,7 +51,11 @@ function findHoveredBlock(editor: Editor, event: MouseEvent): Omit<Extract<MenuS
 	return null;
 }
 
-export function ActionMenu({ editor }: { editor: Editor | null }): React.JSX.Element | null {
+export function ActionMenu({
+	editor,
+}: {
+	editor: Editor | null;
+}): React.JSX.Element | null {
 	const [menuState, setMenuState] = useState<MenuState>({ show: false });
 
 	const { refs, floatingStyles } = useFloating({
@@ -107,48 +121,30 @@ export function ActionMenu({ editor }: { editor: Editor | null }): React.JSX.Ele
 			<div
 				ref={refs.setFloating}
 				style={floatingStyles}
-				className="z-40 flex items-center gap-1 rounded-lg border border-base-300 bg-base-100 p-1 shadow-lg"
+				className="z-40 flex items-center gap-1 p-1 mr-1"
 			>
 				<button
 					type="button"
-					className="btn btn-ghost btn-xs"
+					className="btn btn-soft btn-sm btn-circle"
 					onMouseDown={(e) => {
 						e.preventDefault();
 						e.stopPropagation();
-						editor.chain().insertContentAt(menuState.pos, { type: "paragraph" }).focus().run();
+						editor
+							.chain()
+							.insertContentAt(menuState.pos, { type: "paragraph" })
+							.focus()
+							.run();
 					}}
 				>
-					+
+					<Plus className="size-5" />
 				</button>
 				<div
+					role="toolbar"
+					data-drag-handle
 					draggable
-					className="btn btn-ghost btn-xs cursor-grab active:cursor-grabbing"
-					onDragStart={(event) => {
-						event.stopPropagation();
-
-						const view = editor.view;
-						view.focus();
-						view.dispatch(view.state.tr.setSelection(NodeSelection.create(view.state.doc, menuState.pos)));
-
-						const slice = view.state.selection.content();
-						const { dom, text } = view.serializeForClipboard(slice);
-
-						event.dataTransfer?.clearData();
-						event.dataTransfer!.effectAllowed = "copyMove";
-						event.dataTransfer!.setData("text/html", dom.innerHTML);
-						event.dataTransfer!.setData("text/plain", text);
-						event.dataTransfer!.setDragImage(menuState.domNode, 0, 0);
-
-						// ProseMirror uses `view.dragging` to coordinate a "move" drop.
-						view.dragging = { slice, move: true };
-					}}
-					onDragEnd={() => {
-						const view = editor.view;
-						view.dispatch(view.state.tr.setSelection(TextSelection.create(view.state.doc, 1)));
-						view.dom.blur();
-					}}
+					className="btn btn-soft btn-circle btn-sm cursor-grab active:cursor-grabbing"
 				>
-					drag
+					<MoreVertical className="size-5" />
 				</div>
 			</div>
 		</FloatingPortal>

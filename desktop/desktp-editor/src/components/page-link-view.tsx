@@ -1,9 +1,17 @@
+import {
+	ContextMenu,
+	type ContextMenuItem,
+} from "@soma/ui/components/overlays/context-menu";
 import type { NodeViewProps } from "@tiptap/core";
 import { NodeViewWrapper } from "@tiptap/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ContextMenu, type ContextMenuItem } from "@soma/ui/components/overlays/context-menu";
+import { Link2 } from "react-feather";
 
-export function PageLinkView({ node, extension, updateAttributes }: NodeViewProps): React.JSX.Element {
+export function PageLinkView({
+	node,
+	extension,
+	updateAttributes,
+}: NodeViewProps): React.JSX.Element {
 	const title = (node.attrs.title as string | undefined) ?? "Untitled page";
 	const pageId = node.attrs.pageId as string | undefined;
 	const href = node.attrs.href as string | undefined;
@@ -14,13 +22,25 @@ export function PageLinkView({ node, extension, updateAttributes }: NodeViewProp
 	const inputRef = useRef<HTMLInputElement | null>(null);
 
 	const onOpenPage = useMemo(() => {
-		return (extension.options as { onOpen?: (pageId: string, title?: string, href?: string) => void } | undefined)?.onOpen;
+		return (
+			extension.options as
+				| {
+						onOpen?: (pageId: string, title?: string, href?: string) => void;
+				  }
+				| undefined
+		)?.onOpen;
 	}, [extension.options]);
 
 	const onRenamePage = useMemo(() => {
 		return (
 			extension.options as
-				| { onRename?: (pageId: string, nextTitle: string, currentTitle?: string) => string | null | Promise<string | null> }
+				| {
+						onRename?: (
+							pageId: string,
+							nextTitle: string,
+							currentTitle?: string,
+						) => string | null | Promise<string | null>;
+				  }
 				| undefined
 		)?.onRename;
 	}, [extension.options]);
@@ -96,7 +116,7 @@ export function PageLinkView({ node, extension, updateAttributes }: NodeViewProp
 	}, [handleCopy, handleOpen, href, onOpenPage, onRenamePage, pageId, title]);
 
 	return (
-		<NodeViewWrapper as="div" className="my-2" contentEditable={false}>
+		<NodeViewWrapper as="div" className="page-link" contentEditable={false}>
 			<button
 				type="button"
 				className="flex w-full items-center gap-3 rounded-lg border border-base-300 bg-base-100 px-3 py-2 text-left text-sm shadow-sm hover:bg-base-200/60"
@@ -107,9 +127,17 @@ export function PageLinkView({ node, extension, updateAttributes }: NodeViewProp
 				}}
 				onClick={handleOpen}
 			>
-				<div className="flex-1 truncate font-medium">{title}</div>
-				{pageId ? <div className="text-xs text-base-content/50">{pageId}</div> : null}
+				<Link2 />
+				<div className="flex-1">
+					<div className="truncate font-medium">{title}</div>
+					{pageId ? (
+						<div className="text-xs text-base-content/50">{pageId}</div>
+					) : null}
+				</div>
+
+				<div className="text-xs text-base-content/50">{pageId}</div>
 			</button>
+
 			{isRenaming ? (
 				<div className="mt-2 rounded-lg border border-base-300 bg-base-100 px-3 py-2">
 					<input
@@ -135,7 +163,12 @@ export function PageLinkView({ node, extension, updateAttributes }: NodeViewProp
 					/>
 				</div>
 			) : null}
-			<ContextMenu open={menuOpen} position={menuPosition} items={menuItems} onClose={closeMenu} />
+			<ContextMenu
+				open={menuOpen}
+				position={menuPosition}
+				items={menuItems}
+				onClose={closeMenu}
+			/>
 		</NodeViewWrapper>
 	);
 }

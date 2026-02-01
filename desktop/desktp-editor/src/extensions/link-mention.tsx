@@ -1,17 +1,27 @@
 import {
 	autoUpdate,
-	flip,
 	FloatingPortal,
+	flip,
 	offset,
 	shift,
 	useFloating,
 	type VirtualElement,
 } from "@floating-ui/react";
 import type { Range } from "@tiptap/core";
-import { Editor, Extension } from "@tiptap/core";
+import { type Editor, Extension } from "@tiptap/core";
 import { ReactRenderer } from "@tiptap/react";
-import { Suggestion, type SuggestionKeyDownProps, type SuggestionProps } from "@tiptap/suggestion";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+	Suggestion,
+	type SuggestionKeyDownProps,
+	type SuggestionProps,
+} from "@tiptap/suggestion";
+import {
+	useCallback,
+	useEffect,
+	useLayoutEffect,
+	useRef,
+	useState,
+} from "react";
 
 export type MentionItem = {
 	id: string;
@@ -99,7 +109,9 @@ function MentionList({
 	useLayoutEffect(() => {
 		const container = listRef.current;
 		if (!container) return;
-		const selected = container.children[selectedIndex] as HTMLElement | undefined;
+		const selected = container.children[selectedIndex] as
+			| HTMLElement
+			| undefined;
 		if (selected) selected.scrollIntoView({ block: "nearest" });
 	}, [selectedIndex]);
 
@@ -115,7 +127,9 @@ function MentionList({
 				</div>
 				<div ref={listRef} className="max-h-72 overflow-auto p-1">
 					{items.length === 0 ? (
-						<div className="px-3 py-2 text-xs text-base-content/60">No matches.</div>
+						<div className="px-3 py-2 text-xs text-base-content/60">
+							No matches.
+						</div>
 					) : (
 						items.map((item, index) => {
 							const active = index === selectedIndex;
@@ -135,7 +149,9 @@ function MentionList({
 								>
 									<div className="text-sm font-medium">{item.label}</div>
 									{item.detail ? (
-										<div className="text-xs text-base-content/60">{item.detail}</div>
+										<div className="text-xs text-base-content/60">
+											{item.detail}
+										</div>
 									) : null}
 								</div>
 							);
@@ -198,7 +214,8 @@ export function createLinkMentionExtension(provider: MentionProvider) {
 						range: Range;
 						props: MentionItem;
 					}) => {
-						const displayText = props.insertText ?? `${provider.char}${props.label}`;
+						const displayText =
+							props.insertText ?? `${provider.char}${props.label}`;
 						const start = range.from;
 						const end = start + displayText.length;
 

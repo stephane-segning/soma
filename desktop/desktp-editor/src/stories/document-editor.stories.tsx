@@ -1,14 +1,14 @@
 import { createId } from "@paralleldrive/cuid2";
-import type { Meta, StoryObj } from "@storybook/react";
-import { useCallback, useMemo } from "react";
 import {
-	DocumentEditor,
-	type EditorCommand,
-	type JSONContent,
-	defaultCommands,
 	type BlobFileUploadResult,
 	type BlobImageUploadResult,
+	DocumentEditor,
+	defaultCommands,
+	type EditorCommand,
+	type JSONContent,
 } from "@soma/editor";
+import type { Meta, StoryObj } from "@storybook/react";
+import { useCallback, useMemo } from "react";
 
 function pickFile(accept: string): Promise<File | null> {
 	return new Promise((resolve) => {
@@ -39,10 +39,13 @@ function pickFile(accept: string): Promise<File | null> {
 	});
 }
 
-function loadImageDimensions(src: string): Promise<{ width: number; height: number } | null> {
+function loadImageDimensions(
+	src: string,
+): Promise<{ width: number; height: number } | null> {
 	return new Promise((resolve) => {
 		const image = new Image();
-		image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight });
+		image.onload = () =>
+			resolve({ width: image.naturalWidth, height: image.naturalHeight });
 		image.onerror = () => resolve(null);
 		image.src = src;
 	});
@@ -84,34 +87,49 @@ const initialContent: JSONContent = {
 				href: "/spaces/demo/pages/page_demo_123",
 			},
 		},
+		{
+			type: "paragraph",
+			content: [
+				{
+					type: "text",
+					text: "Miaou",
+				},
+			],
+		},
 	],
 };
 
 export const Playground: Story = {
 	render: () => {
-		const uploadImage = useCallback(async (file: File): Promise<BlobImageUploadResult> => {
-			const src = URL.createObjectURL(file);
-			const dimensions = await loadImageDimensions(src);
-			return {
-				cid: createId(),
-				src,
-				mime: file.type || "application/octet-stream",
-				size: file.size,
-				name: file.name,
-				width: dimensions?.width,
-				height: dimensions?.height,
-			};
-		}, []);
+		const uploadImage = useCallback(
+			async (file: File): Promise<BlobImageUploadResult> => {
+				const src = URL.createObjectURL(file);
+				const dimensions = await loadImageDimensions(src);
+				return {
+					cid: createId(),
+					src,
+					mime: file.type || "application/octet-stream",
+					size: file.size,
+					name: file.name,
+					width: dimensions?.width,
+					height: dimensions?.height,
+				};
+			},
+			[],
+		);
 
-		const uploadFile = useCallback(async (file: File): Promise<BlobFileUploadResult> => {
-			return {
-				cid: createId(),
-				href: URL.createObjectURL(file),
-				mime: file.type || "application/octet-stream",
-				size: file.size,
-				name: file.name,
-			};
-		}, []);
+		const uploadFile = useCallback(
+			async (file: File): Promise<BlobFileUploadResult> => {
+				return {
+					cid: createId(),
+					href: URL.createObjectURL(file),
+					mime: file.type || "application/octet-stream",
+					size: file.size,
+					name: file.name,
+				};
+			},
+			[],
+		);
 
 		const commands = useMemo<EditorCommand[]>(
 			() => [
@@ -195,7 +213,7 @@ export const Playground: Story = {
 		);
 
 		return (
-			<div className="min-h-screen bg-base-100 px-16 py-12">
+			<div className="min-h-screen bg-base-100 px-32 py-12">
 				<DocumentEditor
 					commands={commands}
 					initialContent={initialContent}
