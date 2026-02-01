@@ -10,7 +10,7 @@ export default defineConfig({
 	dts: true,
 	sourcemap: true,
 	target: "es2020",
-	clean: false,
+	clean: true,
 	minify: false,
 	treeshake: true,
 	external: [
@@ -18,8 +18,6 @@ export default defineConfig({
 		"react-dom",
 		"react-router",
 		"@floating-ui/react",
-		"@tauri-apps/api",
-		"@tauri-apps/plugin-dialog",
 		"slate",
 		"slate-react",
 		"react-feather",
