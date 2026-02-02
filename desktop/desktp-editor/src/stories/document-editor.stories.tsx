@@ -85,7 +85,10 @@ const initialContent: JSONContent = {
 		{
 			type: "paragraph",
 			content: [
-				{ type: "text", text: "Links are rendered with typography styling, e.g. " },
+				{
+					type: "text",
+					text: "Links are rendered with typography styling, e.g. ",
+				},
 				{
 					type: "text",
 					text: "daisyui.com",
@@ -172,13 +175,19 @@ const initialContent: JSONContent = {
 				{
 					type: "listItem",
 					content: [
-						{ type: "paragraph", content: [{ type: "text", text: "Bulleted list" }] },
+						{
+							type: "paragraph",
+							content: [{ type: "text", text: "Bulleted list" }],
+						},
 					],
 				},
 				{
 					type: "listItem",
 					content: [
-						{ type: "paragraph", content: [{ type: "text", text: "Typography + links" }] },
+						{
+							type: "paragraph",
+							content: [{ type: "text", text: "Typography + links" }],
+						},
 					],
 				},
 			],
