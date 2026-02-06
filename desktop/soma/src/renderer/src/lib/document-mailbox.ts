@@ -27,6 +27,8 @@ function writeMailbox(spaceId: string, pageId: string, entry: MailboxEntry): voi
 				draft.updatedAtMs = record.updatedAtMs;
 				draft.contentJson = record.contentJson;
 				draft.title = record.title;
+				draft.baseDaemonUpdatedAtMs = record.baseDaemonUpdatedAtMs;
+				draft.conflictState = record.conflictState;
 			});
 			return;
 		}
@@ -36,5 +38,34 @@ function writeMailbox(spaceId: string, pageId: string, entry: MailboxEntry): voi
 	}
 }
 
+function removeMailbox(spaceId: string, pageId: string): void {
+	try {
+		mailboxCollection.delete(mailboxKey(spaceId, pageId));
+	} catch {
+		// ignore storage write failures
+	}
+}
+
+function applyRemoteMailboxPolicy(input: {
+	spaceId: string;
+	pageId: string;
+	daemonUpdatedAtMs: number;
+}): "noop" | "cleared_stale_local" | "kept_local_ahead" {
+	const current = readMailbox(input.spaceId, input.pageId);
+	if (!current) return "noop";
+
+	if (current.updatedAtMs <= input.daemonUpdatedAtMs) {
+		removeMailbox(input.spaceId, input.pageId);
+		return "cleared_stale_local";
+	}
+
+	writeMailbox(input.spaceId, input.pageId, {
+		...current,
+		baseDaemonUpdatedAtMs: input.daemonUpdatedAtMs,
+		conflictState: "ahead",
+	});
+	return "kept_local_ahead";
+}
+
 export type { MailboxEntry };
-export { mailboxKey, readMailbox, writeMailbox };
+export { applyRemoteMailboxPolicy, mailboxKey, readMailbox, removeMailbox, writeMailbox };

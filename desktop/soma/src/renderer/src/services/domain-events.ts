@@ -1,27 +1,12 @@
+import { applyRemoteMailboxPolicy } from "@app/lib/document-mailbox";
 import { api } from "@app/store/api";
 import { store } from "@app/store/store";
+import { parseDomainEventPayload, type DomainEventPayload } from "@soma/desktop-db";
+import { getDraft } from "./documents-service";
 
-type DomainEvent =
-	| {
-			kind: "spaces-changed";
-	  }
-	| {
-			kind: "space-changed";
-			spaceId: string;
-	  }
-	| {
-			kind: "pages-changed";
-			spaceId: string;
-	  }
-	| {
-			kind: "document-changed";
-			spaceId: string;
-			documentId: string;
-	  };
+type DomainEventHandler = (event: DomainEventPayload) => void;
 
-type DomainEventHandler = (event: DomainEvent) => void;
-
-function handleDomainEvent(event: DomainEvent): void {
+function handleDomainEvent(event: DomainEventPayload): void {
 	switch (event.kind) {
 		case "spaces-changed":
 			store.dispatch(
@@ -52,7 +37,36 @@ function handleDomainEvent(event: DomainEvent): void {
 					{ type: "Draft", id: `${event.spaceId}:${event.documentId}` },
 				]),
 			);
+			if (event.source === "daemon") {
+				void handleRemoteDocumentChanged(event);
+			}
 			return;
+	}
+}
+
+async function handleRemoteDocumentChanged(event: Extract<DomainEventPayload, { kind: "document-changed" }>): Promise<void> {
+	try {
+		const draft = await getDraft({
+			spaceId: event.spaceId,
+			documentId: event.documentId,
+		});
+		if (!draft) return;
+
+		const action = applyRemoteMailboxPolicy({
+			spaceId: event.spaceId,
+			pageId: event.documentId,
+			daemonUpdatedAtMs: draft.updatedAtMs,
+		});
+
+		if (action === "kept_local_ahead") {
+			console.info("remote page changed while local mailbox is ahead", {
+				spaceId: event.spaceId,
+				documentId: event.documentId,
+				reason: event.reason,
+			});
+		}
+	} catch {
+		// best-effort conflict handling
 	}
 }
 
@@ -63,8 +77,9 @@ export function startDomainEventListener(): () => void {
 	}
 
 	const handler: DomainEventHandler = (event) => {
-		if (!event || typeof event.kind !== "string") return;
-		handleDomainEvent(event);
+		const parsed = parseDomainEventPayload(event);
+		if (!parsed) return;
+		handleDomainEvent(parsed);
 	};
 
 	return apiBridge.onDomainEvent(handler);

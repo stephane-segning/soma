@@ -380,19 +380,28 @@ export class StartupService {
 			case "yoopta-blob-added":
 				this.domainEvents.broadcast({
 					kind: "document-changed",
+					source: "daemon",
+					atMs: Date.now(),
 					spaceId: event.spaceId,
 					documentId: event.docId,
+					reason: "daemon_yoopta_blob_added",
 				});
 				return;
 			case "join-decision":
 				if (event.spaceId) {
 					this.domainEvents.broadcast({
 						kind: "space-changed",
+						source: "daemon",
+						atMs: Date.now(),
 						spaceId: event.spaceId,
+						reason: "daemon_join_decision",
 					});
 				} else {
 					this.domainEvents.broadcast({
 						kind: "spaces-changed",
+						source: "daemon",
+						atMs: Date.now(),
+						reason: "daemon_join_decision",
 					});
 				}
 				return;

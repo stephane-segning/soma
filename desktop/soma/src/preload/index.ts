@@ -1,20 +1,25 @@
 import { electronAPI } from "@electron-toolkit/preload";
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
+import { parseAgentRuntimeEventPayload, parseDomainEventPayload, type AgentRuntimeEventPayload, type DomainEventPayload } from "@soma/desktop-db";
 
 const api = {
 	invoke: (channel: string, args?: unknown) => ipcRenderer.invoke(channel, args),
-	onDomainEvent: (handler: (event: unknown) => void) => {
+	onDomainEvent: (handler: (event: DomainEventPayload) => void) => {
 		const listener = (_event: IpcRendererEvent, payload: unknown) => {
-			handler(payload);
+			const event = parseDomainEventPayload(payload);
+			if (!event) return;
+			handler(event);
 		};
 		ipcRenderer.on("domain_event", listener);
 		return () => {
 			ipcRenderer.removeListener("domain_event", listener);
 		};
 	},
-	onAgentEvent: (handler: (event: unknown) => void) => {
+	onAgentEvent: (handler: (event: AgentRuntimeEventPayload) => void) => {
 		const listener = (_event: IpcRendererEvent, payload: unknown) => {
-			handler(payload);
+			const event = parseAgentRuntimeEventPayload(payload);
+			if (!event) return;
+			handler(event);
 		};
 		ipcRenderer.on("agent_event", listener);
 		return () => {

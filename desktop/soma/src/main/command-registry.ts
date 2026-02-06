@@ -33,24 +33,33 @@ export class CommandRegistry {
 			await this.documents.upsertDraft(params);
 			this.domainEvents.broadcast({
 				kind: "document-changed",
+				source: "renderer",
+				atMs: Date.now(),
 				spaceId: params?.spaceId ?? "",
 				documentId: params?.documentId ?? "",
+				reason: "documents_upsert_draft",
 			});
 		});
 		ipc.handle("documents_queue_daemon_sync", async (_event, params) => {
 			await this.documents.queueDaemonSync(params);
 			this.domainEvents.broadcast({
 				kind: "document-changed",
+				source: "renderer",
+				atMs: Date.now(),
 				spaceId: params?.spaceId ?? "",
 				documentId: params?.documentId ?? "",
+				reason: "documents_queue_daemon_sync",
 			});
 		});
 		ipc.handle("documents_sync_published", async (_event, params) => {
 			const result = await this.documents.syncPublished(params);
 			this.domainEvents.broadcast({
 				kind: "document-changed",
+				source: "renderer",
+				atMs: Date.now(),
 				spaceId: params?.spaceId ?? "",
 				documentId: params?.documentId ?? "",
+				reason: "documents_sync_published",
 			});
 			return result;
 		});
@@ -59,7 +68,10 @@ export class CommandRegistry {
 			const page = await this.documents.ensurePage(params);
 			this.domainEvents.broadcast({
 				kind: "pages-changed",
+				source: "renderer",
+				atMs: Date.now(),
 				spaceId: page.spaceId,
+				reason: "documents_ensure_page",
 			});
 			return page;
 		});
@@ -69,7 +81,10 @@ export class CommandRegistry {
 			if (page) {
 				this.domainEvents.broadcast({
 					kind: "pages-changed",
+					source: "renderer",
+					atMs: Date.now(),
 					spaceId: page.spaceId,
+					reason: "documents_update_page_title",
 				});
 			}
 			return page;
@@ -79,7 +94,10 @@ export class CommandRegistry {
 			if (page) {
 				this.domainEvents.broadcast({
 					kind: "pages-changed",
+					source: "renderer",
+					atMs: Date.now(),
 					spaceId: page.spaceId,
+					reason: "documents_set_page_parents",
 				});
 			}
 			return page;
@@ -108,7 +126,12 @@ export class CommandRegistry {
 		ipc.handle("spaces_list_members", (_event, params) => this.spaces.listMembers(params?.spaceId ?? ""));
 		ipc.handle("spaces_create", async (_event, params) => {
 			const space = await this.spaces.create(params ?? {});
-			this.domainEvents.broadcast({ kind: "spaces-changed" });
+			this.domainEvents.broadcast({
+				kind: "spaces-changed",
+				source: "renderer",
+				atMs: Date.now(),
+				reason: "spaces_create",
+			});
 			return space;
 		});
 		ipc.handle("spaces_get", (_event, params) => this.spaces.get(params?.spaceId));
@@ -116,13 +139,21 @@ export class CommandRegistry {
 			const space = await this.spaces.update(params);
 			this.domainEvents.broadcast({
 				kind: "space-changed",
+				source: "renderer",
+				atMs: Date.now(),
 				spaceId: space.spaceId,
+				reason: "spaces_update",
 			});
 			return space;
 		});
 		ipc.handle("spaces_delete", async (_event, params) => {
 			const result = await this.spaces.delete(params?.spaceId ?? "");
-			this.domainEvents.broadcast({ kind: "spaces-changed" });
+			this.domainEvents.broadcast({
+				kind: "spaces-changed",
+				source: "renderer",
+				atMs: Date.now(),
+				reason: "spaces_delete",
+			});
 			return result;
 		});
 

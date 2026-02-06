@@ -4,6 +4,8 @@ export type MailboxEntry = {
   contentJson: string | null;
   title?: string | null;
   updatedAtMs: number;
+  baseDaemonUpdatedAtMs?: number | null;
+  conflictState?: "none" | "stale" | "ahead";
 };
 
 export type MailboxRecord = MailboxEntry & {
@@ -25,7 +27,9 @@ export function createMailboxRecord(spaceId: string, pageId: string, entry: Mail
     pageId,
     contentJson: entry.contentJson,
     title: entry.title,
-    updatedAtMs: entry.updatedAtMs
+    updatedAtMs: entry.updatedAtMs,
+    baseDaemonUpdatedAtMs: entry.baseDaemonUpdatedAtMs ?? null,
+    conflictState: entry.conflictState ?? "none"
   };
 }
 
@@ -33,7 +37,9 @@ export function mailboxRecordToEntry(record: MailboxRecord): MailboxEntry {
   return {
     contentJson: record.contentJson,
     title: record.title,
-    updatedAtMs: record.updatedAtMs
+    updatedAtMs: record.updatedAtMs,
+    baseDaemonUpdatedAtMs: record.baseDaemonUpdatedAtMs ?? null,
+    conflictState: record.conflictState ?? "none"
   };
 }
 
@@ -47,6 +53,21 @@ export function isMailboxRecord(value: unknown): value is MailboxRecord {
   if (typeof maybe.updatedAtMs !== "number") return false;
   if (typeof maybe.contentJson !== "string" && maybe.contentJson !== null) return false;
   if (typeof maybe.title !== "string" && maybe.title !== null && typeof maybe.title !== "undefined") return false;
+  if (
+    typeof maybe.baseDaemonUpdatedAtMs !== "number" &&
+    maybe.baseDaemonUpdatedAtMs !== null &&
+    typeof maybe.baseDaemonUpdatedAtMs !== "undefined"
+  ) {
+    return false;
+  }
+  if (
+    maybe.conflictState !== "none" &&
+    maybe.conflictState !== "stale" &&
+    maybe.conflictState !== "ahead" &&
+    typeof maybe.conflictState !== "undefined"
+  ) {
+    return false;
+  }
   return true;
 }
 

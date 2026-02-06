@@ -1,4 +1,5 @@
 import { ElectronAPI } from "@electron-toolkit/preload";
+import type { AgentRuntimeEventPayload, DomainEventPayload } from "@soma/desktop-db";
 
 type WindowControlsApi = {
 	minimize: () => Promise<void>;
@@ -8,8 +9,8 @@ type WindowControlsApi = {
 
 type RendererApi = {
 	invoke: <T = unknown>(channel: string, args?: unknown) => Promise<T>;
-	onDomainEvent: (handler: (event: unknown) => void) => () => void;
-	onAgentEvent: (handler: (event: unknown) => void) => () => void;
+	onDomainEvent: (handler: (event: DomainEventPayload) => void) => () => void;
+	onAgentEvent: (handler: (event: AgentRuntimeEventPayload) => void) => () => void;
 	dbStorage: {
 		getItem: (key: string) => string | null;
 		setItem: (key: string, value: string) => void;
