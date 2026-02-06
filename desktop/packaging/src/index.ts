@@ -1118,7 +1118,7 @@ async function buildMacosBundle(args: MacBundleArgs): Promise<string[]> {
   await fse.ensureDir(path.join(pkgroot, "usr/local/bin"));
   await fse.ensureDir(path.join(pkgroot, "usr/local/share/soma"));
   await fse.ensureDir(path.join(pkgroot, "Library/LaunchAgents"));
-  await fse.ensureDir(path.join(pkgroot, "Applications"));
+  await fse.ensureDir(path.join(pkgroot, "Applications", "Soma"));
 
   await fse.copy(
     path.join(args.staging, "soma-daemon"),
@@ -1154,8 +1154,8 @@ async function buildMacosBundle(args: MacBundleArgs): Promise<string[]> {
     args.adhocSign
   );
 
-  await fse.copy(somaApp, path.join(pkgroot, "Applications", "soma.app"));
-  await fse.copy(tapiaApp, path.join(pkgroot, "Applications", "tapia.app"));
+  await fse.copy(somaApp, path.join(pkgroot, "Applications", "Soma", "soma.app"));
+  await fse.copy(tapiaApp, path.join(pkgroot, "Applications", "Soma", "tapia.app"));
 
   const pkgOut = path.join(
     args.platformOut,
