@@ -1,8 +1,26 @@
 import { electronAPI } from "@electron-toolkit/preload";
-import { contextBridge, ipcRenderer } from "electron";
+import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
 
 const api = {
 	invoke: (channel: string, args?: unknown) => ipcRenderer.invoke(channel, args),
+	onDomainEvent: (handler: (event: unknown) => void) => {
+		const listener = (_event: IpcRendererEvent, payload: unknown) => {
+			handler(payload);
+		};
+		ipcRenderer.on("domain_event", listener);
+		return () => {
+			ipcRenderer.removeListener("domain_event", listener);
+		};
+	},
+	onAgentEvent: (handler: (event: unknown) => void) => {
+		const listener = (_event: IpcRendererEvent, payload: unknown) => {
+			handler(payload);
+		};
+		ipcRenderer.on("agent_event", listener);
+		return () => {
+			ipcRenderer.removeListener("agent_event", listener);
+		};
+	},
 	dbStorage: {
 		getItem: (key: string) => ipcRenderer.sendSync("db_storage_get", key) as string | null,
 		setItem: (key: string, value: string) =>

@@ -6,6 +6,12 @@ import ChainedBackend, {
 import HttpBackend from "i18next-http-backend";
 import resourcesToBackend from "i18next-resources-to-backend";
 import { initReactI18next } from "react-i18next";
+import { uiPreferencesCollection } from "./db";
+import {
+	UI_PREFERENCES_RECORD_ID,
+	createUiPreferencesRecord,
+	isUiPreferencesRecord,
+} from "@soma/desktop-db";
 
 const isDev = import.meta.env.DEV;
 
@@ -27,9 +33,37 @@ const backendOptions: ChainedBackendOptions = {
 		: [{}],
 };
 
+const dbLanguageDetector = {
+	name: "dbStorage",
+	lookup: () => {
+		const record = uiPreferencesCollection.state.get(UI_PREFERENCES_RECORD_ID);
+		if (record && isUiPreferencesRecord(record) && record.language) {
+			return record.language;
+		}
+		return undefined;
+	},
+	cacheUserLanguage: (lng: string) => {
+		const existing = uiPreferencesCollection.state.get(UI_PREFERENCES_RECORD_ID);
+		if (existing && isUiPreferencesRecord(existing) && existing.language === lng) return;
+		const record = createUiPreferencesRecord({ language: lng }, Date.now());
+		if (existing) {
+			uiPreferencesCollection.update(UI_PREFERENCES_RECORD_ID, (draft) => {
+				draft.version = record.version;
+				draft.updatedAtMs = record.updatedAtMs;
+				draft.language = record.language;
+			});
+			return;
+		}
+		uiPreferencesCollection.insert(record);
+	},
+};
+
+const languageDetector = new LanguageDetector();
+languageDetector.addDetector(dbLanguageDetector);
+
 void i18n
 	.use(initReactI18next)
-	.use(LanguageDetector)
+	.use(languageDetector)
 	.use(ChainedBackend)
 	.init({
 		fallbackLng: "en",
@@ -37,8 +71,8 @@ void i18n
 		ns: ["common"],
 		defaultNS: "common",
 		detection: {
-			order: ["querystring", "localStorage", "navigator"],
-			caches: ["localStorage"],
+			order: ["querystring", "dbStorage", "navigator"],
+			caches: ["dbStorage"],
 		},
 		interpolation: {
 			escapeValue: false,

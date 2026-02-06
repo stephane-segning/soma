@@ -76,14 +76,18 @@ export const uploadToBlob = async (
 ): Promise<MediaObject> => {
 	try {
 		const bytes = new Uint8Array(await file.arrayBuffer());
-		const { stageBlob } = await import("../services/blob-service");
-		const staged = await stageBlob({
+		const { awaitUploadJob, queueUploadJob } = await import("../services/upload-outbox");
+		const jobId = await queueUploadJob({
 			bytes,
 			mime: file.type || "application/octet-stream",
 			fileName: file.name,
 			spaceId: context.spaceId,
 			docId: context.docId,
 		});
+		const job = await awaitUploadJob(jobId);
+		if (!job.result) {
+			throw new Error("Upload job completed without result");
+		}
 
 		const { width, height } =
 			_type === "video"
@@ -96,17 +100,17 @@ export const uploadToBlob = async (
 						};
 
 		return {
-			secure_url: staged.url,
+			secure_url: job.result.url,
 			width,
 			height,
-			url: staged.url,
-			asset_id: staged.cid,
-			format: staged.mime,
-			public_id: staged.cid,
-			version_id: String(staged.createdAtMs),
-			name: staged.fileName ?? file.name,
-			bytes: staged.byteLength,
-			variants: staged.variants,
+			url: job.result.url,
+			asset_id: job.result.cid,
+			format: job.result.mime,
+			public_id: job.result.cid,
+			version_id: String(job.updatedAtMs),
+			name: job.result.name ?? file.name,
+			bytes: job.result.size,
+			variants: job.result.variants,
 		};
 	} catch (error) {
 		return Promise.reject(error);

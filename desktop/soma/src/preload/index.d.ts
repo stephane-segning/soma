@@ -8,6 +8,8 @@ type WindowControlsApi = {
 
 type RendererApi = {
 	invoke: <T = unknown>(channel: string, args?: unknown) => Promise<T>;
+	onDomainEvent: (handler: (event: unknown) => void) => () => void;
+	onAgentEvent: (handler: (event: unknown) => void) => () => void;
 	dbStorage: {
 		getItem: (key: string) => string | null;
 		setItem: (key: string, value: string) => void;

@@ -57,6 +57,9 @@ Bundle packaging (downloads published release assets and produces `.deb/.rpm` or
 - Local packaging (uses local build artifacts):
   - `pnpm --filter @soma/packaging run bundle -- --os <linux|macos> --arch <amd64|arm64>`
   - Outputs to `artifacts/bundle-local/<os>-<arch>/` by default.
+- Service ownership policy for bundle templates:
+  - Linux units are **systemd user** services (`systemctl --user ...`), not system-wide root services.
+  - macOS services are **LaunchAgents** (`/Library/LaunchAgents` + `launchctl bootstrap gui/<uid> ...`), not LaunchDaemons.
 
 ## Tech Stack
 
@@ -333,13 +336,19 @@ Soma (`desktop/soma`) (Electron/Chromium):
   - Page list/tree metadata: `Daemon/EnsurePage`, `Daemon/ListPages`, `Daemon/UpdatePageTitle`, `Daemon/SetPageParents`
 - No local blob persistence/caching in the desktop app: uploads go to `soma-daemon`, and renderers should use `soma-blob://daemon/{space_id}/{cid}` (served by the Electron `soma-blob` protocol via `Daemon/ReadBlob`) for blob references.
 - Stage detection / sockets: `desktop/desktp-config` runs before Soma starts and ensures the current build stage (dev/staging/prod) rewrites `appData`/`userData`/`logs` to stage-specific folders and selects `/tmp/soma-daemon-<stage>.sock` + `/tmp/soma-agentd-<stage>.sock` (defaults to `/tmp/...` when stage = `prod`). Non-prod daemons must start with matching `--socket-path` arguments or you can override `SOMA_DAEMON_SOCKET` / `SOMA_AGENTD_SOCKET` while developing.
+- Startup policy: Soma main blocks renderer startup behind a splash screen until `soma-daemon` reports ready (`Daemon/Status`), then subscribes to daemon events at process start.
 - Local LLM chat runs via `soma-agentd` (gRPC over Unix socket); for model selection and “base vs instruct” behavior, see `docs/src/development/agentd-models.md`.
+- Agent runtime configuration source of truth is `electron-store` (`settings["agent.config"]`) through main-process settings IPC:
+  - default provider is OpenAI-compatible at `http://127.0.0.1:11434/v1` (Ollama-style endpoint)
+  - supported providers in main are `agentd`, `openai-compatible`, and `llama-cpp`
+  - main process publishes agent runtime status/error events to renderers via `agent_event`
 - Space members UI: `/spaces/:spaceId/members` simply lists the roster fetched via the daemon `ListSpaceMembers` RPC exposed as the `spaces_list_members` IPC command (`desktop/soma/src/renderer/src/routes/screens/space-members.tsx` + `@soma/queries/spaces`). Keep it lightweight/read-only; no bespoke member page beyond this list.
 
 Tapia (`desktop/tapia`):
 
 - Electron/Chromium UI living under `desktop/tapia`.
 - Uses `simple-keyboard`.
+- Startup policy mirrors Soma for daemon readiness: Tapia shows a splash and waits for the `soma-daemon` socket before opening the main renderer window.
 - Needs “text segmentation + cursor ranges” and a “diff/comparison engine”; choose stable, mature packages from the JavaScript package registry (common candidates: `graphemer` / `grapheme-splitter`, and `diff-match-patch` / `diff`).
 - Uses Motion for micro-interactions (cursor movement/layout animations, color transitions, correct/incorrect feedback).
 - Uses XState for state machines.

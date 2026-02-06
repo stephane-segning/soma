@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { stat } from "node:fs/promises";
 import { electronApp, is, optimizer } from "@electron-toolkit/utils";
 import { StageConfigService } from "@soma/desktop-config";
 import { app, BrowserWindow, ipcMain, shell } from "electron";
@@ -12,10 +13,12 @@ import type {
 } from "../shared/exercise";
 import { AppDataStore } from "./services/app-data-store";
 
-new StageConfigService({
+const runtimeConfig = new StageConfigService({
 	appPrefix: "tapia",
 	isDev: is.dev,
 	stageEnvKeys: ["TAPIA_STAGE", "SOMA_STAGE", "SOMA_CHANNEL"],
+	daemonSocketEnvKey: "SOMA_DAEMON_SOCKET",
+	daemonSocketBaseName: "soma-daemon",
 }).apply();
 
 const appDataStore = new AppDataStore();
@@ -211,10 +214,97 @@ function createWindow(): void {
 	}
 }
 
+function createSplashWindow(): BrowserWindow {
+	const splash = new BrowserWindow({
+		width: 460,
+		height: 320,
+		resizable: false,
+		frame: false,
+		transparent: true,
+		show: false,
+		alwaysOnTop: true,
+		center: true,
+		webPreferences: {
+			sandbox: true,
+		},
+	});
+
+	const html = `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    html, body { margin: 0; width: 100%; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { display: grid; place-items: center; background: transparent; }
+    .card {
+      width: 360px;
+      border-radius: 20px;
+      padding: 28px 24px;
+      color: #f9fafb;
+      background: linear-gradient(155deg, #111827 0%, #0f172a 100%);
+      box-shadow: 0 20px 60px rgba(2, 6, 23, 0.55);
+      text-align: center;
+    }
+    .title { font-size: 18px; font-weight: 600; margin: 0 0 8px 0; }
+    .subtitle { font-size: 13px; opacity: 0.85; margin: 0 0 18px 0; }
+    .bar {
+      height: 5px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(148, 163, 184, 0.22);
+    }
+    .bar::after {
+      content: "";
+      display: block;
+      height: 100%;
+      width: 42%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #22c55e, #38bdf8);
+      animation: loading 1.2s ease-in-out infinite;
+      transform-origin: left center;
+    }
+    @keyframes loading {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(340%); }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1 class="title">Starting Tapia</h1>
+    <p class="subtitle">Waiting for soma-daemon...</p>
+    <div class="bar"></div>
+  </div>
+</body>
+</html>`;
+
+	void splash.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+	splash.once("ready-to-show", () => {
+		splash.show();
+	});
+	return splash;
+}
+
+async function waitForDaemonSocket(): Promise<void> {
+	const socketPath = runtimeConfig.daemonSocketPath;
+	while (true) {
+		try {
+			const info = await stat(socketPath);
+			if (info.isSocket()) {
+				return;
+			}
+		} catch {
+			// Keep waiting until daemon socket is ready.
+		}
+		await sleep(500);
+	}
+}
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
 	// Set app user model id for windows
 	electronApp.setAppUserModelId("com.electron");
 
@@ -256,7 +346,12 @@ app.whenReady().then(() => {
 		},
 	);
 
+	const splash = createSplashWindow();
+	await waitForDaemonSocket();
 	createWindow();
+	if (!splash.isDestroyed()) {
+		splash.close();
+	}
 
 	app.on("activate", () => {
 		// On macOS it's common to re-create a window in the app when the
@@ -264,6 +359,12 @@ app.whenReady().then(() => {
 		if (BrowserWindow.getAllWindows().length === 0) createWindow();
 	});
 });
+
+function sleep(ms: number): Promise<void> {
+	return new Promise((resolve) => {
+		setTimeout(resolve, ms);
+	});
+}
 
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits

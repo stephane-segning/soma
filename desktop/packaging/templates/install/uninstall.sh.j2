@@ -24,13 +24,13 @@ case "$arch" in
 esac
 
 if [ "$OS" = "macos" ]; then
-  echo "Stopping launchd services (best-effort)..."
-  sudo launchctl bootout system "/Library/LaunchDaemons/${SERVICE_LABEL_DAEMON}.plist" 2>/dev/null || true
-  sudo launchctl bootout system "/Library/LaunchDaemons/${SERVICE_LABEL_AGENT}.plist" 2>/dev/null || true
+  echo "Stopping launchd user agents (best-effort)..."
+  launchctl bootout "gui/$(id -u)" "/Library/LaunchAgents/${SERVICE_LABEL_DAEMON}.plist" 2>/dev/null || true
+  launchctl bootout "gui/$(id -u)" "/Library/LaunchAgents/${SERVICE_LABEL_AGENT}.plist" 2>/dev/null || true
 
   echo "Removing installed files..."
-  sudo rm -f "/Library/LaunchDaemons/${SERVICE_LABEL_DAEMON}.plist"
-  sudo rm -f "/Library/LaunchDaemons/${SERVICE_LABEL_AGENT}.plist"
+  sudo rm -f "/Library/LaunchAgents/${SERVICE_LABEL_DAEMON}.plist"
+  sudo rm -f "/Library/LaunchAgents/${SERVICE_LABEL_AGENT}.plist"
   sudo rm -f "$INSTALL_PREFIX/bin/soma-daemon"
   sudo rm -f "$INSTALL_PREFIX/bin/soma-agentd"
   sudo rm -f "$INSTALL_PREFIX/share/soma/README.md"
@@ -46,18 +46,18 @@ elif [ "$OS" = "linux" ]; then
   PACKAGE="soma-bundle"
   if command -v dpkg >/dev/null 2>&1; then
     if dpkg -s "$PACKAGE" >/dev/null 2>&1; then
-      sudo systemctl stop soma-daemon.service soma-agentd.service 2>/dev/null || true
+      systemctl --user stop soma-daemon.service soma-agentd.service 2>/dev/null || true
       sudo dpkg -r "$PACKAGE"
-      sudo systemctl daemon-reload 2>/dev/null || true
+      systemctl --user daemon-reload 2>/dev/null || true
       echo "Removed $PACKAGE ($ARCH) via dpkg"
     else
       echo "$PACKAGE is not installed (dpkg)" >&2
     fi
   elif command -v rpm >/dev/null 2>&1; then
     if rpm -q "$PACKAGE" >/dev/null 2>&1; then
-      sudo systemctl stop soma-daemon.service soma-agentd.service 2>/dev/null || true
+      systemctl --user stop soma-daemon.service soma-agentd.service 2>/dev/null || true
       sudo rpm -e "$PACKAGE"
-      sudo systemctl daemon-reload 2>/dev/null || true
+      systemctl --user daemon-reload 2>/dev/null || true
       echo "Removed $PACKAGE ($ARCH) via rpm"
     else
       echo "$PACKAGE is not installed (rpm)" >&2

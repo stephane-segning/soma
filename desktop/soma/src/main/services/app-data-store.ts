@@ -1,4 +1,8 @@
 import ElectronStore from "electron-store";
+import {
+	AGENT_CONFIG_SETTINGS_KEY,
+	DEFAULT_AGENT_RUNTIME_CONFIG,
+} from "./agent-config";
 
 export type WindowState = {
 	bounds?: {
@@ -28,7 +32,9 @@ export class AppDataStore {
 		this.store = new StoreCtor({
 			name: "soma-data",
 			defaults: {
-				settings: {},
+				settings: {
+					[AGENT_CONFIG_SETTINGS_KEY]: DEFAULT_AGENT_RUNTIME_CONFIG,
+				},
 			},
 		}) as ElectronStore<StoreSchema>;
 	}

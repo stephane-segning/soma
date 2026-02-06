@@ -4,6 +4,8 @@ set -euo pipefail
 BUNDLE_VERSION="{{bundle_version}}"
 BUNDLE_TAG="bundle-{{bundle_version}}"
 REPO="{{repo}}"
+SERVICE_LABEL_DAEMON="{{service_label_daemon}}"
+SERVICE_LABEL_AGENT="{{service_label_agent}}"
 
 os="$(uname -s | tr '[:upper:]' '[:lower:]')"
 arch="$(uname -m)"
@@ -24,6 +26,38 @@ base="https://github.com/$REPO/releases/download"
 
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
+
+cleanup_legacy_root_install() {
+  if [ "$OS" = "macos" ]; then
+    sudo launchctl bootout system "/Library/LaunchDaemons/${SERVICE_LABEL_DAEMON}.plist" 2>/dev/null || true
+    sudo launchctl bootout system "/Library/LaunchDaemons/${SERVICE_LABEL_AGENT}.plist" 2>/dev/null || true
+    sudo rm -f "/Library/LaunchDaemons/${SERVICE_LABEL_DAEMON}.plist" 2>/dev/null || true
+    sudo rm -f "/Library/LaunchDaemons/${SERVICE_LABEL_AGENT}.plist" 2>/dev/null || true
+
+    if [ -S "/tmp/soma-daemon.sock" ] && [ "$(stat -f '%u' /tmp/soma-daemon.sock 2>/dev/null || echo '')" = "0" ]; then
+      sudo rm -f "/tmp/soma-daemon.sock" || true
+    fi
+    if [ -S "/tmp/soma-agentd.sock" ] && [ "$(stat -f '%u' /tmp/soma-agentd.sock 2>/dev/null || echo '')" = "0" ]; then
+      sudo rm -f "/tmp/soma-agentd.sock" || true
+    fi
+    return
+  fi
+
+  sudo systemctl stop soma-daemon.service soma-agentd.service 2>/dev/null || true
+  sudo systemctl disable soma-daemon.service soma-agentd.service 2>/dev/null || true
+  sudo rm -f "/etc/systemd/system/soma-daemon.service" "/etc/systemd/system/soma-agentd.service" 2>/dev/null || true
+  sudo rm -f "/usr/lib/systemd/system/soma-daemon.service" "/usr/lib/systemd/system/soma-agentd.service" 2>/dev/null || true
+  sudo systemctl daemon-reload 2>/dev/null || true
+
+  if [ -S "/tmp/soma-daemon.sock" ] && [ "$(stat -c '%u' /tmp/soma-daemon.sock 2>/dev/null || echo '')" = "0" ]; then
+    sudo rm -f "/tmp/soma-daemon.sock" || true
+  fi
+  if [ -S "/tmp/soma-agentd.sock" ] && [ "$(stat -c '%u' /tmp/soma-agentd.sock 2>/dev/null || echo '')" = "0" ]; then
+    sudo rm -f "/tmp/soma-agentd.sock" || true
+  fi
+}
+
+cleanup_legacy_root_install
 
 if [ "$OS" = "macos" ]; then
   PKG="soma-bundle-$BUNDLE_VERSION-macos-$ARCH.pkg"

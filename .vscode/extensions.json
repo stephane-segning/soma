@@ -3,7 +3,6 @@
         "skellock.just",
         "fill-labs.dependi",
         "drblury.protobuf-vsc",
-        "wholroyd.jinja",
-        "dbaeumer.vscode-eslint"
+        "wholroyd.jinja"
     ]
 }

@@ -123,21 +123,31 @@ export function ActionMenu({
 		};
 	}, [editor]);
 
-	const insertAt = (content: Record<string, unknown>) => {
-		if (!editor) return;
-		const pos = addMenuTargetPos ?? menuState.pos;
-		editor.chain().focus().insertContentAt(pos, content).run();
-	};
+	const insertAt = useCallback(
+		(content: Record<string, unknown>) => {
+			if (!editor) return;
+
+			const pos =
+				addMenuTargetPos ?? ("pos" in menuState ? menuState.pos : undefined);
+			if (pos) {
+				editor.chain().focus().insertContentAt(pos, content).run();
+			}
+		},
+		[addMenuTargetPos, editor, menuState],
+	);
 
 	const openAddMenu = useCallback(() => {
 		if (!editor) return;
 		const button = addButtonRef.current;
 		if (!button) return;
+		const pos = "pos" in menuState ? menuState.pos : undefined;
+		if (!pos) return;
+
 		const rect = button.getBoundingClientRect();
 		setAddMenuPosition({ x: rect.right + 8, y: rect.top });
-		setAddMenuTargetPos(menuState.pos);
+		setAddMenuTargetPos(pos);
 		setAddMenuOpen(true);
-	}, [menuState.pos]);
+	}, [menuState, editor]);
 
 	const addMenuItems = useMemo<ContextMenuItem[]>(
 		() => [
@@ -149,8 +159,7 @@ export function ActionMenu({
 			{
 				id: "add-heading-2",
 				label: "Heading",
-				onSelect: () =>
-					insertAt({ type: "heading", attrs: { level: 2 } }),
+				onSelect: () => insertAt({ type: "heading", attrs: { level: 2 } }),
 			},
 			{
 				id: "add-divider",
@@ -241,7 +250,7 @@ export function ActionMenu({
 					}),
 			},
 		],
-		[addMenuTargetPos, menuState.pos],
+		[insertAt],
 	);
 
 	if (!editor || !menuState.show) return null;

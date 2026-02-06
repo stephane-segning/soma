@@ -8,6 +8,7 @@ import type { SettingsController } from "./controllers/settings-controller";
 import type { SpacesController } from "./controllers/spaces-controller";
 import type { WindowController } from "./controllers/window-controller";
 import type { AppLogger } from "./services/logger";
+import type { DomainEventsService } from "./services/domain-events";
 
 export class CommandRegistry {
 	constructor(
@@ -18,21 +19,71 @@ export class CommandRegistry {
 		private readonly search: SearchController,
 		private readonly settings: SettingsController,
 		private readonly dbStorage: DbStorageController,
+		private readonly domainEvents: DomainEventsService,
 		private readonly windows: WindowController,
 		private readonly logger: AppLogger,
 	) {}
 
 	register(ipc: IpcMain): void {
 		ipc.handle("blobs_stage", (_event, params) => this.blobs.stage(params));
+		ipc.handle("blobs_stage_payload", (_event, params) => this.blobs.stagePayload(params));
+		ipc.handle("blobs_stage_from_payload", (_event, params) => this.blobs.stageFromPayload(params));
 
-		ipc.handle("documents_upsert_draft", (_event, params) => this.documents.upsertDraft(params));
-		ipc.handle("documents_queue_daemon_sync", (_event, params) => this.documents.queueDaemonSync(params));
-		ipc.handle("documents_sync_published", (_event, params) => this.documents.syncPublished(params));
+		ipc.handle("documents_upsert_draft", async (_event, params) => {
+			await this.documents.upsertDraft(params);
+			this.domainEvents.broadcast({
+				kind: "document-changed",
+				spaceId: params?.spaceId ?? "",
+				documentId: params?.documentId ?? "",
+			});
+		});
+		ipc.handle("documents_queue_daemon_sync", async (_event, params) => {
+			await this.documents.queueDaemonSync(params);
+			this.domainEvents.broadcast({
+				kind: "document-changed",
+				spaceId: params?.spaceId ?? "",
+				documentId: params?.documentId ?? "",
+			});
+		});
+		ipc.handle("documents_sync_published", async (_event, params) => {
+			const result = await this.documents.syncPublished(params);
+			this.domainEvents.broadcast({
+				kind: "document-changed",
+				spaceId: params?.spaceId ?? "",
+				documentId: params?.documentId ?? "",
+			});
+			return result;
+		});
 		ipc.handle("documents_get_draft", (_event, params) => this.documents.getDraft(params));
-		ipc.handle("documents_ensure_page", (_event, params) => this.documents.ensurePage(params));
+		ipc.handle("documents_ensure_page", async (_event, params) => {
+			const page = await this.documents.ensurePage(params);
+			this.domainEvents.broadcast({
+				kind: "pages-changed",
+				spaceId: page.spaceId,
+			});
+			return page;
+		});
 		ipc.handle("documents_list_pages", (_event, params) => this.documents.listPages(params));
-		ipc.handle("documents_update_page_title", (_event, params) => this.documents.updatePageTitle(params));
-		ipc.handle("documents_set_page_parents", (_event, params) => this.documents.setPageParents(params));
+		ipc.handle("documents_update_page_title", async (_event, params) => {
+			const page = await this.documents.updatePageTitle(params);
+			if (page) {
+				this.domainEvents.broadcast({
+					kind: "pages-changed",
+					spaceId: page.spaceId,
+				});
+			}
+			return page;
+		});
+		ipc.handle("documents_set_page_parents", async (_event, params) => {
+			const page = await this.documents.setPageParents(params);
+			if (page) {
+				this.domainEvents.broadcast({
+					kind: "pages-changed",
+					spaceId: page.spaceId,
+				});
+			}
+			return page;
+		});
 
 		ipc.handle("agent_chat_stream", (_event, params) => this.agent.chatStream(params?.messages ?? [], params ?? {}));
 		ipc.handle("agent_list_models", () => this.agent.listModels());
@@ -55,10 +106,25 @@ export class CommandRegistry {
 
 		ipc.handle("spaces_list", (_event, params) => this.spaces.list(params));
 		ipc.handle("spaces_list_members", (_event, params) => this.spaces.listMembers(params?.spaceId ?? ""));
-		ipc.handle("spaces_create", (_event, params) => this.spaces.create(params ?? {}));
+		ipc.handle("spaces_create", async (_event, params) => {
+			const space = await this.spaces.create(params ?? {});
+			this.domainEvents.broadcast({ kind: "spaces-changed" });
+			return space;
+		});
 		ipc.handle("spaces_get", (_event, params) => this.spaces.get(params?.spaceId));
-		ipc.handle("spaces_update", (_event, params) => this.spaces.update(params));
-		ipc.handle("spaces_delete", (_event, params) => this.spaces.delete(params?.spaceId ?? ""));
+		ipc.handle("spaces_update", async (_event, params) => {
+			const space = await this.spaces.update(params);
+			this.domainEvents.broadcast({
+				kind: "space-changed",
+				spaceId: space.spaceId,
+			});
+			return space;
+		});
+		ipc.handle("spaces_delete", async (_event, params) => {
+			const result = await this.spaces.delete(params?.spaceId ?? "");
+			this.domainEvents.broadcast({ kind: "spaces-changed" });
+			return result;
+		});
 
 		ipc.handle("settings_get", (_event, params) => this.settings.get(params?.key));
 		ipc.handle("settings_set", (_event, params) => {

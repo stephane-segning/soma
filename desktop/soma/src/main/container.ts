@@ -1,5 +1,7 @@
 import type { StageRuntimeConfig } from "@soma/desktop-config";
+import { app } from "electron";
 import { Container } from "inversify";
+import { join } from "node:path";
 import { CommandRegistry } from "./command-registry";
 import { AgentController } from "./controllers/agent-controller";
 import { BlobsController } from "./controllers/blobs-controller";
@@ -10,11 +12,15 @@ import { SettingsController } from "./controllers/settings-controller";
 import { SpacesController } from "./controllers/spaces-controller";
 import { WindowController } from "./controllers/window-controller";
 import { AgentClient } from "./services/agent-client";
+import { AGENT_CONFIG_SETTINGS_KEY } from "./services/agent-config";
+import { AgentEventsService } from "./services/agent-events";
 import { AppDataStore } from "./services/app-data-store";
 import { BlobProtocolRegistrar } from "./services/blob-protocol";
 import { DaemonClient } from "./services/daemon-client";
+import { DomainEventsService } from "./services/domain-events";
 import { AppLogger } from "./services/logger";
 import { StartupService } from "./services/startup-service";
+import { UploadPayloadStore } from "./services/upload-payload-store";
 import { TYPES } from "./types";
 
 export type ContainerOptions = {
@@ -34,35 +40,52 @@ export function buildContainer(options: ContainerOptions): Container {
 		.toDynamicValue(() => new DaemonClient(options.runtimeConfig.daemonSocketPath));
 	container
 		.bind<AgentClient>(TYPES.AgentClient)
-		.toDynamicValue(() => new AgentClient(options.runtimeConfig.agentSocketPath));
+		.toDynamicValue(
+			(ctx) =>
+				new AgentClient(options.runtimeConfig.agentSocketPath, () => {
+					const store = ctx.get<AppDataStore>(TYPES.AppDataStore);
+					return store.settings[AGENT_CONFIG_SETTINGS_KEY];
+				}),
+		);
 
 	container.bind<AppLogger>(TYPES.Logger).toConstantValue(new AppLogger(options));
+	container.bind<AgentEventsService>(TYPES.AgentEvents).toConstantValue(new AgentEventsService());
+	container.bind<DomainEventsService>(TYPES.DomainEvents).toConstantValue(new DomainEventsService());
 
 	container
 		.bind<BlobProtocolRegistrar>(TYPES.BlobProtocol)
-		.toDynamicValue((ctx) => new BlobProtocolRegistrar(ctx.container.get(TYPES.DaemonClient)));
+		.toDynamicValue((ctx) => new BlobProtocolRegistrar(ctx.get(TYPES.DaemonClient)));
+	container
+		.bind<UploadPayloadStore>(TYPES.UploadPayloadStore)
+		.toConstantValue(new UploadPayloadStore(join(app.getPath("userData"), "tmp", "uploads")));
 
 	container
 		.bind<BlobsController>(TYPES.BlobsController)
-		.toDynamicValue((ctx) => new BlobsController(ctx.container.get(TYPES.DaemonClient)));
+		.toDynamicValue(
+			(ctx) =>
+				new BlobsController(
+					ctx.get(TYPES.DaemonClient),
+					ctx.get(TYPES.UploadPayloadStore),
+				),
+		);
 	container
 		.bind<DocumentsController>(TYPES.DocumentsController)
-		.toDynamicValue((ctx) => new DocumentsController(ctx.container.get(TYPES.DaemonClient)));
+		.toDynamicValue((ctx) => new DocumentsController(ctx.get(TYPES.DaemonClient)));
 	container
 		.bind<SpacesController>(TYPES.SpacesController)
-		.toDynamicValue((ctx) => new SpacesController(ctx.container.get(TYPES.DaemonClient)));
+		.toDynamicValue((ctx) => new SpacesController(ctx.get(TYPES.DaemonClient)));
 	container
 		.bind<AgentController>(TYPES.AgentController)
-		.toDynamicValue((ctx) => new AgentController(ctx.container.get(TYPES.AgentClient)));
+		.toDynamicValue((ctx) => new AgentController(ctx.get(TYPES.AgentClient)));
 	container
 		.bind<SearchController>(TYPES.SearchController)
-		.toDynamicValue((ctx) => new SearchController(ctx.container.get(TYPES.DaemonClient)));
+		.toDynamicValue((ctx) => new SearchController(ctx.get(TYPES.DaemonClient)));
 	container
 		.bind<SettingsController>(TYPES.SettingsController)
-		.toDynamicValue((ctx) => new SettingsController(ctx.container.get(TYPES.AppDataStore)));
+		.toDynamicValue((ctx) => new SettingsController(ctx.get(TYPES.AppDataStore)));
 	container
 		.bind<DbStorageController>(TYPES.DbStorageController)
-		.toDynamicValue((ctx) => new DbStorageController(ctx.container.get(TYPES.AppDataStore)));
+		.toDynamicValue((ctx) => new DbStorageController(ctx.get(TYPES.AppDataStore)));
 	container.bind<WindowController>(TYPES.WindowController).toDynamicValue(() => new WindowController());
 
 	container
@@ -70,15 +93,16 @@ export function buildContainer(options: ContainerOptions): Container {
 		.toDynamicValue(
 			(ctx) =>
 				new CommandRegistry(
-					ctx.container.get(TYPES.BlobsController),
-					ctx.container.get(TYPES.DocumentsController),
-					ctx.container.get(TYPES.SpacesController),
-					ctx.container.get(TYPES.AgentController),
-					ctx.container.get(TYPES.SearchController),
-					ctx.container.get(TYPES.SettingsController),
-					ctx.container.get(TYPES.DbStorageController),
-					ctx.container.get(TYPES.WindowController),
-					ctx.container.get(TYPES.Logger),
+					ctx.get(TYPES.BlobsController),
+					ctx.get(TYPES.DocumentsController),
+					ctx.get(TYPES.SpacesController),
+					ctx.get(TYPES.AgentController),
+					ctx.get(TYPES.SearchController),
+					ctx.get(TYPES.SettingsController),
+					ctx.get(TYPES.DbStorageController),
+					ctx.get(TYPES.DomainEvents),
+					ctx.get(TYPES.WindowController),
+					ctx.get(TYPES.Logger),
 				),
 		);
 
@@ -87,10 +111,14 @@ export function buildContainer(options: ContainerOptions): Container {
 		.toDynamicValue(
 			(ctx) =>
 				new StartupService(
-					ctx.container.get(TYPES.AppDataStore),
-					ctx.container.get(TYPES.Logger),
-					ctx.container.get(TYPES.BlobProtocol),
-					ctx.container.get(TYPES.CommandRegistry),
+					ctx.get(TYPES.AppDataStore),
+					ctx.get(TYPES.Logger),
+					ctx.get(TYPES.BlobProtocol),
+					ctx.get(TYPES.CommandRegistry),
+					ctx.get(TYPES.DaemonClient),
+					ctx.get(TYPES.AgentClient),
+					ctx.get(TYPES.AgentEvents),
+					ctx.get(TYPES.DomainEvents),
 				),
 		);
 

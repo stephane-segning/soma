@@ -6,16 +6,14 @@
   <string>{{service_label_agent}}</string>
   <key>ProgramArguments</key>
   <array>
-    <string>{{install_prefix}}/bin/soma-agentd</string>
-    <string>--socket-path</string>
-    <string>/tmp/soma-agentd.sock</string>
-    <string>--models-dir</string>
-    <string>{{install_prefix}}/share/soma/models</string>
+    <string>/bin/sh</string>
+    <string>-lc</string>
+    <string>mkdir -p "$HOME/Library/Application Support/Soma/models" "$HOME/Library/Logs/Soma/agentd" &amp;&amp; exec "{{install_prefix}}/bin/soma-agentd" --socket-path /tmp/soma-agentd.sock --models-dir "$HOME/Library/Application Support/Soma/models"</string>
   </array>
   <key>EnvironmentVariables</key>
   <dict>
     <key>SOMA_LOGS_DIR</key>
-    <string>/Library/Logs/Soma/agentd</string>
+    <string>$HOME/Library/Logs/Soma/agentd</string>
     <key>SOMA_LOG_FORMAT</key>
     <string>json</string>
   </dict>

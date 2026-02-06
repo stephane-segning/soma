@@ -6,22 +6,16 @@
   <string>{{service_label_daemon}}</string>
   <key>ProgramArguments</key>
   <array>
-    <string>{{install_prefix}}/bin/soma-daemon</string>
-    <string>--listen-addrs</string>
-    <string>/ip4/0.0.0.0/tcp/0,/ip4/0.0.0.0/udp/0/quic-v1,/ip4/0.0.0.0/tcp/0/ws</string>
-    <string>--db-path</string>
-    <string>{{install_prefix}}/share/soma/daemon.db</string>
-    <string>--blob-dir</string>
-    <string>{{install_prefix}}/share/soma/blobs</string>
-    <string>--socket-path</string>
-    <string>/tmp/soma-daemon.sock</string>
+    <string>/bin/sh</string>
+    <string>-lc</string>
+    <string>mkdir -p "$HOME/Library/Application Support/Soma" "$HOME/Library/Application Support/Soma/blobs" "$HOME/Library/Logs/Soma/daemon" &amp;&amp; exec "{{install_prefix}}/bin/soma-daemon" --listen-addrs /ip4/0.0.0.0/tcp/0,/ip4/0.0.0.0/udp/0/quic-v1,/ip4/0.0.0.0/tcp/0/ws --db-path "$HOME/Library/Application Support/Soma/daemon.db" --blob-dir "$HOME/Library/Application Support/Soma/blobs" --socket-path /tmp/soma-daemon.sock</string>
   </array>
   <key>EnvironmentVariables</key>
   <dict>
     <key>SOMA_DATA_DIR</key>
-    <string>{{install_prefix}}/share/soma/data</string>
+    <string>$HOME/Library/Application Support/Soma/data</string>
     <key>SOMA_LOGS_DIR</key>
-    <string>/Library/Logs/Soma/daemon</string>
+    <string>$HOME/Library/Logs/Soma/daemon</string>
     <key>SOMA_LOG_FORMAT</key>
     <string>json</string>
   </dict>

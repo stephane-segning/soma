@@ -1,8 +1,15 @@
-import { tabsCollection } from "@app/data/db";
+import { routingCollection, tabsCollection } from "@app/lib/db";
 import { useAppDispatch, useAppSelector } from "@app/store/hooks";
 import { store } from "@app/store/store";
 import { createDefaultState, tabsActions, tabsSelectors } from "@app/store/tabs";
-import { createTabsRecord, isTabsRecord, TABS_RECORD_ID, tabsRecordToSnapshot } from "@soma/desktop-db";
+import {
+	ROUTING_RECORD_ID,
+	TABS_RECORD_ID,
+	createRoutingRecord,
+	createTabsRecord,
+	isTabsRecord,
+	tabsRecordToSnapshot,
+} from "@soma/desktop-db";
 import { useEffect, useMemo } from "react";
 import { RouterProvider } from "react-router";
 import { createTabRouter } from "./router";
@@ -18,7 +25,8 @@ function getOrCreateRouter(tabId: string, initialPath: string) {
 }
 
 function persistTabs(): void {
-	const snapshot = tabsSelectors.selectPersisted(store.getState());
+	const state = store.getState();
+	const snapshot = tabsSelectors.selectPersisted(state);
 	const record = createTabsRecord(snapshot, Date.now());
 	const existing = tabsCollection.state.get(TABS_RECORD_ID);
 
@@ -33,6 +41,25 @@ function persistTabs(): void {
 	}
 
 	tabsCollection.insert(record);
+
+	const activeTab = state.tabs.tabs.find((tab) => tab.id === state.tabs.activeId);
+	if (activeTab) {
+		const routingRecord = createRoutingRecord({
+			lastTabId: state.tabs.activeId,
+			lastPath: activeTab.path,
+		});
+		const existingRouting = routingCollection.state.get(ROUTING_RECORD_ID);
+		if (existingRouting) {
+			routingCollection.update(ROUTING_RECORD_ID, (draft) => {
+				draft.version = routingRecord.version;
+				draft.updatedAtMs = routingRecord.updatedAtMs;
+				draft.lastTabId = routingRecord.lastTabId;
+				draft.lastPath = routingRecord.lastPath;
+			});
+		} else {
+			routingCollection.insert(routingRecord);
+		}
+	}
 }
 
 function TabbedApp(): React.JSX.Element | null {

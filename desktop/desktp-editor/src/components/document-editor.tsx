@@ -25,6 +25,7 @@ import { CharacterCount } from "@tiptap/extensions";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { useMemo } from "react";
 import { defaultCommands } from "../commands/default-commands";
+import { AccordionNode } from "../extensions/accordion";
 import {
 	BlobFileNode,
 	type BlobFileUploadResult,
@@ -33,7 +34,6 @@ import {
 	BlobImageNode,
 	type BlobImageUploadResult,
 } from "../extensions/blob-image";
-import { AccordionNode } from "../extensions/accordion";
 import { CarouselNode } from "../extensions/carousel";
 import { CodeBlockExtensionFn } from "../extensions/code-block";
 import {
@@ -77,7 +77,7 @@ export function DocumentEditor({
 	onRenamePageLink,
 	mentionProviders,
 	onChange,
-	limit = 10_000,
+	limit,
 }: DocumentEditorProps): React.JSX.Element {
 	const effectiveCommands = commands ?? defaultCommands;
 	const lowlight = useLowlight();
@@ -210,7 +210,7 @@ export function DocumentEditor({
 				<EditorContent editor={editor} />
 
 				{editor && <ContextualMenu editor={editor} />}
-				{editor && <LimitPercentage editor={editor} limit={limit} />}
+				{editor && limit && <LimitPercentage editor={editor} limit={limit} />}
 			</div>
 		</div>
 	);

@@ -4,19 +4,32 @@ import { join, resolve } from "path";
 import icon from "../../../resources/icon.png?asset";
 import type { CommandRegistry } from "../command-registry";
 import type { AppDataStore, WindowState } from "./app-data-store";
+import type { AgentClient } from "./agent-client";
+import type { AgentEventsService } from "./agent-events";
 import type { BlobProtocolRegistrar } from "./blob-protocol";
+import type { DaemonClient, DaemonStreamEvent } from "./daemon-client";
+import type { DomainEventsService } from "./domain-events";
 import type { AppLogger } from "./logger";
 
 export class StartupService {
 	private readonly deepLinkScheme = "soma";
 	private mainWindow: BrowserWindow | null = null;
+	private splashWindow: BrowserWindow | null = null;
 	private pendingDeepLink: string | null = this.extractDeepLink(process.argv);
+	private daemonStreamUnsubscribe: (() => void) | null = null;
+	private daemonStreamReconnectTimer: NodeJS.Timeout | null = null;
+	private daemonStreamStopped = false;
+	private agentEventStreamUnsubscribe: (() => void) | null = null;
 
 	constructor(
 		private readonly appDataStore: AppDataStore,
 		private readonly logger: AppLogger,
 		private readonly blobProtocol: BlobProtocolRegistrar,
 		private readonly commands: CommandRegistry,
+		private readonly daemon: DaemonClient,
+		private readonly agent: AgentClient,
+		private readonly agentEvents: AgentEventsService,
+		private readonly domainEvents: DomainEventsService,
 	) {}
 
 	run(): void {
@@ -33,13 +46,18 @@ export class StartupService {
 		this.registerEarlyHandlers();
 
 		app.whenReady().then(() => {
-			this.onReady();
+			void this.onReady();
 		});
 
 		app.on("window-all-closed", () => {
 			if (process.platform !== "darwin") {
 				app.quit();
 			}
+		});
+
+		app.on("before-quit", () => {
+			this.stopDaemonEventStream();
+			this.stopAgentEventStream();
 		});
 	}
 
@@ -64,7 +82,7 @@ export class StartupService {
 		});
 	}
 
-	private onReady(): void {
+	private async onReady(): Promise<void> {
 		// Set app user model id for windows
 		electronApp.setAppUserModelId("digital.camer.sschool.tapia");
 
@@ -83,7 +101,13 @@ export class StartupService {
 			optimizer.watchWindowShortcuts(window);
 		});
 
+		this.openSplashWindow();
+		await this.waitForDaemonReady();
+		this.startDaemonEventStream();
+		this.startAgentEventStream();
+
 		this.openMainWindow(this.appDataStore.windowState);
+		this.closeSplashWindow();
 
 		if (this.pendingDeepLink) {
 			this.logger.log("info", "received deep link", {
@@ -157,9 +181,225 @@ export class StartupService {
 		return mainWindow;
 	}
 
+	private openSplashWindow(): void {
+		if (this.splashWindow && !this.splashWindow.isDestroyed()) return;
+
+		const splash = new BrowserWindow({
+			width: 460,
+			height: 320,
+			resizable: false,
+			frame: false,
+			transparent: true,
+			show: false,
+			alwaysOnTop: true,
+			center: true,
+			webPreferences: {
+				sandbox: true,
+			},
+		});
+
+		const html = `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    html, body { margin: 0; width: 100%; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { display: grid; place-items: center; background: transparent; }
+    .card {
+      width: 360px;
+      border-radius: 20px;
+      padding: 28px 24px;
+      color: #f9fafb;
+      background: linear-gradient(155deg, #111827 0%, #0f172a 100%);
+      box-shadow: 0 20px 60px rgba(2, 6, 23, 0.55);
+      text-align: center;
+    }
+    .title { font-size: 18px; font-weight: 600; margin: 0 0 8px 0; }
+    .subtitle { font-size: 13px; opacity: 0.85; margin: 0 0 18px 0; }
+    .bar {
+      height: 5px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(148, 163, 184, 0.22);
+    }
+    .bar::after {
+      content: "";
+      display: block;
+      height: 100%;
+      width: 42%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #22c55e, #38bdf8);
+      animation: loading 1.2s ease-in-out infinite;
+      transform-origin: left center;
+    }
+    @keyframes loading {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(340%); }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1 class="title">Starting Soma</h1>
+    <p class="subtitle">Waiting for daemon readiness...</p>
+    <div class="bar"></div>
+  </div>
+</body>
+</html>`;
+
+		void splash.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+		splash.once("ready-to-show", () => {
+			splash.show();
+		});
+		splash.on("closed", () => {
+			if (this.splashWindow === splash) {
+				this.splashWindow = null;
+			}
+		});
+
+		this.splashWindow = splash;
+	}
+
+	private closeSplashWindow(): void {
+		if (!this.splashWindow || this.splashWindow.isDestroyed()) return;
+		this.splashWindow.close();
+		this.splashWindow = null;
+	}
+
 	private openMainWindow(windowState: WindowState | null): void {
 		this.mainWindow = this.createWindow(windowState);
 		this.attachWindowStateTracking(this.mainWindow);
+	}
+
+	private async waitForDaemonReady(): Promise<void> {
+		let attempts = 0;
+		this.logger.log("info", "waiting for daemon readiness");
+		while (true) {
+			attempts += 1;
+			try {
+				const status = await this.daemon.status();
+				if (status.peerId) {
+					this.logger.log("info", "daemon ready", {
+						peerId: status.peerId,
+						listenAddrs: status.listenAddrs,
+					});
+					return;
+				}
+				if (attempts % 20 === 0) {
+					this.logger.log("warn", "daemon status reported without peer id yet", {
+						attempt: attempts,
+					});
+				}
+			} catch (error) {
+				if (attempts === 1 || attempts % 20 === 0) {
+					this.logger.log("warn", "daemon not ready yet", {
+						attempt: attempts,
+						error: error instanceof Error ? error.message : String(error),
+					});
+				}
+			}
+			await sleep(500);
+		}
+	}
+
+	private startDaemonEventStream(): void {
+		this.daemonStreamStopped = false;
+		this.connectDaemonEventStream();
+	}
+
+	private startAgentEventStream(): void {
+		if (this.agentEventStreamUnsubscribe) {
+			this.agentEventStreamUnsubscribe();
+			this.agentEventStreamUnsubscribe = null;
+		}
+		this.agentEventStreamUnsubscribe = this.agent.startEventStream({
+			onEvent: (event) => {
+				this.agentEvents.broadcast(event);
+			},
+		});
+	}
+
+	private stopDaemonEventStream(): void {
+		this.daemonStreamStopped = true;
+		if (this.daemonStreamReconnectTimer) {
+			clearTimeout(this.daemonStreamReconnectTimer);
+			this.daemonStreamReconnectTimer = null;
+		}
+		if (this.daemonStreamUnsubscribe) {
+			this.daemonStreamUnsubscribe();
+			this.daemonStreamUnsubscribe = null;
+		}
+	}
+
+	private stopAgentEventStream(): void {
+		if (!this.agentEventStreamUnsubscribe) return;
+		this.agentEventStreamUnsubscribe();
+		this.agentEventStreamUnsubscribe = null;
+	}
+
+	private connectDaemonEventStream(): void {
+		if (this.daemonStreamStopped) return;
+		if (this.daemonStreamReconnectTimer) {
+			clearTimeout(this.daemonStreamReconnectTimer);
+			this.daemonStreamReconnectTimer = null;
+		}
+		if (this.daemonStreamUnsubscribe) {
+			this.daemonStreamUnsubscribe();
+			this.daemonStreamUnsubscribe = null;
+		}
+
+		this.daemonStreamUnsubscribe = this.daemon.streamEvents({
+			onEvent: (event) => this.handleDaemonEvent(event),
+			onError: (error) => {
+				if (this.daemonStreamStopped) return;
+				this.logger.log("warn", "daemon event stream error", {
+					error: error.message,
+				});
+				this.scheduleDaemonStreamReconnect();
+			},
+			onEnd: () => {
+				if (this.daemonStreamStopped) return;
+				this.logger.log("warn", "daemon event stream ended; reconnecting");
+				this.scheduleDaemonStreamReconnect();
+			},
+		});
+	}
+
+	private scheduleDaemonStreamReconnect(): void {
+		if (this.daemonStreamStopped) return;
+		if (this.daemonStreamReconnectTimer) return;
+		this.daemonStreamReconnectTimer = setTimeout(() => {
+			this.daemonStreamReconnectTimer = null;
+			this.connectDaemonEventStream();
+		}, 1_000);
+	}
+
+	private handleDaemonEvent(event: DaemonStreamEvent): void {
+		switch (event.kind) {
+			case "yoopta-blob-added":
+				this.domainEvents.broadcast({
+					kind: "document-changed",
+					spaceId: event.spaceId,
+					documentId: event.docId,
+				});
+				return;
+			case "join-decision":
+				if (event.spaceId) {
+					this.domainEvents.broadcast({
+						kind: "space-changed",
+						spaceId: event.spaceId,
+					});
+				} else {
+					this.domainEvents.broadcast({
+						kind: "spaces-changed",
+					});
+				}
+				return;
+			case "join-submitted":
+			case "join-failed":
+				return;
+		}
 	}
 
 	private attachWindowStateTracking(window: BrowserWindow): void {
@@ -235,4 +475,10 @@ export class StartupService {
 		this.mainWindow.show();
 		this.mainWindow.focus();
 	}
+}
+
+function sleep(ms: number): Promise<void> {
+	return new Promise((resolve) => {
+		setTimeout(resolve, ms);
+	});
 }

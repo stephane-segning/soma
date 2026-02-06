@@ -82,6 +82,7 @@ const sidebar: DefaultTheme.Sidebar = {
                 {text: 'Agentd IPC', link: '/development/agentd-ipc'},
                 {text: 'Local LLMs (agentd models)', link: '/development/agentd-models'},
                 {text: 'Daemon Testing (grpcurl)', link: '/development/daemon-grpcurl'},
+                {text: 'Desktop React DB', link: '/development/desktop-react-db'},
                 {text: 'Backend Refactor Notes', link: '/development/backend-refactor-notes'},
                 {text: 'UI Components', link: '/development/ui-components'},
             ],

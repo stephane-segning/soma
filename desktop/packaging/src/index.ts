@@ -987,7 +987,7 @@ async function buildLinuxBundle(args: LinuxBundleArgs): Promise<string[]> {
 
   await fse.ensureDir(path.join(pkgroot, "usr/local/bin"));
   await fse.ensureDir(path.join(pkgroot, "usr/local/share/soma"));
-  await fse.ensureDir(path.join(pkgroot, "usr/lib/systemd/system"));
+  await fse.ensureDir(path.join(pkgroot, "usr/lib/systemd/user"));
 
   await fse.copy(
     path.join(args.staging, "soma-daemon"),
@@ -1003,11 +1003,11 @@ async function buildLinuxBundle(args: LinuxBundleArgs): Promise<string[]> {
   );
   await fse.copy(
     args.systemdDaemon,
-    path.join(pkgroot, "usr/lib/systemd/system/soma-daemon.service")
+    path.join(pkgroot, "usr/lib/systemd/user/soma-daemon.service")
   );
   await fse.copy(
     args.systemdAgent,
-    path.join(pkgroot, "usr/lib/systemd/system/soma-agentd.service")
+    path.join(pkgroot, "usr/lib/systemd/user/soma-agentd.service")
   );
 
   await stageLinuxAppImage(pkgroot, "soma", args.somaDesktopPath);
@@ -1117,7 +1117,7 @@ async function buildMacosBundle(args: MacBundleArgs): Promise<string[]> {
 
   await fse.ensureDir(path.join(pkgroot, "usr/local/bin"));
   await fse.ensureDir(path.join(pkgroot, "usr/local/share/soma"));
-  await fse.ensureDir(path.join(pkgroot, "Library/LaunchDaemons"));
+  await fse.ensureDir(path.join(pkgroot, "Library/LaunchAgents"));
   await fse.ensureDir(path.join(pkgroot, "Applications"));
 
   await fse.copy(
@@ -1134,11 +1134,11 @@ async function buildMacosBundle(args: MacBundleArgs): Promise<string[]> {
   );
   await fse.copy(
     args.plistDaemon,
-    path.join(pkgroot, "Library/LaunchDaemons/digital.camer.soma.daemon.plist")
+    path.join(pkgroot, "Library/LaunchAgents/digital.camer.soma.daemon.plist")
   );
   await fse.copy(
     args.plistAgent,
-    path.join(pkgroot, "Library/LaunchDaemons/digital.camer.soma.agentd.plist")
+    path.join(pkgroot, "Library/LaunchAgents/digital.camer.soma.agentd.plist")
   );
 
   const somaApp = await stageMacosApp(

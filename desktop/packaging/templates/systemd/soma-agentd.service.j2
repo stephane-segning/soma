@@ -5,11 +5,12 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-Environment="SOMA_LOGS_DIR=/var/log/soma/agentd"
+Environment="SOMA_LOGS_DIR=%h/.local/state/soma/agentd"
 Environment="SOMA_LOG_FORMAT=json"
-ExecStart={{install_prefix}}/bin/soma-agentd --socket-path /tmp/soma-agentd.sock --models-dir {{install_prefix}}/share/soma/models
+ExecStart={{install_prefix}}/bin/soma-agentd --socket-path /tmp/soma-agentd.sock --models-dir %h/.local/share/soma/models
+WorkingDirectory=%h
 Restart=on-failure
 RestartSec=5
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target

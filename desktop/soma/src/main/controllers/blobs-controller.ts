@@ -1,10 +1,23 @@
 import type { DaemonClient } from "../services/daemon-client";
 import { createImageVariants, zipFile } from "../services/blob-processing";
+import type {
+	StageUploadPayloadParams,
+	StageUploadPayloadResult,
+	UploadPayloadStore,
+} from "../services/upload-payload-store";
 
 export type BlobStageParams = {
 	spaceId: string;
 	docId?: string;
 	bytes: number[];
+	mime: string;
+	fileName?: string;
+};
+
+export type BlobStageFromPayloadParams = {
+	spaceId: string;
+	docId?: string;
+	payloadPath: string;
 	mime: string;
 	fileName?: string;
 };
@@ -31,7 +44,14 @@ export type BlobStageVariant = {
 const ZIP_MIME = "application/zip";
 
 export class BlobsController {
-	constructor(private readonly daemon: DaemonClient) {}
+	constructor(
+		private readonly daemon: DaemonClient,
+		private readonly uploadPayloadStore: UploadPayloadStore,
+	) {}
+
+	stagePayload(params: StageUploadPayloadParams): Promise<StageUploadPayloadResult> {
+		return this.uploadPayloadStore.stage(params);
+	}
 
 	async stage(params: BlobStageParams): Promise<BlobStageResult> {
 		const buffer = Buffer.from(params.bytes);
@@ -39,6 +59,19 @@ export class BlobsController {
 			return this.stageImage(params, buffer);
 		}
 		return this.stageFile(params, buffer);
+	}
+
+	async stageFromPayload(params: BlobStageFromPayloadParams): Promise<BlobStageResult> {
+		const buffer = await this.uploadPayloadStore.read(params.payloadPath);
+		const result = await this.stage({
+			spaceId: params.spaceId,
+			docId: params.docId,
+			bytes: Array.from(buffer),
+			mime: params.mime,
+			fileName: params.fileName,
+		});
+		await this.uploadPayloadStore.remove(params.payloadPath);
+		return result;
 	}
 
 	private async stageImage(params: BlobStageParams, buffer: Buffer): Promise<BlobStageResult> {

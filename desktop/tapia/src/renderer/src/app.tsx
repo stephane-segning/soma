@@ -4,11 +4,14 @@ import { useTranslation } from "react-i18next";
 import {
 	Link,
 	Outlet,
+	useLocation,
 	useNavigate,
 	useOutletContext,
 	useParams,
 } from "react-router";
 import { DEFAULT_SPACE_ID } from "./routes/constants";
+import { routingCollection } from "./lib/db";
+import { ROUTING_RECORD_ID, createRoutingRecord } from "@soma/desktop-db";
 
 type Space = { id: string; name: string; accent: string; description: string };
 type LayoutContext = {
@@ -36,6 +39,7 @@ function AppLayout(): React.JSX.Element {
 	const { t } = useTranslation();
 	const params = useParams();
 	const navigate = useNavigate();
+	const location = useLocation();
 
 	const resolvedSpaceId = useMemo(() => {
 		if (
@@ -52,6 +56,24 @@ function AppLayout(): React.JSX.Element {
 			navigate(`/spaces/${resolvedSpaceId}/exercises`, { replace: true });
 		}
 	}, [navigate, params.spaceId, resolvedSpaceId]);
+
+	useEffect(() => {
+		const record = createRoutingRecord({
+			lastPath: location.pathname,
+			lastSpaceId: resolvedSpaceId,
+		});
+		const existing = routingCollection.state.get(ROUTING_RECORD_ID);
+		if (existing) {
+			routingCollection.update(ROUTING_RECORD_ID, (draft) => {
+				draft.version = record.version;
+				draft.updatedAtMs = record.updatedAtMs;
+				draft.lastPath = record.lastPath;
+				draft.lastSpaceId = record.lastSpaceId;
+			});
+		} else {
+			routingCollection.insert(record);
+		}
+	}, [location.pathname, resolvedSpaceId]);
 
 	const onSpaceChange = (event: ChangeEvent<HTMLSelectElement>): void => {
 		navigate(`/spaces/${event.target.value}/exercises`);

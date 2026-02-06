@@ -1,5 +1,6 @@
 import * as grpc from "@grpc/grpc-js";
 import {
+	type DaemonEvent as GrpcDaemonEvent,
 	type GetDocumentResponse,
 	DaemonClient as GrpcDaemonClient,
 	type ListPagesResponse,
@@ -8,6 +9,8 @@ import {
 	type ReadBlobResponse,
 	type Space,
 	type SpaceMember,
+	type StatusResponse,
+	type StreamEventsRequest,
 	type UploadBlobResponse,
 } from "@soma/proto/daemon/v1/daemon";
 import Long from "long";
@@ -65,12 +68,87 @@ type ListSpacesResult = {
 	nextOffset?: number | null;
 };
 
+export type DaemonStatus = {
+	peerId: string;
+	listenAddrs: string[];
+};
+
+export type DaemonStreamEvent =
+	| {
+			kind: "join-decision";
+			fromPeerId: string;
+			spaceId?: string;
+	  }
+	| {
+			kind: "join-submitted";
+			requestId: string;
+			targetPeerId: string;
+	  }
+	| {
+			kind: "join-failed";
+			targetPeerId: string;
+			error: string;
+	  }
+	| {
+			kind: "yoopta-blob-added";
+			spaceId: string;
+			docId: string;
+			cid: string;
+			mime: string;
+			size: number;
+			name: string;
+	  };
+
+export type DaemonStreamHandlers = {
+	onEvent: (event: DaemonStreamEvent) => void;
+	onError?: (error: Error) => void;
+	onEnd?: () => void;
+};
+
 export class DaemonClient {
 	private client: GrpcDaemonClient;
 
 	constructor(socketPath: string) {
 		const address = `unix://${socketPath}`;
 		this.client = new GrpcDaemonClient(address, grpc.credentials.createInsecure());
+	}
+
+	async status(): Promise<DaemonStatus> {
+		const res = await new Promise<StatusResponse>((resolve, reject) => {
+			this.client.status({}, (err, response) => {
+				if (err) return reject(err);
+				resolve(response);
+			});
+		});
+
+		return {
+			peerId: res.peerId ?? "",
+			listenAddrs: res.listenAddrs ?? [],
+		};
+	}
+
+	streamEvents(handlers: DaemonStreamHandlers): () => void {
+		const request: StreamEventsRequest = {};
+		const stream = this.client.streamEvents(request);
+
+		stream.on("data", (event: GrpcDaemonEvent) => {
+			const mapped = this.mapDaemonEvent(event);
+			if (mapped) {
+				handlers.onEvent(mapped);
+			}
+		});
+
+		stream.on("error", (error: Error) => {
+			handlers.onError?.(error);
+		});
+
+		stream.on("end", () => {
+			handlers.onEnd?.();
+		});
+
+		return () => {
+			stream.cancel();
+		};
 	}
 
 	async uploadBlob(input: UploadBlobInput): Promise<UploadBlobResult> {
@@ -405,5 +483,41 @@ export class DaemonClient {
 			ownerPeerId: s.ownerPeerId,
 			createdAt: Number((s.createdAt as any) ?? Date.now()),
 		};
+	}
+
+	private mapDaemonEvent(event: GrpcDaemonEvent): DaemonStreamEvent | null {
+		if (event.joinDecision) {
+			return {
+				kind: "join-decision",
+				fromPeerId: event.joinDecision.fromPeerId,
+				spaceId: event.joinDecision.decision?.spaceId?.value,
+			};
+		}
+		if (event.joinSubmitted) {
+			return {
+				kind: "join-submitted",
+				requestId: event.joinSubmitted.requestId,
+				targetPeerId: event.joinSubmitted.targetPeerId,
+			};
+		}
+		if (event.joinFailed) {
+			return {
+				kind: "join-failed",
+				targetPeerId: event.joinFailed.targetPeerId,
+				error: event.joinFailed.error,
+			};
+		}
+		if (event.yooptaBlobAdded) {
+			return {
+				kind: "yoopta-blob-added",
+				spaceId: event.yooptaBlobAdded.spaceId,
+				docId: event.yooptaBlobAdded.docId,
+				cid: event.yooptaBlobAdded.cid,
+				mime: event.yooptaBlobAdded.mime,
+				size: Number(event.yooptaBlobAdded.size ?? 0),
+				name: event.yooptaBlobAdded.name,
+			};
+		}
+		return null;
 	}
 }
