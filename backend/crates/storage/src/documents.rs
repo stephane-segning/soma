@@ -18,6 +18,7 @@ pub trait DocumentRepository: Send + Sync {
     async fn upsert_document(&self, document: &Document) -> SomaResult<()>;
     async fn get_document(&self, space_id: &str, document_id: &str)
     -> SomaResult<Option<Document>>;
+    async fn delete_documents_for_space(&self, space_id: &str) -> SomaResult<u64>;
 }
 
 #[derive(Clone, Debug)]
@@ -76,6 +77,21 @@ impl DocumentRepository for SqlDocumentRepository {
         .map_err(Error::service)?;
 
         Ok(row.map(map_document_row))
+    }
+
+    async fn delete_documents_for_space(&self, space_id: &str) -> SomaResult<u64> {
+        let res = sqlx::query(
+            r#"
+            DELETE FROM documents
+            WHERE space_id = $1
+            "#,
+        )
+        .bind(space_id)
+        .execute(&self.pool)
+        .await
+        .map_err(Error::service)?;
+
+        Ok(res.rows_affected())
     }
 }
 

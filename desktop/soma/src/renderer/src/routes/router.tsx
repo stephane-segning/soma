@@ -51,6 +51,7 @@ const routes: RouteObject[] = [
 				handle: {
 					title: "Space",
 				},
+				lazy: () => import("./screens/space-redirect"),
 				children: [
 					{
 						index: true,

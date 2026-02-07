@@ -26,6 +26,7 @@ pub trait PageRepository: Send + Sync {
         page_id: &str,
         parent_page_ids: &[String],
     ) -> SomaResult<u64>;
+    async fn delete_pages_for_space(&self, space_id: &str) -> SomaResult<u64>;
 }
 
 #[derive(Clone, Debug)]
@@ -139,6 +140,21 @@ impl PageRepository for SqlPageRepository {
         .bind(page_id)
         .bind(parents_json)
         .bind(updated_at_ms)
+        .execute(&self.pool)
+        .await
+        .map_err(Error::service)?;
+
+        Ok(res.rows_affected())
+    }
+
+    async fn delete_pages_for_space(&self, space_id: &str) -> SomaResult<u64> {
+        let res = sqlx::query(
+            r#"
+            DELETE FROM pages
+            WHERE space_id = $1
+            "#,
+        )
+        .bind(space_id)
         .execute(&self.pool)
         .await
         .map_err(Error::service)?;

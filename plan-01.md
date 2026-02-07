@@ -52,7 +52,7 @@ Where to get keys:
      - ~~before calling `apply_join_decision`, verify the `MembershipCapability` in the decision:~~
        - ~~verify the decision’s capability is signed~~
        - ~~verify membership cap’s `subject_peer_id` equals *our* peer id (this is a membership granted to us)~~
-       - verify issuer chain (owner → issuer cap → membership cap) using Identify pubkeys **(still TODO: add issuer delegation validation once owner pubkey is available)**
+       - ~~verify issuer chain (owner → issuer cap → membership cap) using Identify pubkeys~~
    - ~~If verification fails, do not persist membership; emit a warning event/log.~~
 
 4) ~~Enforce verification when a bot/daemon decides joins (decider side):~~
@@ -103,9 +103,9 @@ Acceptance criteria:
 
 ### 2C) Botd server-daemon HTTP (admin control plane)
 
-8) Keep admin-token gating as the outer gate, but ensure endpoints that act on a space also enforce:
-   - If endpoint causes content to be served over libp2p, the libp2p layer still gates.
-   - If botd ever adds read APIs (avoid unless needed), those must verify both admin token AND membership/role.
+8) ~~Keep admin-token gating as the outer gate, but ensure endpoints that act on a space also enforce:~~
+   - ~~If endpoint causes content to be served over libp2p, the libp2p layer still gates.~~
+   - ~~If botd ever adds read APIs (avoid unless needed), those must verify both admin token AND membership/role.~~
 
 Acceptance criteria:
 - No new botd HTTP endpoint returns space content without explicit authorization logic.
@@ -114,16 +114,16 @@ Acceptance criteria:
 
 ## Phase 3 — UI/UX guardrails (reduce accidental exposure; not the boundary)
 
-9) Add a “space membership guard” in the desktop app routing:
-   - On entering `/spaces/:spaceId/*`, call daemon `GetSpace(spaceId)` (already enforces membership) and redirect to `/spaces/landing` (or an error screen) on failure.
-   - Avoid showing `spaceId` alone as proof of access.
+9) ~~Add a “space membership guard” in the desktop app routing:~~
+   - ~~On entering `/spaces/:spaceId/*`, call daemon `GetSpace(spaceId)` (already enforces membership) and redirect to `/spaces/landing` (or an error screen) on failure.~~
+   - ~~Avoid showing `spaceId` alone as proof of access.~~
 
-10) Ensure caches are scoped and cleared:
-   - Document drafts are daemon-owned and scoped by `(space_id, document_id)` in storage; keep it that way.
-   - When a membership is revoked/removed (future work), clear any cached drafts/pages for that space.
+10) ~~Ensure caches are scoped and cleared:~~
+   - ~~Document drafts are daemon-owned and scoped by `(space_id, document_id)` in storage; keep it that way.~~
+   - ~~When a membership is revoked/removed, clear any cached drafts/pages for that space.~~
 
 Acceptance criteria:
-- If you manually type a non-member space URL, the UI does not render the space layout/page editor; it redirects.
+- ~~If you manually type a non-member space URL, the UI does not render the space layout/page editor; it redirects.~~
 
 ---
 
@@ -148,7 +148,7 @@ Acceptance criteria:
 ## Testing Plan (do this alongside Phases 1–2)
 
 13) Add Rust unit/integration tests:
-   - Capability verification tests (good sig / bad sig / expired / wrong subject).
+   - ~~Capability verification tests (good sig / bad sig / expired / wrong subject).~~
    - Peer blob auth tests:
      - spin up two peers with a blob provider
      - store a blob in a space on one peer
@@ -163,9 +163,9 @@ Acceptance criteria:
 
 ## Rollout/Checklist
 
-14) Add telemetry/metrics for denied access:
-   - Emit a `PeerEvent` or metrics counter for “blob request denied (not member)”.
-   - Log at `info`/`warn` depending on volume.
+14) ~~Add telemetry/metrics for denied access:~~
+   - ~~Emit a `PeerEvent` or metrics counter for “blob request denied (not member)”.~~
+   - ~~Log at `info`/`warn` depending on volume.~~
 
 15) Verify “no accidental new surface”:
    - Grep for any new handler that returns `content_json`, blob bytes, or message bodies and ensure it calls the membership gate.

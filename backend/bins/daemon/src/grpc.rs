@@ -96,6 +96,36 @@ impl DaemonService {
             }
         }
     }
+
+    async fn clear_space_local_cache(&self, space_id: &str) -> Result<(), Status> {
+        let page_repo = self.state.repos.page_repo();
+        let document_repo = self.state.repos.document_repo();
+
+        let page_rows = page_repo
+            .delete_pages_for_space(space_id)
+            .await
+            .map_err(|err| {
+                warn!(%err, %space_id, "failed to clear page cache for revoked space");
+                Status::internal("failed to clear page cache")
+            })?;
+
+        let document_rows = document_repo
+            .delete_documents_for_space(space_id)
+            .await
+            .map_err(|err| {
+                warn!(%err, %space_id, "failed to clear document cache for revoked space");
+                Status::internal("failed to clear document cache")
+            })?;
+
+        info!(
+            %space_id,
+            page_rows,
+            document_rows,
+            "cleared local page/document cache for revoked space membership"
+        );
+
+        Ok(())
+    }
 }
 
 #[tonic::async_trait]
@@ -219,6 +249,10 @@ impl daemon::daemon_server::Daemon for DaemonService {
                 warn!(%err, "revoke_space failed");
                 Status::internal("failed to revoke space membership")
             })?;
+
+        if rows > 0 && payload.subject_peer_id == self.state.peer_id.to_string() {
+            self.clear_space_local_cache(&payload.space_id).await?;
+        }
 
         Ok(Response::new(daemon::RevokeSpaceResponse {
             accepted: rows > 0,
