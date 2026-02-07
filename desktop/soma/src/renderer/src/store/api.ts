@@ -6,6 +6,8 @@ import * as settingsService from "../services/settings-service";
 import * as spacesService from "../services/spaces-service";
 
 type SpaceMember = spacesService.SpaceMember;
+type JoinRequestRecord = spacesService.JoinRequestRecord;
+type DecideJoinResult = spacesService.DecideJoinResult;
 type PageRecord = {
 	spaceId: string;
 	pageId: string;
@@ -25,7 +27,18 @@ type DraftRow = {
 const api = createApi({
 	reducerPath: "api",
 	baseQuery: fakeBaseQuery(),
-	tagTypes: ["Settings", "Spaces", "Space", "SpaceMembers", "Pages", "Draft", "Search", "AgentModels"],
+	tagTypes: [
+		"Settings",
+		"Spaces",
+		"Space",
+		"SpaceMembers",
+		"Memberships",
+		"JoinRequests",
+		"Pages",
+		"Draft",
+		"Search",
+		"AgentModels",
+	],
 	endpoints: (builder) => ({
 		getSetting: builder.query<unknown, string>({
 			queryFn: async (key) => {
@@ -131,6 +144,146 @@ const api = createApi({
 				{
 					type: "SpaceMembers",
 					id: spaceId,
+				},
+			],
+		}),
+		listMyMemberships: builder.query<SpaceMember[], void>({
+			queryFn: async () => {
+				try {
+					const data = await spacesService.listMyMemberships();
+					return {
+						data,
+					};
+				} catch (error) {
+					return {
+						error,
+					};
+				}
+			},
+			providesTags: (result) => [
+				{
+					type: "Memberships",
+					id: "LIST",
+				},
+				...(result ?? []).map((membership) => ({
+					type: "SpaceMembers" as const,
+					id: membership.spaceId,
+				})),
+			],
+		}),
+		joinSpace: builder.mutation<spacesService.JoinSpaceResult, spacesService.JoinSpaceInput>({
+			queryFn: async (input) => {
+				try {
+					const data = await spacesService.joinSpace(input);
+					return {
+						data,
+					};
+				} catch (error) {
+					return {
+						error,
+					};
+				}
+			},
+			invalidatesTags: [
+				{
+					type: "JoinRequests",
+					id: "LIST",
+				},
+			],
+		}),
+		listJoinRequests: builder.query<JoinRequestRecord[], void>({
+			queryFn: async () => {
+				try {
+					const data = await spacesService.listJoinRequests();
+					return {
+						data,
+					};
+				} catch (error) {
+					return {
+						error,
+					};
+				}
+			},
+			providesTags: [
+				{
+					type: "JoinRequests",
+					id: "LIST",
+				},
+			],
+		}),
+		decideJoin: builder.mutation<DecideJoinResult | null, spacesService.DecideJoinInput>({
+			queryFn: async (input) => {
+				try {
+					const data = await spacesService.decideJoin(input);
+					return {
+						data,
+					};
+				} catch (error) {
+					return {
+						error,
+					};
+				}
+			},
+			invalidatesTags: (result) => [
+				{
+					type: "JoinRequests",
+					id: "LIST",
+				},
+				{
+					type: "Memberships",
+					id: "LIST",
+				},
+				{
+					type: "Spaces",
+					id: "LIST",
+				},
+				...(result?.spaceId
+					? [
+							{
+								type: "SpaceMembers" as const,
+								id: result.spaceId,
+							},
+							{
+								type: "Space" as const,
+								id: result.spaceId,
+							},
+						]
+					: []),
+			],
+		}),
+		revokeMembership: builder.mutation<boolean, spacesService.RevokeMembershipInput>({
+			queryFn: async (input) => {
+				try {
+					const data = await spacesService.revokeMembership(input);
+					return {
+						data,
+					};
+				} catch (error) {
+					return {
+						error,
+					};
+				}
+			},
+			invalidatesTags: (_result, _error, input) => [
+				{
+					type: "Memberships",
+					id: "LIST",
+				},
+				{
+					type: "JoinRequests",
+					id: "LIST",
+				},
+				{
+					type: "Spaces",
+					id: "LIST",
+				},
+				{
+					type: "SpaceMembers",
+					id: input.spaceId,
+				},
+				{
+					type: "Space",
+					id: input.spaceId,
 				},
 			],
 		}),
@@ -504,4 +657,4 @@ const api = createApi({
 });
 
 export { api };
-export type { DraftRow, PageRecord, SpaceMember };
+export type { DecideJoinResult, DraftRow, JoinRequestRecord, PageRecord, SpaceMember };

@@ -7,8 +7,8 @@ import type { SearchController } from "./controllers/search-controller";
 import type { SettingsController } from "./controllers/settings-controller";
 import type { SpacesController } from "./controllers/spaces-controller";
 import type { WindowController } from "./controllers/window-controller";
-import type { AppLogger } from "./services/logger";
 import type { DomainEventsService } from "./services/domain-events";
+import type { AppLogger } from "./services/logger";
 
 export class CommandRegistry {
 	constructor(
@@ -125,6 +125,71 @@ export class CommandRegistry {
 
 		ipc.handle("spaces_list", (_event, params) => this.spaces.list(params));
 		ipc.handle("spaces_list_members", (_event, params) => this.spaces.listMembers(params?.spaceId ?? ""));
+		ipc.handle("spaces_list_my_memberships", () => this.spaces.listMyMemberships());
+		ipc.handle("spaces_join", (_event, params) =>
+			this.spaces.join({
+				spaceId: params?.spaceId ?? "",
+				targetPeerId: params?.targetPeerId ?? "",
+				targetMultiaddrs: params?.targetMultiaddrs ?? [],
+				displayName: params?.displayName,
+				deviceName: params?.deviceName,
+			}),
+		);
+		ipc.handle("spaces_list_join_requests", () => this.spaces.listJoinRequests());
+		ipc.handle("spaces_decide_join", async (_event, params) => {
+			const result = await this.spaces.decideJoin({
+				requestId: params?.requestId ?? "",
+				approve: params?.approve === true,
+				role: params?.role,
+				reason: params?.reason,
+			});
+
+			if (result?.spaceId) {
+				this.domainEvents.broadcast({
+					kind: "space-changed",
+					source: "renderer",
+					atMs: Date.now(),
+					spaceId: result.spaceId,
+					reason: "spaces_decide_join",
+				});
+			}
+
+			this.domainEvents.broadcast({
+				kind: "spaces-changed",
+				source: "renderer",
+				atMs: Date.now(),
+				reason: "spaces_decide_join",
+			});
+
+			return result;
+		});
+		ipc.handle("spaces_revoke_member", async (_event, params) => {
+			const accepted = await this.spaces.revokeMembership({
+				spaceId: params?.spaceId ?? "",
+				subjectPeerId: params?.subjectPeerId ?? "",
+				reason: params?.reason,
+			});
+
+			if (accepted && params?.spaceId) {
+				this.domainEvents.broadcast({
+					kind: "space-changed",
+					source: "renderer",
+					atMs: Date.now(),
+					spaceId: params.spaceId,
+					reason: "spaces_revoke_member",
+				});
+			}
+			if (accepted) {
+				this.domainEvents.broadcast({
+					kind: "spaces-changed",
+					source: "renderer",
+					atMs: Date.now(),
+					reason: "spaces_revoke_member",
+				});
+			}
+
+			return accepted;
+		});
 		ipc.handle("spaces_create", async (_event, params) => {
 			const space = await this.spaces.create(params ?? {});
 			this.domainEvents.broadcast({

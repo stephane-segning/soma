@@ -1,4 +1,14 @@
-import type { DaemonClient, StoredSpace, StoredSpaceMember } from "../services/daemon-client";
+import type {
+	DaemonClient,
+	DecideJoinInput,
+	DecideJoinResult,
+	JoinSpaceInput,
+	JoinSpaceResult,
+	RevokeMembershipInput,
+	StoredJoinRequest,
+	StoredSpace,
+	StoredSpaceMember,
+} from "../services/daemon-client";
 
 export type ListSpacesResult = {
 	spaces: StoredSpace[];
@@ -36,5 +46,25 @@ export class SpacesController {
 
 	listMembers(spaceId: string): Promise<StoredSpaceMember[]> {
 		return this.daemon.listSpaceMembers(spaceId);
+	}
+
+	listMyMemberships(): Promise<StoredSpaceMember[]> {
+		return this.daemon.listMyMemberships();
+	}
+
+	join(input: JoinSpaceInput): Promise<JoinSpaceResult> {
+		return this.daemon.joinSpace(input);
+	}
+
+	listJoinRequests(): Promise<StoredJoinRequest[]> {
+		return this.daemon.listJoinRequests();
+	}
+
+	decideJoin(input: DecideJoinInput): Promise<DecideJoinResult | null> {
+		return this.daemon.decideJoin(input);
+	}
+
+	revokeMembership(input: RevokeMembershipInput): Promise<boolean> {
+		return this.daemon.revokeSpaceMembership(input);
 	}
 }

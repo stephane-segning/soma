@@ -1,12 +1,18 @@
 import * as grpc from "@grpc/grpc-js";
 import {
-	type DaemonEvent as GrpcDaemonEvent,
+	type DecideJoinResponse,
 	type GetDocumentResponse,
 	DaemonClient as GrpcDaemonClient,
+	type DaemonEvent as GrpcDaemonEvent,
+	type JoinRequest,
+	type JoinSpaceResponse,
+	type ListJoinRequestsResponse,
+	type ListMyMembershipsResponse,
 	type ListPagesResponse,
 	type ListSpacesResponse,
 	type PageRecord,
 	type ReadBlobResponse,
+	type RevokeSpaceResponse,
 	type Space,
 	type SpaceMember,
 	type StatusResponse,
@@ -59,6 +65,49 @@ export type StoredSpaceMember = {
 	peerId: string;
 	role: string;
 	expiresAt: number;
+};
+
+export type JoinSpaceInput = {
+	spaceId: string;
+	targetPeerId: string;
+	targetMultiaddrs: string[];
+	displayName?: string;
+	deviceName?: string;
+};
+
+export type JoinSpaceResult = {
+	requestId: string;
+};
+
+export type StoredJoinRequest = {
+	requestId: string;
+	spaceId: string;
+	subjectPeerId: string;
+	displayName: string;
+	deviceName: string;
+	requestedRole: number;
+	createdAt: number;
+};
+
+export type DecideJoinInput = {
+	requestId: string;
+	approve: boolean;
+	role?: string;
+	reason?: string;
+};
+
+export type DecideJoinResult = {
+	decisionId: string;
+	spaceId?: string;
+	subjectPeerId?: string;
+	decision: number;
+	reason: string;
+};
+
+export type RevokeMembershipInput = {
+	spaceId: string;
+	subjectPeerId: string;
+	reason?: string;
 };
 
 type ListSpacesResult = {
@@ -465,6 +514,124 @@ export class DaemonClient {
 		}));
 	}
 
+	async listMyMemberships(): Promise<StoredSpaceMember[]> {
+		const res = await new Promise<ListMyMembershipsResponse>((resolve, reject) => {
+			this.client.listMyMemberships({}, (err, response) => {
+				if (err) return reject(err);
+				resolve(response);
+			});
+		});
+
+		return (res.memberships ?? []).map((m) => ({
+			spaceId: m.spaceId,
+			peerId: m.peerId,
+			role: m.role,
+			expiresAt: Number(m.expiresAt ?? 0),
+		}));
+	}
+
+	async joinSpace(input: JoinSpaceInput): Promise<JoinSpaceResult> {
+		if (!input.spaceId?.trim()) {
+			throw new Error("spaceId is required");
+		}
+		if (!input.targetPeerId?.trim()) {
+			throw new Error("targetPeerId is required");
+		}
+		const targetMultiaddrs = (input.targetMultiaddrs ?? [])
+			.map((value) => value.trim())
+			.filter((value) => value.length > 0);
+		if (targetMultiaddrs.length === 0) {
+			throw new Error("targetMultiaddrs is required");
+		}
+
+		const res = await new Promise<JoinSpaceResponse>((resolve, reject) => {
+			this.client.joinSpace(
+				{
+					spaceId: input.spaceId.trim(),
+					targetPeerId: input.targetPeerId.trim(),
+					targetMultiaddrs,
+					displayName: input.displayName?.trim() ?? "",
+					deviceName: input.deviceName?.trim() ?? "",
+				},
+				(err, response) => {
+					if (err) return reject(err);
+					resolve(response);
+				},
+			);
+		});
+
+		return {
+			requestId: res.requestId,
+		};
+	}
+
+	async listJoinRequests(): Promise<StoredJoinRequest[]> {
+		const res = await new Promise<ListJoinRequestsResponse>((resolve, reject) => {
+			this.client.listJoinRequests({}, (err, response) => {
+				if (err) return reject(err);
+				resolve(response);
+			});
+		});
+
+		return (res.requests ?? []).map((request) => this.fromJoinRequest(request));
+	}
+
+	async decideJoin(input: DecideJoinInput): Promise<DecideJoinResult | null> {
+		if (!input.requestId?.trim()) {
+			throw new Error("requestId is required");
+		}
+
+		const res = await new Promise<DecideJoinResponse>((resolve, reject) => {
+			this.client.decideJoin(
+				{
+					requestId: input.requestId.trim(),
+					approve: input.approve,
+					role: input.role?.trim() ?? "",
+					reason: input.reason?.trim() ?? "",
+				},
+				(err, response) => {
+					if (err) return reject(err);
+					resolve(response);
+				},
+			);
+		});
+
+		const decision = res.decision;
+		if (!decision) return null;
+		return {
+			decisionId: decision.decisionId,
+			spaceId: decision.spaceId?.value,
+			subjectPeerId: decision.subjectPeerId?.value,
+			decision: decision.decision,
+			reason: decision.reason,
+		};
+	}
+
+	async revokeSpaceMembership(input: RevokeMembershipInput): Promise<boolean> {
+		if (!input.spaceId?.trim()) {
+			throw new Error("spaceId is required");
+		}
+		if (!input.subjectPeerId?.trim()) {
+			throw new Error("subjectPeerId is required");
+		}
+
+		const res = await new Promise<RevokeSpaceResponse>((resolve, reject) => {
+			this.client.revokeSpace(
+				{
+					spaceId: input.spaceId.trim(),
+					subjectPeerId: input.subjectPeerId.trim(),
+					reason: input.reason?.trim() ?? "",
+				},
+				(err, response) => {
+					if (err) return reject(err);
+					resolve(response);
+				},
+			);
+		});
+
+		return !!res.accepted;
+	}
+
 	private fromPageRecord(p: PageRecord): StoredPage {
 		return {
 			spaceId: p.spaceId,
@@ -482,6 +649,18 @@ export class DaemonClient {
 			displayName: s.displayName,
 			ownerPeerId: s.ownerPeerId,
 			createdAt: Number((s.createdAt as any) ?? Date.now()),
+		};
+	}
+
+	private fromJoinRequest(request: JoinRequest): StoredJoinRequest {
+		return {
+			requestId: request.requestId,
+			spaceId: request.spaceId,
+			subjectPeerId: request.subjectPeerId,
+			displayName: request.displayName,
+			deviceName: request.deviceName,
+			requestedRole: request.requestedRole,
+			createdAt: Number(request.createdAt ?? 0),
 		};
 	}
 
