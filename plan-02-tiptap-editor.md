@@ -133,3 +133,10 @@ Changes:
 - Basic GitHub mention auto-link works.
 - AI block inserts and can stream output from `soma-agentd`.
 
+---
+
+## Follow-ups / Fixes (tracked issues)
+
+- TipTap block drag-n-drop is currently not working in practice. Re-implement the interaction (still ProseMirror-native) but lean into `motion` for better affordances/animations (handle hover, drag preview, drop indicator).
+- Fix TipTap `taskList` rendering: checkbox and text are currently split across two lines (example: `desktop/desktp-editor/src/stories/document-editor.stories.tsx`).
+- Page titles: the document format implies the first line is the title; use that first line as the default page title when the user hasn’t set one explicitly.

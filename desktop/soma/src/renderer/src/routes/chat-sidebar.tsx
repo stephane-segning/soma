@@ -1,29 +1,83 @@
 import { useChatConversation } from "@app/hooks/use-chat-conversation.ts";
+import {
+	AGENT_CONFIG_SETTINGS_KEY,
+	normalizeAgentRuntimeConfig,
+	resolveEffectiveWorkspaceAgentConfig,
+} from "@app/lib/agent-config";
+import { useSettingQuery } from "@app/queries/settings";
 import { api } from "@app/store/api";
 import { AiChat } from "@soma/ui/components/chat/ai-chat";
 import { AiConversation } from "@soma/ui/components/chat/ai-conversation";
 import { AiInput } from "@soma/ui/components/forms/ai-input";
 import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router";
 
 function ChatSidebar(): React.JSX.Element {
-	const { data, error } = api.useListAgentModelsQuery(undefined, {
+	const location = useLocation();
+	const spaceId = useMemo(() => parseSpaceIdFromPath(location.pathname), [location.pathname]);
+	const { data: rawAgentConfig } = useSettingQuery(AGENT_CONFIG_SETTINGS_KEY);
+	const effectiveConfig = useMemo(
+		() => resolveEffectiveWorkspaceAgentConfig(normalizeAgentRuntimeConfig(rawAgentConfig), spaceId),
+		[rawAgentConfig, spaceId],
+	);
+
+	const { data, error } = api.useListAgentModelsQuery(spaceId, {
 		// leave cache around; listModels is cheap
 		refetchOnMountOrArgChange: false,
 	});
 
-	const chatModels = useMemo(() => data?.filter((m) => m.kind === "chat") ?? [], [data]);
+	const chatModels = useMemo(() => {
+		const models = data ?? [];
+		const configuredByName = effectiveConfig.modelCapabilities;
+		const filtered = models.filter((model) => {
+			const configured = configuredByName[model.name];
+			if (typeof configured?.chat === "boolean") {
+				return configured.chat;
+			}
+			if (model.name === effectiveConfig.chatModel) {
+				return true;
+			}
+			return model.kind === "chat";
+		});
 
-	const [selectedModel, setSelectedModel] = useState<string>(() => chatModels?.[0]?.name);
+		if (filtered.some((model) => model.name === effectiveConfig.chatModel)) {
+			return filtered;
+		}
+		if (!effectiveConfig.chatModel) {
+			return filtered;
+		}
+		return [
+			{
+				name: effectiveConfig.chatModel,
+				kind: "unknown" as const,
+				path: "",
+				loaded: false,
+			},
+			...filtered,
+		];
+	}, [data, effectiveConfig]);
+
+	const [selectedModel, setSelectedModel] = useState<string>(() => effectiveConfig.chatModel);
 	const [draft, setDraft] = useState("");
 
 	useEffect(() => {
-		if (!selectedModel && chatModels.length > 0) {
-			setSelectedModel(chatModels[0].name);
+		if (selectedModel && chatModels.some((model) => model.name === selectedModel)) {
+			return;
 		}
-	}, [chatModels, selectedModel]);
+		if (chatModels.some((model) => model.name === effectiveConfig.chatModel)) {
+			setSelectedModel(effectiveConfig.chatModel);
+			return;
+		}
+		if (chatModels.length > 0) {
+			setSelectedModel(chatModels[0].name);
+			return;
+		}
+		setSelectedModel("");
+	}, [chatModels, selectedModel, effectiveConfig.chatModel]);
 
 	const { visibleMessages, isSending, sendPrompt } = useChatConversation({
-		model: selectedModel,
+		model: selectedModel || effectiveConfig.chatModel,
+		spaceId,
 	});
 
 	const handleSend = () => {
@@ -31,7 +85,7 @@ function ChatSidebar(): React.JSX.Element {
 		if (!prompt || isSending) return;
 
 		setDraft(() => "");
-		sendPrompt(prompt, selectedModel);
+		sendPrompt(prompt, selectedModel || effectiveConfig.chatModel);
 	};
 
 	if (error) {
@@ -79,3 +133,11 @@ function ChatSidebar(): React.JSX.Element {
 }
 
 export { ChatSidebar };
+
+function parseSpaceIdFromPath(pathname: string): string | undefined {
+	const parts = pathname.split("/").filter(Boolean);
+	if (parts.length < 2) return undefined;
+	if (parts[0] !== "spaces") return undefined;
+	const spaceId = parts[1]?.trim();
+	return spaceId || undefined;
+}

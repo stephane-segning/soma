@@ -4,7 +4,7 @@ This repository uses Cargo workspaces and a single source of truth for dependenc
 
 ## Rust (Cargo)
 
-- **All third-party dependency versions live in** `backend/Cargo.toml` under `[workspace.dependencies]`.
+- **All third-party dependency versions live in** the repo root `Cargo.toml` under `[workspace.dependencies]`.
 - **Every crate and binary** under `backend/crates/*` and `backend/bins/*` must depend on third-party crates using:
   - `crate-name = { workspace = true }`
   - add `features = [...]` in the leaf crate if needed.
@@ -12,10 +12,10 @@ This repository uses Cargo workspaces and a single source of truth for dependenc
 
 This keeps dependency upgrades simple, avoids version skew, and makes feature usage explicit at the call site.
 
-## Current exceptions / follow-ups
+## Current status
 
-- `derive_builder` was added to `backend/Cargo.toml` and should be used via `workspace = true`.
-- Some leaf crates still specify third-party versions directly (example: `soma-bff` uses `reqwest = { version = ... }`). Prefer moving these to `[workspace.dependencies]` and switching leaf usage to `{ workspace = true }` to stay consistent.
+- New third-party dependencies should be added to root `Cargo.toml` first, then consumed in leaf crates with `{ workspace = true }`.
+- Existing non-compliant leaf pins should be treated as migration debt and removed opportunistically when touching that crate.
 
 ## Desktop (pnpm)
 

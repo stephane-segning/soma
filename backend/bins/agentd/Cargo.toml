@@ -19,7 +19,8 @@ tonic = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 mimalloc = { workspace = true }
-llama-cpp-2 = { workspace = true }
 futures = { workspace = true }
 tokio-stream = { workspace = true }
 yrs = { workspace = true }
+reqwest = { workspace = true, features = ["json", "rustls-tls"] }
+serde = { workspace = true, features = ["derive"] }

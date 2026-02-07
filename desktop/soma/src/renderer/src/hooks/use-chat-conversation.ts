@@ -4,6 +4,7 @@ import { type ChatMessage, streamChat } from "../services/chat-service";
 type UseChatConversationOptions = {
 	systemPrompt?: string;
 	model?: string;
+	spaceId?: string;
 };
 
 type UseChatConversationResult = {
@@ -66,6 +67,7 @@ export function useChatConversation(options: UseChatConversationOptions = {}): U
 			try {
 				const result = await streamChat(history, {
 					model: model ?? options.model,
+					spaceId: options.spaceId,
 				});
 				if (result.error) {
 					throw new Error(result.error);

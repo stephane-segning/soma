@@ -186,7 +186,7 @@ Specific services (all now live under `backend/`):
 - **Rendezvous** (`backend/bins/rendezvousd`, `backend/crates/rendezvous`): libp2p rendezvous discovery service, plus an Axum HTTP server and a small metrics server.
 - **Desktop peer/daemon** (`backend/bins/daemon`, `soma-daemon`): the desktop user agent (Unix socket IPC). Desktop backends must not depend on Axum.
 - **Server peer/bot** (`backend/bins/botd`, `soma-botd`): a server-hosted libp2p peer/bot with an Axum control plane + metrics.
-- **LLM BFF** (`backend/bins/bffd`, `backend/crates/bff`): a backend-for-frontend for interacting with LLMs via `llama-cpp-2`; runs `mimalloc` + Axum + a small metrics server. This is the only backend that does **not** use libp2p.
+- **LLM BFF** (`backend/bins/bffd`, `backend/crates/bff`): a backend-for-frontend for interacting with LLM providers over HTTP; runs `mimalloc` + Axum + a small metrics server. This is the only backend that does **not** use libp2p.
   - Note: `soma-bffd` can optionally enable a small libp2p peer for diagnostics/testing, but the core service does not depend on libp2p.
 
 #### `soma-botd` internals (event handling + metrics)
@@ -337,10 +337,11 @@ Soma (`desktop/soma`) (Electron/Chromium):
 - No local blob persistence/caching in the desktop app: uploads go to `soma-daemon`, and renderers should use `soma-blob://daemon/{space_id}/{cid}` (served by the Electron `soma-blob` protocol via `Daemon/ReadBlob`) for blob references.
 - Stage detection / sockets: `desktop/desktp-config` runs before Soma starts and ensures the current build stage (dev/staging/prod) rewrites `appData`/`userData`/`logs` to stage-specific folders and selects `/tmp/soma-daemon-<stage>.sock` + `/tmp/soma-agentd-<stage>.sock` (defaults to `/tmp/...` when stage = `prod`). Non-prod daemons must start with matching `--socket-path` arguments or you can override `SOMA_DAEMON_SOCKET` / `SOMA_AGENTD_SOCKET` while developing.
 - Startup policy: Soma main blocks renderer startup behind a splash screen until `soma-daemon` reports ready (`Daemon/Status`), then subscribes to daemon events at process start.
-- Local LLM chat runs via `soma-agentd` (gRPC over Unix socket); for model selection and “base vs instruct” behavior, see `docs/src/development/agentd-models.md`.
+- Local LLM chat runs via `soma-agentd` (gRPC over Unix socket); for provider/model configuration, see `docs/src/development/agentd-models.md`.
 - Agent runtime configuration source of truth is `electron-store` (`settings["agent.config"]`) through main-process settings IPC:
   - default provider is OpenAI-compatible at `http://127.0.0.1:11434/v1` (Ollama-style endpoint)
-  - supported providers in main are `agentd`, `openai-compatible`, and `llama-cpp`
+  - supported providers in main are `agentd` and `openai-compatible`
+  - model capabilities (chat/embed/tool/image) are local UI metadata in settings (`agent.config`), with optional per-workspace overrides under `agent.config.workspaces[space_id]`
   - main process publishes agent runtime status/error events to renderers via `agent_event`
 - Space members UI: `/spaces/:spaceId/members` simply lists the roster fetched via the daemon `ListSpaceMembers` RPC exposed as the `spaces_list_members` IPC command (`desktop/soma/src/renderer/src/routes/screens/space-members.tsx` + `@soma/queries/spaces`). Keep it lightweight/read-only; no bespoke member page beyond this list.
 
@@ -366,19 +367,18 @@ This repo intentionally has multiple binaries. Each has a distinct goal and depl
 
 - `soma-daemon` (`backend/bins/daemon`, run with `cargo run -p soma-daemon`): the desktop **libp2p peer identity** process (Unix socket IPC). It must not include Axum.
 - `soma-botd` (`backend/bins/botd`, run with `cargo run -p soma-botd`): the server-hosted **libp2p peer identity** process for bots/agents (Axum + metrics).
-- `soma-agentd` (`backend/bins/agentd`, run with `cargo run -p soma-agentd`): optional **desktop-only** companion process for long-running CPU-heavy tasks (hashing, OCR, indexing, Yjs reconciliation, local LLM inference). It should be reached via local IPC (UDS) and typically through `soma-daemon`, not directly from the UI. gRPC surface (proto `proto/agent/v1/agent.proto`):
+- `soma-agentd` (`backend/bins/agentd`, run with `cargo run -p soma-agentd`): optional **desktop-only** companion process for long-running CPU-heavy tasks (hashing, OCR, indexing, Yjs reconciliation, local LLM provider proxy). It should be reached via local IPC (UDS) and typically through `soma-daemon`, not directly from the UI. gRPC surface (proto `proto/agent/v1/agent.proto`):
   - `Status` + `ListModels`: enumerate available models with basic metadata (kind/chat vs embed, path, load state, size).
   - `Chat`/`ChatStream`, `InlineComplete`, `Embed`: existing inference entrypoints.
   - `Rerank`: embed query+candidates with the embed model and return cosine-ranked ids/scores (respect `top_n`).
   - `ResolveDrift`: merge two Yjs updates (bytes) and return a combined update; used when reconciling document drift.
-  - `llama-cpp-2` batch/logits gotcha: after `LlamaBatch::add_sequence(...)` with `logits_all=false`, llama.cpp only computes logits for the **last** token in the batch. Sampling from `idx=0` will crash (`invalid logits id 0, reason: batch.logits[0] != true`).
-  - In `backend/bins/agentd/src/engine.rs`, ensure the first sampling step uses the last prompt-token index (`prompt_tokens.len() - 1`), then use `idx=0` once you decode a single token per step with `logits=true`.
+  - OpenAI-compatible upstream endpoints are configurable via `SOMA_AGENTD_PROVIDER_BASE_URL` and optional `SOMA_AGENTD_PROVIDER_API_KEY` (defaults to `http://127.0.0.1:11434/v1`).
 
 ### Infrastructure Backends (also `backend/`)
 
 - `soma-relayd` (`backend/bins/relayd`, run with `cargo run -p soma-relayd`): **relay** service (libp2p circuit relay) + HTTP/Axum + metrics.
 - `soma-rendezvousd` (`backend/bins/rendezvousd`, run with `cargo run -p soma-rendezvousd`): **rendezvous** service (libp2p discovery) + HTTP/Axum + metrics.
-- `soma-bffd` (`backend/bins/bffd`, run with `cargo run -p soma-bffd`): **LLM BFF** service (no libp2p; `llama-cpp-2`) + HTTP/Axum + metrics.
+- `soma-bffd` (`backend/bins/bffd`, run with `cargo run -p soma-bffd`): **LLM BFF** service (no libp2p; HTTP provider integrations) + HTTP/Axum + metrics.
 - `soma-serverd` (`backend/bins/serverd`, run with `cargo run -p soma-serverd`): optional “all-in-one” runner that can compose multiple infrastructure services for convenience in dev.
 
 ## Code Style

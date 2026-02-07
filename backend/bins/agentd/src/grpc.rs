@@ -4,7 +4,6 @@ use futures::Stream;
 use soma_proto_build::agent;
 use tokio_stream::{StreamExt as TokioStreamExt, wrappers::UnboundedReceiverStream};
 use tonic::{Request, Response, Status};
-use tracing::info;
 use yrs::{Doc, ReadTxn, StateVector, Transact, Update, updates::decoder::Decode};
 
 use crate::engine::{
@@ -340,6 +339,7 @@ fn map_model_info(m: crate::engine::ModelInfo) -> agent::ModelInfo {
         kind: match m.kind {
             ModelKind::Chat => agent::ModelKind::Chat as i32,
             ModelKind::Embed => agent::ModelKind::Embed as i32,
+            ModelKind::Unknown => agent::ModelKind::Unspecified as i32,
         },
         path: m.path,
         loaded: m.loaded,
@@ -381,10 +381,12 @@ fn merge_yjs_updates(left: &[u8], right: &[u8]) -> Result<Vec<u8>, String> {
     {
         let mut txn = doc.transact_mut();
         let left_update = Update::decode_v1(left).map_err(|err| format!("decode left: {err}"))?;
-        txn.apply_update(left_update);
+        txn.apply_update(left_update)
+            .map_err(|err| format!("apply left: {err}"))?;
         let right_update =
             Update::decode_v1(right).map_err(|err| format!("decode right: {err}"))?;
-        txn.apply_update(right_update);
+        txn.apply_update(right_update)
+            .map_err(|err| format!("apply right: {err}"))?;
     }
 
     let txn = doc.transact();

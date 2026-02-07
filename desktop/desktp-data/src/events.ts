@@ -30,7 +30,7 @@ export type DomainEventPayload =
       reason?: string;
     };
 
-export type AgentProvider = "agentd" | "openai-compatible" | "llama-cpp";
+export type AgentProvider = "agentd" | "openai-compatible";
 
 export type AgentModelPayload = {
   name: string;
@@ -171,7 +171,7 @@ function parseDomainEventSource(value: unknown): DomainEventSource | null {
 }
 
 function parseAgentProvider(value: unknown): AgentProvider | null {
-  if (value === "agentd" || value === "openai-compatible" || value === "llama-cpp") {
+  if (value === "agentd" || value === "openai-compatible") {
     return value;
   }
   return null;

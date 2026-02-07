@@ -68,6 +68,10 @@ All records should include:
   - language, theme knobs, editor preferences, feature flags, onboarding state
   - replaces i18n `localStorage` cache usage.
 
+- `layout`
+  - window/shell continuity state (frontend-owned)
+  - store `DesktopShell` left/right sidebar widths and open/closed state so the resize bar positions persist across restarts.
+
 - `draftMailbox`
   - replaces `desktop/soma/src/renderer/src/lib/document-mailbox.ts` localStorage usage
   - "draft-y" per-(spaceId,pageId) state that is safe to drop if needed.
@@ -250,4 +254,3 @@ Likely "do not forward":
   - `desktop/desktp-ui` (not ideal; UI package is shared components), or
   - per-app (least ideal; duplication).
 - Any security requirements for stored data (encryption, PII constraints)?
-

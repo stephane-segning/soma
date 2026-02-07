@@ -1,6 +1,6 @@
 # Agentd IPC and Security Model
 
-`soma-agentd` is a long-running, CPU-heavy worker (OCR, hashing, indexing, Yjs reconciliation, local LLM inference). It should not be exposed directly to the desktop renderer.
+`soma-agentd` is a long-running, CPU-heavy worker (OCR, hashing, indexing, Yjs reconciliation, and OpenAI-compatible model API proxying). It should not be exposed directly to the desktop renderer.
 
 !!! note
     `desktop/soma` (Electron) and `desktop/tapia` (Electron) currently wire the renderer → app main process → `soma-agentd` directly for chat.
@@ -47,13 +47,34 @@ To keep things fast:
 
 Proto: `proto/agent/v1/agent.proto` (generated into `soma_proto_build::agent`).
 
-- `Status` / `ListModels`: version, defaults, and model metadata (name, kind chat/embed, path, loaded flag, size bytes).
+- `Status` / `ListModels`: version, defaults, and provider model metadata.
+- `ListModels.kind` can be `unknown`; provider `/models` does not reliably expose chat/embed/tool/image capabilities.
 - `Chat` / `ChatStream` / `InlineComplete`: chat inference with optional model override.
 - `Embed`: embed one or more strings with optional model override.
 - `Rerank`: embeds `{query, candidates[]}` using the embed model and returns cosine-ranked `{id, score, rank}`; `top_n` limits output (0 = all).
 - `ResolveDrift`: merges two Yjs updates (bytes) and returns a merged update; use this when reconciling document drift.
 
 Keep the socket UDS-bound and mode 0600; treat all APIs as local-only IPC.
+
+Model capability source of truth:
+
+- Capability flags (`chat`, `embed`, `tool`, `image`) are local UI metadata in Soma settings (`agent.config` in `electron-store`).
+- Per-workspace capability overrides are stored in `agent.config.workspaces[space_id]`.
+- These settings are local-only and are never forwarded to `soma-daemon`.
+
+## Main -> renderer runtime events
+
+Soma main process broadcasts validated runtime events to renderer on `agent_event`:
+
+- Schema owner: `desktop/desktp-data/src/events.ts` (`AgentRuntimeEventPayload`).
+- Forwarder: `desktop/soma/src/main/services/agent-events.ts`.
+- Listener: `desktop/soma/src/renderer/src/services/agent-events.ts`.
+
+Event kinds:
+
+- `ready`: provider and base URL are ready for requests.
+- `status`: periodic status with current model list.
+- `error`: non-fatal runtime/provider error details.
 
 ## TypeScript codegen (Node/Electron)
 

@@ -65,6 +65,7 @@ In `server-daemon` mode only (admin-token gated):
 
 - Bin: `backend/bins/bffd/src/main.rs` now handles all `PeerEvent` variants (no `todo!()`).
 - Chat endpoint: `backend/crates/bff/src/lib.rs` calls an LLM backend over HTTP instead of echoing.
+- Scope note: this section is about `soma-bffd` only. `soma-agentd` provider configuration is documented in `docs/src/development/agentd-models.md`.
 
 Environment variables:
 
@@ -89,7 +90,7 @@ Bot wiring:
 
 ## 7) Builders (derive_builder)
 
-- Workspace dep: `derive_builder` is added to `backend/Cargo.toml`.
+- Workspace dep: `derive_builder` is added to root `Cargo.toml`.
 - `PeerConfig` now lives in `backend/crates/peer/src/config.rs` with a builder (`PeerConfigBuilder`) and a convenience `PeerConfig::builder()`.
 
 This reduces boilerplate when composing peer configs in bins.

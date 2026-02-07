@@ -146,6 +146,31 @@ libp2p updates   -->  persist canonical state  ->  domain_event IPC push      --
 
 Important: this "push" channel is **notifications only**, not state replication. The renderer still reads canonical state via the daemon-backed queries.
 
+### Event payload schemas (explicit)
+
+`desktop/desktp-data/src/events.ts` is the schema contract for events crossing main -> renderer.
+
+Domain events (`domain_event`):
+
+```ts
+type DomainEventPayload =
+  | { kind: "spaces-changed"; source: "renderer" | "daemon"; atMs: number; reason?: string }
+  | { kind: "space-changed"; source: "renderer" | "daemon"; atMs: number; spaceId: string; reason?: string }
+  | { kind: "pages-changed"; source: "renderer" | "daemon"; atMs: number; spaceId: string; reason?: string }
+  | { kind: "document-changed"; source: "renderer" | "daemon"; atMs: number; spaceId: string; documentId: string; reason?: string };
+```
+
+Agent runtime events (`agent_event`):
+
+```ts
+type AgentRuntimeEventPayload =
+  | { kind: "ready"; atMs: number; provider: "agentd" | "openai-compatible"; baseUrl: string }
+  | { kind: "status"; atMs: number; provider: "agentd" | "openai-compatible"; baseUrl: string; models: AgentModelPayload[] }
+  | { kind: "error"; atMs: number; provider: "agentd" | "openai-compatible"; baseUrl: string; error: string };
+```
+
+Both payload families are parsed and validated before broadcast and before renderer handling.
+
 ### Example: "A Page The User Doesn't Own"
 
 There are two separate concerns here: authorization and conflict resolution.
@@ -175,6 +200,18 @@ Recommended improvement (for better UX and fewer false conflicts):
 - Store an additional field in the mailbox record such as:
   - `baseDaemonUpdatedAtMs` (or a Yjs state vector hash)
 so we can detect "draft is based on an older revision" precisely.
+
+### Renderer conflict policy (remote page updates)
+
+Remote page updates should follow this deterministic policy:
+
+| Condition | Action | Outcome |
+|---|---|---|
+| No local mailbox entry | no-op | renderer reflects daemon state on refetch |
+| `mailbox.updatedAtMs <= daemonUpdatedAtMs` | clear mailbox entry | stale local draft is removed |
+| `mailbox.updatedAtMs > daemonUpdatedAtMs` | keep mailbox, set `conflictState = "ahead"`, record `baseDaemonUpdatedAtMs` | user can restore/reconcile local draft intentionally |
+
+Current implementation lives in `desktop/soma/src/renderer/src/lib/document-mailbox.ts` (`applyRemoteMailboxPolicy`) and is triggered by `document-changed` events from source `daemon` in `desktop/soma/src/renderer/src/services/domain-events.ts`.
 
 ### Where LWW Applies (and where it must not)
 

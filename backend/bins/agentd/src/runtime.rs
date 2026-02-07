@@ -18,7 +18,7 @@ pub async fn run_from_cli() -> SomaResult<()> {
 
     info!(
         socket = %config.socket_path.display(),
-        models_dir = %config.models_dir.display(),
+        provider_base_url = %config.provider_base_url,
         default_chat_model = %config.default_chat_model,
         default_embed_model = %config.default_embed_model,
         "soma-agentd starting"

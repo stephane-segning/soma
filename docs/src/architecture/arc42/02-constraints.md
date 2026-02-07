@@ -4,7 +4,7 @@
 
 - **Desktop backends expose no HTTP server**: `soma-daemon` uses gRPC over Unix Domain Socket (UDS); desktop backends must not depend on Axum.
 - **Server backends use Axum + metrics**: `soma-botd`, `soma-relayd`, `soma-rendezvousd`, `soma-bffd` expose `GET /healthz` and `GET /metrics`.
-- **Rust workspace dependency policy**: third-party versions live only in `backend/Cargo.toml` under `[workspace.dependencies]`.
+- **Rust workspace dependency policy**: third-party versions live only in root `Cargo.toml` under `[workspace.dependencies]`.
 - **Desktop JS tooling**: `pnpm` workspace under `desktop/`.
 - **Offline-first networking**: must function on LAN without servers (mDNS) and across networks with optional infra (rendezvous + relay).
 

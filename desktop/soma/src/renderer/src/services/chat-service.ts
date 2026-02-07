@@ -15,6 +15,7 @@ export type ChatOptions = {
 	model?: string;
 	temperature?: number;
 	maxTokens?: number;
+	spaceId?: string;
 };
 
 export type AgentModel = {
@@ -31,13 +32,14 @@ export async function streamChat(messages: ChatMessage[], options: ChatOptions =
 		model: options.model,
 		temperature: options.temperature,
 		max_tokens: options.maxTokens ?? 256,
+		spaceId: options.spaceId,
 	};
 	return invoke<StreamEvent>("agent_chat_stream", payload).catch((error) => ({
 		error: error instanceof Error ? error.message : String(error),
 	}));
 }
 
-export async function listModels(): Promise<AgentModel[]> {
+export async function listModels(spaceId?: string): Promise<AgentModel[]> {
 	const res =
 		await invoke<
 			{
@@ -47,7 +49,9 @@ export async function listModels(): Promise<AgentModel[]> {
 				loaded: boolean;
 				size_bytes?: number;
 			}[]
-		>("agent_list_models");
+		>("agent_list_models", {
+			spaceId,
+		});
 
 	return res.map((m) => ({
 		name: m.name,

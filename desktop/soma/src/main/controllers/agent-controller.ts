@@ -17,8 +17,8 @@ export class AgentController {
 		return this.agent.chatStream(messages, options);
 	}
 
-	listModels(): Promise<AgentModel[]> {
-		return this.agent.listModels();
+	listModels(spaceId?: string): Promise<AgentModel[]> {
+		return this.agent.listModels(spaceId);
 	}
 
 	rerank(params: RerankParams): Promise<RerankResult[]> {

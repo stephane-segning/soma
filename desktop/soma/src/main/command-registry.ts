@@ -104,13 +104,14 @@ export class CommandRegistry {
 		});
 
 		ipc.handle("agent_chat_stream", (_event, params) => this.agent.chatStream(params?.messages ?? [], params ?? {}));
-		ipc.handle("agent_list_models", () => this.agent.listModels());
+		ipc.handle("agent_list_models", (_event, params) => this.agent.listModels(params?.spaceId ?? params?.workspaceId));
 		ipc.handle("agent_rerank", (_event, params) =>
 			this.agent.rerank({
 				query: params?.query ?? "",
 				candidates: params?.candidates ?? [],
 				model: params?.model,
 				topN: params?.topN ?? params?.top_n ?? 0,
+				spaceId: params?.spaceId ?? params?.workspaceId,
 			}),
 		);
 		ipc.handle("agent_resolve_drift", (_event, params) =>

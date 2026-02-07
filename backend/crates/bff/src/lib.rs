@@ -122,7 +122,7 @@ impl LlmClient {
     fn from_env() -> Self {
         let endpoint = std::env::var("LLM_ENDPOINT")
             .unwrap_or_else(|_| "http://127.0.0.1:11434/api/generate".to_string());
-        let model = std::env::var("LLM_MODEL").unwrap_or_else(|_| "llama3".to_string());
+        let model = std::env::var("LLM_MODEL").unwrap_or_else(|_| "llama3.2:1b".to_string());
         let timeout = std::env::var("LLM_TIMEOUT_MS")
             .ok()
             .and_then(|s| s.parse::<u64>().ok())
@@ -144,7 +144,7 @@ impl LlmClient {
     }
 
     async fn generate(&self, prompt: &str, user: Option<String>) -> Result<String, LlmError> {
-        let req = OllamaGenerateRequest {
+        let req = LlmGenerateRequest {
             model: self.model.clone(),
             prompt: prompt.to_string(),
             stream: false,
@@ -172,7 +172,7 @@ impl LlmClient {
 }
 
 #[derive(Debug, Serialize)]
-struct OllamaGenerateRequest {
+struct LlmGenerateRequest {
     model: String,
     prompt: String,
     #[serde(default)]

@@ -8,8 +8,8 @@ import {
 import Long from "long";
 import {
 	type AgentProvider,
-	type AgentRuntimeConfig,
 	normalizeAgentRuntimeConfig,
+	resolveWorkspaceAgentConfig,
 } from "./agent-config";
 
 export type ChatMessage = {
@@ -21,6 +21,7 @@ export type ChatOptions = {
 	model?: string;
 	temperature?: number;
 	maxTokens?: number;
+	spaceId?: string;
 };
 
 export type StreamEvent = {
@@ -74,6 +75,7 @@ export type RerankParams = {
 	candidates: RerankCandidate[];
 	model?: string;
 	topN?: number;
+	spaceId?: string;
 };
 
 export type RerankResult = {
@@ -93,7 +95,7 @@ export type ResolveDriftResult = {
 
 export class AgentClient {
 	private client: GrpcAgentClient;
-	private readonly readConfig: () => AgentRuntimeConfig;
+	private readonly readConfig: () => ReturnType<typeof normalizeAgentRuntimeConfig>;
 
 	constructor(socketPath: string, readConfig?: () => unknown) {
 		const address = `unix://${socketPath}`;
@@ -102,13 +104,10 @@ export class AgentClient {
 	}
 
 	async chatStream(messages: ChatMessage[], options: ChatOptions = {}): Promise<StreamEvent> {
-		const config = this.readConfig();
+		const config = this.resolveRuntimeConfig(options.spaceId);
 		try {
 			if (config.provider === "agentd") {
 				return await this.chatStreamViaAgentd(messages, options);
-			}
-			if (config.provider === "llama-cpp") {
-				return await this.chatStreamViaLlamaCpp(messages, options, config);
 			}
 			return await this.chatStreamViaOpenAi(messages, options, config);
 		} catch (error) {
@@ -118,26 +117,16 @@ export class AgentClient {
 		}
 	}
 
-	async listModels(): Promise<AgentModel[]> {
-		const config = this.readConfig();
+	async listModels(spaceId?: string): Promise<AgentModel[]> {
+		const config = this.resolveRuntimeConfig(spaceId);
 		if (config.provider === "agentd") {
 			return this.listModelsViaAgentd();
-		}
-		if (config.provider === "llama-cpp") {
-			return [
-				{
-					name: config.llamaCppChatModel,
-					kind: "chat",
-					path: config.llamaCppBaseUrl,
-					loaded: true,
-				},
-			];
 		}
 		return this.listModelsViaOpenAi(config);
 	}
 
 	async rerank(params: RerankParams): Promise<RerankResult[]> {
-		const config = this.readConfig();
+		const config = this.resolveRuntimeConfig(params.spaceId);
 		if (config.provider === "agentd") {
 			return this.rerankViaAgentd(params);
 		}
@@ -146,9 +135,6 @@ export class AgentClient {
 		}
 		if (!params.candidates?.length) {
 			throw new Error("at least one candidate is required");
-		}
-		if (config.provider === "llama-cpp") {
-			throw new Error("rerank is not available for llama-cpp provider");
 		}
 		return this.rerankViaOpenAi(params, config);
 	}
@@ -164,7 +150,7 @@ export class AgentClient {
 
 		const run = async () => {
 			if (stopped) return;
-			const config = this.readConfig();
+			const config = this.resolveRuntimeConfig();
 			const baseUrl = this.baseUrlForProvider(config);
 			try {
 				const models = await this.listModels();
@@ -341,9 +327,9 @@ export class AgentClient {
 	private async chatStreamViaOpenAi(
 		messages: ChatMessage[],
 		options: ChatOptions,
-		config: AgentRuntimeConfig,
+		config: ReturnType<typeof resolveWorkspaceAgentConfig>,
 	): Promise<StreamEvent> {
-		const model = options.model?.trim() || config.openAiChatModel;
+		const model = options.model?.trim() || config.chatModel;
 		const response = await this.requestJson<{
 			choices?: Array<{
 				message?: {
@@ -378,41 +364,9 @@ export class AgentClient {
 		};
 	}
 
-	private async chatStreamViaLlamaCpp(
-		messages: ChatMessage[],
-		options: ChatOptions,
-		config: AgentRuntimeConfig,
-	): Promise<StreamEvent> {
-		const prompt = messages
-			.map((message) => `${message.role.toUpperCase()}: ${message.content}`)
-			.join("\n");
-
-		const response = await this.requestJson<{
-			content?: string;
-			choices?: Array<{
-				text?: string;
-			}>;
-		}>({
-			baseUrl: config.llamaCppBaseUrl,
-			path: "/completion",
-			method: "POST",
-			timeoutMs: config.requestTimeoutMs,
-			body: {
-				prompt,
-				temperature: options.temperature ?? 0.7,
-				n_predict: options.maxTokens ?? 256,
-				stream: false,
-			},
-		});
-
-		const content = response.content ?? response.choices?.[0]?.text ?? "";
-		return {
-			token: content,
-			done: true,
-		};
-	}
-
-	private async listModelsViaOpenAi(config: AgentRuntimeConfig): Promise<AgentModel[]> {
+	private async listModelsViaOpenAi(
+		config: ReturnType<typeof resolveWorkspaceAgentConfig>,
+	): Promise<AgentModel[]> {
 		const response = await this.requestJson<{
 			data?: Array<{
 				id?: string;
@@ -431,19 +385,17 @@ export class AgentClient {
 
 		return models.map((model) => ({
 			name: model,
-			kind:
-				model === config.openAiEmbedModel
-					? "embed"
-					: model === config.openAiChatModel
-						? "chat"
-						: "unknown",
+			kind: "unknown",
 			path: config.openAiBaseUrl,
 			loaded: true,
 		}));
 	}
 
-	private async rerankViaOpenAi(params: RerankParams, config: AgentRuntimeConfig): Promise<RerankResult[]> {
-		const model = params.model?.trim() || config.openAiEmbedModel;
+	private async rerankViaOpenAi(
+		params: RerankParams,
+		config: ReturnType<typeof resolveWorkspaceAgentConfig>,
+	): Promise<RerankResult[]> {
+		const model = params.model?.trim() || config.embedModel;
 		const texts = [params.query, ...params.candidates.map((candidate) => candidate.content)];
 
 		const response = await this.requestJson<{
@@ -497,14 +449,15 @@ export class AgentClient {
 		}));
 	}
 
-	private baseUrlForProvider(config: AgentRuntimeConfig): string {
+	private baseUrlForProvider(config: ReturnType<typeof resolveWorkspaceAgentConfig>): string {
 		if (config.provider === "agentd") {
 			return "unix://local-agentd";
 		}
-		if (config.provider === "llama-cpp") {
-			return config.llamaCppBaseUrl;
-		}
 		return config.openAiBaseUrl;
+	}
+
+	private resolveRuntimeConfig(spaceId?: string): ReturnType<typeof resolveWorkspaceAgentConfig> {
+		return resolveWorkspaceAgentConfig(this.readConfig(), spaceId);
 	}
 
 	private async requestJson<T>(options: {

@@ -16,7 +16,7 @@ run-daemon:
 
 # Run the soma-agentd helper process
 run-agentd:
-    export SOMA_DATA_DIR="$PWD/.data" && cargo run -p soma-agentd -- --socket-path "/tmp/soma-agentd-dev.sock" --models-dir $SOMA_DATA_DIR/models --default-chat-model Meta-Llama-3-8B-Instruct.Q4_K_M.gguf
+    cargo run -p soma-agentd -- --socket-path "/tmp/soma-agentd-dev.sock"
 
 #
 # Server binaries

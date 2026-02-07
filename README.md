@@ -94,13 +94,11 @@ Most backends expose configuration via CLI flags (clap) and mirror those flags a
 ### `soma-agentd`
 
 - `SOMA_AGENTD_SOCKET`: unix socket path (default: `/tmp/soma-agentd.sock`).
-- `SOMA_AGENTD_MODELS_DIR`: GGUF models directory (default: `./models`).
+- `SOMA_AGENTD_PROVIDER_BASE_URL`: OpenAI-compatible provider base URL (default: `http://127.0.0.1:11434/v1`).
+- `SOMA_AGENTD_PROVIDER_API_KEY`: optional bearer API key.
 - `SOMA_AGENTD_DEFAULT_CHAT_MODEL`: default chat model name.
 - `SOMA_AGENTD_DEFAULT_EMBED_MODEL`: default embedding model name.
-- `SOMA_AGENTD_CHAT_MODEL_PATH`: explicit GGUF path override for chat model.
-- `SOMA_AGENTD_EMBED_MODEL_PATH`: explicit GGUF path override for embed model.
-- `SOMA_AGENTD_CTX_SIZE`: context window size (default: `16384`).
-- `SOMA_AGENTD_THREADS`: optional inference thread count.
+- `SOMA_AGENTD_REQUEST_TIMEOUT_MS`: provider request timeout in ms (default: `30000`).
 
 ### `soma-relayd`
 

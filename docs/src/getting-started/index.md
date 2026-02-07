@@ -73,7 +73,7 @@ cd backend
 RUST_LOG=info cargo run --release -p soma-agentd
 ```
 
-For local LLM chat with GGUF models (and “base vs instruct” behavior), see `docs/src/development/agentd-models.md`.
+For local LLM provider configuration with `soma-agentd` (Ollama/LM Studio/OpenAI-compatible), see `docs/src/development/agentd-models.md`.
 
 ## 6. Simulate a Join Flow
 

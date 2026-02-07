@@ -454,10 +454,10 @@ const api = createApi({
 			],
 		}),
 
-		listAgentModels: builder.query<chatService.AgentModel[], void>({
-			queryFn: async () => {
+		listAgentModels: builder.query<chatService.AgentModel[], string | undefined>({
+			queryFn: async (spaceId) => {
 				try {
-					const data = await chatService.listModels();
+					const data = await chatService.listModels(spaceId);
 					return {
 						data,
 					};
@@ -467,10 +467,10 @@ const api = createApi({
 					};
 				}
 			},
-			providesTags: () => [
+			providesTags: (_result, _error, spaceId) => [
 				{
 					type: "AgentModels",
-					id: "LIST",
+					id: spaceId ?? "GLOBAL",
 				},
 			],
 		}),
