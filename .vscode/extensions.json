@@ -4,6 +4,11 @@
         "fill-labs.dependi",
         "drblury.protobuf-vsc",
         "wholroyd.jinja",
-        "antfu.icons-carbon"
+        "antfu.icons-carbon",
+        "biomejs.biome",
+        "panicbit.cargo",
+        "tamasfe.even-better-toml",
+        "rust-lang.rust-analyzer",
+        "tauri-apps.tauri-vscode"
     ]
 }
