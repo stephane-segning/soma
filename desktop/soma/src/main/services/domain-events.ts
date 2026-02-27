@@ -1,5 +1,5 @@
+import { type DomainEventPayload, parseDomainEventPayload } from "@soma/desktop-db";
 import { BrowserWindow } from "electron";
-import { parseDomainEventPayload, type DomainEventPayload } from "@soma/desktop-db";
 
 export type DomainEvent = DomainEventPayload;
 

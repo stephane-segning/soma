@@ -59,12 +59,7 @@ export function normalizeAgentRuntimeConfig(value: unknown): AgentRuntimeConfig 
 		openAiApiKey: typeof maybe.openAiApiKey === "string" ? maybe.openAiApiKey.trim() : "",
 		openAiChatModel: normalizeString(maybe.openAiChatModel, DEFAULT_AGENT_RUNTIME_CONFIG.openAiChatModel),
 		openAiEmbedModel: normalizeString(maybe.openAiEmbedModel, DEFAULT_AGENT_RUNTIME_CONFIG.openAiEmbedModel),
-		pollIntervalMs: normalizeInteger(
-			maybe.pollIntervalMs,
-			DEFAULT_AGENT_RUNTIME_CONFIG.pollIntervalMs,
-			1_000,
-			120_000,
-		),
+		pollIntervalMs: normalizeInteger(maybe.pollIntervalMs, DEFAULT_AGENT_RUNTIME_CONFIG.pollIntervalMs, 1_000, 120_000),
 		requestTimeoutMs: normalizeInteger(
 			maybe.requestTimeoutMs,
 			DEFAULT_AGENT_RUNTIME_CONFIG.requestTimeoutMs,
@@ -93,9 +88,7 @@ export function resolveEffectiveWorkspaceAgentConfig(
 	};
 }
 
-export function normalizeWorkspaceRuntimeConfig(
-	value: unknown,
-): AgentWorkspaceRuntimeConfig | null {
+export function normalizeWorkspaceRuntimeConfig(value: unknown): AgentWorkspaceRuntimeConfig | null {
 	if (!value || typeof value !== "object") return null;
 	const maybe = value as Partial<AgentWorkspaceRuntimeConfig>;
 	const chatModel = normalizeOptionalString(maybe.chatModel);
@@ -118,9 +111,7 @@ function normalizeProvider(provider: unknown): AgentProvider {
 	return DEFAULT_AGENT_RUNTIME_CONFIG.provider;
 }
 
-function normalizeWorkspaceConfigMap(
-	value: unknown,
-): Record<string, AgentWorkspaceRuntimeConfig> {
+function normalizeWorkspaceConfigMap(value: unknown): Record<string, AgentWorkspaceRuntimeConfig> {
 	if (!value || typeof value !== "object") return {};
 	const output: Record<string, AgentWorkspaceRuntimeConfig> = {};
 	for (const [rawSpaceId, rawConfig] of Object.entries(value as Record<string, unknown>)) {
@@ -133,9 +124,7 @@ function normalizeWorkspaceConfigMap(
 	return output;
 }
 
-export function normalizeModelCapabilitiesMap(
-	value: unknown,
-): Record<string, AgentModelCapabilities> {
+export function normalizeModelCapabilitiesMap(value: unknown): Record<string, AgentModelCapabilities> {
 	if (!value || typeof value !== "object") return {};
 	const output: Record<string, AgentModelCapabilities> = {};
 	for (const [rawModelName, rawValue] of Object.entries(value as Record<string, unknown>)) {
@@ -148,9 +137,7 @@ export function normalizeModelCapabilitiesMap(
 	return output;
 }
 
-export function normalizeModelCapabilities(
-	value: unknown,
-): AgentModelCapabilities | null {
+export function normalizeModelCapabilities(value: unknown): AgentModelCapabilities | null {
 	if (!value || typeof value !== "object") return null;
 	const maybe = value as Partial<AgentModelCapabilities>;
 	const chat = typeof maybe.chat === "boolean" ? maybe.chat : undefined;
@@ -193,12 +180,7 @@ function normalizeUrl(value: unknown, fallback: string): string {
 	return normalizeString(value, fallback).replace(/\/+$/, "");
 }
 
-function normalizeInteger(
-	value: unknown,
-	fallback: number,
-	minValue: number,
-	maxValue: number,
-): number {
+function normalizeInteger(value: unknown, fallback: number, minValue: number, maxValue: number): number {
 	if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
 	const normalized = Math.round(value);
 	if (normalized < minValue) return minValue;

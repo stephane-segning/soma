@@ -1,7 +1,7 @@
 import { applyRemoteMailboxPolicy } from "@app/lib/document-mailbox";
 import { api } from "@app/store/api";
 import { store } from "@app/store/store";
-import { parseDomainEventPayload, type DomainEventPayload } from "@soma/desktop-db";
+import { type DomainEventPayload, parseDomainEventPayload } from "@soma/desktop-db";
 import { getDraft } from "./documents-service";
 
 type DomainEventHandler = (event: DomainEventPayload) => void;
@@ -9,11 +9,7 @@ type DomainEventHandler = (event: DomainEventPayload) => void;
 function handleDomainEvent(event: DomainEventPayload): void {
 	switch (event.kind) {
 		case "spaces-changed":
-			store.dispatch(
-				api.util.invalidateTags([
-					{ type: "Spaces", id: "LIST" },
-				]),
-			);
+			store.dispatch(api.util.invalidateTags([{ type: "Spaces", id: "LIST" }]));
 			return;
 		case "space-changed":
 			store.dispatch(
@@ -25,18 +21,10 @@ function handleDomainEvent(event: DomainEventPayload): void {
 			);
 			return;
 		case "pages-changed":
-			store.dispatch(
-				api.util.invalidateTags([
-					{ type: "Pages", id: event.spaceId },
-				]),
-			);
+			store.dispatch(api.util.invalidateTags([{ type: "Pages", id: event.spaceId }]));
 			return;
 		case "document-changed":
-			store.dispatch(
-				api.util.invalidateTags([
-					{ type: "Draft", id: `${event.spaceId}:${event.documentId}` },
-				]),
-			);
+			store.dispatch(api.util.invalidateTags([{ type: "Draft", id: `${event.spaceId}:${event.documentId}` }]));
 			if (event.source === "daemon") {
 				void handleRemoteDocumentChanged(event);
 			}
@@ -44,7 +32,9 @@ function handleDomainEvent(event: DomainEventPayload): void {
 	}
 }
 
-async function handleRemoteDocumentChanged(event: Extract<DomainEventPayload, { kind: "document-changed" }>): Promise<void> {
+async function handleRemoteDocumentChanged(
+	event: Extract<DomainEventPayload, { kind: "document-changed" }>,
+): Promise<void> {
 	try {
 		const draft = await getDraft({
 			spaceId: event.spaceId,

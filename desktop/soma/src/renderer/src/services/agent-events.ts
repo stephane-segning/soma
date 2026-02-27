@@ -1,4 +1,4 @@
-import { parseAgentRuntimeEventPayload, type AgentRuntimeEventPayload } from "@soma/desktop-db";
+import { type AgentRuntimeEventPayload, parseAgentRuntimeEventPayload } from "@soma/desktop-db";
 
 export function startAgentEventListener(): () => void {
 	const apiBridge = typeof window !== "undefined" ? (window as any).api : undefined;

@@ -1,5 +1,5 @@
 import { Resizable } from "re-resizable";
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { cn } from "../../utils/cn";
 
 export type DesktopShellProps = {
@@ -27,7 +27,38 @@ export type DesktopShellProps = {
 	initialRightWidth?: number;
 	onLeftResizeStop?: (nextWidth: number) => void;
 	onRightResizeStop?: (nextWidth: number) => void;
+	storageKey?: string;
 };
+
+type PersistedDesktopShellState = {
+	leftOpen?: boolean;
+	rightOpen?: boolean;
+	leftWidth?: number;
+	rightWidth?: number;
+};
+
+const MIN_PANEL_WIDTH = 80;
+const MAX_PANEL_WIDTH = 640;
+
+function normalizePanelWidth(value: unknown, fallback: number): number {
+	if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
+	return Math.min(MAX_PANEL_WIDTH, Math.max(MIN_PANEL_WIDTH, value));
+}
+
+function normalizePanelOpen(value: unknown, fallback: boolean): boolean {
+	return typeof value === "boolean" ? value : fallback;
+}
+
+function readPersistedState(storageKey?: string): PersistedDesktopShellState | null {
+	if (!storageKey || typeof window === "undefined") return null;
+	try {
+		const raw = window.localStorage.getItem(`desktop-shell:${storageKey}`);
+		if (!raw) return null;
+		return JSON.parse(raw) as PersistedDesktopShellState;
+	} catch {
+		return null;
+	}
+}
 
 function ResizeHandle() {
 	const [hover, setHover] = useState(false);
@@ -64,6 +95,7 @@ export function DesktopShell({
 	initialRightWidth = 260,
 	onLeftResizeStop,
 	onRightResizeStop,
+	storageKey,
 	bodyClassName,
 	headerClassName,
 	contentClassName,
@@ -71,10 +103,19 @@ export function DesktopShell({
 	defaultLeftOpen = true,
 	defaultRightOpen = true,
 }: DesktopShellProps) {
-	const [leftOpen, setLeftOpen] = useState(defaultLeftOpen);
-	const [rightOpen, setRightOpen] = useState(defaultRightOpen);
-	const [leftWidth, setLeftWidth] = useState(initialLeftWidth);
-	const [rightWidth, setRightWidth] = useState(initialRightWidth);
+	const initialPersistedState = useMemo(() => readPersistedState(storageKey), [storageKey]);
+	const [leftOpen, setLeftOpen] = useState(() =>
+		normalizePanelOpen(initialPersistedState?.leftOpen, defaultLeftOpen),
+	);
+	const [rightOpen, setRightOpen] = useState(() =>
+		normalizePanelOpen(initialPersistedState?.rightOpen, defaultRightOpen),
+	);
+	const [leftWidth, setLeftWidth] = useState(() =>
+		normalizePanelWidth(initialPersistedState?.leftWidth, initialLeftWidth),
+	);
+	const [rightWidth, setRightWidth] = useState(() =>
+		normalizePanelWidth(initialPersistedState?.rightWidth, initialRightWidth),
+	);
 	const leftContent = useMemo(
 		() => (leftOpen ? leftColumn : null),
 		[leftOpen, leftColumn],
@@ -97,6 +138,31 @@ export function DesktopShell({
 				: null,
 		[header, leftOpen, rightOpen, leftColumn, rightColumn],
 	);
+
+	useEffect(() => {
+		const persisted = readPersistedState(storageKey);
+		setLeftOpen(normalizePanelOpen(persisted?.leftOpen, defaultLeftOpen));
+		setRightOpen(normalizePanelOpen(persisted?.rightOpen, defaultRightOpen));
+		setLeftWidth(normalizePanelWidth(persisted?.leftWidth, initialLeftWidth));
+		setRightWidth(normalizePanelWidth(persisted?.rightWidth, initialRightWidth));
+	}, [defaultLeftOpen, defaultRightOpen, initialLeftWidth, initialRightWidth, storageKey]);
+
+	useEffect(() => {
+		if (!storageKey || typeof window === "undefined") return;
+		try {
+			window.localStorage.setItem(
+				`desktop-shell:${storageKey}`,
+				JSON.stringify({
+					leftOpen,
+					rightOpen,
+					leftWidth,
+					rightWidth,
+				}),
+			);
+		} catch {
+			// Ignore persistence failures (e.g. storage quota / privacy mode).
+		}
+	}, [leftOpen, leftWidth, rightOpen, rightWidth, storageKey]);
 
 	return (
 		<div
@@ -137,7 +203,7 @@ export function DesktopShell({
 									maxWidth={640}
 									minWidth={80}
 									onResizeStop={(_, __, ref) => {
-										const next = ref.offsetWidth;
+										const next = normalizePanelWidth(ref.offsetWidth, leftWidth);
 										setLeftWidth(next);
 										onLeftResizeStop?.(next);
 									}}
@@ -172,7 +238,7 @@ export function DesktopShell({
 									maxWidth={640}
 									minWidth={80}
 									onResizeStop={(_, __, ref) => {
-										const next = ref.offsetWidth;
+										const next = normalizePanelWidth(ref.offsetWidth, rightWidth);
 										setRightWidth(next);
 										onRightResizeStop?.(next);
 									}}

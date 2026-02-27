@@ -1,11 +1,11 @@
+import { uiPreferencesCollection } from "@app/lib/db";
+import { createUiPreferencesRecord, isUiPreferencesRecord, UI_PREFERENCES_RECORD_ID } from "@soma/desktop-db";
 import i18n from "i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 import ChainedBackend, { type ChainedBackendOptions } from "i18next-chained-backend";
 import HttpBackend from "i18next-http-backend";
 import resourcesToBackend from "i18next-resources-to-backend";
 import { initReactI18next } from "react-i18next";
-import { uiPreferencesCollection } from "@app/lib/db";
-import { UI_PREFERENCES_RECORD_ID, createUiPreferencesRecord, isUiPreferencesRecord } from "@soma/desktop-db";
 
 const isDev = import.meta.env.DEV;
 

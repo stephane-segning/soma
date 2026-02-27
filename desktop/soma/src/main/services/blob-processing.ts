@@ -21,10 +21,7 @@ export type BlobZipResult = {
 
 const IMAGE_VARIANT_WIDTHS = [320, 640, 1024];
 
-export async function createImageVariants(
-	fileName: string,
-	buffer: Buffer,
-): Promise<BlobImageVariant[]> {
+export async function createImageVariants(fileName: string, buffer: Buffer): Promise<BlobImageVariant[]> {
 	const variants: BlobImageVariant[] = [];
 
 	try {
@@ -56,10 +53,7 @@ export async function createImageVariants(
 	return variants;
 }
 
-export async function zipFile(
-	fileName: string,
-	buffer: Buffer,
-): Promise<BlobZipResult> {
+export async function zipFile(fileName: string, buffer: Buffer): Promise<BlobZipResult> {
 	const zip = new JSZip();
 	zip.file(fileName, buffer);
 

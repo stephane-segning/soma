@@ -1,6 +1,6 @@
-import { createId } from "@paralleldrive/cuid2";
 import { uploadJobsCollection } from "@app/lib/db";
 import { invoke } from "@app/lib/ipc";
+import { createId } from "@paralleldrive/cuid2";
 import { createUploadJobRecord, isUploadJobRecord, type UploadJobRecord } from "@soma/desktop-db";
 
 type QueueUploadInput = {

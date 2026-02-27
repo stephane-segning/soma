@@ -1,8 +1,5 @@
 import ElectronStore from "electron-store";
-import {
-	AGENT_CONFIG_SETTINGS_KEY,
-	DEFAULT_AGENT_RUNTIME_CONFIG,
-} from "./agent-config";
+import { AGENT_CONFIG_SETTINGS_KEY, DEFAULT_AGENT_RUNTIME_CONFIG } from "./agent-config";
 
 export type WindowState = {
 	bounds?: {

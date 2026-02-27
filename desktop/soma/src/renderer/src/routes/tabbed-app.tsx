@@ -3,11 +3,11 @@ import { useAppDispatch, useAppSelector } from "@app/store/hooks";
 import { store } from "@app/store/store";
 import { createDefaultState, tabsActions, tabsSelectors } from "@app/store/tabs";
 import {
-	ROUTING_RECORD_ID,
-	TABS_RECORD_ID,
 	createRoutingRecord,
 	createTabsRecord,
 	isTabsRecord,
+	ROUTING_RECORD_ID,
+	TABS_RECORD_ID,
 	tabsRecordToSnapshot,
 } from "@soma/desktop-db";
 import { Suspense, useEffect, useMemo } from "react";

@@ -1,7 +1,7 @@
+import { join } from "node:path";
 import type { StageRuntimeConfig } from "@soma/desktop-config";
 import { app } from "electron";
 import { Container } from "inversify";
-import { join } from "node:path";
 import { CommandRegistry } from "./command-registry";
 import { AgentController } from "./controllers/agent-controller";
 import { BlobsController } from "./controllers/blobs-controller";
@@ -38,15 +38,13 @@ export function buildContainer(options: ContainerOptions): Container {
 	container
 		.bind<DaemonClient>(TYPES.DaemonClient)
 		.toDynamicValue(() => new DaemonClient(options.runtimeConfig.daemonSocketPath));
-	container
-		.bind<AgentClient>(TYPES.AgentClient)
-		.toDynamicValue(
-			(ctx) =>
-				new AgentClient(options.runtimeConfig.agentSocketPath, () => {
-					const store = ctx.get<AppDataStore>(TYPES.AppDataStore);
-					return store.settings[AGENT_CONFIG_SETTINGS_KEY];
-				}),
-		);
+	container.bind<AgentClient>(TYPES.AgentClient).toDynamicValue(
+		(ctx) =>
+			new AgentClient(options.runtimeConfig.agentSocketPath, () => {
+				const store = ctx.get<AppDataStore>(TYPES.AppDataStore);
+				return store.settings[AGENT_CONFIG_SETTINGS_KEY];
+			}),
+	);
 
 	container.bind<AppLogger>(TYPES.Logger).toConstantValue(new AppLogger(options));
 	container.bind<AgentEventsService>(TYPES.AgentEvents).toConstantValue(new AgentEventsService());
@@ -61,13 +59,7 @@ export function buildContainer(options: ContainerOptions): Container {
 
 	container
 		.bind<BlobsController>(TYPES.BlobsController)
-		.toDynamicValue(
-			(ctx) =>
-				new BlobsController(
-					ctx.get(TYPES.DaemonClient),
-					ctx.get(TYPES.UploadPayloadStore),
-				),
-		);
+		.toDynamicValue((ctx) => new BlobsController(ctx.get(TYPES.DaemonClient), ctx.get(TYPES.UploadPayloadStore)));
 	container
 		.bind<DocumentsController>(TYPES.DocumentsController)
 		.toDynamicValue((ctx) => new DocumentsController(ctx.get(TYPES.DaemonClient)));

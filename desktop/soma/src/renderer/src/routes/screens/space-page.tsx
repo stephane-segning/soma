@@ -80,10 +80,7 @@ function deriveTitleFromDocument(content: JSONContent | undefined): string {
 	if (!content || !Array.isArray(content.content)) return "Untitled";
 
 	for (const block of content.content) {
-		const firstLine = extractPlainText(block)
-			.split(/\r?\n/, 1)[0]
-			?.replace(/\s+/g, " ")
-			.trim();
+		const firstLine = extractPlainText(block).split(/\r?\n/, 1)[0]?.replace(/\s+/g, " ").trim();
 		if (firstLine) return firstLine.slice(0, 160);
 	}
 

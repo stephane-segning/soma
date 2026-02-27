@@ -44,6 +44,7 @@
 		"@soma/editor": "workspace:*",
 		"@soma/proto": "workspace:*",
 		"@soma/ui": "workspace:*",
+		"@tanstack/react-table": "^8.21.3",
 		"class-variance-authority": "^0.7.1",
 		"electron-store": "^11.0.2",
 		"electron-updater": "^6.7.3",

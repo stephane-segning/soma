@@ -1,3 +1,4 @@
+import { TanstackTable } from "@app/components/tables/tanstack-table";
 import {
 	AGENT_CONFIG_SETTINGS_KEY,
 	type AgentModelCapabilities,
@@ -10,12 +11,14 @@ import {
 } from "@app/lib/agent-config";
 import { useSetSettingMutation, useSettingQuery } from "@app/queries/settings";
 import {
+	type SpaceMember,
 	useJoinSpaceMutation,
 	useMyMembershipsQuery,
 	useRevokeMembershipMutation,
 	useSpacesQuery,
 } from "@app/queries/spaces";
 import { api } from "@app/store/api";
+import type { ColumnDef } from "@tanstack/react-table";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -184,6 +187,122 @@ function Component(): React.JSX.Element {
 			setSpaceMessage(`Failed to leave space: ${message}`);
 		}
 	};
+	const memberships = membershipsQuery.data ?? [];
+	const membershipColumns = useMemo<ColumnDef<SpaceMember>[]>(
+		() => [
+			{
+				header: "Space",
+				cell: ({ row }) => (
+					<span className="font-medium">{spaceNameById.get(row.original.spaceId) ?? row.original.spaceId}</span>
+				),
+			},
+			{
+				header: "Role",
+				cell: ({ row }) => <span className="uppercase">{row.original.role || "unknown"}</span>,
+			},
+			{
+				header: "Expiry",
+				cell: ({ row }) =>
+					row.original.expiresAt > 0 ? new Date(row.original.expiresAt * 1000).toLocaleString() : "No expiry",
+			},
+			{
+				id: "actions",
+				header: "",
+				cell: ({ row }) => (
+					<div className="text-right">
+						<button
+							className="btn btn-error btn-outline btn-xs"
+							disabled={isRevokingMembership}
+							onClick={() => void leaveSpace(row.original.spaceId, row.original.peerId)}
+							type="button"
+						>
+							Quit
+						</button>
+					</div>
+				),
+			},
+		],
+		[isRevokingMembership, leaveSpace, spaceNameById],
+	);
+	const globalCapabilityRows = useMemo(
+		() =>
+			capabilityModels.map((modelName) => ({
+				modelName,
+				caps: draft.modelCapabilities[modelName] ?? {},
+			})),
+		[capabilityModels, draft.modelCapabilities],
+	);
+	const globalCapabilityColumns = useMemo<
+		ColumnDef<{
+			modelName: string;
+			caps: AgentModelCapabilities;
+		}>[]
+	>(
+		() => [
+			{
+				header: "Model",
+				cell: ({ row }) => <span className="font-medium">{row.original.modelName}</span>,
+			},
+			{
+				header: "Chat",
+				cell: ({ row }) => (
+					<input
+						checked={row.original.caps.chat === true}
+						className="checkbox checkbox-sm"
+						onChange={(event) => updateCapability(row.original.modelName, "chat", event.target.checked)}
+						type="checkbox"
+					/>
+				),
+			},
+			{
+				header: "Embed",
+				cell: ({ row }) => (
+					<input
+						checked={row.original.caps.embed === true}
+						className="checkbox checkbox-sm"
+						onChange={(event) => updateCapability(row.original.modelName, "embed", event.target.checked)}
+						type="checkbox"
+					/>
+				),
+			},
+			{
+				header: "Tool",
+				cell: ({ row }) => (
+					<input
+						checked={row.original.caps.tool === true}
+						className="checkbox checkbox-sm"
+						onChange={(event) => updateCapability(row.original.modelName, "tool", event.target.checked)}
+						type="checkbox"
+					/>
+				),
+			},
+			{
+				header: "Image",
+				cell: ({ row }) => (
+					<input
+						checked={row.original.caps.image === true}
+						className="checkbox checkbox-sm"
+						onChange={(event) => updateCapability(row.original.modelName, "image", event.target.checked)}
+						type="checkbox"
+					/>
+				),
+			},
+			{
+				id: "actions",
+				header: "",
+				cell: ({ row }) => (
+					<button
+						className="btn btn-ghost btn-xs"
+						onClick={() => removeCapabilityModel(row.original.modelName)}
+						type="button"
+					>
+						Remove
+					</button>
+				),
+			},
+		],
+		[removeCapabilityModel, updateCapability],
+	);
 
 	return (
 		<div className="space-y-6">
@@ -282,53 +401,14 @@ function Component(): React.JSX.Element {
 						</button>
 					</div>
 
-					<div className="overflow-x-auto rounded-lg border border-base-300">
-						<table className="table-zebra table-sm table">
-							<thead>
-								<tr>
-									<th>Space</th>
-									<th>Role</th>
-									<th>Expiry</th>
-									<th />
-								</tr>
-							</thead>
-							<tbody>
-								{(membershipsQuery.data ?? []).map((membership) => (
-									<tr key={`${membership.spaceId}:${membership.peerId}`}>
-										<td className="font-medium">{spaceNameById.get(membership.spaceId) ?? membership.spaceId}</td>
-										<td className="uppercase">{membership.role || "unknown"}</td>
-										<td>
-											{membership.expiresAt > 0 ? new Date(membership.expiresAt * 1000).toLocaleString() : "No expiry"}
-										</td>
-										<td className="text-right">
-											<button
-												className="btn btn-error btn-outline btn-xs"
-												disabled={isRevokingMembership}
-												onClick={() => void leaveSpace(membership.spaceId, membership.peerId)}
-												type="button"
-											>
-												Quit
-											</button>
-										</td>
-									</tr>
-								))}
-								{!membershipsQuery.isLoading && (membershipsQuery.data?.length ?? 0) === 0 && (
-									<tr>
-										<td className="text-base-content/70" colSpan={4}>
-											No memberships yet.
-										</td>
-									</tr>
-								)}
-								{membershipsQuery.isLoading && (
-									<tr>
-										<td className="text-base-content/70" colSpan={4}>
-											Loading memberships...
-										</td>
-									</tr>
-								)}
-							</tbody>
-						</table>
-					</div>
+					<TanstackTable
+						columns={membershipColumns}
+						data={memberships}
+						emptyMessage="No memberships yet."
+						getRowId={(row) => `${row.spaceId}:${row.peerId}`}
+						isLoading={membershipsQuery.isLoading}
+						loadingMessage="Loading memberships..."
+					/>
 				</div>
 			</div>
 
@@ -449,78 +529,12 @@ function Component(): React.JSX.Element {
 					<p className="text-base-content/70 text-sm">
 						Capabilities are local hints for Soma UI only. They are never pushed to daemon/bot.
 					</p>
-					<div className="overflow-x-auto rounded-lg border border-base-300">
-						<table className="table-zebra table-sm table">
-							<thead>
-								<tr>
-									<th>Model</th>
-									<th>Chat</th>
-									<th>Embed</th>
-									<th>Tool</th>
-									<th>Image</th>
-									<th />
-								</tr>
-							</thead>
-							<tbody>
-								{capabilityModels.map((modelName) => {
-									const caps = draft.modelCapabilities[modelName] ?? {};
-									return (
-										<tr key={modelName}>
-											<td className="font-medium">{modelName}</td>
-											<td>
-												<input
-													checked={caps.chat === true}
-													className="checkbox checkbox-sm"
-													onChange={(event) => updateCapability(modelName, "chat", event.target.checked)}
-													type="checkbox"
-												/>
-											</td>
-											<td>
-												<input
-													checked={caps.embed === true}
-													className="checkbox checkbox-sm"
-													onChange={(event) => updateCapability(modelName, "embed", event.target.checked)}
-													type="checkbox"
-												/>
-											</td>
-											<td>
-												<input
-													checked={caps.tool === true}
-													className="checkbox checkbox-sm"
-													onChange={(event) => updateCapability(modelName, "tool", event.target.checked)}
-													type="checkbox"
-												/>
-											</td>
-											<td>
-												<input
-													checked={caps.image === true}
-													className="checkbox checkbox-sm"
-													onChange={(event) => updateCapability(modelName, "image", event.target.checked)}
-													type="checkbox"
-												/>
-											</td>
-											<td>
-												<button
-													className="btn btn-ghost btn-xs"
-													onClick={() => removeCapabilityModel(modelName)}
-													type="button"
-												>
-													Remove
-												</button>
-											</td>
-										</tr>
-									);
-								})}
-								{capabilityModels.length === 0 && (
-									<tr>
-										<td className="text-base-content/70" colSpan={6}>
-											No capability overrides yet.
-										</td>
-									</tr>
-								)}
-							</tbody>
-						</table>
-					</div>
+					<TanstackTable
+						columns={globalCapabilityColumns}
+						data={globalCapabilityRows}
+						emptyMessage="No capability overrides yet."
+						getRowId={(row) => row.modelName}
+					/>
 					<div className="flex items-center gap-2">
 						<input
 							className="input input-bordered input-sm w-full"

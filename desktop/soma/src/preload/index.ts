@@ -1,6 +1,11 @@
 import { electronAPI } from "@electron-toolkit/preload";
-import { contextBridge, ipcRenderer, type IpcRendererEvent } from "electron";
-import { parseAgentRuntimeEventPayload, parseDomainEventPayload, type AgentRuntimeEventPayload, type DomainEventPayload } from "@soma/desktop-db";
+import {
+	type AgentRuntimeEventPayload,
+	type DomainEventPayload,
+	parseAgentRuntimeEventPayload,
+	parseDomainEventPayload,
+} from "@soma/desktop-db";
+import { contextBridge, type IpcRendererEvent, ipcRenderer } from "electron";
 
 const api = {
 	invoke: (channel: string, args?: unknown) => ipcRenderer.invoke(channel, args),

@@ -1,5 +1,5 @@
-import type { DaemonClient } from "../services/daemon-client";
 import { createImageVariants, zipFile } from "../services/blob-processing";
+import type { DaemonClient } from "../services/daemon-client";
 import type {
 	StageUploadPayloadParams,
 	StageUploadPayloadResult,

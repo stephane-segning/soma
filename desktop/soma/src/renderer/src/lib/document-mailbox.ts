@@ -1,5 +1,11 @@
 import { mailboxCollection } from "@app/lib/db";
-import { createMailboxRecord, isMailboxRecord, mailboxRecordId, mailboxRecordToEntry, type MailboxEntry } from "@soma/desktop-db";
+import {
+	createMailboxRecord,
+	isMailboxRecord,
+	type MailboxEntry,
+	mailboxRecordId,
+	mailboxRecordToEntry,
+} from "@soma/desktop-db";
 
 function mailboxKey(spaceId: string, pageId: string): string {
 	return mailboxRecordId(spaceId, pageId);

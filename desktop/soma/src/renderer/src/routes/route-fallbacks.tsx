@@ -12,10 +12,7 @@ function formatRouteError(error: unknown): { title: string; detail: string } {
 	if (isRouteErrorResponse(error)) {
 		return {
 			title: `${error.status} ${error.statusText || "Route Error"}`.trim(),
-			detail:
-				typeof error.data === "string"
-					? error.data
-					: "The requested route failed to load.",
+			detail: typeof error.data === "string" ? error.data : "The requested route failed to load.",
 		};
 	}
 
@@ -42,11 +39,7 @@ function RouteErrorBoundary(): React.JSX.Element {
 				<h2 className="font-semibold text-lg">{title}</h2>
 				<p className="mt-2 text-base-content/70 text-sm">{detail}</p>
 				<div className="mt-4">
-					<button
-						className="btn btn-error btn-sm"
-						onClick={() => globalThis.location.reload()}
-						type="button"
-					>
+					<button className="btn btn-error btn-sm" onClick={() => globalThis.location.reload()} type="button">
 						Reload page
 					</button>
 				</div>

@@ -6,11 +6,7 @@ import {
 	ModelKind,
 } from "@soma/proto/agent/v1/agent";
 import Long from "long";
-import {
-	type AgentProvider,
-	normalizeAgentRuntimeConfig,
-	resolveWorkspaceAgentConfig,
-} from "./agent-config";
+import { type AgentProvider, normalizeAgentRuntimeConfig, resolveWorkspaceAgentConfig } from "./agent-config";
 
 export type ChatMessage = {
 	role: "system" | "user" | "assistant";
@@ -355,8 +351,7 @@ export class AgentClient {
 			},
 		});
 
-		const content =
-			response.choices?.[0]?.message?.content ?? response.choices?.[0]?.text ?? "";
+		const content = response.choices?.[0]?.message?.content ?? response.choices?.[0]?.text ?? "";
 
 		return {
 			token: content,
@@ -364,9 +359,7 @@ export class AgentClient {
 		};
 	}
 
-	private async listModelsViaOpenAi(
-		config: ReturnType<typeof resolveWorkspaceAgentConfig>,
-	): Promise<AgentModel[]> {
+	private async listModelsViaOpenAi(config: ReturnType<typeof resolveWorkspaceAgentConfig>): Promise<AgentModel[]> {
 		const response = await this.requestJson<{
 			data?: Array<{
 				id?: string;
@@ -379,9 +372,7 @@ export class AgentClient {
 			timeoutMs: config.requestTimeoutMs,
 		});
 
-		const models = (response.data ?? [])
-			.map((model) => model.id?.trim() ?? "")
-			.filter((model) => model.length > 0);
+		const models = (response.data ?? []).map((model) => model.id?.trim() ?? "").filter((model) => model.length > 0);
 
 		return models.map((model) => ({
 			name: model,

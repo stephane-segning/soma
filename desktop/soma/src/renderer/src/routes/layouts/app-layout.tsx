@@ -56,6 +56,7 @@ function Component(): React.JSX.Element {
 						</div>
 					</Suspense>
 				}
+				storageKey="soma.app-layout"
 			>
 				<Outlet />
 			</DesktopShell>
