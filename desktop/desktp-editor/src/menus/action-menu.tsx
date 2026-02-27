@@ -21,11 +21,17 @@ function getEditorView(editor: Editor): Editor["view"] | null {
 	}
 }
 
+function getEditorDom(editor: Editor): HTMLElement | null {
+	const element = editor.options.element;
+	return element instanceof HTMLElement ? element : null;
+}
+
 function findHoveredBlock(
 	view: Editor["view"],
+	editorDom: HTMLElement,
 	event: MouseEvent,
 ): Omit<Extract<MenuState, { show: true }>, "rect"> | null {
-	const editorRect = view.dom.getBoundingClientRect();
+	const editorRect = editorDom.getBoundingClientRect();
 
 	const mouseOverEditor =
 		event.clientX > editorRect.left - LEFT_MARGIN_PX &&
@@ -95,18 +101,21 @@ export function ActionMenu({
 	useEffect(() => {
 		if (!editor) return;
 
+		const editorDom = getEditorDom(editor);
+		if (!editorDom) return;
+
 		const view = getEditorView(editor);
 		if (!view) return;
 
 		const handleMouseMove = (event: MouseEvent) => {
-			const hovered = findHoveredBlock(view, event);
+			const hovered = findHoveredBlock(view, editorDom, event);
 			if (!hovered) {
 				setMenuState({ show: false });
 				return;
 			}
 
 			const nodeRect = hovered.domNode.getBoundingClientRect();
-			const editorRect = view.dom.getBoundingClientRect();
+			const editorRect = editorDom.getBoundingClientRect();
 			const rect = DOMRect.fromRect({
 				x: editorRect.x - 10,
 				y: nodeRect.y,
@@ -122,12 +131,12 @@ export function ActionMenu({
 			setAddMenuOpen(false);
 		};
 
-		view.dom.addEventListener("mousemove", handleMouseMove);
-		view.dom.addEventListener("scroll", handleScroll, true);
+		editorDom.addEventListener("mousemove", handleMouseMove);
+		editorDom.addEventListener("scroll", handleScroll, true);
 
 		return () => {
-			view.dom.removeEventListener("mousemove", handleMouseMove);
-			view.dom.removeEventListener("scroll", handleScroll, true);
+			editorDom.removeEventListener("mousemove", handleMouseMove);
+			editorDom.removeEventListener("scroll", handleScroll, true);
 		};
 	}, [editor]);
 

@@ -187,6 +187,7 @@ export function DocumentEditor({
 	const editor = useEditor({
 		extensions,
 		content: initialContent ?? undefined,
+		immediatelyRender: false,
 		editorProps: {
 			attributes: {
 				class: [

@@ -42,11 +42,8 @@ export type MentionProvider = {
 const navigationKeys = ["ArrowUp", "ArrowDown", "Enter"];
 
 function getEditorDom(editor: Editor): Element | null {
-	try {
-		return editor.view.dom as Element;
-	} catch {
-		return null;
-	}
+	const element = editor.options.element;
+	return element instanceof Element ? element : null;
 }
 
 function MentionList({
@@ -73,7 +70,12 @@ function MentionList({
 	});
 
 	useLayoutEffect(() => {
-		const rect = props.clientRect?.();
+		let rect: DOMRect | null = null;
+		try {
+			rect = props.clientRect?.() ?? null;
+		} catch {
+			rect = null;
+		}
 		if (!rect) return;
 		const contextElement = getEditorDom(props.editor);
 		if (!contextElement) return;
@@ -180,6 +182,7 @@ function renderItems(placeholder?: string) {
 
 	return () => ({
 		onStart: (props: SuggestionProps) => {
+			if (!getEditorDom(props.editor)) return;
 			component = new ReactRenderer(MentionList, {
 				editor: props.editor,
 				props: {
@@ -190,6 +193,18 @@ function renderItems(placeholder?: string) {
 			});
 		},
 		onUpdate: (props: SuggestionProps) => {
+			if (!component) {
+				if (!getEditorDom(props.editor)) return;
+				component = new ReactRenderer(MentionList, {
+					editor: props.editor,
+					props: {
+						...props,
+						props,
+						placeholder,
+					},
+				});
+				return;
+			}
 			component?.updateProps({
 				...props,
 				props,

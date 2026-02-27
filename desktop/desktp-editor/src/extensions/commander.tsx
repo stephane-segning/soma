@@ -31,11 +31,8 @@ const navigationKeys = ["ArrowUp", "ArrowDown", "Enter"];
 const COMMANDER_SUGGESTION_KEY = new PluginKey("commander-suggestion");
 
 function getEditorDom(editor: Editor): Element | null {
-	try {
-		return editor.view.dom as Element;
-	} catch {
-		return null;
-	}
+	const element = editor.options.element;
+	return element instanceof Element ? element : null;
 }
 
 function filterCommands(query: string, commands: EditorCommand[]): EditorCommand[] {
@@ -73,7 +70,12 @@ function CommandList({
 	});
 
 	useLayoutEffect(() => {
-		const rect = props.clientRect?.();
+		let rect: DOMRect | null = null;
+		try {
+			rect = props.clientRect?.() ?? null;
+		} catch {
+			rect = null;
+		}
 		if (!rect) return;
 		const contextElement = getEditorDom(props.editor);
 		if (!contextElement) return;
@@ -174,6 +176,7 @@ function renderItems() {
 
 	return {
 		onStart: (props: SuggestionProps) => {
+			if (!getEditorDom(props.editor)) return;
 			component = new ReactRenderer(CommandList, {
 				editor: props.editor,
 				props: {
@@ -183,6 +186,17 @@ function renderItems() {
 			});
 		},
 		onUpdate: (props: SuggestionProps) => {
+			if (!component) {
+				if (!getEditorDom(props.editor)) return;
+				component = new ReactRenderer(CommandList, {
+					editor: props.editor,
+					props: {
+						...props,
+						props,
+					},
+				});
+				return;
+			}
 			component?.updateProps({
 				...props,
 				props,

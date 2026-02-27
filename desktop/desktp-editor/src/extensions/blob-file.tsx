@@ -1,7 +1,7 @@
 import { createId } from "@paralleldrive/cuid2";
-import { mergeAttributes, Node } from "@tiptap/core";
+import { mergeAttributes, Node, type Editor } from "@tiptap/core";
 import { ReactNodeViewRenderer } from "@tiptap/react";
-import { Plugin, PluginKey } from "@tiptap/pm/state";
+import { Plugin, PluginKey, type Transaction } from "@tiptap/pm/state";
 
 import { BlobFileView } from "../components/blob-file-view";
 
@@ -16,6 +16,17 @@ export type BlobFileUploadResult = {
 type BlobFileOptions = {
 	upload: (file: File) => Promise<BlobFileUploadResult>;
 };
+
+function dispatchIfMounted(editor: Editor, tr: Transaction): void {
+	const element = editor.options.element;
+	if (!(element instanceof HTMLElement)) return;
+	if (editor.isDestroyed) return;
+	try {
+		editor.view.dispatch(tr);
+	} catch {
+		// Ignore uploads completing after unmount.
+	}
+}
 
 function extractNonImageFiles(event: ClipboardEvent | DragEvent): File[] {
 	const dataTransfer = "clipboardData" in event ? event.clipboardData : event.dataTransfer;
@@ -84,7 +95,7 @@ export const BlobFileNode = Node.create<BlobFileOptions>({
 				});
 			});
 
-			if (mutated) editor.view.dispatch(tr);
+			if (mutated) dispatchIfMounted(editor, tr);
 		}
 
 		function insertUploadingNode(at: number | null, file: File): string {
