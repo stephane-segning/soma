@@ -530,7 +530,7 @@ function Component(): React.JSX.Element {
 	}, [data.spaceId]);
 
 	return (
-		<div className="h-full min-h-full px-14">
+		<div className="h-full min-h-full px-14 py-8 md:py-12">
 			<HotkeysProvider initiallyActiveScopes={["rich-text"]}>
 				<ErrorBoundary FallbackComponent={PageEditorFallback} onError={console.error}>
 					<DocumentEditor

@@ -5,11 +5,11 @@ import {
 	useEnsurePageMutation,
 	usePagesQuery,
 	useSetPageParentsMutation,
-	useUpdatePageTitleMutation,
 } from "@app/queries/pages";
 import {
 	DndContext,
 	type DragEndEvent,
+	type DragMoveEvent,
 	PointerSensor,
 	useDraggable,
 	useDroppable,
@@ -18,14 +18,21 @@ import {
 } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { PolymorphButton } from "@soma/ui/components/actions/polymorph-button";
+import { motion } from "motion/react";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ChevronDown, ChevronRight, Edit2, File, MoreVertical, Plus } from "react-feather";
+import { ChevronDown, ChevronRight, Move, Plus } from "react-feather";
 import { Link } from "react-router";
 
 type TreeNode = {
 	page: PageRecord;
 	children: TreeNode[];
+};
+
+type FlatNode = {
+	id: string;
+	parentId: string | null;
+	depth: number;
 };
 
 type Props = {
@@ -34,6 +41,17 @@ type Props = {
 	filterTerm?: string;
 	showNewButton?: boolean;
 };
+
+const MAX_TREE_DEPTH = 8;
+const HORIZONTAL_INDENT_PX = 28;
+
+function moveInArray<T>(items: T[], from: number, to: number): T[] {
+	if (from === to) return items;
+	const next = [...items];
+	const [moved] = next.splice(from, 1);
+	next.splice(to, 0, moved);
+	return next;
+}
 
 function buildTree(pages: PageRecord[]): TreeNode[] {
 	const nodes = new Map<string, TreeNode>();
@@ -45,22 +63,25 @@ function buildTree(pages: PageRecord[]): TreeNode[] {
 	}
 
 	const roots: TreeNode[] = [];
-	for (const node of nodes.values()) {
-		if (!node.page.parentPageIds.length) {
+	for (const page of pages) {
+		const node = nodes.get(page.pageId);
+		if (!node) continue;
+
+		const primaryParentId = page.parentPageIds[0];
+		if (!primaryParentId || primaryParentId === page.pageId) {
 			roots.push(node);
 			continue;
 		}
-		let attached = false;
-		for (const parentId of node.page.parentPageIds) {
-			if (parentId === node.page.pageId) continue;
-			const parent = nodes.get(parentId);
-			if (parent && !parent.children.some((child) => child.page.pageId === node.page.pageId)) {
-				parent.children.push(node);
-				attached = true;
-			}
+
+		const parent = nodes.get(primaryParentId);
+		if (!parent) {
+			roots.push(node);
+			continue;
 		}
-		if (!attached) roots.push(node);
+
+		parent.children.push(node);
 	}
+
 	return roots;
 }
 
@@ -84,104 +105,118 @@ function filterTree(nodes: TreeNode[], term: string): TreeNode[] {
 	return nodes.map((node) => walk(node)).filter(Boolean) as TreeNode[];
 }
 
+function flattenVisibleTree(
+	nodes: TreeNode[],
+	expandedByPageId: Record<string, boolean>,
+	filterActive: boolean,
+	parentId: string | null = null,
+	depth = 0,
+): FlatNode[] {
+	const flat: FlatNode[] = [];
+
+	for (const node of nodes) {
+		flat.push({
+			id: node.page.pageId,
+			parentId,
+			depth,
+		});
+
+		const isExpanded = filterActive || (expandedByPageId[node.page.pageId] ?? true);
+		if (node.children.length > 0 && isExpanded) {
+			flat.push(...flattenVisibleTree(node.children, expandedByPageId, filterActive, node.page.pageId, depth + 1));
+		}
+	}
+
+	return flat;
+}
+
 function PageTree({ spaceId, activePageId, filterTerm = "", showNewButton = true }: Props): React.JSX.Element | null {
 	const { data, isLoading } = usePagesQuery(spaceId);
 	const ensurePage = useEnsurePageMutation();
-	const updatePageTitle = useUpdatePageTitleMutation();
 	const setPageParents = useSetPageParentsMutation();
-	const [editingPageId, setEditingPageId] = useState<string | null>(null);
-	const [titleDraft, setTitleDraft] = useState("");
+	const { createPage } = useCreatePage(spaceId);
+
 	const [activeDragId, setActiveDragId] = useState<string | null>(null);
+	const [dragDeltaX, setDragDeltaX] = useState(0);
 	const [expandedByPageId, setExpandedByPageId] = useState<Record<string, boolean>>({});
+	const [orderedIds, setOrderedIds] = useState<string[]>([]);
 
-	const tree = useMemo(() => buildTree(data ?? []), [data]);
-	const filteredTree = useMemo(() => filterTree(tree, filterTerm), [filterTerm, tree]);
-	const pagesById = useMemo(() => {
-		const map = new Map<string, PageRecord>();
-		for (const page of data ?? []) {
-			map.set(page.pageId, page);
-		}
-		return map;
-	}, [data]);
-
-	const sensors = useSensors(
-		useSensor(PointerSensor, {
-			activationConstraint: {
-				distance: 5,
-			},
-		}),
-	);
+	const filterActive = filterTerm.trim().length > 0;
+	const pages = data ?? [];
 
 	useEffect(() => {
 		setExpandedByPageId((prev) => {
 			const next: Record<string, boolean> = {};
-			for (const page of data ?? []) {
+			for (const page of pages) {
 				next[page.pageId] = prev[page.pageId] ?? true;
 			}
 			return next;
 		});
-	}, [data]);
+	}, [pages]);
 
 	useEffect(() => {
-		setEditingPageId(null);
-		setTitleDraft("");
-	}, [activePageId, spaceId]);
+		setOrderedIds((prev) => {
+			const incoming = pages.map((page) => page.pageId);
+			const incomingSet = new Set(incoming);
+			const kept = prev.filter((id) => incomingSet.has(id));
+			const keptSet = new Set(kept);
+			const missing = incoming.filter((id) => !keptSet.has(id));
+			return [...kept, ...missing];
+		});
+	}, [pages]);
 
-	const handleSubmitTitle = async (page: PageRecord) => {
-		const trimmed = titleDraft.trim();
-		const nextTitle = trimmed || page.title || "Untitled";
-		if (!spaceId) return;
-		if (nextTitle === page.title) {
-			setEditingPageId(null);
-			return;
+	const orderRank = useMemo(() => {
+		const rank = new Map<string, number>();
+		orderedIds.forEach((id, index) => rank.set(id, index));
+		return rank;
+	}, [orderedIds]);
+
+	const orderedPages = useMemo(() => {
+		const fallbackBase = orderRank.size + 10_000;
+		return [...pages].sort((left, right) => {
+			const leftRank = orderRank.get(left.pageId) ?? fallbackBase + left.createdAtMs;
+			const rightRank = orderRank.get(right.pageId) ?? fallbackBase + right.createdAtMs;
+			return leftRank - rightRank;
+		});
+	}, [orderRank, pages]);
+
+	const tree = useMemo(() => buildTree(orderedPages), [orderedPages]);
+	const filteredTree = useMemo(() => filterTree(tree, filterTerm), [filterTerm, tree]);
+	const flatVisible = useMemo(
+		() => flattenVisibleTree(filteredTree, expandedByPageId, filterActive),
+		[expandedByPageId, filterActive, filteredTree],
+	);
+	const flatVisibleById = useMemo(() => {
+		const map = new Map<string, FlatNode>();
+		for (const item of flatVisible) map.set(item.id, item);
+		return map;
+	}, [flatVisible]);
+	const parentById = useMemo(() => {
+		const map = new Map<string, string | null>();
+		for (const page of orderedPages) {
+			map.set(page.pageId, page.parentPageIds[0] ?? null);
 		}
-		try {
-			await updatePageTitle.mutateAsync({
-				spaceId,
-				pageId: page.pageId,
-				title: nextTitle,
-			});
-			setEditingPageId(null);
-		} catch {
-			// Keep the input open on failure so the user can retry.
-		}
-	};
+		return map;
+	}, [orderedPages]);
+
+	const sensors = useSensors(
+		useSensor(PointerSensor, {
+			activationConstraint: {
+				distance: 4,
+			},
+		}),
+	);
 
 	const isDescendantOf = useCallback(
 		(targetId: string, ancestorId: string, seen: Set<string> = new Set()): boolean => {
 			if (targetId === ancestorId) return true;
 			if (seen.has(targetId)) return false;
 			seen.add(targetId);
-			const target = pagesById.get(targetId);
-			if (!target) return false;
-			return target.parentPageIds.some((parentId) => isDescendantOf(parentId, ancestorId, seen));
+			const parentId = parentById.get(targetId);
+			if (!parentId) return false;
+			return isDescendantOf(parentId, ancestorId, seen);
 		},
-		[pagesById],
-	);
-
-	const handleDragEnd = useCallback(
-		(event: DragEndEvent) => {
-			setActiveDragId(null);
-			const activeId = String(event.active.id);
-			const overId = event.over?.id ? String(event.over.id) : null;
-			if (!spaceId) return;
-			if (overId === "__root") {
-				void setPageParents.mutateAsync({
-					spaceId,
-					pageId: activeId,
-					parentPageIds: [],
-				});
-				return;
-			}
-			if (!overId || activeId === overId) return;
-			if (isDescendantOf(overId, activeId)) return;
-			void setPageParents.mutateAsync({
-				spaceId,
-				pageId: activeId,
-				parentPageIds: [overId],
-			});
-		},
-		[isDescendantOf, setPageParents, spaceId],
+		[parentById],
 	);
 
 	const handleToggleExpanded = useCallback((pageId: string) => {
@@ -191,13 +226,98 @@ function PageTree({ spaceId, activePageId, filterTerm = "", showNewButton = true
 		}));
 	}, []);
 
-	const { createPage } = useCreatePage(spaceId);
+	const handleCreateChild = useCallback(
+		async (pageId: string) => {
+			setExpandedByPageId((prev) => ({
+				...prev,
+				[pageId]: true,
+			}));
+			await createPage([pageId]);
+		},
+		[createPage],
+	);
+
+	const handleDragMove = useCallback((event: DragMoveEvent) => {
+		setDragDeltaX(event.delta.x);
+	}, []);
+
+	const handleDragEnd = useCallback(
+		(event: DragEndEvent) => {
+			setActiveDragId(null);
+			setDragDeltaX(0);
+
+			const activeId = String(event.active.id);
+			const overId = event.over?.id ? String(event.over.id) : null;
+			if (!spaceId || !overId) return;
+
+				if (!flatVisibleById.has(activeId)) return;
+
+			const currentParentId = parentById.get(activeId) ?? null;
+			let nextParentId = currentParentId;
+
+			if (overId !== "__root") {
+				const overFlat = flatVisibleById.get(overId);
+				if (!overFlat) return;
+
+				if (Math.abs(event.delta.x) < HORIZONTAL_INDENT_PX) {
+					if (currentParentId === overFlat.parentId) {
+						const activeGlobalIndex = orderedIds.indexOf(activeId);
+						const overGlobalIndex = orderedIds.indexOf(overId);
+						if (activeGlobalIndex >= 0 && overGlobalIndex >= 0 && activeGlobalIndex !== overGlobalIndex) {
+							setOrderedIds((prev) => moveInArray(prev, activeGlobalIndex, overGlobalIndex));
+						}
+					}
+				}
+			}
+
+			if (event.delta.x > HORIZONTAL_INDENT_PX) {
+				const overIndex = overId === "__root" ? flatVisible.length - 1 : flatVisible.findIndex((item) => item.id === overId);
+				const activeIndex = flatVisible.findIndex((item) => item.id === activeId);
+				if (overIndex >= 0 && activeIndex >= 0) {
+					const moved = moveInArray(flatVisible.map((item) => item.id), activeIndex, overIndex);
+					const movedIndex = moved.indexOf(activeId);
+					const candidateParentId = movedIndex > 0 ? moved[movedIndex - 1] : null;
+					if (candidateParentId && !isDescendantOf(candidateParentId, activeId)) {
+						nextParentId = candidateParentId;
+					}
+				}
+			} else if (event.delta.x < -HORIZONTAL_INDENT_PX) {
+				if (currentParentId) {
+					nextParentId = parentById.get(currentParentId) ?? null;
+				} else {
+					nextParentId = null;
+				}
+			} else if (overId === "__root") {
+				nextParentId = null;
+			}
+
+			if (nextParentId === activeId || (nextParentId && isDescendantOf(nextParentId, activeId))) {
+				return;
+			}
+
+			if (nextParentId !== currentParentId) {
+				if (nextParentId) {
+					setExpandedByPageId((prev) => ({
+						...prev,
+						[nextParentId]: true,
+					}));
+				}
+				void setPageParents.mutateAsync({
+					spaceId,
+					pageId: activeId,
+					parentPageIds: nextParentId ? [nextParentId] : [],
+				});
+			}
+		},
+		[flatVisible, flatVisibleById, isDescendantOf, orderedIds, parentById, setPageParents, spaceId],
+	);
 
 	if (!spaceId) return null;
 
 	return (
 		<DndContext
 			onDragEnd={handleDragEnd}
+			onDragMove={handleDragMove}
 			onDragStart={(event) => setActiveDragId(String(event.active.id))}
 			sensors={sensors}
 		>
@@ -213,24 +333,14 @@ function PageTree({ spaceId, activePageId, filterTerm = "", showNewButton = true
 				<PageTreeList
 					activeDragId={activeDragId}
 					activePageId={activePageId}
-					editingPageId={editingPageId}
+					dragDeltaX={dragDeltaX}
 					expandedByPageId={expandedByPageId}
-					filterActive={filterTerm.trim().length > 0}
+					filterActive={filterActive}
+					isCreating={ensurePage.isPending}
 					isLoading={isLoading}
-					isSaving={updatePageTitle.isPending}
-					onCancelEditing={() => {
-						setEditingPageId(null);
-						setTitleDraft("");
-					}}
-					onStartEditing={(page) => {
-						setEditingPageId(page.pageId);
-						setTitleDraft(page.title);
-					}}
-					onSubmitTitle={handleSubmitTitle}
-					onTitleDraftChange={setTitleDraft}
+					onCreateChild={handleCreateChild}
 					onToggleExpanded={handleToggleExpanded}
 					spaceId={spaceId}
-					titleDraft={titleDraft}
 					tree={filteredTree}
 				/>
 			</div>
@@ -242,15 +352,11 @@ function PageTreeList({
 	tree,
 	spaceId,
 	activePageId,
-	editingPageId,
-	titleDraft,
-	onTitleDraftChange,
-	onStartEditing,
-	onSubmitTitle,
-	onCancelEditing,
+	dragDeltaX,
 	onToggleExpanded,
 	expandedByPageId,
-	isSaving,
+	onCreateChild,
+	isCreating,
 	isLoading,
 	activeDragId,
 	filterActive,
@@ -258,15 +364,11 @@ function PageTreeList({
 	tree: TreeNode[];
 	spaceId: string;
 	activePageId?: string;
-	editingPageId: string | null;
-	titleDraft: string;
-	onTitleDraftChange: (title: string) => void;
-	onStartEditing: (page: PageRecord) => void;
-	onSubmitTitle: (page: PageRecord) => void;
-	onCancelEditing: () => void;
+	dragDeltaX: number;
 	onToggleExpanded: (pageId: string) => void;
 	expandedByPageId: Record<string, boolean>;
-	isSaving: boolean;
+	onCreateChild: (pageId: string) => Promise<void>;
+	isCreating: boolean;
 	isLoading: boolean;
 	activeDragId: string | null;
 	filterActive: boolean;
@@ -277,7 +379,7 @@ function PageTreeList({
 
 	return (
 		<ul
-			className={cn("w-full space-y-1", isOver && "rounded-md outline outline-1 outline-primary/40")}
+			className={cn("w-full list-none pl-0", isOver && "rounded-md outline outline-1 outline-primary/40")}
 			ref={setNodeRef}
 		>
 			{isLoading && (
@@ -289,22 +391,18 @@ function PageTreeList({
 				<TreeItem
 					activeDragId={activeDragId}
 					activePageId={activePageId}
-					editingPageId={editingPageId}
+					dragDeltaX={dragDeltaX}
 					expandedByPageId={expandedByPageId}
 					filterActive={filterActive}
-					isSaving={isSaving}
+					isCreating={isCreating}
 					key={node.page.pageId}
 					node={node}
-					onCancelEditing={onCancelEditing}
-					onStartEditing={onStartEditing}
-					onSubmitTitle={onSubmitTitle}
-					onTitleDraftChange={onTitleDraftChange}
+					onCreateChild={onCreateChild}
 					onToggleExpanded={onToggleExpanded}
 					spaceId={spaceId}
-					titleDraft={titleDraft}
 				/>
 			))}
-			{!isLoading && tree.length === 0 && <li className="px-2 py-1.5 text-base-content/60 text-xs">No pages yet</li>}
+			{!isLoading && tree.length === 0 ? <li className="px-2 py-1.5 text-base-content/60 text-xs">No pages yet</li> : null}
 		</ul>
 	);
 }
@@ -313,15 +411,11 @@ function TreeItem({
 	node,
 	spaceId,
 	activePageId,
-	editingPageId,
-	titleDraft,
-	onTitleDraftChange,
-	onStartEditing,
-	onSubmitTitle,
-	onCancelEditing,
+	dragDeltaX,
 	onToggleExpanded,
 	expandedByPageId,
-	isSaving,
+	onCreateChild,
+	isCreating,
 	activeDragId,
 	filterActive,
 	depth = 0,
@@ -329,20 +423,16 @@ function TreeItem({
 	node: TreeNode;
 	spaceId: string;
 	activePageId?: string;
-	editingPageId: string | null;
-	titleDraft: string;
-	onTitleDraftChange: (title: string) => void;
-	onStartEditing: (page: PageRecord) => void;
-	onSubmitTitle: (page: PageRecord) => void;
-	onCancelEditing: () => void;
+	dragDeltaX: number;
 	onToggleExpanded: (pageId: string) => void;
 	expandedByPageId: Record<string, boolean>;
-	isSaving: boolean;
+	onCreateChild: (pageId: string) => Promise<void>;
+	isCreating: boolean;
 	activeDragId: string | null;
 	filterActive: boolean;
 	depth?: number;
 }): React.JSX.Element {
-	if (depth > 8) {
+	if (depth > MAX_TREE_DEPTH) {
 		return (
 			<li className="text-warning text-xs">
 				<Link to={`/spaces/${spaceId}/pages/${node.page.pageId}`}>Loop detected...</Link>
@@ -353,12 +443,9 @@ function TreeItem({
 	const hasChildren = node.children.length > 0;
 	const isExpanded = hasChildren ? filterActive || (expandedByPageId[node.page.pageId] ?? true) : false;
 	const isActive = node.page.pageId === activePageId;
-	const isEditing = node.page.pageId === editingPageId;
 	const isDragging = activeDragId === node.page.pageId;
 
-	const draggable = useDraggable({
-		id: node.page.pageId,
-	});
+	const draggable = useDraggable({ id: node.page.pageId });
 	const { attributes, listeners, setNodeRef: setDragRef, transform } = draggable;
 	const transition = (
 		draggable as {
@@ -380,7 +467,7 @@ function TreeItem({
 	const style = {
 		transform: CSS.Translate.toString(transform),
 		transition,
-		opacity: isDragging ? 0.5 : 1,
+		opacity: isDragging ? 0.52 : 1,
 	};
 
 	const expandButton = hasChildren ? (
@@ -412,110 +499,87 @@ function TreeItem({
 			{...attributes}
 			{...listeners}
 		>
-			<MoreVertical className="size-3.5" />
+			<Move className="size-3.5" />
 		</button>
 	);
 
+	const indentHint = isDragging && dragDeltaX > HORIZONTAL_INDENT_PX ? "ring-1 ring-primary/40" : "";
+	const outdentHint = isDragging && dragDeltaX < -HORIZONTAL_INDENT_PX ? "ring-1 ring-warning/40" : "";
+
 	return (
-		<li className="space-y-1">
-			<div
+		<motion.li className="space-y-0" layout transition={{ type: "spring", stiffness: 460, damping: 38 }}>
+			<motion.div
 				className={cn(
-					"group flex items-center gap-2 rounded-md px-1.5 py-1",
+					"group flex items-center gap-2 rounded-md px-0 py-0 transition-colors duration-150",
 					isOver && "bg-primary/10",
-					isActive && !isEditing && "bg-base-200/70",
+					isActive && "bg-base-200/70",
+					indentHint,
+					outdentHint,
 				)}
+				layout
 				ref={setRefs}
 				style={style}
+				transition={{ type: "spring", stiffness: 460, damping: 38 }}
 			>
 				{expandButton}
 
-				{isEditing ? (
-					<>
-						<span>
-							<File className="size-4 shrink-0 stroke-current" />
-						</span>
-						<input
-							className="input input-xs input-ghost flex-1 truncate"
-							disabled={isSaving}
-							onBlur={() => {
-								void onSubmitTitle(node.page);
-							}}
-							onChange={(event) => onTitleDraftChange(event.target.value)}
-							onKeyDown={async (event) => {
-								if (event.key === "Enter") {
-									event.preventDefault();
-									await onSubmitTitle(node.page);
-								}
-								if (event.key === "Escape") {
-									event.preventDefault();
-									onCancelEditing();
-								}
-							}}
-							value={titleDraft}
-						/>
-					</>
-				) : (
-					<>
+				<Link
+					className={cn("min-w-0 flex-1 truncate text-sm", isActive && "text-primary")}
+					onClick={(event) => {
+						if (activeDragId) event.preventDefault();
+					}}
+					to={`/spaces/${spaceId}/pages/${node.page.pageId}`}
+				>
+					<span className="truncate">{node.page.title || "Untitled"}</span>
+				</Link>
+
+				<div className="flex items-center gap-1">
+					{hasChildren ? (
 						<button
-							aria-label="Rename page"
-							className="relative shrink-0 cursor-pointer"
+							aria-label="Create child page"
+							className="btn btn-ghost btn-xs btn-circle shrink-0 opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100"
+							disabled={isCreating}
 							onClick={(event) => {
 								event.preventDefault();
 								event.stopPropagation();
-								onStartEditing(node.page);
+								void onCreateChild(node.page.pageId);
 							}}
+							onPointerDown={(event) => event.stopPropagation()}
 							type="button"
 						>
-							<span className="transition-opacity group-hover:opacity-0">
-								<File className="size-4 shrink-0 stroke-current" />
-							</span>
-							<span className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
-								<Edit2 className="size-4 shrink-0 stroke-current" />
-							</span>
+							<Plus className="size-3.5" />
 						</button>
+					) : null}
 
-						<Link
-							className={cn("min-w-0 flex-1 truncate text-sm", isActive && "text-primary")}
-							onClick={(event) => {
-								if (activeDragId) {
-									event.preventDefault();
-								}
-							}}
-							to={`/spaces/${spaceId}/pages/${node.page.pageId}`}
-						>
-							<span className="truncate">{node.page.title || "Untitled"}</span>
-						</Link>
-
-						{dragHandle}
-					</>
-				)}
-			</div>
+					{dragHandle}
+				</div>
+			</motion.div>
 
 			{hasChildren && isExpanded ? (
-				<ul className="ml-5 space-y-1 border-base-300/50 border-l pl-2">
+				<motion.ul
+					className="ml-5 list-none space-y-0 border-base-300/50 border-l pl-0"
+					layout
+					transition={{ type: "spring", stiffness: 420, damping: 36 }}
+				>
 					{node.children.map((child) => (
 						<TreeItem
 							activeDragId={activeDragId}
 							activePageId={activePageId}
 							depth={depth + 1}
-							editingPageId={editingPageId}
+							dragDeltaX={dragDeltaX}
 							expandedByPageId={expandedByPageId}
 							filterActive={filterActive}
-							isSaving={isSaving}
+							isCreating={isCreating}
 							key={child.page.pageId}
 							node={child}
-							onCancelEditing={onCancelEditing}
-							onStartEditing={onStartEditing}
-							onSubmitTitle={onSubmitTitle}
-							onTitleDraftChange={onTitleDraftChange}
+							onCreateChild={onCreateChild}
 							onToggleExpanded={onToggleExpanded}
 							spaceId={spaceId}
-							titleDraft={titleDraft}
 						/>
 					))}
-				</ul>
+				</motion.ul>
 			) : null}
-		</li>
+		</motion.li>
 	);
 }
 
