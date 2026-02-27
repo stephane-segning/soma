@@ -414,6 +414,12 @@ This repo intentionally has multiple binaries. Each has a distinct goal and depl
   - Do **not** add new Zustand stores and do **not** reintroduce TanStack Query in Soma; wrap RTK Query hooks in `src/queries/*` if you need app-specific helpers.
   - When adding endpoints, tag data for cache invalidation and expose thin wrappers from `src/queries/*` to keep components simple.
 
+### Renderer resilience
+
+- Prefer Suspense-wrapped routers with a shared loading panel and route-specific error UI; see `desktop/soma/src/renderer/src/routes/route-fallbacks.tsx#L1`, `desktop/soma/src/renderer/src/routes/router.tsx#L1`, and the `Suspense` wrapper in `desktop/soma/src/renderer/src/routes/tabbed-app.tsx#L129`. New `RouteErrorBoundary` handles loader failures with a reload action.
+- Contain editor crashes to the page area: wrap `DocumentEditor` inside an `ErrorBoundary` with `PageEditorFallback` and keep `space-page.tsx#L43` aware of loader errors, while the global `AppErrorBoundary` now uses `errorDetails`/`logError` helpers in `desktop/soma/src/renderer/src/components/app-error-boundary.tsx#L4`.
+- TipTap-heavy interactions must guard against pre-mount DOM access and racey dispatches: `document-editor.tsx#L187` now sets `immediatelyRender: false`, `commander.tsx#L33`, `link-mention.tsx#L44`, and `action-menu.tsx#L16` all gate `ReactRenderer`/event listeners on `editor.options.element`, and `blob-file.tsx#L20` plus `blob-image.tsx#L31` dispatch only when the editor is still mounted.
+
 ### Documentation
 
 - Write docs in Markdown under `docs/src/`.
