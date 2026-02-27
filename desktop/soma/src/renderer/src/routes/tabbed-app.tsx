@@ -10,8 +10,9 @@ import {
 	isTabsRecord,
 	tabsRecordToSnapshot,
 } from "@soma/desktop-db";
-import { useEffect, useMemo } from "react";
+import { Suspense, useEffect, useMemo } from "react";
 import { RouterProvider } from "react-router";
+import { RoutePending } from "./route-fallbacks";
 import { createTabRouter } from "./router";
 
 const routers = new Map<string, ReturnType<typeof createTabRouter>>();
@@ -126,7 +127,9 @@ function TabbedApp(): React.JSX.Element | null {
 	if (!initialized || !activeTab || !router) return null;
 	return (
 		<div className="h-full w-full">
-			<RouterProvider key={activeTab.id} router={router} />
+			<Suspense fallback={<RoutePending />}>
+				<RouterProvider key={activeTab.id} router={router} fallbackElement={<RoutePending />} />
+			</Suspense>
 		</div>
 	);
 }

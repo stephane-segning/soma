@@ -1,7 +1,11 @@
 @use "tailwindcss/index.css";
 @import "highlight.js/styles/github.css";
+
 @source "../../../../../desktp-ui/src";
 @source "../../../../../desktp-editor/src";
+
+@plugin "tailwind-scrollbar";
+@plugin "@tailwindcss/typography";
 
 @plugin "daisyui" {
   themes: cmyk --default,

@@ -41,6 +41,14 @@ export type MentionProvider = {
 
 const navigationKeys = ["ArrowUp", "ArrowDown", "Enter"];
 
+function getEditorDom(editor: Editor): Element | null {
+	try {
+		return editor.view.dom as Element;
+	} catch {
+		return null;
+	}
+}
+
 function MentionList({
 	items,
 	command,
@@ -67,13 +75,15 @@ function MentionList({
 	useLayoutEffect(() => {
 		const rect = props.clientRect?.();
 		if (!rect) return;
+		const contextElement = getEditorDom(props.editor);
+		if (!contextElement) return;
 		const virtualEl: VirtualElement = {
 			getBoundingClientRect: () => rect,
-			contextElement: props.editor.view.dom as Element,
+			contextElement,
 		};
 		refs.setPositionReference(virtualEl);
 		update();
-	}, [props.clientRect, props.editor.view.dom, refs, update]);
+	}, [props.clientRect, props.editor, refs, update]);
 
 	const selectItem = useCallback(
 		(index: number) => {

@@ -9,6 +9,7 @@ import {
 	type MentionProvider,
 } from "@soma/editor";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ErrorBoundary, type FallbackProps } from "react-error-boundary";
 import { HotkeysProvider } from "react-hotkeys-hook";
 import { type LoaderFunctionArgs, useLoaderData } from "react-router";
 import * as documentsService from "../../services/documents-service";
@@ -38,6 +39,24 @@ type PendingPageInsert = {
 		to: number;
 	};
 };
+
+function PageEditorFallback({ error, resetErrorBoundary }: FallbackProps): React.JSX.Element {
+	const detail = error instanceof Error ? error.message : String(error);
+	return (
+		<div className="mx-auto my-8 w-full max-w-4xl rounded-2xl border border-error/30 bg-base-100 p-6 shadow-lg">
+			<h2 className="font-semibold text-lg">Editor crashed</h2>
+			<p className="mt-2 text-base-content/70 text-sm">{detail}</p>
+			<div className="mt-4 flex items-center gap-2">
+				<button className="btn btn-error btn-sm" onClick={resetErrorBoundary} type="button">
+					Retry editor
+				</button>
+				<button className="btn btn-ghost btn-sm" onClick={() => globalThis.location.reload()} type="button">
+					Reload page
+				</button>
+			</div>
+		</div>
+	);
+}
 
 function parseContent(contentJson: string | null): JSONContent | undefined {
 	if (!contentJson) return undefined;
@@ -516,19 +535,21 @@ function Component(): React.JSX.Element {
 	return (
 		<div className="h-full min-h-full px-14">
 			<HotkeysProvider initiallyActiveScopes={["rich-text"]}>
-				<DocumentEditor
-					className="w-full"
-					commands={commands}
-					initialContent={initialValue}
-					key={`${data.spaceId}:${data.pageId}`}
-					mentionProviders={mentionProviders}
-					onChange={handleValueChange}
-					onOpenPageLink={handleOpenPageLink}
-					onRenamePageLink={handleRenamePageLink}
-					placeholder="Start writing..."
-					uploadFile={uploadFile}
-					uploadImage={uploadImage}
-				/>
+				<ErrorBoundary FallbackComponent={PageEditorFallback} onError={console.error}>
+					<DocumentEditor
+						className="w-full"
+						commands={commands}
+						initialContent={initialValue}
+						key={`${data.spaceId}:${data.pageId}`}
+						mentionProviders={mentionProviders}
+						onChange={handleValueChange}
+						onOpenPageLink={handleOpenPageLink}
+						onRenamePageLink={handleRenamePageLink}
+						placeholder="Start writing..."
+						uploadFile={uploadFile}
+						uploadImage={uploadImage}
+					/>
+				</ErrorBoundary>
 				<PageLinkPicker
 					currentPageId={data.pageId}
 					isOpen={isPagePickerOpen}

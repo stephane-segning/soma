@@ -1,9 +1,11 @@
 import type { RouteObject } from "react-router";
 import { createMemoryRouter } from "react-router";
+import { RouteErrorBoundary } from "./route-fallbacks";
 
 const routes: RouteObject[] = [
 	{
 		path: "/",
+		errorElement: <RouteErrorBoundary />,
 		handle: {
 			title: "Soma",
 		},
@@ -69,6 +71,7 @@ const routes: RouteObject[] = [
 					},
 					{
 						path: "pages/:pageId",
+						errorElement: <RouteErrorBoundary />,
 						handle: {
 							title: "Page",
 						},

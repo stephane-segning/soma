@@ -13,11 +13,18 @@ type MenuState =
 
 const LEFT_MARGIN_PX = 45;
 
+function getEditorView(editor: Editor): Editor["view"] | null {
+	try {
+		return editor.view;
+	} catch {
+		return null;
+	}
+}
+
 function findHoveredBlock(
-	editor: Editor,
+	view: Editor["view"],
 	event: MouseEvent,
 ): Omit<Extract<MenuState, { show: true }>, "rect"> | null {
-	const view = editor.view;
 	const editorRect = view.dom.getBoundingClientRect();
 
 	const mouseOverEditor =
@@ -88,10 +95,11 @@ export function ActionMenu({
 	useEffect(() => {
 		if (!editor) return;
 
-		const view = editor.view;
+		const view = getEditorView(editor);
+		if (!view) return;
 
 		const handleMouseMove = (event: MouseEvent) => {
-			const hovered = findHoveredBlock(editor, event);
+			const hovered = findHoveredBlock(view, event);
 			if (!hovered) {
 				setMenuState({ show: false });
 				return;

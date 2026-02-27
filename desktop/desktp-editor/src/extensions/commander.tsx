@@ -30,6 +30,14 @@ type CommanderOptions = {
 const navigationKeys = ["ArrowUp", "ArrowDown", "Enter"];
 const COMMANDER_SUGGESTION_KEY = new PluginKey("commander-suggestion");
 
+function getEditorDom(editor: Editor): Element | null {
+	try {
+		return editor.view.dom as Element;
+	} catch {
+		return null;
+	}
+}
+
 function filterCommands(query: string, commands: EditorCommand[]): EditorCommand[] {
 	if (query.length === 0) return commands;
 	const search = query.toLowerCase();
@@ -67,14 +75,16 @@ function CommandList({
 	useLayoutEffect(() => {
 		const rect = props.clientRect?.();
 		if (!rect) return;
+		const contextElement = getEditorDom(props.editor);
+		if (!contextElement) return;
 
 		const virtualEl: VirtualElement = {
 			getBoundingClientRect: () => rect,
-			contextElement: props.editor.view.dom as Element,
+			contextElement,
 		};
 		refs.setPositionReference(virtualEl);
 		update();
-	}, [props.clientRect, props.editor.view.dom, refs, update]);
+	}, [props.clientRect, props.editor, refs, update]);
 
 	const selectItem = useCallback(
 		(index: number) => {
