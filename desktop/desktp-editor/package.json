@@ -4,36 +4,15 @@
 	"private": true,
 	"type": "module",
 	"description": "Shared TipTap/ProseMirror editor package for Soma desktop apps.",
-	"main": "./dist/index.cjs",
-	"module": "./dist/index.js",
-	"types": "./dist/index.d.ts",
-	"files": [
-		"dist"
-	],
 	"exports": {
-		".": {
-			"types": "./dist/index.d.ts",
-			"import": "./dist/index.js",
-			"require": "./dist/index.cjs"
-		},
-		"./components/*": {
-			"types": "./dist/components/*.d.ts",
-			"import": "./dist/components/*.js",
-			"require": "./dist/components/*.cjs"
-		},
-		"./extensions/*": {
-			"types": "./dist/extensions/*.d.ts",
-			"import": "./dist/extensions/*.js",
-			"require": "./dist/extensions/*.cjs"
-		},
-		"./menus/*": {
-			"types": "./dist/menus/*.d.ts",
-			"import": "./dist/menus/*.js",
-			"require": "./dist/menus/*.cjs"
-		}
+		".": "./src/index.ts",
+		"./commands/*": "./src/commands/*.ts",
+		"./components/*": "./src/components/*.tsx",
+		"./extensions/*": "./src/extensions/*.ts",
+		"./hooks/*": "./src/hooks/*.ts",
+		"./menus/*": "./src/menus/*.tsx"
 	},
 	"scripts": {
-		"build": "tsup",
 		"storybook": "storybook dev -p 6007",
 		"build:storybook": "storybook build",
 		"typecheck": "tsc --noEmit -p tsconfig.json",
@@ -98,7 +77,6 @@
 		"react-router": "^7.13.0",
 		"storybook": "~8",
 		"tailwind-scrollbar": "^4.0.2",
-		"tsup": "^8.5.1",
 		"typescript": "^5.9.3"
 	}
 }

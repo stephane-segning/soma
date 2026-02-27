@@ -1,6 +1,7 @@
 @use "tailwindcss/index.css";
 @import "highlight.js/styles/github.css";
 @source "../../../../../desktp-ui/src";
+@source "../../../../../desktp-editor/src";
 
 @plugin "daisyui" {
   themes: cmyk --default,
@@ -15,6 +16,23 @@
   @apply min-h-[calc(100vh-3em)]
 }
 
+@utility glass-panel {
+  @apply border border-base-300/70 bg-base-100/70 backdrop-blur-xl shadow-2xl;
+}
+
+@utility surface-card {
+  @apply bg-base-100/80 border border-base-300/60 shadow-xl rounded-2xl;
+}
+
+@utility wallpaper-grid {
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    rgba(255, 255, 255, 0.08) 1px,
+    transparent 0
+  );
+  background-size: 32px 32px;
+}
+
 html, body, #root {
   background: transparent !important;
 
@@ -27,6 +45,22 @@ html, body, #root {
 
 * {
   @apply no-scrollbar;
+}
+
+.react-hot-toast {
+  @apply text-sm;
+}
+
+.react-hot-toast .toast-icon {
+  @apply text-base-content;
+}
+
+.react-hot-toast .toast-success {
+  @apply bg-success text-success-content;
+}
+
+.react-hot-toast .toast-error {
+  @apply bg-error text-error-content;
 }
 
 .tab {

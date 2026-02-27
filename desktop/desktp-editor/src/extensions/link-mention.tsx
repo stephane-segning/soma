@@ -15,6 +15,7 @@ import {
 	type SuggestionKeyDownProps,
 	type SuggestionProps,
 } from "@tiptap/suggestion";
+import { PluginKey } from "@tiptap/pm/state";
 import {
 	useCallback,
 	useEffect,
@@ -198,12 +199,14 @@ function renderItems(placeholder?: string) {
 }
 
 export function createLinkMentionExtension(provider: MentionProvider) {
+	const pluginKey = new PluginKey(`mention-suggestion-${provider.name}-${provider.char}`);
 	return Extension.create({
 		name: provider.name,
 		addProseMirrorPlugins() {
 			return [
 				Suggestion({
 					editor: this.editor,
+					pluginKey,
 					char: provider.char,
 					items: ({ query }: { query: string }) => provider.items(query),
 					command: ({

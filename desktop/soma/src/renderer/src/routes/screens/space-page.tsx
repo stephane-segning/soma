@@ -49,6 +49,28 @@ function parseContent(contentJson: string | null): JSONContent | undefined {
 	}
 }
 
+function extractPlainText(node: JSONContent | undefined): string {
+	if (!node) return "";
+	if (node.type === "text" && typeof node.text === "string") return node.text;
+	if (node.type === "hardBreak") return "\n";
+	if (!Array.isArray(node.content) || node.content.length === 0) return "";
+	return node.content.map((child) => extractPlainText(child)).join("");
+}
+
+function deriveTitleFromDocument(content: JSONContent | undefined): string {
+	if (!content || !Array.isArray(content.content)) return "Untitled";
+
+	for (const block of content.content) {
+		const firstLine = extractPlainText(block)
+			.split(/\r?\n/, 1)[0]
+			?.replace(/\s+/g, " ")
+			.trim();
+		if (firstLine) return firstLine.slice(0, 160);
+	}
+
+	return "Untitled";
+}
+
 async function loader({ params }: LoaderFunctionArgs): Promise<LoaderData> {
 	const spaceId = params.spaceId ?? "";
 	const pageId = params.pageId ?? "";
@@ -82,6 +104,7 @@ function Component(): React.JSX.Element {
 	const savingRef = useRef(false);
 	const autosaveTimerRef = useRef<number | null>(null);
 	const pendingPageInsertRef = useRef<PendingPageInsert | null>(null);
+	const syncedTitleRef = useRef<string | null>(null);
 
 	const [isPagePickerOpen, setIsPagePickerOpen] = useState(false);
 
@@ -92,6 +115,7 @@ function Component(): React.JSX.Element {
 			window.clearTimeout(autosaveTimerRef.current);
 			autosaveTimerRef.current = null;
 		}
+		syncedTitleRef.current = null;
 	}, [initialValue]);
 
 	useEffect(() => {
@@ -112,7 +136,20 @@ function Component(): React.JSX.Element {
 			while (dirtyRef.current) {
 				dirtyRef.current = false;
 
-				const contentJson = JSON.stringify(latestValueRef.current ?? null);
+				const latestValue = latestValueRef.current;
+				const nextTitle = deriveTitleFromDocument(latestValue);
+				if (syncedTitleRef.current !== nextTitle) {
+					const updated = await documentsService.updatePageTitle({
+						spaceId: data.spaceId,
+						pageId: data.pageId,
+						title: nextTitle,
+					});
+					if (updated?.title) {
+						syncedTitleRef.current = updated.title;
+					}
+				}
+
+				const contentJson = JSON.stringify(latestValue ?? null);
 				await documentsService.queueDaemonSync({
 					spaceId: data.spaceId,
 					documentId: data.pageId,

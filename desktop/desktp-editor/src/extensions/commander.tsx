@@ -11,6 +11,7 @@ import type { Range } from "@tiptap/core";
 import { Editor, Extension } from "@tiptap/core";
 import { ReactRenderer } from "@tiptap/react";
 import { Suggestion, type SuggestionKeyDownProps, type SuggestionProps } from "@tiptap/suggestion";
+import { PluginKey } from "@tiptap/pm/state";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 export type EditorCommand = {
@@ -27,6 +28,7 @@ type CommanderOptions = {
 };
 
 const navigationKeys = ["ArrowUp", "ArrowDown", "Enter"];
+const COMMANDER_SUGGESTION_KEY = new PluginKey("commander-suggestion");
 
 function filterCommands(query: string, commands: EditorCommand[]): EditorCommand[] {
 	if (query.length === 0) return commands;
@@ -201,8 +203,10 @@ export const CommanderExtension = Extension.create<CommanderOptions>({
 		return [
 			Suggestion({
 				editor: this.editor,
+				pluginKey: COMMANDER_SUGGESTION_KEY,
 				char: "/",
-				items: ({ query }: { query: string }) => filterCommands(query, this.options.commands),
+				items: ({ query }: { query: string }) =>
+					filterCommands(query, this.options.commands),
 				command: async ({
 					editor,
 					range,
@@ -220,4 +224,3 @@ export const CommanderExtension = Extension.create<CommanderOptions>({
 		];
 	},
 });
-

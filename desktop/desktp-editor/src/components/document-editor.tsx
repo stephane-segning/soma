@@ -1,6 +1,6 @@
-import { LimitPercentage } from "@soma/editor/components/limit-percentage.tsx";
-import { useLowlight } from "@soma/editor/hooks/lowlight.ts";
-import { ContextualMenu } from "@soma/editor/menus/contextual-menu.tsx";
+import { LimitPercentage } from "./limit-percentage";
+import { useLowlight } from "../hooks/lowlight";
+import { ContextualMenu } from "../menus/contextual-menu";
 import type { JSONContent } from "@tiptap/core";
 import Blockquote from "@tiptap/extension-blockquote";
 import Bold from "@tiptap/extension-bold";

@@ -7,5 +7,5 @@
 		"moduleResolution": "bundler",
 		"allowSyntheticDefaultImports": true
 	},
-	"include": ["tsup.config.ts", ".storybook/main.ts", ".storybook/preview.tsx"]
+	"include": [".storybook/main.ts", ".storybook/preview.tsx"]
 }

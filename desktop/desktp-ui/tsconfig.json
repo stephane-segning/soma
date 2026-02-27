@@ -24,7 +24,7 @@
 		}
 	},
 	"include": ["src", ".storybook"],
-	"exclude": ["dist", "storybook-static", "node_modules", "tsup.config.ts"],
+	"exclude": ["dist", "storybook-static", "node_modules"],
 	"references": [
 		{
 			"path": "./tsconfig.node.json"
