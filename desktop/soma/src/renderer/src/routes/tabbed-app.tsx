@@ -128,7 +128,7 @@ function TabbedApp(): React.JSX.Element | null {
 	return (
 		<div className="h-full w-full">
 			<Suspense fallback={<RoutePending />}>
-				<RouterProvider key={activeTab.id} router={router} fallbackElement={<RoutePending />} />
+				<RouterProvider key={activeTab.id} router={router} />
 			</Suspense>
 		</div>
 	);
