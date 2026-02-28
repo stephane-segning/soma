@@ -45,6 +45,10 @@ pub struct Args {
     /// Per-request timeout when calling provider endpoints.
     #[arg(long, env = "SOMA_AGENTD_REQUEST_TIMEOUT_MS", default_value_t = 30_000)]
     pub request_timeout_ms: u64,
+
+    /// SQLite path for persisted background tasks.
+    #[arg(long, env = "SOMA_AGENTD_DB_PATH", default_value = "./agentd.db")]
+    pub db_path: PathBuf,
 }
 
 #[derive(Debug, Clone)]
@@ -55,11 +59,16 @@ pub struct AgentdConfig {
     pub default_chat_model: String,
     pub default_embed_model: String,
     pub request_timeout_ms: u64,
+    pub db_path: PathBuf,
 }
 
 impl AgentdConfig {
     pub fn from_args(args: &Args) -> Self {
-        let provider_base_url = args.provider_base_url.trim().trim_end_matches('/').to_string();
+        let provider_base_url = args
+            .provider_base_url
+            .trim()
+            .trim_end_matches('/')
+            .to_string();
         let provider_api_key = args
             .provider_api_key
             .as_deref()
@@ -74,6 +83,7 @@ impl AgentdConfig {
             default_chat_model: args.default_chat_model.clone(),
             default_embed_model: args.default_embed_model.clone(),
             request_timeout_ms: args.request_timeout_ms.max(1_000),
+            db_path: args.db_path.clone(),
         }
     }
 }

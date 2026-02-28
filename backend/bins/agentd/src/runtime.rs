@@ -6,6 +6,7 @@ use tracing::info;
 use crate::config::{AgentdConfig, Args};
 use crate::engine::EngineHandle;
 use crate::grpc::AgentdService;
+use crate::tasks::BackgroundTaskStore;
 use soma_socket::{GrpcUnixServer, GrpcUnixService};
 use tonic::transport::{Server, server::Router as TonicRouter};
 
@@ -15,16 +16,20 @@ pub async fn run_from_cli() -> SomaResult<()> {
 
     let engine =
         EngineHandle::spawn(config.clone()).map_err(|err| soma_core::Error::Anyhow(err.into()))?;
+    let task_store = BackgroundTaskStore::connect(&config.db_path)
+        .await
+        .map_err(|err| soma_core::Error::Anyhow(err.into()))?;
 
     info!(
         socket = %config.socket_path.display(),
+        db_path = %config.db_path.display(),
         provider_base_url = %config.provider_base_url,
         default_chat_model = %config.default_chat_model,
         default_embed_model = %config.default_embed_model,
         "soma-agentd starting"
     );
 
-    let svc = agent::agent_server::AgentServer::new(AgentdService::new(engine));
+    let svc = agent::agent_server::AgentServer::new(AgentdService::new(engine, task_store));
     let service = AgentdGrpcService {
         socket_path: config.socket_path,
         svc,

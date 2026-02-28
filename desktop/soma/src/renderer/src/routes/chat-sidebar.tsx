@@ -5,11 +5,12 @@ import {
 	resolveEffectiveWorkspaceAgentConfig,
 } from "@app/lib/agent-config";
 import { useSettingQuery } from "@app/queries/settings";
+import { listBackgroundTasks } from "@app/services/chat-service";
 import { api } from "@app/store/api";
 import { AiChat } from "@soma/ui/components/chat/ai-chat";
 import { AiConversation } from "@soma/ui/components/chat/ai-conversation";
 import { AiInput } from "@soma/ui/components/forms/ai-input";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router";
 
 function ChatSidebar(): React.JSX.Element {
@@ -75,10 +76,58 @@ function ChatSidebar(): React.JSX.Element {
 		setSelectedModel("");
 	}, [chatModels, selectedModel, effectiveConfig.chatModel]);
 
-	const { visibleMessages, isSending, sendPrompt } = useChatConversation({
+	const { visibleMessages, isSending, sendPrompt, appendMessage } = useChatConversation({
 		model: selectedModel || effectiveConfig.chatModel,
 		spaceId,
 	});
+	const seenTaskIdsBySpaceRef = useRef<Map<string, Set<string>>>(new Map());
+
+	useEffect(() => {
+		if (!spaceId) return;
+		let active = true;
+		const seen = seenTaskIdsBySpaceRef.current.get(spaceId) ?? new Set<string>();
+		seenTaskIdsBySpaceRef.current.set(spaceId, seen);
+
+		const poll = async () => {
+			try {
+				const tasks = await listBackgroundTasks({
+					spaceId,
+					limit: 100,
+				});
+				if (!active) return;
+
+				const pendingMessages = tasks
+					.filter(
+						(task) =>
+							task.kind === "research-selection" &&
+							task.status === "succeeded" &&
+							task.resultText.trim().length > 0 &&
+							!seen.has(task.taskId),
+					)
+					.reverse();
+
+				for (const task of pendingMessages) {
+					seen.add(task.taskId);
+					appendMessage({
+						role: "assistant",
+						content: `Research result:\n\n${task.resultText.trim()}`,
+					});
+				}
+			} catch (error) {
+				console.warn("failed to poll background tasks", error);
+			}
+		};
+
+		void poll();
+		const timer = window.setInterval(() => {
+			void poll();
+		}, 4_000);
+
+		return () => {
+			active = false;
+			window.clearInterval(timer);
+		};
+	}, [appendMessage, spaceId]);
 
 	const handleSend = () => {
 		const prompt = draft.trim();

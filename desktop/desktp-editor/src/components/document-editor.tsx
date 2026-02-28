@@ -1,6 +1,10 @@
 import { LimitPercentage } from "./limit-percentage";
 import { useLowlight } from "../hooks/lowlight";
-import { ContextualMenu } from "../menus/contextual-menu";
+import {
+	ContextualMenu,
+	type QuickActionRequest,
+	type QuickActionResponse,
+} from "../menus/contextual-menu";
 import type { JSONContent } from "@tiptap/core";
 import Blockquote from "@tiptap/extension-blockquote";
 import Bold from "@tiptap/extension-bold";
@@ -64,6 +68,9 @@ export type DocumentEditorProps = {
 	mentionProviders?: MentionProvider[];
 	onChange?: (doc: JSONContent) => void;
 	limit?: number;
+	onQuickAction?: (
+		input: QuickActionRequest,
+	) => Promise<QuickActionResponse>;
 };
 
 export function DocumentEditor({
@@ -78,6 +85,7 @@ export function DocumentEditor({
 	mentionProviders,
 	onChange,
 	limit,
+	onQuickAction,
 }: DocumentEditorProps): React.JSX.Element {
 	const effectiveCommands = commands ?? defaultCommands;
 	const lowlight = useLowlight();
@@ -210,7 +218,9 @@ export function DocumentEditor({
 				<ActionMenu editor={editor} />
 				<EditorContent editor={editor} />
 
-				{editor && <ContextualMenu editor={editor} />}
+				{editor && (
+					<ContextualMenu editor={editor} onQuickAction={onQuickAction} />
+				)}
 				{editor && limit && <LimitPercentage editor={editor} limit={limit} />}
 			</div>
 		</div>

@@ -1,8 +1,11 @@
 import type {
 	AgentClient,
 	AgentModel,
+	BackgroundTask,
 	ChatMessage,
 	ChatOptions,
+	EnqueueBackgroundTaskParams,
+	ListBackgroundTasksParams,
 	RerankParams,
 	RerankResult,
 	ResolveDriftParams,
@@ -27,5 +30,13 @@ export class AgentController {
 
 	resolveDrift(params: ResolveDriftParams): Promise<ResolveDriftResult> {
 		return this.agent.resolveDrift(params);
+	}
+
+	enqueueBackgroundTask(params: EnqueueBackgroundTaskParams): Promise<BackgroundTask> {
+		return this.agent.enqueueBackgroundTask(params);
+	}
+
+	listBackgroundTasks(params: ListBackgroundTasksParams): Promise<BackgroundTask[]> {
+		return this.agent.listBackgroundTasks(params);
 	}
 }

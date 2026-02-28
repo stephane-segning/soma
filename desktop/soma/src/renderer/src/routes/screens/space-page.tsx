@@ -12,6 +12,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ErrorBoundary, type FallbackProps } from "react-error-boundary";
 import { HotkeysProvider } from "react-hotkeys-hook";
 import { type LoaderFunctionArgs, useLoaderData } from "react-router";
+import * as chatService from "../../services/chat-service";
 import * as documentsService from "../../services/documents-service";
 import * as spacesService from "../../services/spaces-service";
 
@@ -529,6 +530,44 @@ function Component(): React.JSX.Element {
 		return [peerMention, spaceMention, pageMention];
 	}, [data.spaceId]);
 
+	const handleQuickAction = useCallback(
+		async ({ action, selectionText }: { action: "explain" | "expand" | "research"; selectionText: string }) => {
+			if (action === "explain") {
+				const content = await chatService.runExplainSelection(selectionText, {
+					spaceId: data.spaceId,
+				});
+				return {
+					status: "done" as const,
+					content,
+				};
+			}
+
+			if (action === "expand") {
+				const content = await chatService.runExpandSelection(selectionText, {
+					spaceId: data.spaceId,
+				});
+				return {
+					status: "done" as const,
+					content,
+				};
+			}
+
+			await chatService.enqueueBackgroundTask({
+				kind: "research-selection",
+				spaceId: data.spaceId,
+				documentId: data.pageId,
+				selectionText,
+				persistInDocument: false,
+			});
+
+			return {
+				status: "queued" as const,
+				message: "Research task queued in agentd.",
+			};
+		},
+		[data.pageId, data.spaceId],
+	);
+
 	return (
 		<div className="h-full min-h-full px-14 py-8 md:py-12">
 			<HotkeysProvider initiallyActiveScopes={["rich-text"]}>
@@ -541,6 +580,7 @@ function Component(): React.JSX.Element {
 						mentionProviders={mentionProviders}
 						onChange={handleValueChange}
 						onOpenPageLink={handleOpenPageLink}
+						onQuickAction={handleQuickAction}
 						onRenamePageLink={handleRenamePageLink}
 						placeholder="Start writing..."
 						uploadFile={uploadFile}

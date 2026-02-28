@@ -5,6 +5,7 @@ mod config;
 mod engine;
 mod grpc;
 mod runtime;
+mod tasks;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;

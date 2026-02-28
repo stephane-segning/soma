@@ -120,6 +120,22 @@ export class CommandRegistry {
 				rightUpdateBase64: params?.rightUpdateBase64 ?? params?.right_update_base64 ?? "",
 			}),
 		);
+		ipc.handle("agent_enqueue_background_task", (_event, params) =>
+			this.agent.enqueueBackgroundTask({
+				kind: params?.kind ?? "research-selection",
+				spaceId: params?.spaceId ?? params?.workspaceId ?? "",
+				documentId: params?.documentId ?? params?.docId ?? "",
+				selectionText: params?.selectionText ?? "",
+				model: params?.model,
+				persistInDocument: params?.persistInDocument ?? false,
+			}),
+		);
+		ipc.handle("agent_list_background_tasks", (_event, params) =>
+			this.agent.listBackgroundTasks({
+				spaceId: params?.spaceId ?? params?.workspaceId,
+				limit: params?.limit ?? 50,
+			}),
+		);
 
 		ipc.handle("search", (_event, params) => this.search.search(params?.query ?? ""));
 

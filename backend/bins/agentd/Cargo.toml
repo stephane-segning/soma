@@ -24,3 +24,5 @@ tokio-stream = { workspace = true }
 yrs = { workspace = true }
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
 serde = { workspace = true, features = ["derive"] }
+sqlx = { workspace = true }
+rand = { workspace = true }

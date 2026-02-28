@@ -4,16 +4,22 @@ use futures::Stream;
 use soma_proto_build::agent;
 use tokio_stream::{StreamExt as TokioStreamExt, wrappers::UnboundedReceiverStream};
 use tonic::{Request, Response, Status};
+use tracing::warn;
 use yrs::{Doc, ReadTxn, StateVector, Transact, Update, updates::decoder::Decode};
 
 use crate::engine::{
     ChatMessage, ChatRequest, EmbedRequest, EngineChatStreamEvent, EngineHandle, EngineStatus,
     ModelKind,
 };
+use crate::tasks::{
+    BackgroundTaskKind as StoreBackgroundTaskKind, BackgroundTaskRecord,
+    BackgroundTaskStatus as StoreBackgroundTaskStatus, BackgroundTaskStore,
+};
 
 #[derive(Debug)]
 pub struct AgentdState {
     pub engine: EngineHandle,
+    pub task_store: BackgroundTaskStore,
 }
 
 #[derive(Clone)]
@@ -22,9 +28,9 @@ pub struct AgentdService {
 }
 
 impl AgentdService {
-    pub fn new(engine: EngineHandle) -> Self {
+    pub fn new(engine: EngineHandle, task_store: BackgroundTaskStore) -> Self {
         Self {
-            state: Arc::new(AgentdState { engine }),
+            state: Arc::new(AgentdState { engine, task_store }),
         }
     }
 
@@ -331,6 +337,88 @@ impl agent::agent_server::Agent for AgentdService {
 
         Ok(Response::new(agent::ResolveDriftResponse { merged_update }))
     }
+
+    async fn enqueue_background_task(
+        &self,
+        request: Request<agent::EnqueueBackgroundTaskRequest>,
+    ) -> Result<Response<agent::EnqueueBackgroundTaskResponse>, Status> {
+        let payload = request.into_inner();
+        let space_id = payload.space_id.trim();
+        let document_id = payload.document_id.trim();
+        let selection_text = payload.selection_text.trim();
+
+        if space_id.is_empty() {
+            return Err(Status::invalid_argument("space_id is required"));
+        }
+        if document_id.is_empty() {
+            return Err(Status::invalid_argument("document_id is required"));
+        }
+        if selection_text.is_empty() {
+            return Err(Status::invalid_argument("selection_text is required"));
+        }
+
+        let kind = proto_kind_to_store(payload.kind)
+            .ok_or_else(|| Status::invalid_argument("invalid background task kind"))?;
+
+        let record = self
+            .state
+            .task_store
+            .enqueue(
+                kind,
+                space_id,
+                document_id,
+                selection_text,
+                payload.persist_in_document,
+            )
+            .await
+            .map_err(|err| Status::internal(err.to_string()))?;
+
+        let model = payload.model.trim();
+        let model = if model.is_empty() {
+            None
+        } else {
+            Some(model.to_string())
+        };
+
+        let task_store = self.state.task_store.clone();
+        let engine = self.state.engine.clone();
+        let task_for_worker = record.clone();
+        tokio::spawn(async move {
+            run_background_task(engine, task_store, task_for_worker, model).await;
+        });
+
+        Ok(Response::new(agent::EnqueueBackgroundTaskResponse {
+            task: Some(map_background_task_record(record)),
+        }))
+    }
+
+    async fn list_background_tasks(
+        &self,
+        request: Request<agent::ListBackgroundTasksRequest>,
+    ) -> Result<Response<agent::ListBackgroundTasksResponse>, Status> {
+        let payload = request.into_inner();
+        let space_id = if payload.space_id.trim().is_empty() {
+            None
+        } else {
+            Some(payload.space_id.trim())
+        };
+        let limit = if payload.limit == 0 {
+            50
+        } else {
+            payload.limit
+        };
+
+        let tasks = self
+            .state
+            .task_store
+            .list(space_id, limit)
+            .await
+            .map_err(|err| Status::internal(err.to_string()))?;
+
+        Ok(Response::new(agent::ListBackgroundTasksResponse {
+            tasks: tasks.into_iter().map(map_background_task_record).collect(),
+        }))
+    }
 }
 
 fn map_model_info(m: crate::engine::ModelInfo) -> agent::ModelInfo {
@@ -344,6 +432,140 @@ fn map_model_info(m: crate::engine::ModelInfo) -> agent::ModelInfo {
         path: m.path,
         loaded: m.loaded,
         size_bytes: m.size_bytes.unwrap_or_default(),
+    }
+}
+
+async fn run_background_task(
+    engine: EngineHandle,
+    task_store: BackgroundTaskStore,
+    task: BackgroundTaskRecord,
+    model: Option<String>,
+) {
+    if let Err(err) = task_store.mark_running(&task.task_id).await {
+        warn!(
+            task_id = %task.task_id,
+            error = %err,
+            "failed to mark background task as running"
+        );
+    }
+
+    let messages =
+        build_background_messages(task.kind, &task.selection_text, task.persist_in_document);
+    let result = engine
+        .chat(ChatRequest {
+            model,
+            messages,
+            temperature: 0.2,
+            max_tokens: 1_200,
+        })
+        .await;
+
+    match result {
+        Ok(content) => {
+            if let Err(err) = task_store
+                .mark_succeeded(&task.task_id, content.trim())
+                .await
+            {
+                warn!(
+                    task_id = %task.task_id,
+                    error = %err,
+                    "failed to mark background task as succeeded"
+                );
+            }
+        }
+        Err(err) => {
+            if let Err(store_err) = task_store
+                .mark_failed(&task.task_id, &err.to_string())
+                .await
+            {
+                warn!(
+                    task_id = %task.task_id,
+                    error = %store_err,
+                    "failed to mark background task as failed"
+                );
+            }
+        }
+    }
+}
+
+fn build_background_messages(
+    kind: StoreBackgroundTaskKind,
+    selection_text: &str,
+    persist_in_document: bool,
+) -> Vec<ChatMessage> {
+    let instruction = match kind {
+        StoreBackgroundTaskKind::ExplainSelection => {
+            "Explain the selected text clearly for a teammate. Be concise and practical."
+        }
+        StoreBackgroundTaskKind::ExpandSelection => {
+            if persist_in_document {
+                "Expand the selected text into richer content that can be inserted directly into the document. Return only the expanded text."
+            } else {
+                "Expand the selected text with more detail and context."
+            }
+        }
+        StoreBackgroundTaskKind::ResearchSelection => {
+            "Research the selected topic. Use search tools if available in your runtime. Return a concise summary plus bullet points and sources when possible."
+        }
+    };
+
+    vec![
+        ChatMessage {
+            role: "system".to_string(),
+            content: instruction.to_string(),
+        },
+        ChatMessage {
+            role: "user".to_string(),
+            content: selection_text.to_string(),
+        },
+    ]
+}
+
+fn map_background_task_record(record: BackgroundTaskRecord) -> agent::BackgroundTask {
+    agent::BackgroundTask {
+        task_id: record.task_id,
+        kind: map_store_kind_to_proto(record.kind) as i32,
+        status: map_store_status_to_proto(record.status) as i32,
+        space_id: record.space_id,
+        document_id: record.document_id,
+        selection_text: record.selection_text,
+        persist_in_document: record.persist_in_document,
+        result_text: record.result_text.unwrap_or_default(),
+        error: record.error.unwrap_or_default(),
+        created_at_ms: record.created_at_ms,
+        updated_at_ms: record.updated_at_ms,
+    }
+}
+
+fn proto_kind_to_store(kind: i32) -> Option<StoreBackgroundTaskKind> {
+    match agent::BackgroundTaskKind::try_from(kind).ok()? {
+        agent::BackgroundTaskKind::ExplainSelection => {
+            Some(StoreBackgroundTaskKind::ExplainSelection)
+        }
+        agent::BackgroundTaskKind::ExpandSelection => {
+            Some(StoreBackgroundTaskKind::ExpandSelection)
+        }
+        agent::BackgroundTaskKind::ResearchSelection => {
+            Some(StoreBackgroundTaskKind::ResearchSelection)
+        }
+        agent::BackgroundTaskKind::Unspecified => None,
+    }
+}
+
+fn map_store_kind_to_proto(kind: StoreBackgroundTaskKind) -> agent::BackgroundTaskKind {
+    match kind {
+        StoreBackgroundTaskKind::ExplainSelection => agent::BackgroundTaskKind::ExplainSelection,
+        StoreBackgroundTaskKind::ExpandSelection => agent::BackgroundTaskKind::ExpandSelection,
+        StoreBackgroundTaskKind::ResearchSelection => agent::BackgroundTaskKind::ResearchSelection,
+    }
+}
+
+fn map_store_status_to_proto(status: StoreBackgroundTaskStatus) -> agent::BackgroundTaskStatus {
+    match status {
+        StoreBackgroundTaskStatus::Queued => agent::BackgroundTaskStatus::Queued,
+        StoreBackgroundTaskStatus::Running => agent::BackgroundTaskStatus::Running,
+        StoreBackgroundTaskStatus::Succeeded => agent::BackgroundTaskStatus::Succeeded,
+        StoreBackgroundTaskStatus::Failed => agent::BackgroundTaskStatus::Failed,
     }
 }
 

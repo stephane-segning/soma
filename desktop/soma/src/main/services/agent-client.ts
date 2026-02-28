@@ -2,6 +2,9 @@ import * as grpc from "@grpc/grpc-js";
 import {
 	type ChatStreamEvent,
 	AgentClient as GrpcAgentClient,
+	type BackgroundTask as ProtoBackgroundTask,
+	BackgroundTaskKind as ProtoBackgroundTaskKind,
+	BackgroundTaskStatus as ProtoBackgroundTaskStatus,
 	type ListModelsResponse,
 	ModelKind,
 } from "@soma/proto/agent/v1/agent";
@@ -89,6 +92,38 @@ export type ResolveDriftResult = {
 	mergedUpdateBase64: string;
 };
 
+export type BackgroundTaskKind = "explain-selection" | "expand-selection" | "research-selection";
+
+export type BackgroundTaskStatus = "queued" | "running" | "succeeded" | "failed" | "unknown";
+
+export type BackgroundTask = {
+	taskId: string;
+	kind: BackgroundTaskKind;
+	status: BackgroundTaskStatus;
+	spaceId: string;
+	documentId: string;
+	selectionText: string;
+	persistInDocument: boolean;
+	resultText: string;
+	error: string;
+	createdAtMs: number;
+	updatedAtMs: number;
+};
+
+export type EnqueueBackgroundTaskParams = {
+	kind: BackgroundTaskKind;
+	spaceId: string;
+	documentId: string;
+	selectionText: string;
+	model?: string;
+	persistInDocument?: boolean;
+};
+
+export type ListBackgroundTasksParams = {
+	spaceId?: string;
+	limit?: number;
+};
+
 export class AgentClient {
 	private client: GrpcAgentClient;
 	private readonly readConfig: () => ReturnType<typeof normalizeAgentRuntimeConfig>;
@@ -137,6 +172,57 @@ export class AgentClient {
 
 	async resolveDrift(params: ResolveDriftParams): Promise<ResolveDriftResult> {
 		return this.resolveDriftViaAgentd(params);
+	}
+
+	async enqueueBackgroundTask(params: EnqueueBackgroundTaskParams): Promise<BackgroundTask> {
+		if (!params.spaceId?.trim()) {
+			throw new Error("spaceId is required");
+		}
+		if (!params.documentId?.trim()) {
+			throw new Error("documentId is required");
+		}
+		if (!params.selectionText?.trim()) {
+			throw new Error("selectionText is required");
+		}
+
+		const response = await new Promise<{ task?: ProtoBackgroundTask }>((resolve, reject) => {
+			this.client.enqueueBackgroundTask(
+				{
+					kind: this.toProtoTaskKind(params.kind),
+					spaceId: params.spaceId,
+					documentId: params.documentId,
+					selectionText: params.selectionText,
+					model: params.model ?? "",
+					persistInDocument: params.persistInDocument ?? false,
+				},
+				(err, result) => {
+					if (err) return reject(err);
+					resolve(result);
+				},
+			);
+		});
+
+		if (!response.task) {
+			throw new Error("agentd did not return the enqueued task");
+		}
+		return this.mapBackgroundTask(response.task);
+	}
+
+	async listBackgroundTasks(params: ListBackgroundTasksParams = {}): Promise<BackgroundTask[]> {
+		const response = await new Promise<{ tasks?: ProtoBackgroundTask[] }>((resolve, reject) => {
+			this.client.listBackgroundTasks(
+				{
+					spaceId: params.spaceId ?? "",
+					limit: params.limit ?? 50,
+				},
+				(err, result) => {
+					if (err) return reject(err);
+					resolve(result);
+				},
+			);
+		});
+
+		return (response.tasks ?? []).map((task) => this.mapBackgroundTask(task));
 	}
 
 	startEventStream(handlers: AgentRuntimeEventHandlers): () => void {
@@ -493,6 +579,60 @@ export class AgentClient {
 		if (kind === ModelKind.MODEL_KIND_CHAT) return "chat";
 		if (kind === ModelKind.MODEL_KIND_EMBED) return "embed";
 		return "unknown";
+	}
+
+	private toProtoTaskKind(kind: BackgroundTaskKind): ProtoBackgroundTaskKind {
+		switch (kind) {
+			case "explain-selection":
+				return ProtoBackgroundTaskKind.BACKGROUND_TASK_KIND_EXPLAIN_SELECTION;
+			case "expand-selection":
+				return ProtoBackgroundTaskKind.BACKGROUND_TASK_KIND_EXPAND_SELECTION;
+			case "research-selection":
+				return ProtoBackgroundTaskKind.BACKGROUND_TASK_KIND_RESEARCH_SELECTION;
+		}
+	}
+
+	private mapBackgroundTask(task: ProtoBackgroundTask): BackgroundTask {
+		return {
+			taskId: task.taskId,
+			kind: this.fromProtoTaskKind(task.kind),
+			status: this.fromProtoTaskStatus(task.status),
+			spaceId: task.spaceId,
+			documentId: task.documentId,
+			selectionText: task.selectionText,
+			persistInDocument: task.persistInDocument,
+			resultText: task.resultText,
+			error: task.error,
+			createdAtMs: Number(task.createdAtMs ?? 0),
+			updatedAtMs: Number(task.updatedAtMs ?? 0),
+		};
+	}
+
+	private fromProtoTaskKind(kind: ProtoBackgroundTaskKind): BackgroundTaskKind {
+		switch (kind) {
+			case ProtoBackgroundTaskKind.BACKGROUND_TASK_KIND_EXPLAIN_SELECTION:
+				return "explain-selection";
+			case ProtoBackgroundTaskKind.BACKGROUND_TASK_KIND_EXPAND_SELECTION:
+				return "expand-selection";
+			case ProtoBackgroundTaskKind.BACKGROUND_TASK_KIND_RESEARCH_SELECTION:
+			default:
+				return "research-selection";
+		}
+	}
+
+	private fromProtoTaskStatus(status: ProtoBackgroundTaskStatus): BackgroundTaskStatus {
+		switch (status) {
+			case ProtoBackgroundTaskStatus.BACKGROUND_TASK_STATUS_QUEUED:
+				return "queued";
+			case ProtoBackgroundTaskStatus.BACKGROUND_TASK_STATUS_RUNNING:
+				return "running";
+			case ProtoBackgroundTaskStatus.BACKGROUND_TASK_STATUS_SUCCEEDED:
+				return "succeeded";
+			case ProtoBackgroundTaskStatus.BACKGROUND_TASK_STATUS_FAILED:
+				return "failed";
+			default:
+				return "unknown";
+		}
 	}
 }
 
