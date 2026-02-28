@@ -1,15 +1,23 @@
-import { DragHandle } from "@tiptap/extension-drag-handle-react";
 import {
 	ContextMenu,
 	type ContextMenuItem,
 } from "@soma/ui/components/overlays/context-menu";
-import { AnimatePresence, motion } from "motion/react";
+import { DragHandle } from "@tiptap/extension-drag-handle-react";
 import type { Editor } from "@tiptap/react";
+import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { Move, Plus } from "react-feather";
+import { Move, Plus, RefreshCw } from "react-feather";
+import {
+	getRotateActionLabel,
+	readBlockKindFromNode,
+	rotateBlock,
+	type BlockKind,
+} from "./block-rotation";
 
 type ActiveNode = {
+	pos: number;
 	insertPos: number;
+	blockKind: BlockKind;
 };
 
 export function ActionMenu({
@@ -18,6 +26,7 @@ export function ActionMenu({
 	editor: Editor | null;
 }): React.JSX.Element | null {
 	const [activeNode, setActiveNode] = useState<ActiveNode | null>(null);
+	const [isDragging, setIsDragging] = useState(false);
 	const [addMenuOpen, setAddMenuOpen] = useState(false);
 	const [addMenuPosition, setAddMenuPosition] = useState({ x: 0, y: 0 });
 	const addButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -25,7 +34,11 @@ export function ActionMenu({
 	const insertAt = useCallback(
 		(content: Record<string, unknown>) => {
 			if (!editor || !activeNode) return;
-			editor.chain().focus().insertContentAt(activeNode.insertPos, content).run();
+			editor
+				.chain()
+				.focus()
+				.insertContentAt(activeNode.insertPos, content)
+				.run();
 		},
 		[activeNode, editor],
 	);
@@ -38,6 +51,12 @@ export function ActionMenu({
 		const rect = button.getBoundingClientRect();
 		setAddMenuPosition({ x: rect.right + 8, y: rect.top });
 		setAddMenuOpen(true);
+	}, [activeNode, editor]);
+
+	const rotateActiveBlock = useCallback(() => {
+		if (!editor || !activeNode) return;
+		editor.chain().focus().setTextSelection(activeNode.pos + 1).run();
+		rotateBlock(editor);
 	}, [activeNode, editor]);
 
 	const addMenuItems = useMemo<ContextMenuItem[]>(
@@ -152,20 +171,29 @@ export function ActionMenu({
 				className="z-40"
 				computePositionConfig={{ placement: "left-start", strategy: "fixed" }}
 				editor={editor}
-				nested
-				onNodeChange={({ node, pos }) => {
-					if (!node || pos < 0) {
-						setActiveNode(null);
-						return;
-					}
-					setActiveNode({ insertPos: pos + node.nodeSize });
+				nested={false}
+				onElementDragStart={() => setIsDragging(true)}
+				onElementDragEnd={() => setIsDragging(false)}
+					onNodeChange={({ node, pos }) => {
+						if (!node || pos < 0) {
+							setActiveNode(null);
+							return;
+						}
+					setActiveNode({
+						pos,
+						insertPos: pos + node.nodeSize,
+						blockKind: readBlockKindFromNode(node),
+					});
 				}}
 			>
 				<AnimatePresence initial={false}>
 					{activeNode ? (
 						<motion.div
 							animate={{ opacity: 1, x: 0, scale: 1 }}
-							className="flex flex-col items-center gap-1 rounded-xl bg-base-100/80 p-1 shadow-lg backdrop-blur-sm"
+							className={[
+								"flex flex-col items-center gap-1 rounded-xl bg-base-100/80 p-1 shadow-lg backdrop-blur-sm",
+								isDragging ? "ring-2 ring-info/60" : "",
+							].join(" ")}
 							exit={{ opacity: 0, x: -6, scale: 0.96 }}
 							initial={{ opacity: 0, x: -8, scale: 0.96 }}
 							transition={{ duration: 0.14 }}
@@ -182,9 +210,22 @@ export function ActionMenu({
 							>
 								<Plus className="size-4" />
 							</button>
+							<button
+								type="button"
+								className="btn btn-soft btn-circle btn-sm"
+								onMouseDown={(event) => {
+									event.preventDefault();
+									event.stopPropagation();
+									rotateActiveBlock();
+								}}
+								title={getRotateActionLabel(activeNode.blockKind)}
+							>
+								<RefreshCw className="size-4" />
+							</button>
 							<div
 								role="toolbar"
 								data-drag-handle
+								draggable
 								className="btn btn-soft btn-circle btn-sm cursor-grab active:cursor-grabbing"
 								title="Drag block"
 							>

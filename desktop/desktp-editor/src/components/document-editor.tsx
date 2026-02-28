@@ -103,12 +103,20 @@ export function DocumentEditor({
 		const DraggableParagraph = Paragraph.extend({ draggable: true });
 		const DraggableHeading = Heading.extend({ draggable: true });
 		const DraggableBlockquote = Blockquote.extend({ draggable: true });
+		const DraggableBulletList = BulletList.extend({ draggable: true });
+		const DraggableOrderedList = OrderedList.extend({ draggable: true });
+		const DraggableTaskList = TaskList.extend({ draggable: true });
+		const DraggableTaskItem = TaskItem.extend({ draggable: true });
 		const DraggableCodeBlock = CodeBlockExtensionFn(lowlight).extend({
 			draggable: true,
 		});
 		const DraggableRule = HorizontalRule.extend({ draggable: true });
 		const CountRule = CharacterCount.configure({
 			limit,
+		});
+		const VisibleDropcursor = Dropcursor.configure({
+			color: "#3b82f6",
+			width: 2,
 		});
 
 		const base = [
@@ -118,11 +126,11 @@ export function DocumentEditor({
 			DraggableParagraph,
 			DraggableHeading.configure({ levels: [1, 2, 3] }),
 			DraggableBlockquote,
-			BulletList,
-			OrderedList,
+			DraggableBulletList,
+			DraggableOrderedList,
 			ListItem,
-			TaskList,
-			TaskItem.configure({ nested: true }),
+			DraggableTaskList,
+			DraggableTaskItem.configure({ nested: true }),
 			DraggableCodeBlock,
 			DraggableRule,
 			PageLinkNode.configure({
@@ -148,7 +156,7 @@ export function DocumentEditor({
 				},
 			}),
 
-			Dropcursor,
+			VisibleDropcursor,
 			Placeholder.configure({ placeholder }),
 
 			CommanderExtension.configure({ commands: effectiveCommands }),

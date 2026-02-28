@@ -326,5 +326,12 @@ async fn prepare_db_path(path: &Path) -> anyhow::Result<()> {
             .await
             .with_context(|| format!("failed to create db dir: {}", parent_dir.display()))?;
     }
+    let _ = tokio::fs::OpenOptions::new()
+        .create(true)
+        .read(true)
+        .write(true)
+        .open(path)
+        .await
+        .with_context(|| format!("failed to open/create sqlite db file: {}", path.display()))?;
     Ok(())
 }

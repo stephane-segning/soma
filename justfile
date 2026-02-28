@@ -16,7 +16,7 @@ run-daemon:
 
 # Run the soma-agentd helper process
 run-agentd:
-    cargo run -p soma-agentd -- --socket-path "/tmp/soma-agentd-dev.sock"
+    export SOMA_DATA_DIR="$PWD/.data" && mkdir -p "$SOMA_DATA_DIR/db" && cargo run -p soma-agentd -- --socket-path "/tmp/soma-agentd-dev.sock" --db-path "$SOMA_DATA_DIR/db/agentd.db"
 
 #
 # Server binaries
