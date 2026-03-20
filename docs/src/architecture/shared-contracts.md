@@ -2,6 +2,8 @@
 
 This document defines the contracts between backend and desktop components. These contracts must remain stable across releases to enable independent development and eventual repo split.
 
+Today, the contract source of truth still lives in this monorepo under `proto/`. Plan 08 Phase 2 work in this repo is about making that boundary explicit and portable before any actual extraction happens.
+
 ## Versioning Policy
 
 - **Current Contract Version**: `v1` (proto packages use `v1` suffix)
@@ -13,6 +15,8 @@ This document defines the contracts between backend and desktop components. Thes
 ### Package Structure
 
 All proto files live in `proto/` at the repository root:
+
+`proto/README.md` is the lightweight handoff document for this boundary.
 
 ```
 proto/
@@ -37,6 +41,8 @@ proto/
 - **Location**: `backend/crates/proto-build/`
 - **Generation**: Prost + Tonic via `build.rs`
 - **Exports**: `daemon::v1`, `agent::v1`, `space::v1`
+- **Default proto root**: workspace `proto/` resolved from `CARGO_MANIFEST_DIR`
+- **Portable override**: `SOMA_PROTO_ROOT=/absolute/path/to/proto cargo build -p soma-proto-build`
 
 #### TypeScript
 
@@ -44,6 +50,19 @@ proto/
 - **Location**: `desktop/desktop-proto/`
 - **Generation**: `ts-proto` via `grpc_tools_node_protoc`
 - **Exports**: `@soma/proto/daemon/*`, `@soma/proto/agent/*`, `@soma/proto/space/*`
+- **Generation entrypoints**: `daemon/v1/daemon.proto`, `agent/v1/agent.proto`, `space/v1/membership.proto`
+- **Portable override**: `SOMA_PROTO_ROOT=/absolute/path/to/proto pnpm --filter @soma/proto run build`
+
+### Contract Generation Boundary
+
+The current monorepo contract boundary is:
+
+- source definitions stay under `proto/`
+- Rust codegen stays under `backend/crates/proto-build`
+- TypeScript codegen stays under `desktop/desktop-proto`
+- consumers import generated packages/modules, not raw `.proto` files
+
+That layout is intentionally kept compatible with a future external contracts repository by avoiding new consumer-side assumptions about the monorepo root.
 
 ### RPC Service Definitions
 
@@ -200,15 +219,62 @@ Extensions:
 
 ### Release Manifest Schema
 
-The packaging CLI outputs a JSON manifest:
+Release discovery is moving toward explicit JSON manifests. Upstream daemon and desktop releases may publish one of these assets on the GitHub Release:
+
+- `daemons-release-manifest.json`
+- `desktop-release-manifest.json`
+- `release-manifest.json` (generic fallback name)
+
+The packaging CLI can also consume a manifest directly from a local file path or URL via `--daemons-manifest` / `--desktop-manifest`.
+
+#### Upstream release manifest (`soma.release-manifest.v1`)
+
+```json
+{
+  "schema_version": "soma.release-manifest.v1",
+  "release_type": "daemons",
+  "version": "0.1.0",
+  "tag": "daemons-v0.1.0",
+  "repo": "digitalcamer/soma-backend",
+  "artifacts": [
+    {
+      "name": "soma-daemon-0.1.0-linux-amd64.tar.gz",
+      "kind": "soma-daemon",
+      "os": "linux",
+      "arch": "amd64",
+      "url": "https://github.com/digitalcamer/soma-backend/releases/download/daemons-v0.1.0/soma-daemon-0.1.0-linux-amd64.tar.gz"
+    }
+  ]
+}
+```
+
+Field expectations:
+
+- `schema_version`: current value `soma.release-manifest.v1`
+- `release_type`: `daemons`, `desktop`, or `bundle`
+- `version`: semantic version or bundle label for the published release
+- `tag`: Git tag backing the release
+- `repo`: canonical source repo in `owner/name` form
+- `artifacts[]`: explicit artifact records with stable `name`, `url`, `os`, and `arch`
+- `artifacts[].kind`: recommended for daemon/bundle artifacts (`soma-daemon`, `soma-agentd`, `deb`, `rpm`, `pkg`, ...)
+- `artifacts[].app`: recommended for desktop artifacts (`soma` or `tapia`)
+
+#### Bundle output manifest
+
+The packaging CLI also writes a bundle-local manifest next to each platform output (`bundle-release-manifest.json`) so downstream automation can see which upstream releases were bundled without scraping logs:
 
 ```json
 {
   "bundle_version": "20250101-120000",
+  "bundle_repo": "digitalcamer/soma",
   "daemons_tag": "daemons-v0.1.0",
   "daemons_version": "0.1.0",
+  "daemons_repo": "digitalcamer/soma-backend",
+  "daemons_manifest": "https://example.com/daemons-release-manifest.json",
   "desktop_tag": "desktop-v1.0.0",
   "desktop_version": "1.0.0",
+  "desktop_repo": "digitalcamer/soma-desktop",
+  "desktop_manifest": "desktop-release-manifest.json",
   "platform_out": "artifacts/bundle/linux-amd64",
   "staging_dir": "artifacts/bundle/linux-amd64/staging",
   "produced": [
@@ -254,10 +320,17 @@ Before splitting the monorepo, ensure:
 - [ ] `proto/` extracted to `soma-contracts` repo
 - [ ] Generated Rust SDK published to crates.io or private registry
 - [ ] Generated TypeScript SDK published to npm or private registry
-- [ ] Release manifest schema documented and versioned
+- [x] Release manifest schema documented and versioned
 - [ ] Socket/runtime conventions documented in a standalone spec
-- [ ] Packaging can consume artifacts from separate GitHub releases
+- [x] Packaging can consume artifacts from separate GitHub releases
 - [ ] CI can validate contracts independently in each repo
+
+### Groundwork Already Landed In-Monorepo
+
+- `proto/README.md` documents the current contract boundary in-place
+- Rust codegen can resolve contracts via `SOMA_PROTO_ROOT`
+- TypeScript codegen can resolve contracts via `SOMA_PROTO_ROOT`
+- TypeScript codegen entrypoints now explicitly include `space/v1/membership.proto`
 
 ## Related Documents
 

@@ -158,3 +158,65 @@ jobs:
             ${{ steps.pkg.outputs.out_dir }}/soma-agentd-${{ needs.prepare.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}.tar.gz
             ${{ steps.pkg.outputs.sums_file }}
             ${{ steps.pkg.outputs.out_dir }}/sbom-daemons-${{ needs.prepare.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}.spdx.json
+
+  publish-manifest:
+    name: Publish release manifest
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Generate daemon release manifest
+        shell: bash
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/daemons/manifest
+          python3 <<'PY'
+          import json
+          import os
+
+          version = os.environ["VERSION"]
+          tag = os.environ["TAG"]
+          repo = os.environ["REPO"]
+          base = f"https://github.com/{repo}/releases/download/{tag}"
+          artifacts = []
+          for os_name in ("linux", "macos"):
+              for arch in ("amd64", "arm64"):
+                  for kind in ("soma-daemon", "soma-agentd"):
+                      name = f"{kind}-{version}-{os_name}-{arch}.tar.gz"
+                      artifacts.append(
+                          {
+                              "name": name,
+                              "kind": kind,
+                              "os": os_name,
+                              "arch": arch,
+                              "url": f"{base}/{name}",
+                          }
+                      )
+          manifest = {
+              "schema_version": "soma.release-manifest.v1",
+              "release_type": "daemons",
+              "version": version,
+              "tag": tag,
+              "repo": repo,
+              "artifacts": artifacts,
+          }
+          with open("artifacts/daemons/manifest/daemons-release-manifest.json", "w", encoding="utf-8") as fh:
+              json.dump(manifest, fh, indent=2)
+              fh.write("\n")
+          PY
+
+      - name: Upload manifest asset
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.prepare.outputs.tag }}
+          files: artifacts/daemons/manifest/daemons-release-manifest.json

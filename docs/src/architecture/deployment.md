@@ -7,6 +7,8 @@ Soma ships as a desktop application plus a small set of cloud services. This pag
 - **Targets** – Linux `.deb` packages (and optional `.AppImage`/`.tar.gz`) plus macOS `.pkg` installers. Windows support would require an alternative IPC transport and is currently out of scope.
 - **Contents** – Soma + Tapia desktop apps (Electron/Chromium) are installed alongside `soma-daemon` (and optionally `soma-agentd`) as separate binaries.
 - **Build tooling** – Electron builds the desktop apps; daemon/agent are built as Rust binaries. The bundle packaging step combines published artifacts into `.deb/.rpm` (Linux) or `.pkg` (macOS).
+- **Release discovery** – daemon and desktop releases can publish explicit `*-release-manifest.json` assets. `desktop/packaging` can consume those manifests directly, or fall back to GitHub release asset discovery when needed.
+- **Cross-repo readiness** – bundle packaging can resolve daemon and desktop artifacts from different GitHub repos with `--daemons-repo` / `--desktop-repo`, which is the intended bridge toward backend/desktop repo separation.
 - **Installation details** – On Linux, packages install systemd unit files; on macOS, packages install launchd plists. Services are not auto-enabled by default; operators/users can enable them if they want the daemon running in the background.
 - **Convenience scripts** – bundle releases also publish `install.sh` / `uninstall.sh` helper scripts that download and install/remove the right package for your OS/arch.
 
@@ -33,7 +35,7 @@ Two lightweight libp2p services run in Kubernetes to help peers discover and con
 ## Release and Operations Workflow
 
 1. Build and sign Soma desktop installers, embedding the matching `soma-daemon` version.
-2. Publish artifacts (GitHub Releases, download portal, or auto-update server).
+2. Publish artifacts (GitHub Releases, download portal, or auto-update server), including release manifests when possible.
 3. Update Helm chart values with new container tags for rendezvous, relays, or hosted bots.
 4. Use `helm upgrade` to roll out infrastructure changes; Kubernetes handles restarts and liveness probes keep pods healthy.
 5. Monitor relay bandwidth/memory and rendezvous registration counts to plan scaling.

@@ -8,6 +8,12 @@
 
 Soma is a local-first collaboration platform built around a desktop daemon, Electron apps, and optional peer/network infrastructure.
 
+The repo is still a monorepo, but the day-to-day tooling is being separated more clearly:
+
+- `backend/` owns Rust builds, tests, and `cargo xtask`
+- `desktop/` owns pnpm workspaces, Electron apps, docs package builds, and packaging
+- the root `justfile` is a convenience delegator, not the source of truth for every workflow
+
 ## What Is Here
 
 - `backend/`: Rust workspace for `soma-daemon`, `soma-botd`, `soma-agentd`, relay/rendezvous services, shared peer/storage crates, and server utilities
@@ -18,6 +24,15 @@ Soma is a local-first collaboration platform built around a desktop daemon, Elec
 - `docs/`: current documentation
 - `planning/`: active plans and migration notes
 
+## Shared Contract Boundary
+
+- `proto/` is the current source-of-truth for cross-runtime contracts
+- Rust consumes those contracts through `backend/crates/proto-build`
+- TypeScript/Electron consumes them through `desktop/desktop-proto` (`@soma/proto`)
+- both generators now support `SOMA_PROTO_ROOT=/absolute/path/to/proto` as split-readiness groundwork
+
+Contract details live in `docs/src/architecture/shared-contracts.md`.
+
 ## Current Runtime Shape
 
 - `soma-daemon` is the main local backend for the desktop app: spaces, memberships, pages, documents, blobs, and peer networking
@@ -27,27 +42,35 @@ Soma is a local-first collaboration platform built around a desktop daemon, Elec
 
 ## Fast Start
 
-Install dependencies from the repo root:
+Install desktop workspace dependencies from the repo root:
 
 ```bash
-pnpm install
+just desktop-install
 ```
 
-Then use the root `justfile` helpers:
+Then use the root `justfile` delegators:
 
 ```bash
-just run-daemon
-just run-agentd
-just run-soma-desktop
+just backend-run-daemon
+just backend-run-agentd
+just desktop-run-soma
 ```
 
 Useful additional commands:
 
-- `just run-botd`
-- `just run-relayd`
-- `just run-rendezvousd`
-- `just test-backend`
-- `just test-desktop-all`
+- `just backend-run-botd`
+- `just backend-run-relayd`
+- `just backend-run-rendezvousd`
+- `just backend-test`
+- `just desktop-test-all`
+- `just docs-build`
+
+If you prefer to work directly in the owning workspace instead of using root shortcuts:
+
+- backend: `cd backend && cargo test`
+- backend CI helpers: `cd backend && cargo xtask --help`
+- desktop: `cd desktop && pnpm --filter soma dev`
+- docs build: `cd desktop && pnpm --filter @soma/docs run build`
 
 For a fuller walkthrough, see `docs/src/getting-started/index.md`.
 
@@ -56,6 +79,7 @@ For a fuller walkthrough, see `docs/src/getting-started/index.md`.
 - `planning/` contains active plans and cutover notes; it is not the canonical documentation surface
 - `docs/` is being narrowed to current, implemented, or finished behavior only
 - the shared desktop config package normalizes stage-specific socket paths such as `/tmp/soma-daemon-dev.sock` and `/tmp/soma-agentd-dev.sock`
+- root task names without the `backend-` or `desktop-` prefix are transitional aliases kept for compatibility while tooling boundaries are clarified
 
 ## Docker Compose
 

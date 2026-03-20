@@ -8,7 +8,7 @@ This document tracks the phased approach to making the monorepo structurally rea
 |-------|--------|-------------|
 | 1. Freeze Interfaces | **In Progress** | Define and document contracts |
 | 2. Extract Contracts | Pending | Move proto to separate package/repo |
-| 3. Decouple Packaging | Pending | Explicit release manifests |
+| 3. Decouple Packaging | In Progress | Explicit release manifests |
 | 4. Split Tooling | Pending | Separate CI/tooling per domain |
 | 5. Repo Split | Pending | Physical split into separate repos |
 
@@ -35,6 +35,17 @@ This document tracks the phased approach to making the monorepo structurally rea
 
 **Goal**: Backend and desktop can consume published contracts without repo-relative generation.
 
+### In-Monorepo Groundwork
+
+Before the repo split, the monorepo should first behave as if contracts could live elsewhere. That groundwork is intentionally small and non-destructive:
+
+- standardize `proto/` as the only source-of-truth contract root
+- document Rust and TypeScript codegen entrypoints and outputs
+- allow generators to target an alternate proto checkout via `SOMA_PROTO_ROOT`
+- remove accidental path drift in consumer configs where practical
+
+This groundwork can be complete before any new `soma-contracts` repository exists.
+
 ### Tasks
 
 1. **Create `soma-contracts` repository**
@@ -58,6 +69,9 @@ This document tracks the phased approach to making the monorepo structurally rea
 
 ### Checklist
 
+- [x] Document current contract boundary and generation paths
+- [x] Add portable proto-root overrides for Rust and TypeScript codegen
+- [x] Include `space/v1/membership.proto` in the TypeScript generation entrypoint set
 - [ ] `soma-contracts` repo created
 - [ ] Proto files moved to contracts repo
 - [ ] Rust SDK published and consumed by backend
@@ -96,12 +110,16 @@ The packaging CLI (`desktop/packaging`) currently:
    - Packaging consumes manifests instead of scraping tags
 
 2. **Cross-repo artifact discovery**
-   - Packaging accepts `--daemons-repo` and `--desktop-repo` flags
-   - Downloads artifacts from specified repos via GitHub API
+    - Packaging accepts `--daemons-repo` and `--desktop-repo` flags
+    - Downloads artifacts from specified repos via GitHub API
 
-3. **Standalone template package**
-   - Templates extracted to `@soma/packaging-templates` (optional)
-   - Or templates remain in packaging repo
+3. **Manifest-first release discovery**
+   - Packaging accepts `--daemons-manifest` and `--desktop-manifest`
+   - If no explicit manifest is passed, packaging prefers release-published manifest assets before falling back to legacy asset-name matching
+
+4. **Standalone template package**
+    - Templates extracted to `@soma/packaging-templates` (optional)
+    - Or templates remain in packaging repo
 
 ### Manifest Schema
 
@@ -123,11 +141,25 @@ The packaging CLI (`desktop/packaging`) currently:
 
 ### Checklist
 
-- [ ] Release manifest schema defined
-- [ ] Daemons release workflow publishes manifest
-- [ ] Desktop release workflow publishes manifest
-- [ ] Packaging CLI accepts cross-repo flags
-- [ ] Packaging CLI consumes manifests
+- [x] Release manifest schema defined
+- [x] Daemons release workflow publishes manifest
+- [x] Desktop release workflow publishes manifest
+- [x] Packaging CLI accepts cross-repo flags
+- [x] Packaging CLI consumes manifests
+
+### Groundwork Landed
+
+- `desktop/packaging` now accepts split-source flags: `--daemons-repo`, `--desktop-repo`, `--daemons-manifest`, and `--desktop-manifest`.
+- Release discovery still supports current `daemons-v*` / `desktop-v*` tags, but it now prefers explicit manifest assets when present.
+- `release-daemons.yml` and `release-desktop.yml` publish deterministic `*-release-manifest.json` assets.
+- `release.yml` and `.github/actions/build-release-bundle/action.yml` forward the new repo/manifest inputs into the packaging CLI.
+- Bundle outputs now include `bundle-release-manifest.json` so downstream automation can inspect upstream provenance.
+
+### Remaining Follow-up
+
+- Stop defaulting bundle release metadata (`docs_url`, homepage assumptions, install helper links) to a single monorepo GitHub Pages site.
+- Teach any future split repos to publish checksums/signatures directly in the manifest instead of requiring asset-name conventions.
+- Decide whether templates stay in-tree or move to a standalone `@soma/packaging-templates` package.
 
 ## Phase 4: Split Tooling and CI
 

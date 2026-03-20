@@ -41,7 +41,7 @@ Proto:
 
 TypeScript/Electron consumers use:
 
-- `desktop/desktp-proto` as `@soma/proto`
+- `desktop/desktop-proto` as `@soma/proto`
 
 Key RPCs currently exposed by `soma-agentd` include:
 

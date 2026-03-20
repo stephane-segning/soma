@@ -49,11 +49,52 @@ type ReleaseBundleArgs = {
   daemonsVersion?: string;
   desktopVersion?: string;
   repo?: string;
+  daemonsRepo?: string;
+  desktopRepo?: string;
+  daemonsManifest?: string;
+  desktopManifest?: string;
   token?: string;
   dockerImages?: string;
   installPrefix: string;
   templates: string;
   repoRoot?: string;
+};
+
+type ReleaseKind = "daemons" | "desktop";
+
+type ReleaseManifest = {
+  schema_version?: string;
+  release_type: ReleaseKind | "bundle";
+  version: string;
+  tag: string;
+  repo?: string;
+  artifacts: ReleaseManifestArtifact[];
+  source_releases?: Array<{
+    release_type: ReleaseKind;
+    repo: string;
+    tag: string;
+    version: string;
+    manifest: string | null;
+  }>;
+};
+
+type ReleaseManifestArtifact = {
+  name: string;
+  url: string;
+  os?: string;
+  arch?: string;
+  kind?: string;
+  app?: string;
+  sha256?: string;
+};
+
+type ResolvedReleaseSource = {
+  repo: string;
+  tag: string;
+  version: string;
+  manifest: ReleaseManifest | null;
+  manifestSource: string | null;
+  assets: GithubReleaseAsset[];
 };
 
 async function main() {
@@ -103,7 +144,23 @@ async function main() {
             type: "string",
           })
           .option("repo", {
-            describe: "GitHub repo (owner/name)",
+            describe: "Bundle release repo (owner/name); also the default source repo",
+            type: "string",
+          })
+          .option("daemons-repo", {
+            describe: "GitHub repo that publishes daemon assets/manifests",
+            type: "string",
+          })
+          .option("desktop-repo", {
+            describe: "GitHub repo that publishes desktop assets/manifests",
+            type: "string",
+          })
+          .option("daemons-manifest", {
+            describe: "Daemon release manifest path or URL",
+            type: "string",
+          })
+          .option("desktop-manifest", {
+            describe: "Desktop release manifest path or URL",
             type: "string",
           })
           .option("token", {
@@ -298,6 +355,10 @@ async function runBundle(args: BundleArgs) {
     docsUrl,
     dockerImages: args.dockerImages,
     repo,
+    daemonsRepo: repo,
+    daemonsTag: `local-daemons-${daemonsVersion}`,
+    desktopRepo: repo,
+    desktopTag: `local-desktop-${desktopVersion}`,
   });
 
   const rendered = await renderTemplates(templateRoot, staging, templateCtx);
@@ -359,32 +420,41 @@ async function runReleaseBundle(args: ReleaseBundleArgs) {
       ? args.bundleVersion.trim()
       : currentTimestampLabel();
 
-  const { tag: daemonsTag, version: daemonsVersion } =
-    args.daemonsVersion && args.daemonsVersion.trim().length > 0
-      ? {
-          tag: `daemons-v${args.daemonsVersion.trim()}`,
-          version: args.daemonsVersion.trim(),
-        }
-      : await resolveLatestReleaseTag(repo, "daemons-v", token);
+  const daemonsRepo = args.daemonsRepo?.trim() || repo;
+  const desktopRepo = args.desktopRepo?.trim() || repo;
 
-  const { tag: desktopTag, version: desktopVersion } =
-    args.desktopVersion && args.desktopVersion.trim().length > 0
-      ? {
-          tag: `desktop-v${args.desktopVersion.trim()}`,
-          version: args.desktopVersion.trim(),
-        }
-      : await resolveLatestReleaseTag(repo, "desktop-v", token);
+  const daemonsSource = await resolveReleaseSource({
+    releaseKind: "daemons",
+    repo: daemonsRepo,
+    versionOverride: args.daemonsVersion?.trim() || null,
+    manifestLocation: args.daemonsManifest?.trim() || null,
+    tagPrefix: "daemons-v",
+    repoRoot,
+    token,
+  });
+
+  const desktopSource = await resolveReleaseSource({
+    releaseKind: "desktop",
+    repo: desktopRepo,
+    versionOverride: args.desktopVersion?.trim() || null,
+    manifestLocation: args.desktopManifest?.trim() || null,
+    tagPrefix: "desktop-v",
+    repoRoot,
+    token,
+  });
+
+  const daemonsTag = daemonsSource.tag;
+  const daemonsVersion = daemonsSource.version;
+  const desktopTag = desktopSource.tag;
+  const desktopVersion = desktopSource.version;
 
   logInfo(
     `Using daemons=${daemonsTag} desktop=${desktopTag} bundle_version=${bundleVersion}`
   );
-
-  const daemonsRelease = await fetchReleaseByTag(repo, daemonsTag, token);
-  const desktopRelease = await fetchReleaseByTag(repo, desktopTag, token);
   logInfo(
     `Release assets: daemons=${assetNames(
-      daemonsRelease.assets
-    )} desktop=${assetNames(desktopRelease.assets)}`
+      daemonsSource.assets
+    )} desktop=${assetNames(desktopSource.assets)}`
   );
 
   const {
@@ -392,20 +462,20 @@ async function runReleaseBundle(args: ReleaseBundleArgs) {
     agentAsset,
     resolvedArch,
   } = resolveDaemonAssets(
-    daemonsRelease.assets,
+    daemonsSource.assets,
     daemonsVersion,
     args.os,
     args.arch
   );
   const somaDesktopAsset = resolveDesktopAsset(
-    desktopRelease.assets,
+    desktopSource.assets,
     "soma",
     desktopVersion,
     args.os,
     resolvedArch
   );
   const tapiaDesktopAsset = resolveDesktopAsset(
-    desktopRelease.assets,
+    desktopSource.assets,
     "tapia",
     desktopVersion,
     args.os,
@@ -445,6 +515,12 @@ async function runReleaseBundle(args: ReleaseBundleArgs) {
     docsUrl: pagesUrl,
     dockerImages: args.dockerImages,
     repo,
+    daemonsRepo: daemonsSource.repo,
+    daemonsTag: daemonsSource.tag,
+    desktopRepo: desktopSource.repo,
+    desktopTag: desktopSource.tag,
+    daemonsManifestSource: daemonsSource.manifestSource,
+    desktopManifestSource: desktopSource.manifestSource,
   });
 
   const rendered = await renderTemplates(templateRoot, staging, templateCtx);
@@ -486,10 +562,15 @@ async function runReleaseBundle(args: ReleaseBundleArgs) {
 
   const outputs = {
     bundle_version: bundleVersion,
+    bundle_repo: repo,
     daemons_tag: daemonsTag,
     daemons_version: daemonsVersion,
+    daemons_repo: daemonsSource.repo,
+    daemons_manifest: daemonsSource.manifestSource,
     desktop_tag: desktopTag,
     desktop_version: desktopVersion,
+    desktop_repo: desktopSource.repo,
+    desktop_manifest: desktopSource.manifestSource,
     platform_out: platformOut,
     staging_dir: staging,
     produced,
@@ -499,15 +580,31 @@ async function runReleaseBundle(args: ReleaseBundleArgs) {
   const outputsPath = path.join(platformOut, "outputs.json");
   await fse.ensureDir(path.dirname(outputsPath));
   await fs.writeFile(outputsPath, JSON.stringify(outputs, null, 2), "utf8");
+  const bundleManifestPath = path.join(platformOut, "bundle-release-manifest.json");
+  await fs.writeFile(
+    bundleManifestPath,
+    JSON.stringify(
+      buildBundleReleaseManifest({
+        bundleVersion,
+        repo,
+        daemonsSource,
+        desktopSource,
+        produced,
+      }),
+      null,
+      2
+    ),
+    "utf8"
+  );
   console.log(JSON.stringify(outputs));
 }
 
 async function findRepoRoot(startDir: string) {
   let current = path.resolve(startDir);
   while (true) {
-    const cargo = path.join(current, "Cargo.toml");
-    const workspace = path.join(current, "pnpm-workspace.yaml");
-    if ((await pathExists(cargo)) && (await pathExists(workspace))) {
+    const pnpmWorkspace = path.join(current, "pnpm-workspace.yaml");
+    const packagingPackage = path.join(current, "desktop", "packaging", "package.json");
+    if ((await pathExists(pnpmWorkspace)) || (await pathExists(packagingPackage))) {
       return current;
     }
     const parent = path.dirname(current);
@@ -604,6 +701,12 @@ function buildTemplateContext(options: {
   docsUrl: string;
   dockerImages?: string;
   repo: string;
+  daemonsRepo?: string;
+  daemonsTag?: string;
+  desktopRepo?: string;
+  desktopTag?: string;
+  daemonsManifestSource?: string | null;
+  desktopManifestSource?: string | null;
 }) {
   return {
     name: options.name,
@@ -621,6 +724,12 @@ function buildTemplateContext(options: {
       ? options.dockerImages
       : "None specified.",
     repo: options.repo,
+    daemons_repo: options.daemonsRepo || options.repo,
+    daemons_tag: options.daemonsTag || `daemons-v${options.version}`,
+    desktop_repo: options.desktopRepo || options.repo,
+    desktop_tag: options.desktopTag || `desktop-v${options.desktopVersion}`,
+    daemons_manifest_source: options.daemonsManifestSource || "not used",
+    desktop_manifest_source: options.desktopManifestSource || "not used",
   };
 }
 
@@ -742,6 +851,133 @@ type GithubReleaseAsset = {
   url: string;
 };
 
+async function resolveReleaseSource(options: {
+  releaseKind: ReleaseKind;
+  repo: string;
+  versionOverride: string | null;
+  manifestLocation: string | null;
+  tagPrefix: string;
+  repoRoot: string;
+  token: string;
+}): Promise<ResolvedReleaseSource> {
+  if (options.manifestLocation) {
+    const manifest = await loadReleaseManifest(
+      options.manifestLocation,
+      options.repoRoot,
+      options.token
+    );
+    validateReleaseManifest(manifest, options.releaseKind, options.versionOverride);
+    return {
+      repo: manifest.repo || options.repo,
+      tag: manifest.tag,
+      version: manifest.version,
+      manifest,
+      manifestSource: options.manifestLocation,
+      assets: manifest.artifacts.map(toGithubReleaseAsset),
+    };
+  }
+
+  const { tag, version } = options.versionOverride
+    ? {
+        tag: `${options.tagPrefix}${options.versionOverride}`,
+        version: options.versionOverride,
+      }
+    : await resolveLatestReleaseTag(options.repo, options.tagPrefix, options.token);
+
+  const release = await fetchReleaseByTag(options.repo, tag, options.token);
+  const manifestAsset = findReleaseManifestAsset(release.assets, options.releaseKind);
+  if (!manifestAsset) {
+    return {
+      repo: options.repo,
+      tag,
+      version,
+      manifest: null,
+      manifestSource: null,
+      assets: release.assets,
+    };
+  }
+
+  const manifest = await loadReleaseManifestFromAsset(manifestAsset.url, options.token);
+  validateReleaseManifest(manifest, options.releaseKind, version);
+  return {
+    repo: manifest.repo || options.repo,
+    tag: manifest.tag,
+    version: manifest.version,
+    manifest,
+    manifestSource: `${options.repo}@${manifestAsset.name}`,
+    assets: manifest.artifacts.map(toGithubReleaseAsset),
+  };
+}
+
+function validateReleaseManifest(
+  manifest: ReleaseManifest,
+  releaseKind: ReleaseKind,
+  versionOverride: string | null
+) {
+  if (manifest.release_type !== releaseKind) {
+    throw new Error(
+      `Expected ${releaseKind} release manifest, got ${manifest.release_type}`
+    );
+  }
+  if (versionOverride && manifest.version !== versionOverride) {
+    throw new Error(
+      `Manifest version mismatch for ${releaseKind}: expected ${versionOverride}, got ${manifest.version}`
+    );
+  }
+  if (!manifest.tag || !manifest.version) {
+    throw new Error(`Invalid ${releaseKind} manifest: missing tag or version`);
+  }
+}
+
+function findReleaseManifestAsset(
+  assets: GithubReleaseAsset[],
+  releaseKind: ReleaseKind
+) {
+  return (
+    assets.find((asset) => asset.name === `${releaseKind}-release-manifest.json`) ||
+    assets.find((asset) => asset.name === "release-manifest.json") ||
+    null
+  );
+}
+
+async function loadReleaseManifest(
+  location: string,
+  repoRoot: string,
+  token: string
+): Promise<ReleaseManifest> {
+  if (/^https?:\/\//i.test(location)) {
+    return fetchJsonUrl<ReleaseManifest>(location, token, false);
+  }
+  const manifestPath = path.isAbsolute(location)
+    ? location
+    : path.join(repoRoot, location);
+  const text = await fs.readFile(manifestPath, "utf8");
+  return JSON.parse(text) as ReleaseManifest;
+}
+
+async function loadReleaseManifestFromAsset(url: string, token: string) {
+  const response = await fetch(url, {
+    headers: {
+      Accept: "application/octet-stream",
+      Authorization: `Bearer ${token}`,
+      "User-Agent": "soma-packaging",
+    },
+  });
+  if (!response.ok) {
+    throw new Error(
+      `Failed to load release manifest ${url}: ${response.status} ${response.statusText}`
+    );
+  }
+  return (await response.json()) as ReleaseManifest;
+}
+
+function toGithubReleaseAsset(asset: ReleaseManifestArtifact): GithubReleaseAsset {
+  return {
+    name: asset.name,
+    url: asset.url,
+  };
+}
+
 async function resolveLatestReleaseTag(
   repo: string,
   prefix: string,
@@ -768,15 +1004,27 @@ async function fetchReleaseByTag(repo: string, tag: string, token: string) {
 }
 
 async function githubGetJson<T>(url: string, token: string): Promise<T> {
+  return fetchJsonUrl<T>(url, token, true);
+}
+
+async function fetchJsonUrl<T>(
+  url: string,
+  token: string,
+  forceGithubAuth: boolean
+): Promise<T> {
+  const target = new URL(url);
+  const headers: Record<string, string> = {
+    Accept: "application/vnd.github+json",
+    "User-Agent": "soma-packaging",
+  };
+  if (forceGithubAuth || target.hostname === "api.github.com") {
+    headers.Authorization = `Bearer ${token}`;
+  }
   const response = await fetch(url, {
-    headers: {
-      Accept: "application/vnd.github+json",
-      Authorization: `Bearer ${token}`,
-      "User-Agent": "soma-packaging",
-    },
+    headers,
   });
   if (!response.ok) {
-    throw new Error(`GitHub API error: ${response.status} ${response.statusText}`);
+    throw new Error(`Request failed for ${url}: ${response.status} ${response.statusText}`);
   }
   return (await response.json()) as T;
 }
@@ -967,6 +1215,44 @@ function isDesktopArtifact(
   return (
     lower.endsWith(".zip") || lower.endsWith(".tar.gz") || lower.endsWith(".app")
   );
+}
+
+function buildBundleReleaseManifest(options: {
+  bundleVersion: string;
+  repo: string;
+  daemonsSource: ResolvedReleaseSource;
+  desktopSource: ResolvedReleaseSource;
+  produced: string[];
+}): ReleaseManifest {
+  const artifactBaseUrl = `https://github.com/${options.repo}/releases/download/bundle-${options.bundleVersion}`;
+  return {
+    schema_version: "soma.release-manifest.v1",
+    release_type: "bundle",
+    version: options.bundleVersion,
+    tag: `bundle-${options.bundleVersion}`,
+    repo: options.repo,
+    artifacts: options.produced.map((artifactPath) => ({
+      name: path.basename(artifactPath),
+      url: `${artifactBaseUrl}/${path.basename(artifactPath)}`,
+      kind: path.extname(artifactPath).replace(/^\./, "") || "file",
+    })),
+    source_releases: [
+      {
+        release_type: "daemons",
+        repo: options.daemonsSource.repo,
+        tag: options.daemonsSource.tag,
+        version: options.daemonsSource.version,
+        manifest: options.daemonsSource.manifestSource,
+      },
+      {
+        release_type: "desktop",
+        repo: options.desktopSource.repo,
+        tag: options.desktopSource.tag,
+        version: options.desktopSource.version,
+        manifest: options.desktopSource.manifestSource,
+      },
+    ],
+  };
 }
 
 type LinuxBundleArgs = {

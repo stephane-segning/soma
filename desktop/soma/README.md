@@ -32,7 +32,7 @@ For a frameless window to be draggable, mark a non-interactive area with `data-d
 
 Node/Electron code imports generated TS gRPC stubs from the workspace package:
 
-- `desktop/proto` (`@soma/proto`)
+- `desktop/desktop-proto` (`@soma/proto`)
 
 ## Desktop integrations
 

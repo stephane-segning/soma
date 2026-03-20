@@ -4,3 +4,10 @@ build:
   roots:
     - .
 
+lint:
+  use:
+    - DEFAULT
+
+breaking:
+  use:
+    - FILE

@@ -6,7 +6,7 @@
 		"allowImportingTsExtensions": true,
 		"types": ["electron-vite/node"],
 		"paths": {
-			"@soma/proto/*": ["../proto/src/gen/*"]
+			"@soma/proto/*": ["../desktop-proto/src/gen/*"]
 		}
 	}
 }

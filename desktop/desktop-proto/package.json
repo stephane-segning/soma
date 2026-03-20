@@ -37,9 +37,10 @@
   ],
   "scripts": {
     "clean": "rimraf src/gen dist",
-    "generate": "pnpm run clean && mkdir -p src/gen && pnpm run proto:daemon && pnpm run proto:agent",
-    "proto:daemon": "grpc_tools_node_protoc --plugin=./node_modules/.bin/protoc-gen-ts_proto --ts_proto_out=src/gen --ts_proto_opt=env=node,esModuleInterop=true,forceLong=long,useOptionals=messages,outputServices=grpc-js,outputJsonMethods=false --proto_path=../../proto ../../proto/daemon/v1/daemon.proto",
-    "proto:agent": "grpc_tools_node_protoc --plugin=./node_modules/.bin/protoc-gen-ts_proto --ts_proto_out=src/gen --ts_proto_opt=env=node,esModuleInterop=true,forceLong=long,useOptionals=messages,outputServices=grpc-js,outputJsonMethods=false --proto_path=../../proto ../../proto/agent/v1/agent.proto",
+    "generate": "node ./scripts/generate-contracts.cjs",
+    "proto:daemon": "node ./scripts/generate-contracts.cjs daemon/v1/daemon.proto",
+    "proto:agent": "node ./scripts/generate-contracts.cjs agent/v1/agent.proto",
+    "proto:space": "node ./scripts/generate-contracts.cjs space/v1/membership.proto",
     "build": "pnpm run generate && tsc -p tsconfig.json",
     "prepare": "pnpm run build"
   },

@@ -14,7 +14,10 @@ Variables available to all templates (compatible with Nunjucks syntax: `{{var}}`
 - `homepage` – project homepage
 - `docs_url` – docs page (GitHub Pages)
 - `docker_images` – newline-separated docker refs (may be empty)
-- `repo` – `<owner>/<repo>` GitHub repo
+- `repo` – bundle release repo as `<owner>/<repo>`
+- `daemons_repo` / `desktop_repo` – source repos for upstream release assets
+- `daemons_tag` / `desktop_tag` – source release tags used for the bundle
+- `daemons_manifest_source` / `desktop_manifest_source` – explicit manifest path/URL or `not used`
 
 Templates:
 - `systemd/soma-daemon.service.j2` – systemd **user** unit for Linux.
@@ -28,6 +31,7 @@ Templates:
 How they are used:
 - `pnpm --filter @soma/packaging run bundle` renders all templates into the bundle staging dir for local builds.
 - `pnpm --filter @soma/packaging run bundle:release` does the same for CI release bundles (after downloading assets).
+- Release bundles can pull daemons and desktop artifacts from different repos via `--daemons-repo` / `--desktop-repo`, and can consume explicit JSON manifests via `--daemons-manifest` / `--desktop-manifest`.
 - The bundle output directory includes standalone `install.sh` and `uninstall.sh` helper scripts next to the packaged artifacts.
 - `install.sh` performs a best-effort migration by stopping/removing legacy root/system services and stale root-owned `/tmp/soma-daemon.sock`/`/tmp/soma-agentd.sock` before installing user-level services.
 - Linux package contents include: binaries, README, systemd user units.

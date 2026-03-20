@@ -24,6 +24,22 @@ on:
         description: Desktop release version (without leading v). If empty, resolves latest desktop-v* via API.
         required: false
         type: string
+      daemons_repo:
+        description: Optional repo override for daemon release discovery (`owner/name`)
+        required: false
+        type: string
+      desktop_repo:
+        description: Optional repo override for desktop release discovery (`owner/name`)
+        required: false
+        type: string
+      daemons_manifest:
+        description: Optional daemon release manifest path or URL
+        required: false
+        type: string
+      desktop_manifest:
+        description: Optional desktop release manifest path or URL
+        required: false
+        type: string
       docker_images:
         description: Docker image refs to include in README (newline-separated)
         required: false
@@ -127,6 +143,10 @@ jobs:
           bundle_version: ${{ needs.prepare.outputs.bundle_version }}
           daemons_version: ${{ inputs.daemons_version }}
           desktop_version: ${{ inputs.desktop_version }}
+          daemons_repo: ${{ inputs.daemons_repo }}
+          desktop_repo: ${{ inputs.desktop_repo }}
+          daemons_manifest: ${{ inputs.daemons_manifest }}
+          desktop_manifest: ${{ inputs.desktop_manifest }}
           docker_images: ${{ inputs.docker_images }}
           out_dir: artifacts/bundle
           bundle_os: ${{ matrix.os }}
@@ -147,4 +167,5 @@ jobs:
           tag_name: ${{ needs.prepare.outputs.tag }}
           files: |
             ${{ steps.bundle.outputs.produced }}
+            ${{ steps.bundle.outputs.platform_out }}/bundle-release-manifest.json
             ${{ steps.bundle.outputs.platform_out }}/sbom-bundle-${{ needs.prepare.outputs.bundle_version }}-${{ matrix.os }}-${{ matrix.arch }}.spdx.json

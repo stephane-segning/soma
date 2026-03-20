@@ -4,6 +4,9 @@
   "private": true,
   "packageManager": "pnpm@9.0.0",
   "scripts": {
+    "contracts:rust": "cargo build -p soma-proto-build",
+    "contracts:ts": "pnpm --filter @soma/proto run build",
+    "contracts:check": "pnpm run contracts:rust && pnpm run contracts:ts",
     "dev:soma": "pnpm --filter soma run dev",
     "dev:tapia": "pnpm --filter tapia run dev",
     "docs:dev": "pnpm --filter @soma/docs run dev",

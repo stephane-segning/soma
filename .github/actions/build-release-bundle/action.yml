@@ -14,6 +14,22 @@ inputs:
     description: Desktop release version (without leading v, e.g. 1.0.0). If empty, resolves latest desktop-v*.
     required: false
     default: ""
+  daemons_repo:
+    description: Optional repo override for daemon release discovery
+    required: false
+    default: ""
+  desktop_repo:
+    description: Optional repo override for desktop release discovery
+    required: false
+    default: ""
+  daemons_manifest:
+    description: Optional daemon release manifest path or URL
+    required: false
+    default: ""
+  desktop_manifest:
+    description: Optional desktop release manifest path or URL
+    required: false
+    default: ""
   docker_images:
     description: Optional docker image refs (newline-separated) to include in README
     required: false
@@ -74,6 +90,10 @@ runs:
         BUNDLE_VERSION: ${{ inputs.bundle_version }}
         DAEMONS_VERSION: ${{ inputs.daemons_version }}
         DESKTOP_VERSION: ${{ inputs.desktop_version }}
+        DAEMONS_REPO: ${{ inputs.daemons_repo }}
+        DESKTOP_REPO: ${{ inputs.desktop_repo }}
+        DAEMONS_MANIFEST: ${{ inputs.daemons_manifest }}
+        DESKTOP_MANIFEST: ${{ inputs.desktop_manifest }}
         DOCKER_IMAGES: ${{ inputs.docker_images }}
         OUT_DIR: ${{ inputs.out_dir }}
         BUNDLE_OS: ${{ inputs.bundle_os }}
@@ -92,6 +112,10 @@ runs:
           --repo "${GITHUB_REPOSITORY}" \
           ${DAEMONS_VERSION:+--daemons-version "$DAEMONS_VERSION"} \
           ${DESKTOP_VERSION:+--desktop-version "$DESKTOP_VERSION"} \
+          ${DAEMONS_REPO:+--daemons-repo "$DAEMONS_REPO"} \
+          ${DESKTOP_REPO:+--desktop-repo "$DESKTOP_REPO"} \
+          ${DAEMONS_MANIFEST:+--daemons-manifest "$DAEMONS_MANIFEST"} \
+          ${DESKTOP_MANIFEST:+--desktop-manifest "$DESKTOP_MANIFEST"} \
           ${BUNDLE_VERSION:+--bundle-version "$BUNDLE_VERSION"} \
           ${DOCKER_IMAGES:+--docker-images "$DOCKER_IMAGES"} \
           | tee "$JSON_PATH"
