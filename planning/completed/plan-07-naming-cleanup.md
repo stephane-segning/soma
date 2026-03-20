@@ -192,7 +192,7 @@ After the compatibility window:
 ## Definition of Done
 
 - [x] docs and code use one canonical terminology set
-- [ ] historical names are either gone or explicitly compatibility-bound (Phases 5-6 deferred)
+- [x] historical names are either gone or explicitly compatibility-bound
 - [x] new contributors do not need historical context to understand basic naming
 
 ## Completed Work
@@ -219,5 +219,15 @@ After the compatibility window:
 - Updated all tsconfig and storybook configs
 - Updated AGENTS.md and README.md
 
-### Phases 5-6: Deferred
-These phases involve contract-level changes (proto renames, event renames, admin mode aliasing) and should be done as a separate migration with compatibility windows.
+### Phase 5: Contract Aliases (skipped - went directly to Phase 6)
+Since nothing is in production, skipped compatibility layer and went straight to removal.
+
+### Phase 6: Deep Contract Migration
+- Renamed `proto/spaceroom/v1/membership.proto` → `proto/space/v1/membership.proto`
+- Updated package from `spaceroom.v1` to `space.v1`
+- Removed `YooptaBlobAddedEvent` and `yoopta_blob_added` entirely
+- Keep only `DocumentBlobAddedEvent` and `document_blob_added`
+- Removed `server-daemon` mode alias, use only `admin` mode
+- Updated all Rust imports from `spaceroom` to `space`
+- Updated TypeScript proto package exports
+- Regenerated TypeScript types
