@@ -39,6 +39,8 @@ const sidebar: DefaultTheme.Sidebar = {
                 {text: 'Blobs (VDF)', link: '/architecture/blobs-vdfs'},
                 {text: 'Packaging & Deployment', link: '/architecture/deployment'},
                 {text: 'Traits', link: '/architecture/traits'},
+                {text: 'Shared Contracts', link: '/architecture/shared-contracts'},
+                {text: 'Repo Split Readiness', link: '/architecture/split-readiness'},
             ],
         },
         {

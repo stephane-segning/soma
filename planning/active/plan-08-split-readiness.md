@@ -6,6 +6,16 @@ Important recommendation:
 
 > do not split now; first extract contracts and release boundaries
 
+## Status
+
+| Phase | Status | Deliverables |
+|-------|--------|--------------|
+| 1. Freeze interfaces | **Complete** | `docs/src/architecture/shared-contracts.md`, `docs/src/architecture/split-readiness.md` |
+| 2. Extract contracts | Pending | `soma-contracts` repo, published SDKs |
+| 3. Decouple packaging | Pending | Release manifests, cross-repo discovery |
+| 4. Split tooling | Pending | Separate CI, justfiles |
+| 5. Repo split | Pending | Physical split |
+
 ## Why this exists
 
 The code layout is already close to split-ready, but the shared contract layer and release engineering are still monorepo-native.
