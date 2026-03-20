@@ -1,10 +1,10 @@
 # Glossary
 
-**Class**  
-A shared learning space (formerly called “Space”).
+**Space**  
+A shared collaboration unit containing documents, members, and resources.
 
 **Topic**  
-A node in the class tree. Can contain content and sub-topics.
+A node in the space tree. Can contain content and sub-topics.
 
 **Document**  
 The editable content attached to a topic.
@@ -37,16 +37,16 @@ An optional desktop-only companion process for local automation / helpers; does 
 Cryptographic identity of a device.
 
 **Capability**  
-A signed token granting permissions in a class.
+A signed token granting permissions in a space.
 
 **MembershipCapability**  
-Grants a peer access to a class.
+Grants a peer access to a space.
 
 **IssuerCapability**  
-Delegates authority from a teacher to a bot.
+Delegates authority from an owner to a bot or trusted member.
 
 **Bot**  
-A read-only class member that caches and serves content.
+A read-only space member that caches and serves content.
 
 **Relay**  
 A connectivity service that forwards encrypted traffic.

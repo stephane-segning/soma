@@ -1,7 +1,7 @@
-# ADR-0003: Bots as class cache and onboarding agents
+# ADR-0003: Bots as space cache and onboarding agents
 
 ## Context
-Students may be offline or remote. Resources should remain available.
+Members may be offline or remote. Resources should remain available.
 
 ## Decision
 Introduce **bot peers**:
@@ -10,7 +10,7 @@ Introduce **bot peers**:
 - serve as stable seeds
 - optionally issue memberships when delegated
 
-Bots are explicit class members and can be removed by teachers.
+Bots are explicit space members and can be removed by space owners.
 
 ## Consequences
 + Excellent availability

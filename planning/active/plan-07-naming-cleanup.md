@@ -1,5 +1,7 @@
 # Plan 07: Naming Cleanup
 
+**Status:** COMPLETED (Phases 1-4), DEFERRED (Phases 5-6)
+
 Goal: reduce cognitive load by normalizing naming across docs, code, contracts, and tooling.
 
 Scope:
@@ -189,6 +191,33 @@ After the compatibility window:
 
 ## Definition of Done
 
-- docs and code use one canonical terminology set
-- historical names are either gone or explicitly compatibility-bound
-- new contributors do not need historical context to understand basic naming
+- [x] docs and code use one canonical terminology set
+- [ ] historical names are either gone or explicitly compatibility-bound (Phases 5-6 deferred)
+- [x] new contributors do not need historical context to understand basic naming
+
+## Completed Work
+
+### Phase 1: Naming Policy
+- Created `docs/src/naming-policy.md` defining canonical terminology
+- Documented: space, document, cache peer, admin mode
+
+### Phase 2: Docs Cleanup
+- Renamed `architecture/class-membership.md` → `architecture/space-membership.md`
+- Updated all docs to use "space" instead of "class"
+- Updated ADR-0002 and ADR-0003 to use space terminology
+- Updated glossary, overview, e2e-flows, and other key docs
+
+### Phase 3: Internal Helper Cleanup
+- Removed unused `use-tauri-store.ts` hook
+- Removed unused `@tauri-apps/*` dependencies from desktp-ui
+- Fixed `data-tauri-drag-region` → `data-drag-region` in window-chrome.tsx
+
+### Phase 4: Workspace/Path Cleanup
+- Renamed all `desktp-*` directories to `desktop-*`:
+  - `desktop-proto`, `desktop-config`, `desktop-data`, `desktop-editor`, `desktop-ui`, `desktop-icons`
+- Updated `pnpm-workspace.yaml`
+- Updated all tsconfig and storybook configs
+- Updated AGENTS.md and README.md
+
+### Phases 5-6: Deferred
+These phases involve contract-level changes (proto renames, event renames, admin mode aliasing) and should be done as a separate migration with compatibility windows.

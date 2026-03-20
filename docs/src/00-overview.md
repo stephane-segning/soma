@@ -6,12 +6,12 @@ designed for schools.
 It combines:
 - structured course material (Notion-like tree + editor)
 - peer-to-peer networking
-- secure class membership
+- secure space membership
 - optional local AI assistance
 - a typing companion app (Tapia)
 
 Soma is designed to work:
-- fully offline on a spaceroom (like a classroom) LAN
+- fully offline on a local network
 - partially online (mixed local + remote)
 - across the internet when available
 without requiring a browser or cloud accounts.
@@ -20,17 +20,17 @@ without requiring a browser or cloud accounts.
 
 ## Key ideas
 
-### Classes
-A **Class** is the main unit of sharing and permissions.
+### Spaces
+A **Space** is the main unit of sharing and permissions.
 
-A class contains:
+A space contains:
 - topics (tree structure)
 - documents
 - attachments (blobs)
 - chat
 - members (students, teachers, bots)
 
-A device can be enrolled in **multiple classes at the same time**.
+A device can be enrolled in **multiple spaces at the same time**.
 
 ---
 
@@ -38,12 +38,12 @@ A device can be enrolled in **multiple classes at the same time**.
 - No mandatory server
 - LAN-first discovery
 - Internet is optional
-- Data stays with the class
+- Data stays with the space
 
 ---
 
 ### Bots
-A **bot** is a special class member:
+A **bot** is a special space member:
 - read-only
 - caches resources
 - serves content to students
@@ -56,7 +56,7 @@ Bots can run:
 
 Teachers can remove a bot at any time, which:
 - revokes its authority
-- wipes its cached data for the class
+- wipes its cached data for the space
 
 ---
 

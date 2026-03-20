@@ -1,0 +1,172 @@
+# Naming Policy
+
+This document defines the canonical terminology for the Soma codebase. All new docs, code, and contracts should use these terms.
+
+**Last Updated:** 2026-03-20
+
+---
+
+## Core Concepts
+
+### Space
+
+A **space** is the primary unit of collaboration. It contains documents, members, and resources.
+
+**Use:**
+- `space` (noun) in docs, code, UI
+- `space_id` for identifiers
+- `SpaceId` in proto/types
+
+**Do NOT use:**
+- `class` (historical term from earlier versions)
+- `room` (confuses with chat room concept)
+
+**Examples:**
+- `ListSpaces` (RPC)
+- `space_members` (table)
+- `/spaces/:spaceId` (route)
+
+---
+
+### Document
+
+A **document** is collaborative content within a space. Documents are edited collaboratively and may reference blobs.
+
+**Use:**
+- `document` (noun) in docs, code, UI
+- `document_id` for identifiers
+- `DocumentId` in proto/types
+
+**Do NOT use:**
+- `page` when referring to the content itself (pages are navigation metadata)
+- `Yoopta document` (internal implementation detail)
+
+**Examples:**
+- `UpsertDocument` (RPC)
+- `documents` (table)
+- `DocumentEditor` (component)
+
+---
+
+### Cache Peer
+
+A **cache peer** is a libp2p peer that fetches and caches blobs addressed by content ID. Cache peers never accept user uploads and are not a source of truth.
+
+**Use:**
+- `cache peer` in docs and external communication
+- `cache_peer` in code when the concept is external-facing
+
+**Internal code may use:**
+- `VDF` as an internal acronym (from "Verified Data Fetcher")
+- `soma-vdfs` as the crate name (historical, to be renamed later)
+
+**Do NOT use:**
+- `VDFS` (inconsistent with VDF acronym)
+- `cache bot` (confuses with general-purpose bots)
+
+**Migration path:**
+- Crate `soma-vdfs` → `soma-blobs` (Phase 6)
+- Doc `blobs-vdfs.md` → `blobs-cache-peers.md` (Phase 2)
+
+---
+
+### Admin Mode
+
+**Admin mode** is the operating mode of `soma-botd` that exposes administrative HTTP endpoints for join decisions, issuer delegation, and space management.
+
+**Use:**
+- `admin` as the mode name
+- `--mode admin` in CLI
+- `SOMA_MODE=admin` in environment
+
+**Do NOT use:**
+- `server-daemon` (confuses with desktop daemon)
+
+**Migration path:**
+- Accept `server-daemon` as alias (Phase 5)
+- Remove alias (Phase 6)
+
+---
+
+## Event Naming
+
+Events should follow the pattern: `<entity>_<action>`
+
+**Current:**
+- `YooptaBlobAddedEvent` → **Transitional**
+- `yoopta_blob_added` → **Transitional**
+
+**Target:**
+- `DocumentBlobAddedEvent`
+- `document_blob_added`
+
+**Migration:**
+- Add new names (Phase 5)
+- Remove old names (Phase 6)
+
+---
+
+## Proto Package Naming
+
+**Current:**
+- `spaceroom.v1` → **Transitional**
+
+**Target:**
+- `space.v1`
+
+**Migration:**
+- Rename requires proto regeneration and client updates (Phase 6)
+
+---
+
+## Binary Naming
+
+| Binary | Purpose | Notes |
+|--------|---------|-------|
+| `soma-daemon` | Desktop peer/IPC | Stable |
+| `soma-agentd` | Desktop LLM proxy | Stable |
+| `soma-botd` | Server peer/bot | Stable |
+| `soma-relayd` | Circuit relay | Stable |
+| `soma-rendezvousd` | Rendezvous discovery | Stable |
+| `soma-bffd` | LLM BFF | Stable |
+| `soma-serverd` | Infrastructure aggregator | Consider `soma-infrad` (Phase 6) |
+
+---
+
+## Directory Naming
+
+### Desktop Workspace
+
+**Target (completed):**
+- `desktop/desktop-proto`
+- `desktop/desktop-ui`
+- `desktop/desktop-config`
+- `desktop/desktop-data`
+- `desktop/desktop-editor`
+- `desktop/desktop-icons`
+
+---
+
+## Historical Terms (Do Not Revive)
+
+| Term | Origin | Why Deprecated |
+|------|--------|----------------|
+| `class` | Early classroom focus | `space` is broader |
+| `Yoopta` | Editor library | Implementation detail |
+| `VDFS` | Inconsistent acronym | Use VDF or cache peer |
+| `server-daemon` | Confusing | Use admin mode |
+| `spaceroom` | Proto package | Use space.v1 |
+| `tauri` | Previous framework | Use Electron/desktop |
+
+---
+
+## Implementation Checklist
+
+When adding new code/docs:
+
+- [ ] Uses `space` not `class`
+- [ ] Uses `document` for collaborative content
+- [ ] Uses `cache peer` in external-facing docs
+- [ ] Uses `admin` for bot admin mode
+- [ ] Avoids historical framework names (tauri, etc.)
+- [ ] Events follow `<entity>_<action>` pattern

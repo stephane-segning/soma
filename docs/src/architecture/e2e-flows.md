@@ -20,11 +20,11 @@ sequenceDiagram
   UI->>Daemon: Daemon/StreamEvents (subscribe)
 ```
 
-## 2) Join a class/space (membership capabilities)
+## 2) Join a space (membership capabilities)
 
 Flow summary:
 
-1. UI asks the daemon to join a space/class.
+1. UI asks the daemon to join a space.
 2. The daemon sends a join request over libp2p.
 3. A bot (or owner/issuer peer) decides and returns a join decision.
 4. The daemon persists the outcome and notifies the UI via the event stream.
@@ -48,7 +48,7 @@ sequenceDiagram
   Daemon-->>UI: StreamEvents: joinSubmitted/joinDecision
 ```
 
-See also: `docs/src/architecture/class-membership.md`.
+See also: `docs/src/architecture/space-membership.md`.
 
 ## 3) Blob upload (desktop) and references
 
@@ -61,7 +61,7 @@ On desktop, the UI typically stages a blob locally, then sends bytes to the daem
 
 See: `docs/src/architecture/blobs-vdfs.md`.
 
-## 4) Fetch a blob by CID (with VDF caching)
+## 4) Fetch a blob by CID (with cache peer)
 
 Flow summary:
 

@@ -5,9 +5,9 @@ This page captures a practical threat model for Soma’s current architecture. I
 ## High-level goals
 
 - Keep user data local-first (no mandatory cloud).
-- Prevent unauthorized peers from joining or reading class data.
-- Keep infrastructure services “connectivity-only” (no plaintext user content).
-- Make it hard for cache-only peers (VDFs/bots) to become a source of truth.
+- Prevent unauthorized peers from joining or reading space data.
+- Keep infrastructure services "connectivity-only" (no plaintext user content).
+- Make it hard for cache-only peers (bots) to become a source of truth.
 
 ## Assets to protect
 
@@ -15,7 +15,7 @@ This page captures a practical threat model for Soma’s current architecture. I
 - **Capabilities**: membership and issuer delegation artifacts.
 - **Local data**: documents, metadata, and cached state in local storage.
 - **Blobs**: content-addressed binary assets stored outside collaborative state.
-- **Admin tokens**: any bearer tokens used for mode-gated HTTP control planes (server-daemon mode).
+- **Admin tokens**: any bearer tokens used for mode-gated HTTP control planes (admin mode).
 
 ## Trust boundaries
 

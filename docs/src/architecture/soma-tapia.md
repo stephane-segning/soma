@@ -4,7 +4,7 @@ Soma is a **desktop-first, local-first** platform with a small set of supporting
 
 On a user device you typically run:
 
-- **Soma desktop app** (`desktop/soma`, Electron + React) — the main UI for classes, documents, and chat.
+- **Soma desktop app** (`desktop/soma`, Electron + React) — the main UI for spaces, documents, and chat.
 - **Tapia** (`desktop/tapia`, Electron + React) — a typing companion app that shares stage/socket conventions, but currently has a lighter and less backend-integrated feature surface than Soma.
 - **soma-daemon** (`backend/bins/daemon`) — the local Rust backend that owns the libp2p identity, storage, and networking.
 - **soma-agentd** (`backend/bins/agentd`, optional) — a local “CPU-heavy” worker (LLM inference, OCR, indexing, …).
@@ -80,16 +80,16 @@ sequenceDiagram
     participant OS as Operating System
     participant SomaApp as Soma desktop app (Electron)
     participant Daemon as Soma Daemon
-    participant Bot as Class Bot (Issuer)
-    User ->> OS: Clicks soma://join?class=X link
+    participant Bot as Space Bot (Issuer)
+    User ->> OS: Clicks soma://join?space=X link
     OS ->> SomaApp: Launches app with payload
     SomaApp ->> Daemon: Connect to local API
-    SomaApp ->> Daemon: Join class X
+    SomaApp ->> Daemon: Join space X
     Daemon ->> Bot: JoinRequest (libp2p)
     Note right of Bot: Bot holds IssuerCapability
     Bot -->> Daemon: Sends MembershipCapability
     Daemon -->> SomaApp: Join approved
-    SomaApp ->> User: Navigate to class X
+    SomaApp ->> User: Navigate to space X
 ```
 
 Because the daemon keeps running even if the UI exits, deep links can reattach quickly. Other daemon clients remain a possible future direction, but the current product path is the Electron desktop apps.

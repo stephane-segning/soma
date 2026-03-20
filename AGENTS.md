@@ -19,10 +19,10 @@ In this repo, **VDF** refers to a **cache-only peer role** (sometimes casually w
     - Crates: core domain, networking, storage, API, relay, rendezvous, BFF, and shared utilities.
 - `desktop/` – Desktop applications and packaging.
     - `desktop/soma/` – Soma Electron/Chromium app (primary packaged Soma desktop UI).
-    - `desktop/desktp-proto/` – TypeScript protobuf+gRPC codegen (`@soma/proto`) for Node/Electron consumers.
-    - `desktop/desktp-ui/` – Shared UI components (`@soma/ui`).
+    - `desktop/desktop-proto/` – TypeScript protobuf+gRPC codegen (`@soma/proto`) for Node/Electron consumers.
+    - `desktop/desktop-ui/` – Shared UI components (`@soma/ui`).
     - `desktop/packaging/` – Local TypeScript CLI for bundle packaging tests.
-    - `desktop/desktp-config/` – Shared StageConfig service (`@soma/desktop-config`) that normalizes stage detection, paths, and sockets for the desktop apps.
+    - `desktop/desktop-config/` – Shared StageConfig service (`@soma/desktop-config`) that normalizes stage detection, paths, and sockets for the desktop apps.
     - `desktop/tapia/` – Tapia Electron/Chromium app (primary packaged Tapia UI).
 - `docs/` – VitePress documentation (`docs/src/` for markdown, `docs/.vitepress` for config/navigation).
 - `proto/` – shared protocol definitions and codegen inputs.
@@ -323,8 +323,8 @@ Shared frontend stack (Soma, Tapia):
 - Routing: `react-router` core (prefer memory/hash routers for Electron; not `react-router-dom`)
 - i18n: `react-i18next` + `i18next` with `i18next-chained-backend`, `i18next-http-backend`, `i18next-resources-to-backend`, `i18next-browser-languagedetector`
 - Command palette + hotkeys: `react-hotkeys-hook` and `react-cmdk`
-- Stage configuration service: `desktop/desktp-config` (`@soma/desktop-config`) exposes `StageConfigService`, which rewrites `appData`/`userData`/`logs` and selects `/tmp/<binary>-<stage>.sock` defaults when the stage is not `prod`; packaged apps ignore `SOMA_STAGE`/`SOMA_CHANNEL`, so stage-specific installs should start daemons with matching `--socket-path` values (dev builds may still use the env overrides).
-- `desktop/desktp-ui` packaging: root export is intentionally disabled (`exports["."]=false`) and there is no `src/index.ts`. Import via subpaths (`@soma/ui/components/*`, `@soma/ui/hooks/*`, `@soma/ui/utils/*`, `@soma/ui/yoopta`, `@soma/ui/types`). `tsup` builds multi-entry outputs for those folders and excludes stories.
+- Stage configuration service: `desktop/desktop-config` (`@soma/desktop-config`) exposes `StageConfigService`, which rewrites `appData`/`userData`/`logs` and selects `/tmp/<binary>-<stage>.sock` defaults when the stage is not `prod`; packaged apps ignore `SOMA_STAGE`/`SOMA_CHANNEL`, so stage-specific installs should start daemons with matching `--socket-path` values (dev builds may still use the env overrides).
+- `desktop/desktop-ui` packaging: root export is intentionally disabled (`exports["."]=false`) and there is no `src/index.ts`. Import via subpaths (`@soma/ui/components/*`, `@soma/ui/hooks/*`, `@soma/ui/utils/*`, `@soma/ui/yoopta`, `@soma/ui/types`). `tsup` builds multi-entry outputs for those folders and excludes stories.
 
 Soma (`desktop/soma`) (Electron/Chromium):
 
@@ -335,7 +335,7 @@ Soma (`desktop/soma`) (Electron/Chromium):
   - Yoopta JSON drafts/content: `Daemon/UpsertDocument` + `Daemon/GetDocument`
   - Page list/tree metadata: `Daemon/EnsurePage`, `Daemon/ListPages`, `Daemon/UpdatePageTitle`, `Daemon/SetPageParents`
 - No local blob persistence/caching in the desktop app: uploads go to `soma-daemon`, and renderers should use `soma-blob://daemon/{space_id}/{cid}` (served by the Electron `soma-blob` protocol via `Daemon/ReadBlob`) for blob references.
-- Stage detection / sockets: `desktop/desktp-config` runs before Soma starts and ensures the current build stage (dev/staging/prod) rewrites `appData`/`userData`/`logs` to stage-specific folders and selects `/tmp/soma-daemon-<stage>.sock` + `/tmp/soma-agentd-<stage>.sock` (defaults to `/tmp/...` when stage = `prod`). Non-prod daemons must start with matching `--socket-path` arguments or you can override `SOMA_DAEMON_SOCKET` / `SOMA_AGENTD_SOCKET` while developing.
+- Stage detection / sockets: `desktop/desktop-config` runs before Soma starts and ensures the current build stage (dev/staging/prod) rewrites `appData`/`userData`/`logs` to stage-specific folders and selects `/tmp/soma-daemon-<stage>.sock` + `/tmp/soma-agentd-<stage>.sock` (defaults to `/tmp/...` when stage = `prod`). Non-prod daemons must start with matching `--socket-path` arguments or you can override `SOMA_DAEMON_SOCKET` / `SOMA_AGENTD_SOCKET` while developing.
 - Startup policy: Soma main blocks renderer startup behind a splash screen until `soma-daemon` reports ready (`Daemon/Status`), then subscribes to daemon events at process start.
 - Local LLM chat runs via `soma-agentd` (gRPC over Unix socket); for provider/model configuration, see `docs/src/development/agentd-models.md`.
 - Agent runtime configuration source of truth is `electron-store` (`settings["agent.config"]`) through main-process settings IPC:
@@ -830,7 +830,7 @@ For how peers (`soma-daemon`, `soma-botd`) use mDNS, rendezvous, and relay clien
 - Draggable regions: mark non-interactive DOM with `data-drag-region` and opt interactive elements out with `data-no-drag` (CSS in `desktop/soma/src/renderer/src/styles/app.scss` uses `-webkit-app-region`).
 - Renderer code imports local modules via `@app/*` (see `desktop/soma/tsconfig.web.json` + `desktop/soma/electron.vite.config.ts`).
 - Renderer → main uses a preload bridge (`desktop/soma/src/preload/index.ts`) with `window.api.invoke(...)`; main registers handlers in `desktop/soma/src/main/command-registry.ts`.
-- Node/Electron gRPC stubs are generated in `desktop/desktp-proto` (`@soma/proto`) and imported from Electron main-process services.
+- Node/Electron gRPC stubs are generated in `desktop/desktop-proto` (`@soma/proto`) and imported from Electron main-process services.
 - Deep links: `soma://...` are registered by Electron, forwarded via `app:deep-link` to the renderer, and secondary launches are routed through the single-instance lock (`desktop/soma/src/main/services/startup-service.ts`).
 - Window state persistence: `electron-store` keeps `windowState` (bounds + maximized/fullscreen) in `desktop/soma/src/main/services/app-data-store.ts`.
 - Logging: main process uses Winston with file output under `app.getPath("userData")/logs/main.log` (console logs in dev).

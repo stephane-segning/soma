@@ -1,7 +1,7 @@
-# ADR-0002: Class membership via capabilities
+# ADR-0002: Space membership via capabilities
 
 ## Context
-We need secure class membership without accounts or central auth.
+We need secure space membership without accounts or central auth.
 
 ## Decision
 Use **cryptographically signed capabilities**:

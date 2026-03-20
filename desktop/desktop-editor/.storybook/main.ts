@@ -21,8 +21,8 @@ const config: StorybookConfig = {
 			...(config.resolve.alias || {}),
 			"@soma/editor": path.resolve(__dirname, "../src"),
 			"@soma/editor/*": path.resolve(__dirname, "../src/*"),
-			"@soma/ui": path.resolve(__dirname, "../../desktp-ui/src"),
-			"@soma/ui/*": path.resolve(__dirname, "../../desktp-ui/src/*"),
+			"@soma/ui": path.resolve(__dirname, "../../desktop-ui/src"),
+			"@soma/ui/*": path.resolve(__dirname, "../../desktop-ui/src/*"),
 		};
 
 		return config;

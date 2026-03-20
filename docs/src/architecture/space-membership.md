@@ -1,25 +1,25 @@
-# Class Membership System
+# Space Membership System
 
-Classes are secure collaboration spaces. Access is governed by explicit capabilities so only authorized peers can read or publish class content. This document explains the main artifacts and how a join is processed end-to-end.
+Spaces are secure collaboration units. Access is governed by explicit capabilities so only authorized peers can read or publish space content. This document explains the main artifacts and how a join is processed end-to-end.
 
 ## Core Concepts
 
 ### JoinRequest
 
-- Created by a user’s Soma daemon when they attempt to join a class.
-- Contains the requester’s Peer ID, target class identifier, and any invite metadata.
+- Created by a user's Soma daemon when they attempt to join a space.
+- Contains the requester's Peer ID, target space identifier, and any invite metadata.
 - Delivered over the current libp2p request/response join flow to a known target peer or decider.
 
 ### MembershipCapability
 
-- The signed credential proving that a peer belongs to a class.
+- The signed credential proving that a peer belongs to a space.
 - Stored inside the requesting daemon once issued so membership survives restarts.
 - Encodes the granted membership for the requesting peer and may carry role information.
 
 ### IssuerCapability
 
-- Grants authority to create MembershipCapabilities for a class.
-- Held by class creators, trusted teachers, or onboarding bots.
+- Grants authority to create MembershipCapabilities for a space.
+- Held by space owners, trusted members, or onboarding bots.
 - May be delegated—transferring this capability is effectively handing over admin rights.
 
 ### Bot Onboarding
@@ -46,8 +46,8 @@ Revocation can be implemented by expiring capabilities, publishing revocation ev
 - Join decisions: botd now ships a real join decider that approves requests (optionally attaching an issuer capability if the bot has been delegated) and persists decisions/memberships to the shared SQLx storage.
 - Bot operating modes:
   - `bot` mode (default): HTTP is read-only (`/info`, `/healthz`, `/metrics`); join decisions still flow over libp2p via the decider.
-- `server-daemon` mode: exposes admin-token-gated join control endpoints over HTTP for admin tooling; controllers still delegate to the decider/storage and never “force-join”.
-- Auto-approval rules: botd auto-approves only when it holds a valid issuer capability for the target space; otherwise join requests are recorded for manual approval. Manual approval surfaces now exist in both soma-daemon (gRPC) and server-daemon HTTP.
+  - `admin` mode: exposes admin-token-gated join control endpoints over HTTP for admin tooling; controllers still delegate to the decider/storage and never "force-join".
+- Auto-approval rules: botd auto-approves only when it holds a valid issuer capability for the target space; otherwise join requests are recorded for manual approval. Manual approval surfaces now exist in both soma-daemon (gRPC) and admin HTTP.
 - Peer event pipeline: join decisions and failures are surfaced as `PeerEvent` and dispatched via the shared event dispatcher (see `docs/src/development/peer-events.md`).
 
 [^security]: https://docs.libp2p.io/concepts/security/security-considerations/

@@ -1,4 +1,4 @@
-# desktp-icons
+# desktop-icons
 
 Rust CLI for generating Electron icon assets (PNG + ICNS + ICO) from a PNG or SVG source.
 

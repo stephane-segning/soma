@@ -13,7 +13,7 @@ Soma is a local-first collaboration platform built around a desktop daemon, Elec
 - `backend/`: Rust workspace for `soma-daemon`, `soma-botd`, `soma-agentd`, relay/rendezvous services, shared peer/storage crates, and server utilities
 - `desktop/soma`: the main Electron desktop app
 - `desktop/tapia`: a lighter Electron app with a smaller current feature surface
-- `desktop/desktp-*`: shared desktop packages for proto bindings, config, editor, data, UI, and packaging
+- `desktop/desktop-*`: shared desktop packages for proto bindings, config, editor, data, UI, and packaging
 - `proto/`: shared daemon/agent/membership contracts
 - `docs/`: current documentation
 - `planning/`: active plans and migration notes
