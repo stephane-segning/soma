@@ -1,5 +1,7 @@
 # Plan 06: Backend/Desktop Contract Cleanup
 
+**Status:** COMPLETED (2026-03-20)
+
 Goal: make the shared backend/desktop contract explicit, accurate, and safe to evolve.
 
 Scope:
@@ -152,7 +154,36 @@ These should be handled first if backend and desktop may evolve separately:
 
 ## Definition of Done
 
-- every shared RPC/service/event is classified and documented
-- desktop and backend implement the same semantics for critical shared flows
-- dead declarations are either removed from active use or implemented
-- CI has at least minimal protection against future contract drift
+- [x] every shared RPC/service/event is classified and documented
+- [x] desktop and backend implement the same semantics for critical shared flows
+- [x] dead declarations are either removed from active use or implemented
+- [x] CI has at least minimal protection against future contract drift
+
+## Completed Work
+
+### Phase 1: Contract Inventory
+- Created `docs/src/contracts/inventory.md` with full inventory table
+- Documented all daemon RPCs, agent RPCs, events, and spaceroom services
+- Identified status: implemented, unimplemented, declared-only, desktop-hidden, transitional
+
+### Phase 2: Lock Down Semantics
+- Created `docs/src/contracts/join-semantics.md` documenting join flow contract
+- Fixed `ReadBlobResponse.mime` to return stored MIME type instead of hardcoded value
+- Documented async submission semantics for `JoinSpace`
+- Documented `reject-pending` encoding workaround and its risks
+- Documented `StreamEvents` duplication behavior
+
+### Phase 3: Agent Contract Ownership
+- Created `docs/src/contracts/agent-ownership.md`
+- Documented dual-path behavior (agentd vs openai-compatible)
+- Marked proto-bound features vs provider-specific features
+
+### Phase 4: Remove or Quarantine Dead Declarations
+- Updated `proto/spaceroom/v1/membership.proto` with DECLARED-ONLY comments
+- Updated `proto/daemon/v1/daemon.proto` with UNIMPLEMENTED status comments
+- Desktop stubs for spaceroom services remain but are clearly documented as not to be used
+
+### Phase 5: Add Contract Tests
+- Created `backend/bins/daemon/tests/contract.rs` with 15 proto surface tests
+- Tests verify existence of proto types and key fields
+- Tests pass in CI

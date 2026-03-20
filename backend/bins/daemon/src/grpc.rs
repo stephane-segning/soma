@@ -407,10 +407,19 @@ impl daemon::daemon_server::Daemon for DaemonService {
             return Err(Status::resource_exhausted("blob too large"));
         }
 
+        let mime = BlobsService::new(self.state.repos.clone())
+            .get_metadata(&payload.space_id, &payload.cid)
+            .await
+            .ok()
+            .flatten()
+            .map(|m| m.mime)
+            .filter(|m| !m.is_empty())
+            .unwrap_or_else(|| "application/octet-stream".to_string());
+
         Ok(Response::new(daemon::ReadBlobResponse {
             size: bytes.len() as u64,
             data: bytes,
-            mime: "application/octet-stream".to_string(),
+            mime,
         }))
     }
 

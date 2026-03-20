@@ -325,6 +325,13 @@ message PutMailboxItemRequest {
 // Local gRPC API (daemon <-> UI)
 // -----------------------------------------------------------------------------
 
+// NOTE: This service is DECLARED-ONLY. No gRPC server implements these RPCs.
+// The actual implementation uses:
+//   - Daemon/JoinSpace (proto/daemon/v1/daemon.proto) for join submission
+//   - Daemon/DecideJoin for manual approval
+//   - libp2p protocols /soma/join/1 and /soma/join-decision/1 for P2P flow
+// The message types defined above are used by the real implementation.
+// Desktop code should NOT attempt to call these RPCs.
 service MembershipService {
   // Student device: create and broadcast join request (daemon handles P2P publish).
   rpc SubmitJoinRequest(JoinRequest) returns (google.protobuf.Empty);
@@ -349,7 +356,10 @@ service MembershipService {
   rpc SubscribeRevocations(SpaceId) returns (stream Revocation);
 }
 
-// Bot-side mailbox service (can be exposed via P2P request/response or direct).
+// NOTE: This service is DECLARED-ONLY. No gRPC server implements these RPCs.
+// Mailbox operations are internal to soma-membership and soma-peer crates.
+// Messages are delivered via libp2p protocols and stored in the DB-backed mailbox.
+// Desktop code should NOT attempt to call these RPCs.
 service MailboxService {
   rpc PutItem(PutMailboxItemRequest) returns (google.protobuf.Empty);
   rpc Fetch(FetchMailboxRequest) returns (FetchMailboxResponse);
