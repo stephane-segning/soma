@@ -1,11 +1,11 @@
 use ciborium::ser::into_writer;
 use libp2p::{
-    PeerId,
     identity::{Keypair, PublicKey},
+    PeerId,
 };
 use serde::Serialize;
 use soma_core::{Error, SomaResult};
-use soma_proto_build::spaceroom::{
+use soma_proto_build::space::{
     CborSigned, IssuerCapability, MembershipCapability, PeerId as ProtoPeerId,
 };
 use std::time::SystemTime;
@@ -237,7 +237,7 @@ fn encode_cbor<T: Serialize>(value: &T) -> SomaResult<Vec<u8>> {
 mod tests {
     use super::*;
     use prost_types::Timestamp;
-    use soma_proto_build::spaceroom;
+    use soma_proto_build::space;
 
     fn ts_from_secs(secs: i64) -> Timestamp {
         Timestamp {
@@ -251,17 +251,17 @@ mod tests {
         let keypair = Keypair::generate_ed25519();
         let peer_id = keypair.public().to_peer_id();
         let mut cap = MembershipCapability {
-            space_id: Some(spaceroom::SpaceId {
+            space_id: Some(space::SpaceId {
                 value: "space-1".into(),
             }),
-            subject_peer_id: Some(spaceroom::PeerId {
+            subject_peer_id: Some(space::PeerId {
                 value: peer_id.to_string(),
             }),
             role: 1,
             permissions: vec![],
             issued_at: Some(ts_from_secs(10)),
             expires_at: Some(ts_from_secs(10_000)),
-            issuer_peer_id: Some(spaceroom::PeerId {
+            issuer_peer_id: Some(space::PeerId {
                 value: peer_id.to_string(),
             }),
             issuer_cap: None,
@@ -278,17 +278,17 @@ mod tests {
         let keypair = Keypair::generate_ed25519();
         let peer_id = keypair.public().to_peer_id();
         let mut cap = MembershipCapability {
-            space_id: Some(spaceroom::SpaceId {
+            space_id: Some(space::SpaceId {
                 value: "space-1".into(),
             }),
-            subject_peer_id: Some(spaceroom::PeerId {
+            subject_peer_id: Some(space::PeerId {
                 value: peer_id.to_string(),
             }),
             role: 1,
             permissions: vec![],
             issued_at: Some(ts_from_secs(10)),
             expires_at: Some(ts_from_secs(10_000)),
-            issuer_peer_id: Some(spaceroom::PeerId {
+            issuer_peer_id: Some(space::PeerId {
                 value: peer_id.to_string(),
             }),
             issuer_cap: None,
@@ -311,17 +311,17 @@ mod tests {
         let signer = Keypair::generate_ed25519();
         let peer_id = signer.public().to_peer_id();
         let mut cap = MembershipCapability {
-            space_id: Some(spaceroom::SpaceId {
+            space_id: Some(space::SpaceId {
                 value: "space-1".into(),
             }),
-            subject_peer_id: Some(spaceroom::PeerId {
+            subject_peer_id: Some(space::PeerId {
                 value: peer_id.to_string(),
             }),
             role: 1,
             permissions: vec![],
             issued_at: Some(ts_from_secs(10)),
             expires_at: Some(ts_from_secs(10_000)),
-            issuer_peer_id: Some(spaceroom::PeerId {
+            issuer_peer_id: Some(space::PeerId {
                 value: PeerId::random().to_string(),
             }),
             issuer_cap: None,
@@ -343,17 +343,17 @@ mod tests {
         let keypair = Keypair::generate_ed25519();
         let peer_id = keypair.public().to_peer_id();
         let mut cap = MembershipCapability {
-            space_id: Some(spaceroom::SpaceId {
+            space_id: Some(space::SpaceId {
                 value: "space-1".into(),
             }),
-            subject_peer_id: Some(spaceroom::PeerId {
+            subject_peer_id: Some(space::PeerId {
                 value: peer_id.to_string(),
             }),
             role: 1,
             permissions: vec![],
             issued_at: Some(ts_from_secs(10)),
             expires_at: Some(ts_from_secs(20)),
-            issuer_peer_id: Some(spaceroom::PeerId {
+            issuer_peer_id: Some(space::PeerId {
                 value: peer_id.to_string(),
             }),
             issuer_cap: None,
@@ -379,17 +379,17 @@ mod tests {
         let signer = Keypair::generate_ed25519();
         let peer_id = signer.public().to_peer_id();
         let mut cap = MembershipCapability {
-            space_id: Some(spaceroom::SpaceId {
+            space_id: Some(space::SpaceId {
                 value: "space-1".into(),
             }),
-            subject_peer_id: Some(spaceroom::PeerId {
+            subject_peer_id: Some(space::PeerId {
                 value: peer_id.to_string(),
             }),
             role: 1,
             permissions: vec![],
             issued_at: Some(ts_from_secs(10)),
             expires_at: Some(ts_from_secs(10_000)),
-            issuer_peer_id: Some(spaceroom::PeerId {
+            issuer_peer_id: Some(space::PeerId {
                 value: peer_id.to_string(),
             }),
             issuer_cap: None,

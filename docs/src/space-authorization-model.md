@@ -17,7 +17,7 @@ Possession of a valid `MembershipCapability` for the target `space_id`:
 Every surface that returns space content must check membership:
 - libp2p request/response (`/soma/blob/1` and any future protocols).
 - Daemon gRPC (Unix socket).
-- Botd server-daemon HTTP (if it ever exposes read APIs).
+- Botd admin HTTP (if it ever exposes read APIs).
 
 Controllers are thin; the check should live in the service layer so all surfaces reuse it.
 

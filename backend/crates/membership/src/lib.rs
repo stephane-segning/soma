@@ -8,7 +8,7 @@ use prost_types::Timestamp;
 use soma_common::{sign_issuer_capability, sign_membership_capability};
 use soma_core::{Error, SomaResult};
 use soma_peer::join::JoinDecider;
-use soma_proto_build::spaceroom::{
+use soma_proto_build::space::{
     IssuerCapability, JoinDecision, JoinDecisionType, JoinRequest, MembershipCapability, SpaceId,
     SpaceRole,
 };
@@ -111,7 +111,7 @@ impl JoinDecider for StorageBackedJoinDecider {
                     space_id: Some(SpaceId {
                         value: stored.space_id,
                     }),
-                    subject_peer_id: Some(soma_proto_build::spaceroom::PeerId {
+                    subject_peer_id: Some(soma_proto_build::space::PeerId {
                         value: stored.subject_peer_id,
                     }),
                     decision: stored.decision,
@@ -133,7 +133,7 @@ impl JoinDecider for StorageBackedJoinDecider {
                     space_id: Some(SpaceId {
                         value: stored.space_id,
                     }),
-                    subject_peer_id: Some(soma_proto_build::spaceroom::PeerId {
+                    subject_peer_id: Some(soma_proto_build::space::PeerId {
                         value: stored.subject_peer_id,
                     }),
                     decision: stored.decision,
@@ -178,7 +178,7 @@ impl JoinDecider for StorageBackedJoinDecider {
                     .unwrap_or_default(),
                 issued_at: Some(now_ts.clone()),
                 expires_at: None,
-                issuer_peer_id: Some(soma_proto_build::spaceroom::PeerId {
+                issuer_peer_id: Some(soma_proto_build::space::PeerId {
                     value: self.local_peer_id.to_string(),
                 }),
                 issuer_cap,
@@ -383,14 +383,14 @@ pub async fn decide_join_request(
         space_id: Some(SpaceId {
             value: req.space_id.clone(),
         }),
-        subject_peer_id: Some(soma_proto_build::spaceroom::PeerId {
+        subject_peer_id: Some(soma_proto_build::space::PeerId {
             value: req.subject_peer_id.clone(),
         }),
         role: role as i32,
         permissions: Vec::new(),
         issued_at: Some(now_ts.clone()),
         expires_at: None,
-        issuer_peer_id: Some(soma_proto_build::spaceroom::PeerId {
+        issuer_peer_id: Some(soma_proto_build::space::PeerId {
             value: issuer_peer_id.to_string(),
         }),
         issuer_cap: None,
@@ -406,7 +406,7 @@ pub async fn decide_join_request(
         space_id: Some(SpaceId {
             value: req.space_id.clone(),
         }),
-        subject_peer_id: Some(soma_proto_build::spaceroom::PeerId {
+        subject_peer_id: Some(soma_proto_build::space::PeerId {
             value: req.subject_peer_id.clone(),
         }),
         decision: if approve {
@@ -520,7 +520,7 @@ pub async fn issue_issuer_capability_to_storage(
         space_id: Some(SpaceId {
             value: space_id.to_string(),
         }),
-        issuer_peer_id: Some(soma_proto_build::spaceroom::PeerId {
+        issuer_peer_id: Some(soma_proto_build::space::PeerId {
             value: delegate_peer_id.to_string(),
         }),
         allowed_roles: allowed_roles.into_iter().map(|r| r as i32).collect(),
@@ -532,7 +532,7 @@ pub async fn issue_issuer_capability_to_storage(
         }),
         max_member_expires_at: None,
         max_issues_per_hour: 0,
-        owner_peer_id: Some(soma_proto_build::spaceroom::PeerId {
+        owner_peer_id: Some(soma_proto_build::space::PeerId {
             value: owner_peer_id.to_string(),
         }),
         signed: None,

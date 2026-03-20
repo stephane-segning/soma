@@ -11,7 +11,7 @@
     "./daemon/*": "./dist/daemon/*.js",
     "./agent/*": "./dist/agent/*.js",
     "./google/*": "./dist/google/*.js",
-    "./spaceroom/*": "./dist/spaceroom/*.js"
+    "./space/*": "./dist/space/*.js"
   },
   "typesVersions": {
     "*": {
@@ -24,8 +24,8 @@
       "google/*": [
         "dist/google/*"
       ],
-      "spaceroom/*": [
-        "dist/spaceroom/*"
+      "space/*": [
+        "dist/space/*"
       ],
       "*": [
         "dist/*"

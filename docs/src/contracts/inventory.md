@@ -83,7 +83,7 @@ This means not all agent features are strictly bound to `agent.proto`. See Phase
 
 ---
 
-## spaceroom.v1.MembershipService (P2P / declared only)
+## space.v1.MembershipService (P2P / declared only)
 
 | RPC | Proto | Backend Server | Desktop | Status | Notes |
 |-----|-------|----------------|---------|--------|-------|
@@ -104,7 +104,7 @@ Desktop stubs are generated for message types but the service is not bound.
 
 ---
 
-## spaceroom.v1.MailboxService (P2P / declared only)
+## space.v1.MailboxService (P2P / declared only)
 
 | RPC | Proto | Backend Server | Desktop | Status | Notes |
 |-----|-------|----------------|---------|--------|-------|

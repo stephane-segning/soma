@@ -12,7 +12,7 @@ use libp2p::{
 use prost::Message;
 use soma_core::SomaResult;
 use soma_net::NetIdentity;
-use soma_proto_build::spaceroom;
+use soma_proto_build::space;
 use soma_vdfs::{
     BLOB_PROTOCOL, BlobProvider, BlobRange, BlobRequest, BlobResponse, BlobWriteInit,
     BlobWriteStream, DEFAULT_BLOB_CHUNK_BYTES, MAX_BLOB_MESSAGE_BYTES,
@@ -52,13 +52,13 @@ pub enum PeerCommand {
         addrs: Vec<Multiaddr>,
         delivery_id: String,
         request_id: String,
-        request: spaceroom::JoinRequest,
+        request: space::JoinRequest,
     },
     SendJoinDecision {
         target: PeerId,
         addrs: Vec<Multiaddr>,
         delivery_id: String,
-        decision: spaceroom::JoinDecision,
+        decision: space::JoinDecision,
     },
     /// Request to fetch a blob by CID. Results are delivered via events or handlers.
     FetchBlob {
@@ -133,7 +133,7 @@ pub enum PeerEvent {
     },
     JoinDecision {
         from: PeerId,
-        decision: spaceroom::JoinDecision,
+        decision: space::JoinDecision,
     },
     JoinDecisionDeliverySubmitted {
         target: PeerId,
@@ -321,8 +321,8 @@ enum AppEvent {
     Mdns(mdns::Event),
     Rendezvous(rendezvous::client::Event),
     Relay(relay::client::Event),
-    Join(reqres::Event<spaceroom::JoinRequest, spaceroom::JoinDecision>),
-    JoinDecision(reqres::Event<spaceroom::JoinDecision, JoinDecisionAck>),
+    Join(reqres::Event<space::JoinRequest, space::JoinDecision>),
+    JoinDecision(reqres::Event<space::JoinDecision, JoinDecisionAck>),
     Blob(reqres::Event<BlobRequest, BlobResponse>),
 }
 
@@ -356,14 +356,14 @@ impl From<relay::client::Event> for AppEvent {
     }
 }
 
-impl From<reqres::Event<spaceroom::JoinRequest, spaceroom::JoinDecision>> for AppEvent {
-    fn from(event: reqres::Event<spaceroom::JoinRequest, spaceroom::JoinDecision>) -> Self {
+impl From<reqres::Event<space::JoinRequest, space::JoinDecision>> for AppEvent {
+    fn from(event: reqres::Event<space::JoinRequest, space::JoinDecision>) -> Self {
         AppEvent::Join(event)
     }
 }
 
-impl From<reqres::Event<spaceroom::JoinDecision, JoinDecisionAck>> for AppEvent {
-    fn from(event: reqres::Event<spaceroom::JoinDecision, JoinDecisionAck>) -> Self {
+impl From<reqres::Event<space::JoinDecision, JoinDecisionAck>> for AppEvent {
+    fn from(event: reqres::Event<space::JoinDecision, JoinDecisionAck>) -> Self {
         AppEvent::JoinDecision(event)
     }
 }
@@ -975,8 +975,8 @@ struct JoinDecisionAck {}
 #[async_trait]
 impl reqres::Codec for JoinCodec {
     type Protocol = String;
-    type Request = spaceroom::JoinRequest;
-    type Response = spaceroom::JoinDecision;
+    type Request = space::JoinRequest;
+    type Response = space::JoinDecision;
 
     async fn read_request<T>(
         &mut self,
@@ -1028,7 +1028,7 @@ impl reqres::Codec for JoinCodec {
 #[async_trait]
 impl reqres::Codec for JoinDecisionCodec {
     type Protocol = String;
-    type Request = spaceroom::JoinDecision;
+    type Request = space::JoinDecision;
     type Response = JoinDecisionAck;
 
     async fn read_request<T>(
@@ -1182,18 +1182,18 @@ mod tests {
     use futures::io::Cursor;
     use libp2p::request_response::Codec;
 
-    fn sample_request() -> spaceroom::JoinRequest {
-        spaceroom::JoinRequest {
-            space_id: Some(spaceroom::SpaceId {
+    fn sample_request() -> space::JoinRequest {
+        space::JoinRequest {
+            space_id: Some(space::SpaceId {
                 value: "space-123".into(),
             }),
-            peer_id: Some(spaceroom::PeerId {
+            peer_id: Some(space::PeerId {
                 value: "peer-abc".into(),
             }),
             display_name: "User".into(),
             device_name: "Device".into(),
             student_code: String::new(),
-            requested_role: spaceroom::SpaceRole::Student as i32,
+            requested_role: space::SpaceRole::Student as i32,
             invite_proof: None,
             created_at: None,
         }
@@ -1225,15 +1225,15 @@ mod tests {
         let mut buf = Cursor::new(Vec::new());
         let proto = JOIN_DECISION_PROTOCOL.to_string();
 
-        let decision = spaceroom::JoinDecision {
+        let decision = space::JoinDecision {
             decision_id: "dec-1".into(),
-            space_id: Some(spaceroom::SpaceId {
+            space_id: Some(space::SpaceId {
                 value: "space-123".into(),
             }),
-            subject_peer_id: Some(spaceroom::PeerId {
+            subject_peer_id: Some(space::PeerId {
                 value: "peer-abc".into(),
             }),
-            decision: spaceroom::JoinDecisionType::JoinApproved as i32,
+            decision: space::JoinDecisionType::JoinApproved as i32,
             reason: "ok".into(),
             capability: None,
             created_at: None,
@@ -1288,7 +1288,7 @@ mod tests {
         let decision = crate::join::RejectAll.decide(&req, &peer).await;
         assert_eq!(
             decision.decision,
-            spaceroom::JoinDecisionType::JoinRejected as i32
+            space::JoinDecisionType::JoinRejected as i32
         );
         assert_eq!(decision.space_id.unwrap().value, "space-123");
         assert_eq!(decision.subject_peer_id.unwrap().value, "peer-abc");

@@ -118,7 +118,7 @@ Soma treats binary assets (“blobs”: files, images, attachments, Yoopta-relat
 #### Roles and rules
 
 - `soma-daemon` is the **source of truth** for user-created blobs (writes allowed).
-- `soma-botd` (both `bot` and `server-daemon` modes) is **cache-only** for blobs (writes allowed only as a side-effect of *fetching* a blob from the network; never accepts user upload).
+- `soma-botd` (both `bot` and `admin` modes) is **cache-only** for blobs (writes allowed only as a side-effect of *fetching* a blob from the network; never accepts user upload).
 - Blob identity is a CID computed from bytes (e.g. `sha256`), and storage is keyed by CID (content-addressed).
 
 #### Upload and persistence (daemon only)
@@ -202,12 +202,12 @@ Specific services (all now live under `backend/`):
 - Storage: SQLx AnyPool (Postgres or SQLite) via `soma_core::db::DbFactory`. Config via `--db-path` / `SOMA_DATABASE_URL` (defaults to `./botd.db` SQLite). Migrations are shared under `backend/crates/storage/migrations` and embedded at startup (`sqlx::migrate!("../../crates/storage/migrations")` in `runtime.rs`); startup fails if migration fails.
 - Join decider: auto-approves only when the bot holds a valid issuer capability for the space (role/expiry enforced) and signs the membership capability with its libp2p identity key; otherwise the join is recorded for manual approval in storage.
 
-#### Operating modes (bot vs server-daemon)
+#### Operating modes (bot vs admin)
 
 `soma-botd` is a peer first. Its HTTP surface depends on an operating mode:
 
 - `bot` mode (default): read-only HTTP endpoints only (`/info`, `/healthz`, `/metrics`). No business APIs (`/v1/*`) at all.
-- `server-daemon` mode: exposes a daemon-like control plane over HTTP for admin operations (join decisions, revocation, roster, issuer delegation, mailbox, …). This mode must be authenticated/authorized. Join control surfaces: `POST /v1/join/request` (send join request over libp2p), `GET /v1/join/requests` (list pending), `POST /v1/join/decide` (approve/reject; signs capability on approve).
+- `admin` mode: exposes a daemon-like control plane over HTTP for admin operations (join decisions, revocation, roster, issuer delegation, mailbox, …). This mode must be authenticated/authorized. Join control surfaces: `POST /v1/join/request` (send join request over libp2p), `GET /v1/join/requests` (list pending), `POST /v1/join/decide` (approve/reject; signs capability on approve).
 
 Rule of thumb: keep business logic in `soma-peer` and treat Axum/gRPC surfaces as controllers that call into peer services/deciders.
 
@@ -217,7 +217,7 @@ Mode responsibilities (high-level):
     - Runs a peer (`soma-peer`) + event handlers (metrics/logging).
     - Exposes read-only HTTP only.
     - Can be configured with an automated join decider, but has no public write surface.
-- `server-daemon` mode:
+- `admin` mode:
     - Runs the same peer + storage, but additionally exposes admin/business HTTP APIs.
     - Business endpoints must be gated by mode and protected with authn/authz.
     - Controllers must delegate to `soma-peer` + repositories (no direct business logic in Axum handlers).
@@ -241,7 +241,7 @@ Use this list to track domain flows and where the API lives. Mark items off as y
     - Daemon gRPC: `Daemon/JoinSpace(space_id, display_name, device_name, target_peer_id, target_multiaddrs)` (Unix socket, proto `proto/daemon/v1/daemon.proto`)
     - Join protocol: handled in `soma-peer` via a pluggable join decider (default: reject-all). Controllers (daemon/bot) supply a decider and/or admin actions. Membership capabilities are signed with the peer’s libp2p identity key when approved.
     - Bot mode (`soma-botd --mode bot`): auto-approves only when it holds a valid issuer capability for the space; otherwise records a pending join and rejects until manually approved elsewhere. HTTP stays read-only.
-    - Server-daemon mode (`soma-botd --mode server-daemon`): authenticated admin surface for join control (`POST /v1/join/request`, `GET /v1/join/requests`, `POST /v1/join/decide`); controllers delegate to storage + decider (no force-mint).
+    - Admin mode (`soma-botd --mode admin`): authenticated admin surface for join control (`POST /v1/join/request`, `GET /v1/join/requests`, `POST /v1/join/decide`); controllers delegate to storage + decider (no force-mint).
     - Daemon gRPC also exposes manual approval surfaces: `Daemon/ListJoinRequests`, `Daemon/DecideJoin` and membership queries via `Daemon/ListMyMemberships`.
 - [x] Blob upload & read (desktop IPC)
     - Daemon gRPC: `Daemon/UploadBlob`, `Daemon/ReadBlob` (Unix socket, proto `proto/daemon/v1/daemon.proto`)
@@ -250,7 +250,7 @@ Use this list to track domain flows and where the API lives. Mark items off as y
     - Add a real “space genesis” artifact (owner-signed record) that other peers can verify; current `spaces.owner_peer_id` is DB-local metadata only.
 - [ ] Issuer capability lifecycle (secure)
     - Verify `IssuerCapability.signed` (owner signature) and enforce expiry/allowed roles consistently before auto-approving.
-    - Expose issuer delegation issuance/rotation from both daemon gRPC and server-daemon HTTP (and keep it auditable).
+    - Expose issuer delegation issuance/rotation from both daemon gRPC and admin HTTP (and keep it auditable).
 - [ ] Signature verification on join receipt
     - Verify `MembershipCapability.signed` on the receiver (daemon) using the issuer public key from libp2p Identify.
     - If issuer != owner, verify issuer delegation chain (owner → issuer capability → membership).
@@ -303,7 +303,7 @@ Migrations are centralized in `backend/crates/storage/migrations` and embedded b
 - **Chain of Responsibility**: The dispatcher plus multiple handlers form a chain; each handler can choose to act or ignore. To extend behavior, add another handler instead of bloating existing ones.
 - **Strategy**: Logging vs metrics handlers represent interchangeable strategies for reacting to events. Follow this pattern when adding new behaviors (e.g., persistence strategy for events).
 - **Composite**: Per-kind handler lists in `PeerEventDispatcher` compose multiple behaviors as a single dispatcher. Group related handlers when you need combined behaviors.
-- **Facade (control planes)**: HTTP/gRPC surfaces are controllers only; business logic lives in `soma-peer` + repositories. In `bot` mode, botd HTTP stays read-only; in `server-daemon` mode, write endpoints must be authenticated.
+- **Facade (control planes)**: HTTP/gRPC surfaces are controllers only; business logic lives in `soma-peer` + repositories. In `bot` mode, botd HTTP stays read-only; in `admin` mode, write endpoints must be authenticated.
 - **Singletons (where needed)**: Global allocator (`GLOBAL`), static migrators (`static MIGRATOR` per binary). Avoid new global state unless initialization must happen once.
 - **MVC**: Treat Axum handlers as controllers (`http.rs`), DB + peer/service layers as model (state + persistence), and response serializers/views as the view. Keep controllers thin and push business logic into model/service helpers.
 - **Repository**: Formalize DB access by wrapping SQLx queries per aggregate (memberships, join_decisions, issuer_capabilities) in dedicated modules to keep handlers/controllers thin.
@@ -648,7 +648,7 @@ flowchart LR
 - Requester: `soma-daemon` sends join via `Daemon/JoinSpace` (libp2p join protocol).
 - Approver:
   - `soma-botd --mode bot`: auto-approves only with issuer delegation present; otherwise records `join_requests` and rejects.
-  - `soma-botd --mode server-daemon` or `soma-daemon`: manual approval via `JoinRequests` list + `DecideJoin`.
+  - `soma-botd --mode admin` or `soma-daemon`: manual approval via `JoinRequests` list + `DecideJoin`.
 - Manual approval is asynchronous but does not require a requester retry: approver pushes `JoinDecision` in-network and falls back to mailbox if requester is offline.
 
 ### Join Flows (Mermaid)

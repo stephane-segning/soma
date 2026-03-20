@@ -46,7 +46,6 @@ pub struct Args {
     pub disable_mdns: bool,
 
     /// Operating mode: bot (read-only HTTP) or admin (admin control plane).
-    /// "server-daemon" is accepted as an alias for "admin".
     #[arg(long, env = "SOMA_MODE", default_value = "bot", value_enum)]
     pub mode: Mode,
 
@@ -113,7 +112,6 @@ impl From<&Args> for BotConfig {
 #[value(rename_all = "kebab-case")]
 pub enum Mode {
     Bot,
-    #[value(alias = "server-daemon")]
     Admin,
 }
 

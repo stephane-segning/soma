@@ -20,7 +20,7 @@ This section lists the major building blocks in the repo and how they relate.
   - gRPC over UDS controller surface (tonic).
 - `backend/bins/botd` (`soma-botd`)
   - libp2p peer with cache-only blob behaviour (VDF role).
-  - Axum HTTP surface for info/health/metrics; optional admin control plane in `server-daemon` mode.
+  - Axum HTTP surface for info/health/metrics; optional admin control plane in `admin` mode.
 - `backend/bins/relayd` (`soma-relayd`)
   - libp2p Circuit Relay v2 server + Axum health/metrics.
 - `backend/bins/rendezvousd` (`soma-rendezvousd`)

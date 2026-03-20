@@ -254,7 +254,7 @@ mod tests {
         };
         let join_evt = PeerEvent::JoinDecision {
             from: libp2p::PeerId::random(),
-            decision: soma_proto_build::spaceroom::JoinDecision::default(),
+            decision: soma_proto_build::space::JoinDecision::default(),
         };
 
         dispatcher.dispatch(&(), &ping_evt).await;

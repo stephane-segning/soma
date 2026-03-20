@@ -4,13 +4,13 @@ use std::time::SystemTime;
 use async_trait::async_trait;
 use libp2p::PeerId;
 use prost_types::Timestamp;
-use soma_proto_build::spaceroom::{JoinDecision, JoinDecisionType, SpaceId};
+use soma_proto_build::space::{JoinDecision, JoinDecisionType, SpaceId};
 
 #[async_trait]
 pub trait JoinDecider: Send + Sync {
     async fn decide(
         &self,
-        request: &soma_proto_build::spaceroom::JoinRequest,
+        request: &soma_proto_build::space::JoinRequest,
         issuer: &PeerId,
     ) -> JoinDecision;
 }
@@ -22,7 +22,7 @@ pub struct RejectAll;
 impl JoinDecider for RejectAll {
     async fn decide(
         &self,
-        request: &soma_proto_build::spaceroom::JoinRequest,
+        request: &soma_proto_build::space::JoinRequest,
         issuer: &PeerId,
     ) -> JoinDecision {
         let now = Timestamp::from(SystemTime::now());

@@ -686,7 +686,6 @@ export class DaemonClient {
 				error: event.joinFailed.error,
 			};
 		}
-		// Prefer document_blob_added; fall back to legacy yoopta_blob_added for compatibility.
 		if (event.documentBlobAdded) {
 			return {
 				kind: "document-blob-added",
@@ -696,17 +695,6 @@ export class DaemonClient {
 				mime: event.documentBlobAdded.mime,
 				size: Number(event.documentBlobAdded.size ?? 0),
 				name: event.documentBlobAdded.name,
-			};
-		}
-		if (event.yooptaBlobAdded) {
-			return {
-				kind: "document-blob-added",
-				spaceId: event.yooptaBlobAdded.spaceId,
-				docId: event.yooptaBlobAdded.docId,
-				cid: event.yooptaBlobAdded.cid,
-				mime: event.yooptaBlobAdded.mime,
-				size: Number(event.yooptaBlobAdded.size ?? 0),
-				name: event.yooptaBlobAdded.name,
 			};
 		}
 		return null;

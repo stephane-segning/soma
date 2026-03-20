@@ -15,7 +15,7 @@ use soma_membership::{
     create_space, decide_join_request, enqueue_outgoing_join_decision,
     enqueue_outgoing_join_request, issue_issuer_capability_to_storage, parse_role_str,
 };
-use soma_proto_build::spaceroom::SpaceRole;
+use soma_proto_build::space::SpaceRole;
 use soma_storage::issuer::IssuerRepository;
 use soma_storage::membership::MembershipRepository;
 
@@ -197,11 +197,11 @@ async fn join_request_submit_handler(
     let role = parse_role_str(&requested_role).unwrap_or(SpaceRole::Student);
 
     let request_id = format!("req-{:016x}", rand::random::<u64>());
-    let join_request = soma_proto_build::spaceroom::JoinRequest {
-        space_id: Some(soma_proto_build::spaceroom::SpaceId {
+    let join_request = soma_proto_build::space::JoinRequest {
+        space_id: Some(soma_proto_build::space::SpaceId {
             value: payload.space_id.clone(),
         }),
-        peer_id: Some(soma_proto_build::spaceroom::PeerId {
+        peer_id: Some(soma_proto_build::space::PeerId {
             value: state.info.peer_id.clone(),
         }),
         display_name: payload.display_name.clone().unwrap_or_default(),

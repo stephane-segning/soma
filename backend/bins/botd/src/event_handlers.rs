@@ -45,8 +45,6 @@ enum EventKindLabel {
     JoinDecisionDeliveryAck,
     JoinDecisionDeliveryFailed,
     JoinFailed,
-    /// Legacy: prefer DocumentBlobAdded for new code.
-    YooptaBlobAdded,
     DocumentBlobAdded,
     BlobResponseReceived,
 }
@@ -74,7 +72,6 @@ impl EventKindLabel {
             EventKindLabel::JoinDecisionDeliveryAck => "join_decision_delivery_ack",
             EventKindLabel::JoinDecisionDeliveryFailed => "join_decision_delivery_failed",
             EventKindLabel::JoinFailed => "join_failed",
-            EventKindLabel::YooptaBlobAdded => "yoopta_blob_added",
             EventKindLabel::DocumentBlobAdded => "document_blob_added",
             EventKindLabel::BlobResponseReceived => "blob_response_received",
         }
@@ -100,9 +97,9 @@ impl JoinDecisionOutcome {
     }
 }
 
-impl From<soma_proto_build::spaceroom::JoinDecisionType> for JoinDecisionOutcome {
-    fn from(value: soma_proto_build::spaceroom::JoinDecisionType) -> Self {
-        use soma_proto_build::spaceroom::JoinDecisionType::*;
+impl From<soma_proto_build::space::JoinDecisionType> for JoinDecisionOutcome {
+    fn from(value: soma_proto_build::space::JoinDecisionType) -> Self {
+        use soma_proto_build::space::JoinDecisionType::*;
 
         match value {
             JoinApproved => JoinDecisionOutcome::Approved,
@@ -188,7 +185,7 @@ impl PeerEventHandler<BotState> for MetricsHandler {
             PeerEvent::JoinDecision { decision, .. } => {
                 record_event(metrics, EventKindLabel::JoinDecision);
                 let outcome =
-                    soma_proto_build::spaceroom::JoinDecisionType::try_from(decision.decision)
+                    soma_proto_build::space::JoinDecisionType::try_from(decision.decision)
                         .map(JoinDecisionOutcome::from)
                         .unwrap_or(JoinDecisionOutcome::Unspecified);
                 metrics

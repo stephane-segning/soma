@@ -82,10 +82,6 @@ A **cache peer** is a libp2p peer that fetches and caches blobs addressed by con
 **Do NOT use:**
 - `server-daemon` (confuses with desktop daemon)
 
-**Migration path:**
-- Accept `server-daemon` as alias (Phase 5)
-- Remove alias (Phase 6)
-
 ---
 
 ## Event Naming
@@ -109,13 +105,9 @@ Events should follow the pattern: `<entity>_<action>`
 ## Proto Package Naming
 
 **Current:**
-- `spaceroom.v1` → **Transitional**
-
-**Target:**
-- `space.v1`
+- `space.v1` → **Implemented** (Phase 6)
 
 **Migration:**
-- Rename requires proto regeneration and client updates (Phase 6)
 
 ---
 
@@ -155,7 +147,7 @@ Events should follow the pattern: `<entity>_<action>`
 | `Yoopta` | Editor library | Implementation detail |
 | `VDFS` | Inconsistent acronym | Use VDF or cache peer |
 | `server-daemon` | Confusing | Use admin mode |
-| `spaceroom` | Proto package | Use space.v1 |
+| `spaceroom` | Proto package | Renamed to space.v1 (Phase 6) |
 | `tauri` | Previous framework | Use Electron/desktop |
 
 ---

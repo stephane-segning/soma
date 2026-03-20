@@ -8,7 +8,7 @@ use soma_membership::{
     list_pending_join_requests, parse_role_str,
 };
 use soma_peer::PeerCommand;
-use soma_proto_build::{daemon, spaceroom};
+use soma_proto_build::{daemon, space};
 use tokio::sync::{Mutex, broadcast, mpsc};
 use tokio_stream::{StreamExt as TokioStreamExt, wrappers::BroadcastStream};
 use tonic::{Request, Response, Status};
@@ -164,17 +164,17 @@ impl daemon::daemon_server::Daemon for DaemonService {
         }
 
         let request_id = format!("{:016x}", rand::random::<u64>());
-        let join_request = spaceroom::JoinRequest {
-            space_id: Some(spaceroom::SpaceId {
+        let join_request = space::JoinRequest {
+            space_id: Some(space::SpaceId {
                 value: payload.space_id,
             }),
-            peer_id: Some(spaceroom::PeerId {
+            peer_id: Some(space::PeerId {
                 value: self.state.peer_id.to_string(),
             }),
             display_name: payload.display_name,
             device_name: payload.device_name,
             student_code: String::new(),
-            requested_role: spaceroom::SpaceRole::Student as i32,
+            requested_role: space::SpaceRole::Student as i32,
             invite_proof: None,
             created_at: Some(Timestamp::from(SystemTime::now())),
         };
@@ -343,20 +343,9 @@ impl daemon::daemon_server::Daemon for DaemonService {
                 Status::internal("failed to persist blob metadata")
             })?;
 
-        // Emit event only when tied to Yoopta content.
+        // Emit event only when tied to document content.
         if !payload.doc_id.is_empty() {
-            // Emit both legacy and preferred event variants for compatibility.
-            let legacy_event = daemon::daemon_event::Event::YooptaBlobAdded(
-                daemon::YooptaBlobAddedEvent {
-                    space_id: payload.space_id.clone(),
-                    doc_id: payload.doc_id.clone(),
-                    cid: write_res.cid.clone(),
-                    mime: mime.clone(),
-                    size: write_res.size as u64,
-                    name: payload.name.clone(),
-                },
-            );
-            let preferred_event = daemon::daemon_event::Event::DocumentBlobAdded(
+            let event = daemon::daemon_event::Event::DocumentBlobAdded(
                 daemon::DocumentBlobAddedEvent {
                     space_id: payload.space_id.clone(),
                     doc_id: payload.doc_id.clone(),
@@ -368,12 +357,7 @@ impl daemon::daemon_server::Daemon for DaemonService {
             );
             self.state
                 .publish(daemon::DaemonEvent {
-                    event: Some(legacy_event),
-                })
-                .await;
-            self.state
-                .publish(daemon::DaemonEvent {
-                    event: Some(preferred_event),
+                    event: Some(event),
                 })
                 .await;
 

@@ -6,8 +6,8 @@ use rand::random;
 use soma_common::sign_membership_capability;
 use soma_core::{Error, SomaResult};
 use soma_membership::{create_space, role_to_str};
-use soma_proto_build::spaceroom;
-use soma_proto_build::spaceroom::SpaceRole;
+use soma_proto_build::space;
+use soma_proto_build::space::SpaceRole;
 use soma_storage::{RepositoryProvider, membership::SpaceMembership};
 use std::{
     collections::HashSet,
@@ -88,18 +88,18 @@ impl DefaultSpaceManager {
     ) -> SomaResult<()> {
         let now = SystemTime::now();
         let now_secs = now.duration_since(UNIX_EPOCH).unwrap_or_default().as_secs() as i64;
-        let mut membership_cap = spaceroom::MembershipCapability {
-            space_id: Some(spaceroom::SpaceId {
+        let mut membership_cap = space::MembershipCapability {
+            space_id: Some(space::SpaceId {
                 value: space_id.to_string(),
             }),
-            subject_peer_id: Some(spaceroom::PeerId {
+            subject_peer_id: Some(space::PeerId {
                 value: self.peer_id.to_string(),
             }),
             role: SpaceRole::Owner as i32,
             permissions: Vec::new(),
             issued_at: Some(Timestamp::from(now)),
             expires_at: None,
-            issuer_peer_id: Some(spaceroom::PeerId {
+            issuer_peer_id: Some(space::PeerId {
                 value: self.peer_id.to_string(),
             }),
             issuer_cap: None,

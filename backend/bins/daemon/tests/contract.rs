@@ -16,7 +16,7 @@ use soma_proto_build::daemon::{
     PageRecord, ReadBlobRequest, ReadBlobResponse, RevokeSpaceRequest, RevokeSpaceResponse,
     SetPageParentsRequest, SetPageParentsResponse, StatusRequest, StatusResponse,
     UpdatePageTitleRequest, UpdatePageTitleResponse, UpdateSpaceRequest, UpdateSpaceResponse,
-    UploadBlobRequest, UploadBlobResponse, YooptaBlobAddedEvent,
+    UploadBlobRequest, UploadBlobResponse,
 };
 
 #[test]
@@ -93,24 +93,6 @@ fn daemon_event_has_join_failed_variant() {
     assert!(matches!(
         event.event,
         Some(daemon_event::Event::JoinFailed(_))
-    ));
-}
-
-#[test]
-fn daemon_event_has_yoopta_blob_added_variant() {
-    let event = DaemonEvent {
-        event: Some(daemon_event::Event::YooptaBlobAdded(YooptaBlobAddedEvent {
-            space_id: "space-1".into(),
-            doc_id: "doc-1".into(),
-            cid: "cid-1".into(),
-            mime: "image/png".into(),
-            size: 1024,
-            name: "image.png".into(),
-        })),
-    };
-    assert!(matches!(
-        event.event,
-        Some(daemon_event::Event::YooptaBlobAdded(_))
     ));
 }
 

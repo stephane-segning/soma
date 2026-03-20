@@ -3,7 +3,7 @@ use std::time::SystemTime;
 use libp2p::{Multiaddr, PeerId};
 use prost::Message;
 use soma_peer::PeerCommand;
-use soma_proto_build::spaceroom::JoinDecision;
+use soma_proto_build::space::JoinDecision;
 use soma_storage::RepositoryProvider;
 use tokio::sync::mpsc;
 use tracing::warn;

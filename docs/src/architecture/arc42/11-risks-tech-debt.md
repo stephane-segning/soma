@@ -6,7 +6,7 @@ This page tracks known architectural risks and “next refactor” items.
 
 - **Canonical signing format**: current signing uses CBOR but canonicalization is not guaranteed across implementations/versions; this is a prerequisite for robust cross-version signature verification.
 - **Signature verification completeness**: ensure membership and issuer delegation chains are verified consistently on receipt (not just on issuance).
-- **Mode-gated HTTP auth**: `soma-botd` server-daemon mode must remain authenticated/authorized; keep bot mode read-only.
+- **Mode-gated HTTP auth**: `soma-botd` admin mode must remain authenticated/authorized; keep bot mode read-only.
 
 ## Networking and protocols
 

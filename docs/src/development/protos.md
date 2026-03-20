@@ -6,7 +6,7 @@ Soma defines its local IPC and peer-facing message schemas in `proto/` using Pro
 
 - Daemon IPC (desktop): `proto/daemon/v1/daemon.proto`
 - Agent IPC (desktop helper): `proto/agent/v1/agent.proto`
-- Membership/capabilities: `proto/spaceroom/v1/membership.proto`
+- Membership/capabilities: `proto/space/v1/membership.proto`
 
 ## How Rust bindings are generated
 
