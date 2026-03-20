@@ -1,123 +1,85 @@
-# Agentd IPC and Security Model
+# Agentd IPC
 
-`soma-agentd` is a long-running, CPU-heavy worker (OCR, hashing, indexing, Yjs reconciliation, and OpenAI-compatible model API proxying). It should not be exposed directly to the desktop renderer.
+`soma-agentd` is the local helper process for model-backed and CPU-heavy work.
 
-!!! note
-    `desktop/soma` (Electron) and `desktop/tapia` (Electron) currently wire the renderer → app main process → `soma-agentd` directly for chat.
-    The long-term recommended topology is still “UI → daemon → agentd” so that the daemon can enforce authn/authz and policy centrally.
+Current implemented responsibilities include:
 
-## Recommended Topology
+- model status and model listing
+- chat and chat-stream RPCs
+- embeddings
+- rerank
+- Yjs drift merge / resolution
+- persisted background task tracking
 
-- Electron (renderer) → Electron (main) → `soma-daemon` → `soma-agentd`
-- The UI only talks to `soma-daemon`.
-- `soma-daemon` mediates access to `soma-agentd` and enforces permissions and policy.
+## Current Topology
 
-This keeps the trust boundary small: the daemon owns identity/capabilities; the agent does compute.
+The current desktop topology is:
+
+- renderer -> Electron main -> `soma-agentd`
+
+This is the current implemented path for Soma's main-process agent client.
+
+There is still a broader architectural desire to move more policy mediation behind `soma-daemon`, but the docs for this page describe the current direct main-process -> `soma-agentd` reality.
 
 ## Transport
 
-### Desktop
+`soma-agentd` uses local gRPC over a Unix domain socket.
 
-Use a Unix domain socket (UDS) between `soma-daemon` and `soma-agentd`:
+Default socket naming follows the desktop stage configuration:
 
-- Bind under a per-user private directory (permissions `0700`), with socket permissions `0600`.
-- Never bind `agentd` to TCP on desktop.
+- prod: `/tmp/soma-agentd.sock`
+- dev: `/tmp/soma-agentd-dev.sock`
+- staging: `/tmp/soma-agentd-staging.sock`
 
-UDS is full-duplex and supports bidirectional communication.
+The matching daemon sockets follow the same stage suffix rules.
 
-### Server / cross-host
+## gRPC Surface
 
-Do not reuse the desktop IPC protocol over the network. If a remote agent is ever needed, treat it as a separate server product with explicit authn/authz, rate limiting, and auditing.
+Proto:
 
-## Performance Notes
+- `proto/agent/v1/agent.proto`
 
-Unix sockets are typically fast enough for control messages, job submissions, and streaming progress:
+TypeScript/Electron consumers use:
 
-- They are kernel-mediated, low overhead, and full-duplex.
-- The dominant cost is usually serialization and copies.
+- `desktop/desktp-proto` as `@soma/proto`
 
-To keep things fast:
+Key RPCs currently exposed by `soma-agentd` include:
 
-- Prefer binary formats (e.g., protobuf) over JSON for high-frequency messages.
-- Do not stream large blobs over the socket. Instead:
-  - store blobs in the blob pool and pass references (hash/path within the pool), or
-  - use FD passing (`SCM_RIGHTS`) to hand off an open file descriptor where supported.
+- `Status`
+- `ListModels`
+- `Chat`
+- `ChatStream`
+- `InlineComplete`
+- `Embed`
+- `Rerank`
+- `ResolveDrift`
 
-## gRPC surface (UDS)
+## Important Behavior Notes
 
-Proto: `proto/agent/v1/agent.proto` (generated into `soma_proto_build::agent`).
+- model capability metadata used by the UI is still local desktop configuration, not a daemon-owned contract
+- current chat streaming should be treated as the current implemented behavior, not as a guarantee of token-perfect provider streaming semantics
+- `soma-agentd` is local IPC, not a network service
 
-- `Status` / `ListModels`: version, defaults, and provider model metadata.
-- `ListModels.kind` can be `unknown`; provider `/models` does not reliably expose chat/embed/tool/image capabilities.
-- `Chat` / `ChatStream` / `InlineComplete`: chat inference with optional model override.
-- `Embed`: embed one or more strings with optional model override.
-- `Rerank`: embeds `{query, candidates[]}` using the embed model and returns cosine-ranked `{id, score, rank}`; `top_n` limits output (0 = all).
-- `ResolveDrift`: merges two Yjs updates (bytes) and returns a merged update; use this when reconciling document drift.
+## Runtime Events To Renderer
 
-Keep the socket UDS-bound and mode 0600; treat all APIs as local-only IPC.
+Soma main forwards runtime updates to the renderer on `agent_event`.
 
-Model capability source of truth:
+Relevant code paths:
 
-- Capability flags (`chat`, `embed`, `tool`, `image`) are local UI metadata in Soma settings (`agent.config` in `electron-store`).
-- Per-workspace capability overrides are stored in `agent.config.workspaces[space_id]`.
-- These settings are local-only and are never forwarded to `soma-daemon`.
+- schema: `desktop/desktp-data/src/events.ts`
+- main forwarder: `desktop/soma/src/main/services/agent-events.ts`
+- renderer listener: `desktop/soma/src/renderer/src/services/agent-events.ts`
 
-## Main -> renderer runtime events
+Current event kinds include:
 
-Soma main process broadcasts validated runtime events to renderer on `agent_event`:
+- `ready`
+- `status`
+- `error`
 
-- Schema owner: `desktop/desktp-data/src/events.ts` (`AgentRuntimeEventPayload`).
-- Forwarder: `desktop/soma/src/main/services/agent-events.ts`.
-- Listener: `desktop/soma/src/renderer/src/services/agent-events.ts`.
+## Operational Notes
 
-Event kinds:
+- keep `soma-agentd` local-only
+- keep the socket path aligned with the app stage
+- when debugging model availability, start with `ListModels` and the configured provider base URL
 
-- `ready`: provider and base URL are ready for requests.
-- `status`: periodic status with current model list.
-- `error`: non-fatal runtime/provider error details.
-
-## TypeScript codegen (Node/Electron)
-
-For Node/Electron consumers (e.g. `desktop/soma`), this repo provides a workspace package that generates typed gRPC stubs:
-
-- Package: `desktop/desktp-proto` (`@soma/proto`)
-- Generator: `ts-proto` targeting `grpc-js`
-- Build: `pnpm --filter @soma/proto build`
-
-## Bidirectional Communication Patterns
-
-You have two common patterns; both are bidirectional at the transport level:
-
-1. **Request/Response + polling**
-   - UI submits job → daemon → agentd returns job id.
-   - UI polls daemon for status/result.
-   - Simpler, robust.
-
-2. **Streaming progress/events**
-   - Client opens a stream subscription.
-   - Agentd pushes progress updates and final results.
-   - Best UX for long tasks (OCR/indexing).
-
-If using gRPC over UDS (e.g., tonic), bidirectional streaming is first-class.
-
-## Authentication and Authorization
-
-Even on a per-user Unix socket, use application-level auth to avoid “any local same-user process can call it”:
-
-- `soma-daemon` generates a random secret at startup.
-- `soma-daemon` passes it to `soma-agentd` securely (env var at spawn time, or a `0600` file).
-- `soma-agentd` requires that secret in a handshake before accepting requests.
-
-Authorization should be enforced by `soma-daemon`:
-
-- `soma-agentd` should not have access to identity keys/capabilities.
-- `soma-agentd` should operate on explicit job inputs (blob references, text payloads) and return outputs.
-
-## Safety Controls
-
-To avoid UI-triggered resource exhaustion:
-
-- Limit concurrency (e.g., max in-flight jobs).
-- Limit input sizes (bytes, document lengths).
-- Add timeouts per job type and per request.
-- Add backpressure for streaming endpoints.
+For local provider/model configuration, see `docs/src/development/agentd-models.md`.

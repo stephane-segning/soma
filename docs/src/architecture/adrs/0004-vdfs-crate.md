@@ -1,4 +1,4 @@
-# ADR-0004: Extract a dedicated VDFS crate (blob CAS + fetch-by-CID)
+# ADR-0004: Extract a dedicated blob CAS crate (historical `soma-vdfs` naming)
 
 ## Context
 
@@ -14,7 +14,7 @@ Meanwhile, the peer runtime (`backend/crates/peer/src/lib.rs`) defines the `Blob
 
 ## Decision
 
-Create (and use) a dedicated crate for the minimal “VDFS” surface (blob CAS + fetch-by-CID primitives), and make `soma-peer` depend on it.
+Create (and use) a dedicated crate for the minimal blob CAS surface (blob CAS + fetch-by-CID primitives), and make `soma-peer` depend on it.
 
 The crate will intentionally stay narrow (no virtual filesystem mapping).
 
@@ -23,7 +23,7 @@ The crate will intentionally stay narrow (no virtual filesystem mapping).
 Positive:
 
 - One canonical CID + layout implementation shared by daemon/bot (and other projects).
-- Cleaner boundaries: `soma-peer` focuses on libp2p wiring; the VDFS crate focuses on CAS rules.
+- Cleaner boundaries: `soma-peer` focuses on libp2p wiring; the historical `soma-vdfs` crate focuses on CAS rules.
 - Reduced duplication and drift.
 
 Negative / follow-ups:

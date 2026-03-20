@@ -1,111 +1,87 @@
-# Testing the Daemon Locally (gRPC over Unix Socket + Join Flow)
+# Testing the Daemon Locally With `grpcurl`
 
-This guide documents how to test the current Soma daemon IPC surface and the join flow end-to-end using `grpcurl`.
+This guide exercises the current local daemon IPC surface over a Unix socket.
 
-It exercises:
+It focuses on:
 
-- `soma-daemon` gRPC over a Unix domain socket (UDS)
-- `soma-botd` as a libp2p peer that receives the Join request
-- `Daemon/StreamEvents` to observe `joinSubmitted` and `joinDecision`
+- `Daemon/Status`
+- `Daemon/StreamEvents`
+- `Daemon/JoinSpace`
 
 ## Prerequisites
 
-- `cargo` (Rust toolchain)
+- Rust toolchain
 - `grpcurl`
-  - macOS (Homebrew): `brew install grpcurl`
 
-## Important note about `grpcurl` + Unix sockets
+## Unix Socket Note
 
-In this repo, the daemon listens on a Unix socket (e.g. `/tmp/soma-daemon.sock`).
-
-On some `grpcurl` builds, `-unix` does not work reliably when the address is a plain path.
-The most reliable form is using a `unix://` target string:
-
-`"unix://$PWD/soma-daemon.sock"`
-
-If you try `-unix /tmp/soma-daemon.sock` and see `dial tcp ... missing port in address`, use the `unix://` form.
-
-## 1) Start the daemon (UDS gRPC server)
-
-From `backend/`:
-
-```bash
-cd backend
-rm -f /tmp/soma-daemon.sock
-
-RUST_LOG=info cargo run -p soma-daemon -- \
-  --socket-path "$PWD/soma-daemon.sock" \
-  --blob-dir ./blobs-test \
-  --disable-mdns \
-  --listen-addrs /ip4/127.0.0.1/tcp/0
-```
-
-Why these flags:
-
-- `--disable-mdns`: avoids OS-level mDNS permissions/issues on some environments.
-- `--listen-addrs /ip4/127.0.0.1/tcp/0`: bind a random local TCP port instead of fixed ports.
-
-## 2) Start the bot peer
-
-From another terminal (still in `backend/`):
-
-```bash
-cd backend
-
-RUST_LOG=info cargo run -p soma-botd -- \
-  --http-addr 127.0.0.1:0 \
-  --disable-mdns \
-  --listen-addrs /ip4/127.0.0.1/tcp/0
-```
-
-From the bot logs, copy:
-
-- `peer_id=...`
-- `listen_addr=...` (example: `/ip4/127.0.0.1/tcp/60806`)
-
-Build the bot target multiaddr by appending `/p2p/<peer_id>`:
+For this repo, `grpcurl` works most reliably with a `unix://` target string.
 
 Example:
 
-`/ip4/127.0.0.1/tcp/60806/p2p/Qm...`
+```bash
+"unix:///tmp/soma-daemon-dev.sock"
+```
 
-## 3) Verify daemon is reachable via gRPC
+## 1. Start the Daemon
 
-From `backend/`:
+From the repo root, the simplest path is:
+
+```bash
+just run-daemon
+```
+
+That uses the dev socket path:
+
+```bash
+/tmp/soma-daemon-dev.sock
+```
+
+If you want to start it manually instead, use a matching socket path and local-only listen address.
+
+## 2. Verify `Status`
 
 ```bash
 grpcurl -plaintext \
-  -import-path ../proto \
-  -proto ../proto/daemon/v1/daemon.proto \
-  "unix://$PWD/soma-daemon.sock" \
+  -import-path proto \
+  -proto proto/daemon/v1/daemon.proto \
+  "unix:///tmp/soma-daemon-dev.sock" \
   daemon.v1.Daemon/Status
 ```
 
-Expected response shape:
+Expected fields include:
 
-- `peerId` (daemon libp2p peer id)
-- `listenAddrs` (daemon listen addresses)
+- `peerId`
+- `listenAddrs`
 
-## 4) Stream daemon events
-
-In one terminal (leave running):
+## 3. Stream Events
 
 ```bash
 grpcurl -plaintext \
-  -import-path ../proto \
-  -proto ../proto/daemon/v1/daemon.proto \
-  "unix://$PWD/soma-daemon.sock" \
+  -import-path proto \
+  -proto proto/daemon/v1/daemon.proto \
+  "unix:///tmp/soma-daemon-dev.sock" \
   daemon.v1.Daemon/StreamEvents
 ```
 
-## 5) Submit a join request
+Keep this running while you trigger actions from the UI or other RPC calls.
 
-In another terminal, replace `<BOT_PEER_ID>` and `<BOT_MULTIADDR_WITH_P2P>`:
+## 4. Optional: Test Join Submission
+
+Start a bot in another terminal:
+
+```bash
+just run-botd
+```
+
+Then collect the bot peer id and a listen multiaddr with `/p2p/<peer-id>` appended.
+
+Submit the join request:
 
 ```bash
 grpcurl -plaintext \
-  -import-path ../proto \
-  -proto ../proto/daemon/v1/daemon.proto \
+  -import-path proto \
+  -proto proto/daemon/v1/daemon.proto \
   -d '{
     "space_id": "space-123",
     "display_name": "Alice",
@@ -113,45 +89,34 @@ grpcurl -plaintext \
     "target_peer_id": "<BOT_PEER_ID>",
     "target_multiaddrs": ["<BOT_MULTIADDR_WITH_P2P>"]
   }' \
-  "unix://$PWD/soma-daemon.sock" \
+  "unix:///tmp/soma-daemon-dev.sock" \
   daemon.v1.Daemon/JoinSpace
 ```
 
-Expected:
+Expected immediate result:
 
-- The RPC returns a `requestId`.
-- The events stream shows:
-  - `joinSubmitted`
-  - `joinDecision`
+- the RPC returns a `requestId`
+- the event stream shows `joinSubmitted`
 
-Current behaviour:
+Current join behavior note:
 
-- The join protocol is implemented over libp2p request/response. If `soma-botd` is running, it will auto-approve by default and return a `MembershipCapability` (unsigned placeholder) in the `JoinDecision`. If no issuer/bot responds, you will see a rejected decision from the default handler.
+- `soma-botd` does not auto-approve every request by default
+- approval requires the relevant issuer capability path, otherwise the request remains part of a manual decision flow
 
 ## Troubleshooting
 
-### `Too many arguments` from `grpcurl`
+### `missing port in address`
 
-Double-check ordering. The basic forms are:
+Use the `unix://...` form rather than `-unix` with a bare path.
 
-- `grpcurl [flags] [address] list`
-- `grpcurl [flags] [address] describe <symbol>`
-- `grpcurl [flags] [address] <service/method>`
+### Daemon socket missing
 
-For Unix sockets, prefer: `"unix://$PWD/soma-daemon.sock"` as the address.
+- start `just run-daemon`
+- remove any stale socket file if needed
+- verify the stage-specific socket name you are targeting
 
-### `missing port in address` when using `-unix`
+### No join decision arrives
 
-Use the `unix://...` address form (no `-unix` flag):
-
-`grpcurl -plaintext ... "unix://$PWD/soma-daemon.sock" daemon.v1.Daemon/Status`
-
-### mDNS / permission errors (macOS)
-
-Run with `--disable-mdns` for both `soma-daemon` and `soma-botd`.
-
-### Daemon socket not created
-
-- Ensure `--socket-path` is writable.
-- Remove stale socket file: `rm -f /tmp/soma-daemon.sock`
-- Check daemon logs for early panics or bind failures.
+- verify the bot peer id and target multiaddr
+- verify the bot is reachable over libp2p
+- verify the bot has the right approval/issuer material if you expect auto-approval

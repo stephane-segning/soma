@@ -1,47 +1,86 @@
-# Desktop configuration service
+# Desktop Configuration Service
 
-`@soma/desktop-config` packages shared desktop runtime wiring used by both Soma and Tapia. It centralizes stage detection, path overrides, and socket naming so each build can opt into dev/staging modes without touching multiple codebases.
+`@soma/desktop-config` is the shared Electron runtime config layer for Soma and Tapia.
 
-## Build-time setup
+It centralizes:
 
-- The package lives under `desktop/desktp-config/` and exports `StageConfigService`. Its TypeScript source compiles to `dist/stage-config.js`/`.d.ts`, which is then imported by the Electron main entries.
-- The Soma/Tapia scripts now run `pnpm --filter @soma/desktop-config run build` before typechecking/building, ensuring the latest shared logic is available when bundling or running the apps.
-- Each stage build (dev/staging/prod) also has a matching electron-builder config (`desktop/soma/electron-builder.{dev,staging}.yml` and the Tapia equivalents) so the packaged vendors get stage-specific `appId`/`productName` plus the hardened runtime entitlements.
+- stage detection
+- stage-specific Electron data paths
+- daemon socket naming
+- agent socket naming
 
-## Stage detection
+Package location:
 
-`StageConfigService` chooses a stage name from the following sources (in priority order):
+- `desktop/desktp-config/`
 
-1. `SOMA_STAGE` / `TAPIA_STAGE` (dev only; ignored when `app.isPackaged`).
-2. `SOMA_CHANNEL` (dev only).
-3. Stage suffix derived from the packaged app name (`soma-dev`, `tapia-staging`, ...).
-4. `dev` when running via `electron-vite dev`.
+Main implementation:
 
-Production builds always resolve to `prod` and ignore environment overrides.
+- `desktop/desktp-config/src/stage-config.ts`
 
-## Runtime behavior
+## What It Does
 
-For non-prod stages the service rewrites Electron paths to stage-prefixed directories:
+`StageConfigService` resolves a runtime stage and then adjusts Electron paths and local socket names to keep dev, staging, and prod installs isolated from each other.
 
-- `appData` → `<normal appData>/<appPrefix>-<stage>`
-- `userData` / `sessionData` / `logs` / `cache` / `crashDumps` → nested folders under that stage root
-- `app.setName` is updated to include the stage suffix so dock/taskbar entries stay distinct
+For non-prod stages it rewrites Electron paths such as:
 
-This keeps logs, cache, and SQLite data directories isolated per stage and avoids corrupting production stores.
+- `appData`
+- `userData`
+- `sessionData`
+- `logs`
+- `cache`
+- `crashDumps`
 
-### Socket files
+It also updates the app name with the stage suffix.
 
-The service also normalizes the unix sockets used for daemon communication:
+## Stage Resolution
+
+The service resolves stage from:
+
+1. explicit environment overrides when allowed
+2. stage suffix in the packaged app name
+3. `dev` when running unpackaged in development
+4. otherwise `prod`
+
+Important behavior:
+
+- packaged apps ignore normal env overrides by default
+- unpackaged/dev runs allow env overrides
+- `production` normalizes to `prod`
+
+## Socket Naming
+
+Default socket directory:
+
+- `/tmp`
+
+Default socket names for the Soma app family:
 
 | Stage | Daemon socket | Agent socket |
-|-------|---------------|--------------|
-| prod  | `/tmp/soma-daemon.sock` | `/tmp/soma-agentd.sock` |
-| dev | `/tmp/soma-daemon-dev.sock` | `/tmp/soma-agentd-dev.sock` |
-| staging | `/tmp/soma-daemon-staging.sock` | `/tmp/soma-agentd-staging.sock` |
+| --- | --- | --- |
+| `prod` | `/tmp/soma-daemon.sock` | `/tmp/soma-agentd.sock` |
+| `dev` | `/tmp/soma-daemon-dev.sock` | `/tmp/soma-agentd-dev.sock` |
+| `staging` | `/tmp/soma-daemon-staging.sock` | `/tmp/soma-agentd-staging.sock` |
 
-The defaults are overridable via `SOMA_DAEMON_SOCKET` / `TAPIA_DAEMON_SOCKET` and corresponding agent vars, but only when running unpackaged (dev). Packaged builds always use the built-in paths, so install scripts should start daemons with the matching `--socket-path` flag (or run the per-stage packaging bundle that sets up the sockets for you).
+The suffix rule is simple:
 
-## What to keep in mind
+- `prod`: no suffix
+- everything else: `-<stage>.sock`
 
-- When running local stage builds (`pnpm --filter soma run build:mac:dev`, etc.), make sure a `soma-daemon` instance listens on `/tmp/soma-daemon-dev.sock` (or provide `--socket-path`).
-- The shared package makes the stage logic available to Tapia as well, so both apps can share the same stage-specific daemons when they run side-by-side.
+## Local Development Implication
+
+Your running daemons must match the stage-specific socket path the app expects.
+
+Examples:
+
+- `just run-daemon` -> `/tmp/soma-daemon-dev.sock`
+- `just run-agentd` -> `/tmp/soma-agentd-dev.sock`
+
+If the sockets do not match, the desktop app will fail to connect even if the processes are otherwise healthy.
+
+## Current Package Shape
+
+The package currently exports its source entry directly:
+
+- `desktop/desktp-config/package.json`
+
+So the important source of truth is the implementation in `src/stage-config.ts`.

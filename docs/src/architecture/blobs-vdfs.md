@@ -20,7 +20,7 @@ Terminology note:
 
 - Virtual filesystem mapping / path semantics.
 - HTTP upload endpoints for bots (`soma-botd` stays cache‑only).
-- Large file streaming/chunking (today: single request/response message, size‑bounded).
+- Large file support beyond the current size-bounded request/response path.
 
 ## Concepts
 
@@ -57,11 +57,11 @@ Examples:
 
 ## Local ingestion (desktop)
 
-Desktop UX stages blobs locally and only uploads them to the daemon when the document is synced/published:
+Desktop UX stages blobs locally and then uploads them to the daemon through Electron main-process plumbing:
 
-- Renderer stages blobs via Electron IPC (main process) and keeps a local handle.
-- Main process persists staged bytes under a local `soma-blob://local/<blobId>` URL scheme for renderer access.
-- On publish/sync, staged blobs are migrated to daemon CAS via `Daemon/UploadBlob` and a local “blob id → cid” mapping is recorded.
+- Renderer stages blobs via Electron IPC through the main process.
+- Main process can keep local staged handles during upload preparation.
+- Daemon persistence happens through `Daemon/UploadBlob`, after which the desktop renders daemon-owned blob references through `soma-blob://daemon/{space_id}/{cid}`.
 
 Daemon API:
 
@@ -91,7 +91,7 @@ Framing and limits:
 - Messages are encoded with `prost` and framed with a 4‑byte big‑endian length prefix.
 - `MAX_BLOB_MESSAGE_BYTES = 8 MiB` bounds any single blob request/response message.
 
-This means blobs are currently limited to “small attachment” sizes; large file support will require chunking/streaming.
+This means blobs are currently limited to “small attachment” sizes.
 
 ## Provider boundary (`BlobProvider`)
 
@@ -118,7 +118,7 @@ sequenceDiagram
   participant R as Remote peer (daemon or bot)
   participant S as Remote BlobProvider (store/cache)
 
-  UI->>D: request blob by CID (future UI API)
+  UI->>D: read blob by CID
   D->>P: PeerCommand::FetchBlob(target, cid, space_id)
   P->>R: /soma/blob/1 BlobRequest(cid, space_id)
   R->>S: BlobProvider.get(cid, space_id)
@@ -127,14 +127,14 @@ sequenceDiagram
   P->>D: BlobProvider.put(expected_cid, space_id, bytes)
 ```
 
-Today, the peer runtime already supports `/soma/blob/1` and `PeerCommand::FetchBlob`; wiring a higher-level “request blob” API for the desktop/UI is a separate step.
+Today, the peer runtime already supports `/soma/blob/1` and `PeerCommand::FetchBlob`, while desktop rendering reads daemon-owned blobs through the Electron `soma-blob://daemon/...` path.
 
 ## Security and limits
 
 - Always enforce a maximum blob size at ingress (daemon IPC) and egress (network transfer). Current limit is 8 MiB on both paths.
 - Always verify bytes match the CID before persisting or serving (both current FS implementations do this on `put`).
 - Treat remote blobs as untrusted: do not automatically execute or render without appropriate UI sandboxing.
-- Authorization is currently minimal; future work should gate downloads using membership/permissions (see `SPACE_PERMISSION_DOWNLOAD_BLOBS` in `proto/spaceroom/v1/membership.proto`).
+- Blob serving is membership-gated at the peer layer. Additional permission granularity may still evolve, but the fetch path is no longer intended to be open to non-members.
 
 ## Implementation note: shared FS backend
 

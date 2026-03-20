@@ -5,7 +5,7 @@ Soma is a **desktop-first, local-first** platform with a small set of supporting
 On a user device you typically run:
 
 - **Soma desktop app** (`desktop/soma`, Electron + React) — the main UI for classes, documents, and chat.
-- **Tapia** (`desktop/tapia`, Electron + React) — a typing companion app that can reuse the same local daemon.
+- **Tapia** (`desktop/tapia`, Electron + React) — a typing companion app that shares stage/socket conventions, but currently has a lighter and less backend-integrated feature surface than Soma.
 - **soma-daemon** (`backend/bins/daemon`) — the local Rust backend that owns the libp2p identity, storage, and networking.
 - **soma-agentd** (`backend/bins/agentd`, optional) — a local “CPU-heavy” worker (LLM inference, OCR, indexing, …).
 
@@ -31,11 +31,11 @@ The key design rule is: **desktop apps do not implement libp2p**; they delegate 
 
 ## Optional local worker: `soma-agentd`
 
-`soma-agentd` is a desktop-only helper process intended for long-running CPU/GPU tasks (LLMs, embeddings, OCR, indexing).
+`soma-agentd` is a desktop-only helper process intended for long-running CPU/GPU tasks (LLMs, embeddings, rerank, drift resolution, and related model-backed work).
 
-In the current desktop implementation, the renderer initiates LLM streaming through Electron IPC and the main process coordinates the agent process.
+In the current desktop implementation, the Electron main process coordinates the agent process and forwards runtime updates back to the renderer.
 
-See `docs/src/development/agentd-ipc.md` for the recommended trust boundary.
+See `docs/src/development/agentd-ipc.md` for the current topology and IPC notes.
 
 ## Architecture overview
 
@@ -48,7 +48,7 @@ flowchart LR
     Agent["soma-agentd (optional)<br/>(local AI/compute)"]
 
     SomaUI -- IPC (gRPC over UDS) --> Daemon
-    TapiaUI -- IPC (gRPC over UDS) --> Daemon
+    TapiaUI -. optional or app-specific use .-> Daemon
     SomaUI -- IPC --> Agent
   end
 
@@ -72,7 +72,7 @@ flowchart LR
 
 ## Deep linking (invite links)
 
-The **Soma desktop app** is expected to register the `soma://` URL scheme so invite links can open the app and hand the payload to the local daemon.
+The **Soma desktop app** registers the `soma://` URL scheme so invite links can open the app and hand the payload to the local daemon.
 
 ```mermaid
 sequenceDiagram
@@ -92,6 +92,6 @@ sequenceDiagram
     SomaApp ->> User: Navigate to class X
 ```
 
-Because the daemon keeps running even if the UI exits, deep links can reattach instantly, and future clients (CLI tools, alternate UIs) can reuse the same daemon.
+Because the daemon keeps running even if the UI exits, deep links can reattach quickly. Other daemon clients remain a possible future direction, but the current product path is the Electron desktop apps.
 
 [^security]: https://docs.libp2p.io/concepts/security/security-considerations/

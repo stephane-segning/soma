@@ -116,4 +116,3 @@ Target outcome by Sunday night
   - TipTap editor loads and saves JSON; slash menu inserts at least headings + lists + divider; block dragging moves blocks.
 - Sunday checkpoint:
   - Images upload + render; page links work; AI block streams; backlinks panel shows at least something.
-

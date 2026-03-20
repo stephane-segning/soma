@@ -1,4 +1,4 @@
-# Plan 01: Prevent Non‑Members from Reading Space Content
+# Plan 01: Prevent Non-Members from Reading Space Content
 
 Goal: ensure a peer that is **not a member of a space** cannot read any **space-scoped content** (documents/messages/blobs) from another peer or server control plane.
 

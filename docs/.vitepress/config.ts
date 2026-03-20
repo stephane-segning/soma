@@ -5,6 +5,7 @@ import type {PreRenderedAsset} from "rollup";
 
 const nav: DefaultTheme.NavItem[] = [
     {text: 'Overview', link: '/00-overview'},
+    {text: 'V2 Clarity', link: '/02-v2'},
     {text: 'Getting Started', link: '/getting-started/'},
     {text: 'Architecture', link: '/architecture/soma-tapia'},
     {text: 'Development', link: '/development/dependencies'},
@@ -16,6 +17,7 @@ const sidebar: DefaultTheme.Sidebar = {
         {text: 'Home', link: '/'},
         {text: 'Overview', link: '/00-overview'},
         {text: 'Glossary', link: '/01-glossary'},
+        {text: 'V2 Clarity Plan', link: '/02-v2'},
         {text: 'Space Authorization Model', link: '/space-authorization-model'},
     ],
     '/getting-started/': [
@@ -78,13 +80,20 @@ const sidebar: DefaultTheme.Sidebar = {
                 {text: 'xtask', link: '/development/xtask'},
                 {text: 'justfile', link: '/development/justfile'},
                 {text: 'Peer Events', link: '/development/peer-events'},
-                {text: 'Tauri Apps (commands)', link: '/development/tauri-commands'},
                 {text: 'Agentd IPC', link: '/development/agentd-ipc'},
                 {text: 'Local LLMs (agentd models)', link: '/development/agentd-models'},
                 {text: 'Daemon Testing (grpcurl)', link: '/development/daemon-grpcurl'},
                 {text: 'Desktop React DB', link: '/development/desktop-react-db'},
-                {text: 'Backend Refactor Notes', link: '/development/backend-refactor-notes'},
                 {text: 'UI Components', link: '/development/ui-components'},
+            ],
+        },
+    ],
+    '/archive/': [
+        {
+            text: 'Archive',
+            items: [
+                {text: 'Backend Refactor Notes', link: '/archive/backend-refactor-notes'},
+                {text: 'Tauri Commands', link: '/archive/tauri-commands'},
             ],
         },
     ],

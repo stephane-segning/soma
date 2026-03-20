@@ -27,4 +27,3 @@ Plan
 4) Follow-through
    - If keeping: harden integration, add tests for keyboard behavior, and make the palette visually consistent.
    - If building: remove the dependency and replace with a small component + action registry (single source of truth for commands).
-

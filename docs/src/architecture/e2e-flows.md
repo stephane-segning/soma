@@ -69,6 +69,10 @@ Flow summary:
 2. The remote peer reads from its blob provider (daemon store or bot cache).
 3. The requester verifies the CID before persisting/serving.
 
+Current note:
+
+- blob serving is now membership-gated at the peer layer; this is no longer intended to be an open fetch path for non-members
+
 Relevant code:
 
 - Protocol id: `backend/crates/peer/src/lib.rs` (`/soma/blob/1`)
@@ -85,9 +89,9 @@ sequenceDiagram
   Note over A: verify CID before persisting
 ```
 
-## 5) Local AI chat streaming (renderer → main → agent)
+## 5) Local AI chat streaming (renderer -> main -> agent)
 
-The desktop renderer initiates a streaming chat request via Electron IPC. The Electron main process coordinates the agent process (`soma-agentd`) and forwards token events back to the renderer.
+The desktop renderer initiates a chat request via Electron IPC. The Electron main process coordinates `soma-agentd` and forwards runtime updates back to the renderer.
 
 Relevant code (desktop side):
 
@@ -102,13 +106,13 @@ sequenceDiagram
 
   R->>M: chatStream(messages)
   M->>A: start stream
-  loop token events
-    A-->>M: token
-    M-->>R: token
-  end
-  A-->>M: done
-  M-->>R: done
+  A-->>M: stream events / result
+  M-->>R: stream events / result
 ```
+
+Implementation note:
+
+- current `ChatStream` behavior should be treated as the implemented runtime behavior, not as a guarantee of provider-native token-by-token streaming semantics
 
 ## 6) Server LLM BFF (optional)
 
