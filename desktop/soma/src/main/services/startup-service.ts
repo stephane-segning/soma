@@ -377,14 +377,14 @@ export class StartupService {
 
 	private handleDaemonEvent(event: DaemonStreamEvent): void {
 		switch (event.kind) {
-			case "yoopta-blob-added":
+			case "document-blob-added":
 				this.domainEvents.broadcast({
 					kind: "document-changed",
 					source: "daemon",
 					atMs: Date.now(),
 					spaceId: event.spaceId,
 					documentId: event.docId,
-					reason: "daemon_yoopta_blob_added",
+					reason: "daemon_document_blob_added",
 				});
 				return;
 			case "join-decision":

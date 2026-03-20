@@ -68,7 +68,7 @@ pub async fn serve_http(
             }),
         );
 
-    if mode == Mode::ServerDaemon {
+    if mode == Mode::Admin {
         let token_join_request = admin_token.clone();
         let token_create_space = admin_token.clone();
         let token_list_spaces = admin_token.clone();

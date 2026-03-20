@@ -93,15 +93,15 @@ A **cache peer** is a libp2p peer that fetches and caches blobs addressed by con
 Events should follow the pattern: `<entity>_<action>`
 
 **Current:**
-- `YooptaBlobAddedEvent` → **Transitional**
-- `yoopta_blob_added` → **Transitional**
+- `YooptaBlobAddedEvent` → **Transitional** (alias added in Phase 5)
+- `yoopta_blob_added` → **Transitional** (alias added in Phase 5)
 
 **Target:**
-- `DocumentBlobAddedEvent`
-- `document_blob_added`
+- `DocumentBlobAddedEvent` → **Implemented** (Phase 5)
+- `document_blob_added` → **Implemented** (Phase 5)
 
 **Migration:**
-- Add new names (Phase 5)
+- ✅ Add new names as aliases (Phase 5 - COMPLETE)
 - Remove old names (Phase 6)
 
 ---

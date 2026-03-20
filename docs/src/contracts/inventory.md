@@ -53,7 +53,8 @@ This document tracks the shared contract surface between backend (Rust gRPC) and
 | `JoinDecisionEvent` | ✅ | ✅ | ✅ | `implemented` | Received join decision from peer |
 | `JoinSubmitEvent` | ✅ | ✅ | ✅ | `transitional` | Emitted on join submission; can duplicate |
 | `JoinFailedEvent` | ✅ | ✅ | ✅ | `implemented` | Outbound join request failed |
-| `YooptaBlobAddedEvent` | ✅ | ✅ | ✅ | `implemented` | Blob uploaded with doc_id association |
+| `YooptaBlobAddedEvent` | ✅ | ✅ | ✅ | `implemented` | Legacy: blob uploaded with doc_id association |
+| `DocumentBlobAddedEvent` | ✅ | ✅ | ✅ | `implemented` | Preferred: alias for YooptaBlobAddedEvent |
 
 ---
 

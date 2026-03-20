@@ -6,17 +6,17 @@
 use soma_proto_build::daemon::{
     CreateSpaceRequest, CreateSpaceResponse, DaemonEvent, DecideJoinRequest, DecideJoinResponse,
     DeleteSpaceRequest, DeleteSpaceResponse, DiscoverSpacesRequest, DiscoverSpacesResponse,
-    EnsurePageRequest, EnsurePageResponse, GetBlobMetadataRequest, GetBlobMetadataResponse,
-    GetDocumentRequest, GetDocumentResponse, GetSpaceRequest, GetSpaceResponse,
-    IssueIssuerCapabilityRequest, IssueIssuerCapabilityResponse, JoinDecisionEvent,
-    JoinFailedEvent, JoinRequest, JoinSpaceRequest, JoinSpaceResponse, JoinSubmitEvent,
-    ListBlobsRequest, ListBlobsResponse, ListJoinRequestsRequest, ListJoinRequestsResponse,
-    ListMyMembershipsResponse, ListPagesRequest, ListPagesResponse, ListSpaceMembersRequest,
-    ListSpaceMembersResponse, ListSpacesRequest, ListSpacesResponse, PageRecord, ReadBlobRequest,
-    ReadBlobResponse, RevokeSpaceRequest, RevokeSpaceResponse, SetPageParentsRequest,
-    SetPageParentsResponse, StatusRequest, StatusResponse, UpdatePageTitleRequest,
-    UpdatePageTitleResponse, UpdateSpaceRequest, UpdateSpaceResponse, UploadBlobRequest,
-    UploadBlobResponse, YooptaBlobAddedEvent,
+    DocumentBlobAddedEvent, EnsurePageRequest, EnsurePageResponse, GetBlobMetadataRequest,
+    GetBlobMetadataResponse, GetDocumentRequest, GetDocumentResponse, GetSpaceRequest,
+    GetSpaceResponse, IssueIssuerCapabilityRequest, IssueIssuerCapabilityResponse,
+    JoinDecisionEvent, JoinFailedEvent, JoinRequest, JoinSpaceRequest, JoinSpaceResponse,
+    JoinSubmitEvent, ListBlobsRequest, ListBlobsResponse, ListJoinRequestsRequest,
+    ListJoinRequestsResponse, ListMyMembershipsResponse, ListPagesRequest, ListPagesResponse,
+    ListSpaceMembersRequest, ListSpaceMembersResponse, ListSpacesRequest, ListSpacesResponse,
+    PageRecord, ReadBlobRequest, ReadBlobResponse, RevokeSpaceRequest, RevokeSpaceResponse,
+    SetPageParentsRequest, SetPageParentsResponse, StatusRequest, StatusResponse,
+    UpdatePageTitleRequest, UpdatePageTitleResponse, UpdateSpaceRequest, UpdateSpaceResponse,
+    UploadBlobRequest, UploadBlobResponse, YooptaBlobAddedEvent,
 };
 
 #[test]
@@ -111,6 +111,26 @@ fn daemon_event_has_yoopta_blob_added_variant() {
     assert!(matches!(
         event.event,
         Some(daemon_event::Event::YooptaBlobAdded(_))
+    ));
+}
+
+#[test]
+fn daemon_event_has_document_blob_added_variant() {
+    let event = DaemonEvent {
+        event: Some(daemon_event::Event::DocumentBlobAdded(
+            DocumentBlobAddedEvent {
+                space_id: "space-1".into(),
+                doc_id: "doc-1".into(),
+                cid: "cid-1".into(),
+                mime: "image/png".into(),
+                size: 1024,
+                name: "image.png".into(),
+            },
+        )),
+    };
+    assert!(matches!(
+        event.event,
+        Some(daemon_event::Event::DocumentBlobAdded(_))
     ));
 }
 

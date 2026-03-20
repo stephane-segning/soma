@@ -345,18 +345,35 @@ impl daemon::daemon_server::Daemon for DaemonService {
 
         // Emit event only when tied to Yoopta content.
         if !payload.doc_id.is_empty() {
+            // Emit both legacy and preferred event variants for compatibility.
+            let legacy_event = daemon::daemon_event::Event::YooptaBlobAdded(
+                daemon::YooptaBlobAddedEvent {
+                    space_id: payload.space_id.clone(),
+                    doc_id: payload.doc_id.clone(),
+                    cid: write_res.cid.clone(),
+                    mime: mime.clone(),
+                    size: write_res.size as u64,
+                    name: payload.name.clone(),
+                },
+            );
+            let preferred_event = daemon::daemon_event::Event::DocumentBlobAdded(
+                daemon::DocumentBlobAddedEvent {
+                    space_id: payload.space_id.clone(),
+                    doc_id: payload.doc_id.clone(),
+                    cid: write_res.cid.clone(),
+                    mime: mime.clone(),
+                    size: write_res.size as u64,
+                    name: payload.name.clone(),
+                },
+            );
             self.state
                 .publish(daemon::DaemonEvent {
-                    event: Some(daemon::daemon_event::Event::YooptaBlobAdded(
-                        daemon::YooptaBlobAddedEvent {
-                            space_id: payload.space_id.clone(),
-                            doc_id: payload.doc_id.clone(),
-                            cid: write_res.cid.clone(),
-                            mime: mime.clone(),
-                            size: write_res.size as u64,
-                            name: payload.name.clone(),
-                        },
-                    )),
+                    event: Some(legacy_event),
+                })
+                .await;
+            self.state
+                .publish(daemon::DaemonEvent {
+                    event: Some(preferred_event),
                 })
                 .await;
 
@@ -365,7 +382,7 @@ impl daemon::daemon_server::Daemon for DaemonService {
                 doc_id = %payload.doc_id,
                 cid = %write_res.cid,
                 size = write_res.size,
-                "yoopta blob stored"
+                "document blob stored"
             );
         }
 

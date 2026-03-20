@@ -182,7 +182,20 @@ message JoinFailedEvent {
   string error = 2;
 }
 
+// Legacy name for DocumentBlobAddedEvent.
+// Prefer DocumentBlobAddedEvent for new code; this alias remains for compatibility.
 message YooptaBlobAddedEvent {
+  string space_id = 1;
+  string doc_id = 2;
+  string cid = 3;
+  string mime = 4;
+  uint64 size = 5;
+  string name = 6;
+}
+
+// Preferred name: emitted when a blob is uploaded with a document association.
+// Semantically equivalent to YooptaBlobAddedEvent.
+message DocumentBlobAddedEvent {
   string space_id = 1;
   string doc_id = 2;
   string cid = 3;
@@ -329,7 +342,10 @@ message DaemonEvent {
     JoinDecisionEvent join_decision = 1;
     JoinSubmitEvent join_submitted = 2;
     JoinFailedEvent join_failed = 3;
+    // Legacy: prefer document_blob_added for new code.
     YooptaBlobAddedEvent yoopta_blob_added = 4;
+    // Preferred: blob uploaded with document association.
+    DocumentBlobAddedEvent document_blob_added = 5;
   }
 }
 

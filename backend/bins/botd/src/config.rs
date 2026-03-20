@@ -45,11 +45,12 @@ pub struct Args {
     #[arg(long, env = "SOMA_DISABLE_MDNS", default_value_t = false)]
     pub disable_mdns: bool,
 
-    /// Operating mode: bot (read-only HTTP) or server-daemon (admin control plane).
+    /// Operating mode: bot (read-only HTTP) or admin (admin control plane).
+    /// "server-daemon" is accepted as an alias for "admin".
     #[arg(long, env = "SOMA_MODE", default_value = "bot", value_enum)]
     pub mode: Mode,
 
-    /// Optional bearer token required for admin APIs (server-daemon mode).
+    /// Optional bearer token required for admin APIs (admin mode).
     #[arg(long, env = "SOMA_ADMIN_TOKEN")]
     pub admin_token: Option<String>,
 }
@@ -109,9 +110,11 @@ impl From<&Args> for BotConfig {
 }
 
 #[derive(Clone, Copy, Debug, ValueEnum, PartialEq, Eq)]
+#[value(rename_all = "kebab-case")]
 pub enum Mode {
     Bot,
-    ServerDaemon,
+    #[value(alias = "server-daemon")]
+    Admin,
 }
 
 pub fn default_listen_addrs() -> Vec<Multiaddr> {

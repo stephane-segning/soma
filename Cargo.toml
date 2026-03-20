@@ -23,7 +23,7 @@ members = [
     "backend/bins/rendezvousd",
     "backend/bins/bffd",
     "backend/bins/serverd",
-    "desktop/desktp-icons",
+    "desktop/desktop-icons",
     "xtask"
 ]
 
