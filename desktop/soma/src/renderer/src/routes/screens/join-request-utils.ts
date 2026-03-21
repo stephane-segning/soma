@@ -19,7 +19,7 @@ function validateJoinDraft(joinDraft: JoinDraft): string | null {
 		return "Add the space ID you were invited to.";
 	}
 	if (!joinDraft.targetPeerId.trim()) {
-		return "Add the peer ID for the space owner or delegated approver bot.";
+		return "Add the peer ID for the owner or delegated approver for this space.";
 	}
 	if (parseMultiaddrs(joinDraft.targetMultiaddrs).length === 0) {
 		return "Add at least one network address so Soma knows where to send the request.";

@@ -39,7 +39,7 @@ function describeRole(role: string | null | undefined): string {
 		case "member":
 			return "General workspace access when you do not want a more specific role yet.";
 		case "bot":
-			return "Non-human peer used for approved automation, caching, or indexing.";
+			return "Non-human workspace member. Depending on delegated capabilities, a bot may cache and serve content, organize and index content, or run approved automation and scripts. Bot membership alone does not grant approval authority.";
 		default:
 			return "Role details are not available.";
 	}
@@ -72,7 +72,7 @@ function roleOptions(): RoleOption[] {
 			value: "bot",
 			label: "Bot",
 			description: describeRole("bot"),
-			warning: "Use only for trusted non-human peers.",
+			warning: "Use only for trusted non-human peers. Approval authority must be delegated separately.",
 		},
 	];
 }

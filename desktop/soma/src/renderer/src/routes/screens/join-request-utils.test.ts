@@ -32,7 +32,7 @@ describe("validateJoinDraft", () => {
 				displayName: "",
 				deviceName: "",
 			}),
-		).toBe("Add the peer ID for the space owner or delegated approver bot.");
+		).toBe("Add the peer ID for the owner or delegated approver for this space.");
 	});
 
 	it("requires at least one network address", () => {

@@ -288,8 +288,8 @@ function Component(): React.JSX.Element {
 						</div>
 						<div className="rounded-xl border border-base-300 bg-base-200/60 px-4 py-3">
 							<div className="text-base-content/60 text-xs uppercase tracking-[0.12em]">What happens next</div>
-							<div className="mt-1 font-semibold text-base">Pending until approval</div>
-							<div className="text-base-content/70 text-xs">A request does not grant access until the workspace approves it</div>
+							<div className="mt-1 font-semibold text-base">Waiting for approval</div>
+							<div className="text-base-content/70 text-xs">Submitting a request does not make this device a member yet</div>
 						</div>
 					</div>
 

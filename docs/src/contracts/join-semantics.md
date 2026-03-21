@@ -10,6 +10,12 @@ This document defines the contract for space join flows between backend (daemon/
 
 The join flow is **asynchronous**: `JoinSpace` returns a submission ID, and the approval/rejection arrives later via `StreamEvents`. This is intentional for offline-friendly P2P operation.
 
+User-facing summary:
+
+- submitting a request does not make the device a member yet
+- pending means the request is still waiting for an approver's decision
+- approval can be recorded before it is delivered if the requester is offline
+
 ## RPC Contracts
 
 ### `Daemon/JoinSpace`

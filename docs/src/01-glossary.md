@@ -60,6 +60,9 @@ Delegates authority from an owner to a bot or trusted member.
 **Bot**  
 A non-human space member that can cache content, serve content, organize resources, or run approved automation depending on its granted capabilities.
 
+**Delegated Approver**  
+A peer that has been explicitly delegated authority to approve memberships for a space. A delegated approver may be a bot, but bot membership alone does not grant this authority.
+
 **Relay**  
 A connectivity service that forwards encrypted traffic.
 

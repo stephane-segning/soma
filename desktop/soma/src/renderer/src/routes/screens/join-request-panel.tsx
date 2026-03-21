@@ -30,7 +30,9 @@ function JoinRequestPanel(): React.JSX.Element {
 				deviceName: joinDraft.deviceName.trim() || undefined,
 			});
 
-			setMessage("Access request sent. Soma will unlock the space after the owner or bot approves it.");
+			setMessage(
+				"Access request submitted. This device is not a member yet. The space appears only after an authorized approver accepts the request.",
+			);
 			setJoinDraft((prev) => ({
 				...prev,
 				targetMultiaddrs: "",
@@ -47,12 +49,12 @@ function JoinRequestPanel(): React.JSX.Element {
 				<div className="rounded-xl border border-base-300 bg-base-200/60 px-4 py-3">
 					<div className="text-base-content/60 text-xs uppercase tracking-[0.12em]">What this does</div>
 					<div className="mt-1 font-semibold text-base">Submits an access request</div>
-					<div className="text-base-content/70 text-xs">A space only appears after the request is approved.</div>
+					<div className="text-base-content/70 text-xs">A space only appears after the request is approved and the decision reaches this device.</div>
 				</div>
 				<div className="rounded-xl border border-base-300 bg-base-200/60 px-4 py-3">
 					<div className="text-base-content/60 text-xs uppercase tracking-[0.12em]">What you need</div>
 					<div className="mt-1 font-semibold text-base">Space ID + connection details</div>
-					<div className="text-base-content/70 text-xs">These come from the space owner or a delegated approver bot for that space.</div>
+					<div className="text-base-content/70 text-xs">These come from the space owner or another delegated approver for that space.</div>
 				</div>
 				<div className="rounded-xl border border-base-300 bg-base-200/60 px-4 py-3">
 					<div className="text-base-content/60 text-xs uppercase tracking-[0.12em]">Need help?</div>

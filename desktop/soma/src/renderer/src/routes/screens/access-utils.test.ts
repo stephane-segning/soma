@@ -16,7 +16,8 @@ describe("formatRoleLabel", () => {
 describe("describeRole", () => {
 	it("explains member and bot roles in plain language", () => {
 		expect(describeRole("member")).toContain("General workspace access");
-		expect(describeRole("bot")).toContain("Non-human peer");
+		expect(describeRole("bot")).toContain("Non-human workspace member");
+		expect(describeRole("bot")).toContain("approval authority");
 	});
 });
 
@@ -25,6 +26,7 @@ describe("roleOptions", () => {
 		const options = roleOptions();
 		expect(options.map((option) => option.value)).toEqual(["editor", "viewer", "member", "owner", "bot"]);
 		expect(options.find((option) => option.value === "owner")?.warning).toContain("full workspace control");
+		expect(options.find((option) => option.value === "bot")?.warning).toContain("delegated separately");
 	});
 });
 

@@ -22,7 +22,15 @@ Spaces are secure collaboration units. Access is governed by explicit capabiliti
 - `Editor` - can create and edit workspace content.
 - `Viewer` - can open and read content, but should not edit.
 - `Member` - general workspace access when you do not want a more specific role yet.
-- `Bot` - non-human peer used for approved automation, caching, or indexing.
+- `Bot` - non-human peer used for approved automation, caching, or indexing. Join approval authority is separate and must be delegated explicitly.
+
+### Bot action categories
+
+- `cache and serve` - fetch, verify, cache, and serve allowed content.
+- `organize and index` - classify, extract metadata, or prepare search/index views.
+- `automation and script execution` - run approved workflows or scripts.
+
+These categories are not implied just by assigning the `Bot` role. They must be granted intentionally for that space.
 
 ### IssuerCapability
 

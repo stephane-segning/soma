@@ -25,6 +25,14 @@ Human roles inside a space stay intentionally simple:
 - members are general participants when you do not need a more specific role yet
 - bots are non-human peers that must be granted access intentionally
 
+Bot work should be framed in three categories:
+
+- cache and serve content already allowed for that space
+- organize and index content for search or structure
+- run approved automation or scripts
+
+None of these categories are implied just by giving a peer the Bot role.
+
 Soma is designed to work:
 - fully offline on a local network
 - partially online (mixed local + remote)

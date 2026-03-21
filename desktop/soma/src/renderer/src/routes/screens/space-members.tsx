@@ -79,7 +79,7 @@ function Component(): React.JSX.Element {
 					</div>
 					<div className="mt-2 grid gap-2 text-base-content/60 text-xs md:grid-cols-2">
 						<div>Owner manages access and settings. Editors can change content.</div>
-						<div>Viewers are read-only. Members are general participants. Bots are non-human peers.</div>
+						<div>Viewers are read-only. Members are general participants. Bot is a membership role only; approval authority must be delegated separately, and bot work should stay within caching, indexing, or approved automation.</div>
 					</div>
 					<div className="mt-3">
 						<Link className="btn btn-ghost btn-xs" to={`/spaces/${spaceId}/settings`}>

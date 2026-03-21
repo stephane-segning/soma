@@ -42,3 +42,4 @@ Controllers are thin; the check should live in the service layer so all surfaces
 - `Owner`, `Editor`, `Viewer`, `Member`, and `Bot` are workspace access roles.
 - Bot operating mode like `admin` is deployment/runtime terminology, not a human workspace role.
 - Local AI model feature hints in the desktop UI are not security capabilities and do not grant access.
+- A delegated approver is a separate authority concept. A bot may be a delegated approver, but the `Bot` role alone does not imply join approval powers.

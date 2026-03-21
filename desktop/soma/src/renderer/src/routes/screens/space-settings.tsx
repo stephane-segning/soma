@@ -164,8 +164,8 @@ function Component(): React.JSX.Element {
 			});
 			setSpaceOpsMessage(
 				approve
-					? `Join request ${requestId} approved${result?.subjectPeerId ? ` for ${result.subjectPeerId}` : ""}.`
-					: `Join request ${requestId} rejected.`,
+					? `Approved access${result?.subjectPeerId ? ` for ${result.subjectPeerId}` : ""}${role ? ` as ${formatRoleLabel(role)}` : ""}. If the requester is offline, Soma delivers the decision when they reconnect.`
+					: `Rejected access request${result?.subjectPeerId ? ` for ${result.subjectPeerId}` : ""}.`,
 			);
 			setDecisionRoleByRequest((prev) => {
 				const next = { ...prev };
@@ -221,7 +221,7 @@ function Component(): React.JSX.Element {
 				cell: ({ row }) => (
 					<div className="space-y-1">
 						<div className="font-medium text-sm">{requestedAccessLevelLabel(row.original.requestedRole)}</div>
-						<div className="max-w-xs text-base-content/60 text-xs">Requests currently default to Member unless the approver changes it.</div>
+						<div className="max-w-xs text-base-content/60 text-xs">Current desktop requests do not include a role choice, so they usually arrive as Member unless you change it here.</div>
 					</div>
 				),
 			},
@@ -252,7 +252,7 @@ function Component(): React.JSX.Element {
 				),
 			},
 			{
-				header: "Reason",
+				header: "Decision note",
 				cell: ({ row }) => (
 					<input
 						className="input input-bordered input-xs w-full min-w-32"
@@ -262,7 +262,7 @@ function Component(): React.JSX.Element {
 								[row.original.requestId]: event.target.value,
 							}))
 						}
-						placeholder="Optional reason"
+						placeholder="Optional note"
 						value={decisionReasonByRequest[row.original.requestId] ?? ""}
 					/>
 				),
@@ -453,15 +453,16 @@ function Component(): React.JSX.Element {
 
 			<div className="card border border-base-300 bg-base-100">
 				<div className="card-body space-y-3">
-					<h3 className="card-title text-base">Join approvals</h3>
+					<h3 className="card-title text-base">Access requests</h3>
 					<p className="text-base-content/70 text-sm">Review pending access requests and choose the access level this peer should receive.</p>
 					<div className="rounded-xl border border-base-300 bg-base-200/50 px-4 py-3 text-xs text-base-content/70">
 						Most people should be granted Editor, Viewer, or Member. Use Owner sparingly. Use Bot only for trusted non-human peers.
+						<div className="mt-2">Bot membership does not automatically grant join approval authority. Bot actions should stay within caching and serving, organizing and indexing, or approved automation and scripts.</div>
 					</div>
 					<TanstackTable
 						columns={joinApprovalColumns}
 						data={pendingJoinRequests}
-						emptyMessage="No pending access requests right now."
+						emptyMessage="No access requests are currently waiting for your decision."
 						getRowId={(row) => row.requestId}
 						isLoading={joinRequestsQuery.isLoading}
 						loadingMessage="Loading join requests..."
