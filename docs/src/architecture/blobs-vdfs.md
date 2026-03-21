@@ -1,6 +1,12 @@
-# Blobs (VDF): Content‑Addressed Storage + Fetch‑by‑CID
+# Blobs and Cache-Serving Bots: Content-Addressed Storage + Fetch-by-CID
 
-This doc describes Soma’s minimal “VDF” layer: **blob content‑addressed storage (CAS)** plus a **pull‑based fetch‑by‑CID** protocol over libp2p.
+This doc describes Soma's blob layer: **content-addressed storage (CAS)** plus a **pull-based fetch-by-CID** protocol over libp2p.
+
+Human model:
+
+- attachments already stored on a device stay available there locally
+- if another device opens an attachment for the first time, Soma may need a reachable authorized member device or cache-serving bot that already has a copy
+- cache-serving bots improve availability, but they do not become the source of truth for uploads
 
 It intentionally does **not** cover any virtual filesystem mapping (paths, directories, versioned mounts, etc.).
 
@@ -8,12 +14,13 @@ Terminology note:
 
 - In repo discussions, a **VDF** is the **cache-only peer role** (most commonly `soma-botd`).
 - In code, the crate is currently named `soma-vdfs` for historical reasons.
+- In user-facing docs, prefer **cache-serving bot** or **cache peer** over `VDF`.
 
 ## Goals
 
 - Store binary assets (“blobs”: images, videos, files, editor attachments) **out of band** from collaborative document state.
 - Address blobs by a stable **CID computed from bytes** (content address).
-- Allow peers to **fetch a blob by CID** from any reachable peer that has it (daemon store or bot cache).
+- Allow peers to **fetch a blob by CID** from any reachable authorized peer that has it (daemon store or bot cache).
 - Keep the networking surface **pull‑based** (no “push bytes to bot” protocol).
 
 ## Non‑goals

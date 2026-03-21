@@ -9,6 +9,9 @@ function Component(): React.JSX.Element {
 				<p className="max-w-2xl text-base-content/70 text-sm">
 					Use the connection details shared by an existing member to request access to a private space.
 				</p>
+				<p className="max-w-2xl text-base-content/60 text-sm">
+					Connection details help Soma reach an approver. They do not grant membership on their own.
+				</p>
 			</div>
 
 			<div className="rounded-2xl border border-base-300 bg-base-100 p-5">

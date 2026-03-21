@@ -18,6 +18,7 @@ describe("describeRole", () => {
 		expect(describeRole("member")).toContain("General workspace access");
 		expect(describeRole("bot")).toContain("Non-human workspace member");
 		expect(describeRole("bot")).toContain("approval authority");
+		expect(describeRole("bot")).toContain("attachments available");
 	});
 });
 

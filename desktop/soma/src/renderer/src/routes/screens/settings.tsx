@@ -318,12 +318,15 @@ function Component(): React.JSX.Element {
 						</div>
 						<div className="rounded-xl border border-base-300 bg-base-200/60 px-4 py-3 text-sm">
 							<div className="font-medium">May complete later</div>
-							<div className="mt-1 text-base-content/70 text-xs">Access requests, first-time blob fetches, and remote updates can wait for connectivity.</div>
+							<div className="mt-1 text-base-content/70 text-xs">Access requests, attachments this device has not downloaded yet, and remote updates can wait for connectivity.</div>
 						</div>
 						<div className="rounded-xl border border-base-300 bg-base-200/60 px-4 py-3 text-sm">
 							<div className="font-medium">Improves with infra</div>
-							<div className="mt-1 text-base-content/70 text-xs">Relay, rendezvous, and cache peers improve reachability, but they do not guarantee instant delivery.</div>
+							<div className="mt-1 text-base-content/70 text-xs">Discovery services help devices find each other. If your space has an always-on bot, it can also keep shared attachments available when another member device is offline.</div>
 						</div>
+					</div>
+					<div className="rounded-xl border border-base-300 bg-base-200/40 px-4 py-3 text-sm text-base-content/70">
+						Peer connectivity helps members reach each other. It does not bypass workspace membership, and discovery services do not store your private content.
 					</div>
 					<div className="grid grid-cols-1 gap-3 md:grid-cols-2">
 						<label className="form-control w-full">

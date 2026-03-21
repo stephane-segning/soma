@@ -39,7 +39,7 @@ function describeRole(role: string | null | undefined): string {
 		case "member":
 			return "General workspace access when you do not want a more specific role yet.";
 		case "bot":
-			return "Non-human workspace member. Depending on delegated capabilities, a bot may cache and serve content, organize and index content, or run approved automation and scripts. Bot membership alone does not grant approval authority.";
+			return "Non-human workspace member. A bot may help keep attachments available, organize and index content, or run approved automation. It may serve only content already authorized for that space, and bot membership alone does not grant approval authority.";
 		default:
 			return "Role details are not available.";
 	}

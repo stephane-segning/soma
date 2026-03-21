@@ -40,13 +40,19 @@ export function BlobFileView({ node, deleteNode }: NodeViewProps): React.JSX.Ele
 							{size ? <span>{formatBytes(size)}</span> : null}
 							{isArchived && storedName ? <span>Stored as {storedName}</span> : null}
 						</div>
-						{error ? <div className="text-error text-xs">Upload failed: {error}</div> : null}
-						{isUploading ? <div className="text-base-content/60 text-xs">Uploading attachment...</div> : null}
+						{error ? <div className="text-error text-xs">Couldn't save this attachment on this device: {error}</div> : null}
+						{isUploading ? <div className="text-base-content/60 text-xs">Saving attachment to this device...</div> : null}
+						{href ? (
+							<div className="text-base-content/60 text-xs">
+								Opens immediately if this device already has a local copy. Otherwise Soma may need a reachable
+								member device or cache-serving bot for the first download.
+							</div>
+						) : null}
 					</div>
 					<div className="flex shrink-0 items-center gap-2">
 						{href ? (
 							<a className="btn btn-ghost btn-xs" href={href} rel="noreferrer" target="_blank">
-								Open
+								Open attachment
 							</a>
 						) : null}
 						{error ? (

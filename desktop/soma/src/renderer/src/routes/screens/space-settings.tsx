@@ -457,7 +457,7 @@ function Component(): React.JSX.Element {
 					<p className="text-base-content/70 text-sm">Review pending access requests and choose the access level this peer should receive.</p>
 					<div className="rounded-xl border border-base-300 bg-base-200/50 px-4 py-3 text-xs text-base-content/70">
 						Most people should be granted Editor, Viewer, or Member. Use Owner sparingly. Use Bot only for trusted non-human peers.
-						<div className="mt-2">Bot membership does not automatically grant join approval authority. Bot actions should stay within caching and serving, organizing and indexing, or approved automation and scripts.</div>
+						<div className="mt-2">Bot membership does not automatically grant join approval authority. Bot actions should stay within keeping shared attachments available, organizing and indexing content, or approved automation and scripts already allowed for this space.</div>
 					</div>
 					<TanstackTable
 						columns={joinApprovalColumns}

@@ -15,6 +15,7 @@ The implementation lives in the shared peer runtime: `backend/crates/peer` (`som
 - Content already stored on a device stays usable locally, even on weak networks.
 - Peer-dependent actions such as new joins, first-time attachment fetches, and remote updates may wait until another peer is reachable.
 - Relay, rendezvous, and cache peers improve reachability. They do not guarantee immediate delivery.
+- Reachable is not the same as authorized. A peer may be online but still unable to serve a workspace if membership or cached content is missing.
 
 ## Mechanisms (in order of “what to try first”)
 
@@ -182,7 +183,7 @@ In logs you should see:
 ### An attachment does not open on this device
 
 - If the attachment was already fetched locally, it should still open without another peer.
-- If this is the first fetch, the daemon may still need a reachable peer or cache peer that has the blob.
+- If this is the first fetch, the daemon may still need a reachable authorized peer or cache peer that already has the blob.
 - Relay and rendezvous help peers find each other, but they do not store uncached attachment bytes.
 
 ### A peer looks reachable, but content still does not arrive

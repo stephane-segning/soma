@@ -5,8 +5,9 @@ Soma is a local-first workspace app for structured notes, private collaboration,
 Practical expectation:
 
 - work already on this device stays usable on weak networks
-- joins, first-time attachment fetches, and some remote updates may wait for reachable peers
-- relay, rendezvous, and cache peers improve reachability but do not guarantee instant delivery
+- attachments already downloaded on this device stay usable
+- joins, attachments not yet downloaded on this device, and some remote updates may wait for reachable authorized peers
+- relay and discovery services help devices connect; an always-on bot can also help keep shared attachments available, but none of these guarantees instant delivery
 
 Start with the [Overview](00-overview.md), [Getting Started](getting-started/index.md), and [Glossary](01-glossary.md), then dive deeper:
 
