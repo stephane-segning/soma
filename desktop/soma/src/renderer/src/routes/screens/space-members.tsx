@@ -92,7 +92,7 @@ function Component(): React.JSX.Element {
 						className="rounded-none border-0"
 						columns={columns}
 						data={members}
-						emptyMessage={t("space.members.empty", "No members found for this space.")}
+						emptyMessage={t("space.members.empty", "No one else has access to this space yet.")}
 						getRowId={(row) => `${row.spaceId}:${row.peerId}`}
 						isLoading={membersQuery.isLoading}
 						loadingMessage={t("space.members.loading", "Loading members...")}

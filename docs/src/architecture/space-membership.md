@@ -50,4 +50,13 @@ Revocation can be implemented by expiring capabilities, publishing revocation ev
 - Auto-approval rules: botd auto-approves only when it holds a valid issuer capability for the target space; otherwise join requests are recorded for manual approval. Manual approval surfaces now exist in both soma-daemon (gRPC) and admin HTTP.
 - Peer event pipeline: join decisions and failures are surfaced as `PeerEvent` and dispatched via the shared event dispatcher (see `docs/src/development/peer-events.md`).
 
+### Current limitation: pending approval is transitional
+
+- The transport and storage model already support asynchronous join approval.
+- The proto does not yet expose a first-class `pending` decision state.
+- Today, manual-approval placeholders are still encoded with reject-shaped values and a `pending manual approval` reason.
+- Desktop UX should therefore describe join as "request access and wait for approval" rather than implying instant membership.
+
+See `docs/src/contracts/join-semantics.md` for the current workaround and the planned protocol cleanup.
+
 [^security]: https://docs.libp2p.io/concepts/security/security-considerations/

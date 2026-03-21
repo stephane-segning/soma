@@ -315,7 +315,9 @@ function PageTreeList({
 					spaceId={spaceId}
 				/>
 			))}
-			{!isLoading && tree.length === 0 ? <li className="px-2 py-1.5 text-base-content/60 text-xs">No pages yet</li> : null}
+			{!isLoading && tree.length === 0 ? (
+				<li className="px-2 py-1.5 text-base-content/60 text-xs">No pages yet. Create your first page to start writing.</li>
+			) : null}
 		</ul>
 	);
 }

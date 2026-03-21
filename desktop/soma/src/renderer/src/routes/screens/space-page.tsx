@@ -583,7 +583,7 @@ function Component(): React.JSX.Element {
 		<div className="h-full min-h-full px-14 py-8 md:py-12">
 			{showEmptyPageHint ? (
 				<div className="mx-auto mb-6 max-w-4xl rounded-2xl border border-dashed border-base-300 bg-base-100/70 px-4 py-3 text-sm text-base-content/70">
-					Start with a note, press `/` for commands, or drag images and files directly into the page.
+					Start with a note, press `/` for commands, or drag images and files into this page.
 				</div>
 			) : null}
 			<HotkeysProvider initiallyActiveScopes={["rich-text"]}>

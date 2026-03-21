@@ -10,17 +10,12 @@ import {
 	normalizeOptionalString,
 } from "@app/lib/agent-config";
 import { useSetSettingMutation, useSettingQuery } from "@app/queries/settings";
-import {
-	type SpaceMember,
-	useJoinSpaceMutation,
-	useMyMembershipsQuery,
-	useRevokeMembershipMutation,
-	useSpacesQuery,
-} from "@app/queries/spaces";
+import { type SpaceMember, useMyMembershipsQuery, useRevokeMembershipMutation, useSpacesQuery } from "@app/queries/spaces";
 import { api } from "@app/store/api";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router";
 import { formatRoleLabel } from "./access-utils";
 
 function Component(): React.JSX.Element {
@@ -34,17 +29,9 @@ function Component(): React.JSX.Element {
 		...DEFAULT_AGENT_RUNTIME_CONFIG,
 	}));
 	const [newCapabilityModel, setNewCapabilityModel] = useState("");
-	const [joinDraft, setJoinDraft] = useState(() => ({
-		spaceId: "",
-		targetPeerId: "",
-		targetMultiaddrs: "",
-		displayName: "",
-		deviceName: "",
-	}));
 	const [spaceMessage, setSpaceMessage] = useState<string | null>(null);
 	const membershipsQuery = useMyMembershipsQuery();
 	const spacesQuery = useSpacesQuery();
-	const { mutateAsync: joinSpaceAsync, isLoading: isJoiningSpace } = useJoinSpaceMutation();
 	const { mutateAsync: revokeMembershipAsync, isLoading: isRevokingMembership } = useRevokeMembershipMutation();
 
 	useEffect(() => {
@@ -127,49 +114,6 @@ function Component(): React.JSX.Element {
 		}
 		return map;
 	}, [spacesQuery.data?.spaces]);
-
-	const parseMultiaddrs = (rawValue: string): string[] => {
-		const values = rawValue
-			.split(/[\n,]/g)
-			.map((value) => value.trim())
-			.filter((value) => value.length > 0);
-		return Array.from(new Set(values));
-	};
-
-	const submitJoinRequest = async () => {
-		try {
-			const targetMultiaddrs = parseMultiaddrs(joinDraft.targetMultiaddrs);
-			if (!joinDraft.spaceId.trim()) {
-				setSpaceMessage("Add the workspace ID you were invited to.");
-				return;
-			}
-			if (!joinDraft.targetPeerId.trim()) {
-				setSpaceMessage("Add the peer ID for the owner or delegated bot.");
-				return;
-			}
-			if (targetMultiaddrs.length === 0) {
-				setSpaceMessage("Add at least one network address so Soma knows where to send the request.");
-				return;
-			}
-
-			await joinSpaceAsync({
-				spaceId: joinDraft.spaceId.trim(),
-				targetPeerId: joinDraft.targetPeerId.trim(),
-				targetMultiaddrs,
-				displayName: joinDraft.displayName.trim() || undefined,
-				deviceName: joinDraft.deviceName.trim() || undefined,
-			});
-
-			setSpaceMessage(`Access request sent. Soma is now waiting for approval from the workspace owner or bot.`);
-			setJoinDraft((prev) => ({
-				...prev,
-				targetMultiaddrs: "",
-			}));
-		} catch (error) {
-			const message = error instanceof Error ? error.message : String(error);
-			setSpaceMessage(`Failed to submit join request: ${message}`);
-		}
-	};
 
 	const leaveSpace = useCallback(async (spaceId: string, subjectPeerId: string) => {
 		const spaceName = spaceNameById.get(spaceId) ?? spaceId;
@@ -317,7 +261,7 @@ function Component(): React.JSX.Element {
 				<div className="card-body space-y-4">
 					<h2 className="card-title text-base">People and access</h2>
 					<p className="text-base-content/70 text-sm">
-						Manage current workspace memberships and use the advanced join flow when someone gives you peer details.
+						Review which spaces this device can already open and jump to the dedicated join screen when someone shares connection details.
 					</p>
 					{spaceMessage ? <div className="rounded-lg bg-base-200 px-3 py-2 text-sm">{spaceMessage}</div> : null}
 
@@ -329,8 +273,13 @@ function Component(): React.JSX.Element {
 						</div>
 						<div className="rounded-xl border border-base-300 bg-base-200/60 px-4 py-3">
 							<div className="text-base-content/60 text-xs uppercase tracking-[0.12em]">Advanced join</div>
-							<div className="mt-1 font-semibold text-base">Space ID + peer details</div>
+							<div className="mt-1 font-semibold text-base">Request access to a space</div>
 							<div className="text-base-content/70 text-xs">Use this when an existing member sends manual connection info</div>
+							<div className="mt-2">
+								<Link className="btn btn-ghost btn-xs" to="/spaces/join">
+									Open join screen
+								</Link>
+							</div>
 						</div>
 						<div className="rounded-xl border border-base-300 bg-base-200/60 px-4 py-3">
 							<div className="text-base-content/60 text-xs uppercase tracking-[0.12em]">What happens next</div>
@@ -339,95 +288,10 @@ function Component(): React.JSX.Element {
 						</div>
 					</div>
 
-					<div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-						<label className="form-control w-full">
-							<span className="label-text">Workspace ID</span>
-							<input
-								className="input input-bordered w-full"
-								onChange={(event) =>
-									setJoinDraft((prev) => ({
-										...prev,
-										spaceId: event.target.value,
-									}))
-								}
-								placeholder="space-123"
-								value={joinDraft.spaceId}
-							/>
-						</label>
-						<label className="form-control w-full">
-							<span className="label-text">Owner or bot peer ID</span>
-							<input
-								className="input input-bordered w-full"
-								onChange={(event) =>
-									setJoinDraft((prev) => ({
-										...prev,
-										targetPeerId: event.target.value,
-									}))
-								}
-								placeholder="12D3KooW..."
-								value={joinDraft.targetPeerId}
-							/>
-						</label>
-						<label className="form-control w-full md:col-span-2">
-							<span className="label-text">Network addresses (one per line or comma separated)</span>
-							<textarea
-								className="textarea textarea-bordered min-h-20 w-full"
-								onChange={(event) =>
-									setJoinDraft((prev) => ({
-										...prev,
-										targetMultiaddrs: event.target.value,
-									}))
-								}
-								placeholder="/ip4/203.0.113.7/tcp/14005/ws/p2p/12D3KooW...
-/dns4/example.com/tcp/443/wss/p2p/12D3KooW..."
-								value={joinDraft.targetMultiaddrs}
-							/>
-						</label>
-						<label className="form-control w-full">
-							<span className="label-text">Display name (optional)</span>
-							<input
-								className="input input-bordered w-full"
-								onChange={(event) =>
-									setJoinDraft((prev) => ({
-										...prev,
-										displayName: event.target.value,
-									}))
-								}
-								placeholder="Your name"
-								value={joinDraft.displayName}
-							/>
-						</label>
-						<label className="form-control w-full">
-							<span className="label-text">Device name (optional)</span>
-							<input
-								className="input input-bordered w-full"
-								onChange={(event) =>
-									setJoinDraft((prev) => ({
-										...prev,
-										deviceName: event.target.value,
-									}))
-								}
-								placeholder="MacBook"
-								value={joinDraft.deviceName}
-							/>
-						</label>
-					</div>
-
-					<div className="flex justify-end">
-						<button
-							className="btn btn-primary btn-sm"
-							disabled={isJoiningSpace}
-							onClick={() => void submitJoinRequest()}
-							type="button"
-						>
-							{isJoiningSpace ? "Submitting..." : "Request access"}
-						</button>
-					</div>
-
 					<TanstackTable
 						columns={membershipColumns}
 						data={memberships}
-						emptyMessage="No memberships yet."
+						emptyMessage={<span>This device is not a member of any spaces yet. Use the join screen or create a new space.</span>}
 						getRowId={(row) => `${row.spaceId}:${row.peerId}`}
 						isLoading={membershipsQuery.isLoading}
 						loadingMessage="Loading memberships..."
@@ -548,21 +412,21 @@ function Component(): React.JSX.Element {
 
 			<div className="card border border-base-300 bg-base-100">
 				<div className="card-body space-y-4">
-					<h2 className="card-title text-base">Global model capabilities</h2>
+					<h2 className="card-title text-base">Global model features</h2>
 					<p className="text-base-content/70 text-sm">
-						Capabilities are local hints for Soma UI only. They are never pushed to daemon/bot.
+						Model features are local hints for the Soma UI only. They do not grant membership or security permissions.
 					</p>
 					<TanstackTable
 						columns={globalCapabilityColumns}
 						data={globalCapabilityRows}
-						emptyMessage="No capability overrides yet."
+						emptyMessage="No model feature overrides yet."
 						getRowId={(row) => row.modelName}
 					/>
 					<div className="flex items-center gap-2">
 						<input
 							className="input input-bordered input-sm w-full"
 							onChange={(event) => setNewCapabilityModel(event.target.value)}
-							placeholder="Add model name (for manual capability mapping)"
+							placeholder="Add model name (for manual feature mapping)"
 							value={newCapabilityModel}
 						/>
 						<button className="btn btn-sm" onClick={addCapabilityModel} type="button">

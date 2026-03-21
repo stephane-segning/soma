@@ -464,7 +464,7 @@ function Component(): React.JSX.Element {
 					<TanstackTable
 						columns={joinApprovalColumns}
 						data={pendingJoinRequests}
-						emptyMessage="No pending requests for this space."
+						emptyMessage="No pending access requests right now."
 						getRowId={(row) => row.requestId}
 						isLoading={joinRequestsQuery.isLoading}
 						loadingMessage="Loading join requests..."
@@ -523,14 +523,14 @@ function Component(): React.JSX.Element {
 
 			<div className="card border border-base-300 bg-base-100">
 				<div className="card-body">
-					<h3 className="card-title text-base">Workspace model capabilities</h3>
+					<h3 className="card-title text-base">Workspace model features</h3>
 					<p className="text-base-content/70 text-sm">
-						Per-workspace capability overrides stay local in electron-store and never sync to daemon.
+						Per-space model features stay local in electron-store and never change who can access the space.
 					</p>
 					<TanstackTable
 						columns={workspaceCapabilityColumns}
 						data={workspaceCapabilityRows}
-						emptyMessage="No workspace capability overrides yet."
+						emptyMessage="No workspace model feature overrides yet."
 						getRowId={(row) => row.modelName}
 					/>
 					<div className="flex items-center gap-2 pt-2">

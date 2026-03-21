@@ -45,6 +45,9 @@ Cryptographic identity of a device.
 **Capability**  
 A signed token granting permissions in a space.
 
+**Model Feature Hint**  
+Local desktop metadata describing whether an AI model is suitable for chat, embedding, tool use, or image work. These hints do not grant any space permissions.
+
 **MembershipCapability**  
 Grants a peer access to a space.
 
