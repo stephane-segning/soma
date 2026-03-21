@@ -23,15 +23,15 @@ type LayoutContext = {
 const spaceOptions: Space[] = [
 	{
 		id: "practice",
-		name: "Practice Space",
+		name: "Basics",
 		accent: "#7af5d1",
-		description: "Offline drills",
+		description: "Short typing passages",
 	},
 	{
 		id: "focus",
-		name: "Focus Lab",
+		name: "Prompted Drills",
 		accent: "#f8d66d",
-		description: "Agent-crafted prompts",
+		description: "Generated practice prompts",
 	},
 ];
 
@@ -86,7 +86,7 @@ function AppLayout(): React.JSX.Element {
 					<span className="brand-mark" />
 					<div>
 						<div className="brand-title">{t("appName")}</div>
-						<p className="brand-subtitle">space-bound typing companion</p>
+						<p className="brand-subtitle">focused typing practice</p>
 					</div>
 				</div>
 				<div className="space-switcher">

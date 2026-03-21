@@ -1,6 +1,6 @@
-# Plan 09: Weeks 1-7 Human Test Suite
+# Plan 09: Weeks 1-20 Human Test Suite
 
-Goal: give Soma a compact manual QA pass that matches the roadmap work completed through Week 7.
+Goal: give Soma and Tapia a compact manual QA pass that matches the roadmap work completed through Week 20.
 
 Use this as a repeatable checklist after each visible product polish pass.
 
@@ -167,6 +167,100 @@ Questions to answer:
 - Which screen still feels the least finished?
 - Which wording still feels too technical?
 - What is the single most visible defect left after Weeks 1-7?
+
+## Pass 10: Bot and Access Role Clarity
+
+Purpose: verify Weeks 8-11 around human roles, bot framing, and access-request language.
+
+- Open members, global settings, and space settings for one workspace.
+- Read every role description without clicking anything first.
+- Review at least one pending access request if available.
+- Compare the words `Bot`, `Owner`, `Member`, `approver`, and `model features` across screens.
+
+Questions to answer:
+
+- Is it obvious which labels describe workspace permissions vs local model settings?
+- Is it clear that a bot member does not automatically become a join approver?
+- Do approval actions feel like access decisions rather than abstract admin mechanics?
+- Are there still any places where a non-technical user could confuse reachability with authority?
+
+## Pass 11: Weak-Network Expectations
+
+Purpose: verify Weeks 12-14 around offline/weak-network truthfulness.
+
+- Open global settings and read the connectivity guidance.
+- Read the join screen helper copy again.
+- Read the peer-connectivity docs or internal guidance you expect to rely on while debugging.
+
+Questions to answer:
+
+- Does Soma promise the right amount, neither too much nor too little?
+- Is it clear which actions stay local and which may wait for peers?
+- Do troubleshooting notes help explain joins, peers, and missing attachments in plain language?
+- Is there any place where the product still sounds “online/offline” in an oversimplified way?
+
+## Pass 12: Cached Content and Trust Boundaries
+
+Purpose: verify Weeks 15-17 around cached attachments, membership-gated fetches, and cache-serving bots.
+
+- Open a page with attachments that this device already fetched.
+- If possible, open the same page from another device that has not fetched those attachments yet.
+- Review the attachment cards and the connectivity guidance.
+- Review bot explanations in members/settings screens.
+
+Questions to answer:
+
+- Is it clear when an attachment is already local vs when it may need another peer?
+- Does the product explain that reachable peers still need the right workspace membership?
+- Do cache-serving bots feel understandable without protocol knowledge?
+- Is any copy still too internal, especially around cache peers or transport services?
+
+## Pass 13: Tapia Product Scope
+
+Purpose: verify Week 19 so Tapia feels focused instead of vague.
+
+- Launch Tapia from cold start.
+- Read the splash, top header, track switcher, list screen, empty state, and not-found screen.
+- Generate at least one new passage.
+
+Questions to answer:
+
+- Does Tapia now read as a typing-practice app instead of a generic shell?
+- Do visible labels avoid leaking Soma-internal or daemon-heavy language?
+- Are the available tracks understandable and intentionally named?
+- Does the product promise only what is actually there today?
+
+## Pass 14: Tapia Core Training Loop
+
+Purpose: verify Week 20 around one full practice loop.
+
+- Open one passage.
+- Start typing slowly, then with deliberate mistakes.
+- Use backspace to recover.
+- Finish the full passage.
+- Review the completion panel and retry the passage.
+
+Questions to answer:
+
+- Is the next-key guidance helpful?
+- Does the prompt make mistakes and recovery obvious enough?
+- Does completion feel like a real finish rather than the UI just stopping?
+- Are the results useful enough to encourage another run?
+
+## Pass 15: Multi-Week Product Checkpoint
+
+Purpose: create one combined checkpoint across Weeks 1-20.
+
+- Run one realistic Soma session with notes, attachments, members, and access review.
+- Run one realistic Tapia session from passage generation to completion.
+- Compare the overall product feel between the two apps.
+
+Questions to answer:
+
+- Does Soma feel like a credible structured note-taking workspace?
+- Does Tapia feel like a deliberate companion rather than an unfinished side shell?
+- Which upcoming week now feels most important to visible product quality?
+- What are the top 3 manual follow-ups to validate in the next iteration?
 
 ## Reporting Template
 

@@ -6,9 +6,9 @@ function NotFound(): React.JSX.Element {
 	return (
 		<section className="panel">
 			<h1>Not found</h1>
-			<p className="muted">This route does not exist.</p>
+			<p className="muted">This practice route does not exist.</p>
 			<Link className="ghost-button" to={`/spaces/${activeSpaceId}/exercises`}>
-				Back to exercises
+				Back to practice
 			</Link>
 		</section>
 	);

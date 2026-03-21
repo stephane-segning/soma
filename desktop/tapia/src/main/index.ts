@@ -273,7 +273,7 @@ function createSplashWindow(): BrowserWindow {
 <body>
   <div class="card">
     <h1 class="title">Starting Tapia</h1>
-    <p class="subtitle">Waiting for soma-daemon...</p>
+    <p class="subtitle">Preparing your practice session...</p>
     <div class="bar"></div>
   </div>
 </body>

@@ -55,6 +55,8 @@ The `just` recipes also keep local data under `.data/` instead of scattering it 
 
 Tapia is currently a lighter desktop app than Soma.
 
+Today it is best treated as a focused typing-practice companion: short passages, generated drills, and local session feedback.
+
 ```bash
 pnpm --filter tapia run dev
 ```

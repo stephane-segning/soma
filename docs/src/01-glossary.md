@@ -73,7 +73,7 @@ A discovery service helping peers find each other.
 A bot-backed queue for delivering approvals asynchronously.
 
 **Tapia**  
-Focused training companion app for typing drills, tap-touch, exams, and similar small IT-training tasks.
+Focused training companion app for typing practice, short passages, generated drills, and session feedback.
 
 **Soma**  
 The main structured note-taking and workspace application in the platform.

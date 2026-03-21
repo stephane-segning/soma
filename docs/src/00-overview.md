@@ -124,7 +124,7 @@ Capabilities are intended to cover permissions for both humans and bots, such as
 Tapia is the focused companion app shipped alongside Soma.
 
 - launched via deep link or adjacent workflows from Soma
-- focused on IT-training tasks such as typing drills, tap-touch, and small exam-like exercises
+- focused on typing practice with short passages, generated drills, and per-session feedback
 - shares runtime conventions and can integrate with the same local backend
 - intentionally narrower in scope than Soma
 

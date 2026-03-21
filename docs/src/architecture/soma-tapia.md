@@ -5,7 +5,7 @@ Soma is a **desktop-first, local-first** platform with a small set of supporting
 On a user device you typically run:
 
 - **Soma desktop app** (`desktop/soma`, Electron + React) — the main UI for spaces, documents, and chat.
-- **Tapia** (`desktop/tapia`, Electron + React) — a typing companion app that shares stage/socket conventions, but currently has a lighter and less backend-integrated feature surface than Soma.
+- **Tapia** (`desktop/tapia`, Electron + React) — a typing-practice companion app that shares stage/socket conventions, but currently has a lighter and less backend-integrated feature surface than Soma.
 - **soma-daemon** (`backend/bins/daemon`) — the local Rust backend that owns the libp2p identity, storage, and networking.
 - **soma-agentd** (`backend/bins/agentd`, optional) — a local “CPU-heavy” worker (LLM inference, OCR, indexing, …).
 
@@ -25,7 +25,7 @@ This document explains how those pieces fit together and how optional infrastruc
 The desktop apps focus on user experience and talk to the local daemon over IPC:
 
 - **Soma desktop app (Electron)**: classes/spaces, documents, blobs, chat, onboarding flows.
-- **Tapia (Electron)**: typing exercises and companion UX; it can read/write relevant data through the same daemon.
+- **Tapia (Electron)**: typing practice, short passages, and companion UX; it can read/write relevant data through the same daemon.
 
 The key design rule is: **desktop apps do not implement libp2p**; they delegate network and security to `soma-daemon`.
 

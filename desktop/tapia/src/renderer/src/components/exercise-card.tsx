@@ -21,6 +21,7 @@ function ExerciseCard({
 				<div className="pill pill--ghost">{exercise.meta.length} chars</div>
 			</header>
 			<p className="exercise-card__message">{exercise.message}</p>
+			<p className="muted">Type exactly what you see, then review your speed and accuracy.</p>
 			<footer className="exercise-card__foot">
 				<div className="exercise-card__meta">
 					<span className="dot" />

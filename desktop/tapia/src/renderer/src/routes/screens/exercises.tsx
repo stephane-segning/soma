@@ -33,10 +33,12 @@ function Exercises(): React.JSX.Element {
 					<p className="eyebrow">{t("spaces")}</p>
 					<h1>{t("exercises")}</h1>
 					<p className="muted">{t("agentHint")}</p>
+					<p className="muted">{t("practiceHint")}</p>
 				</div>
 				<button
 					className={cn("primary-button", isGenerating && "is-loading")}
 					onClick={() => void onGenerate()}
+					type="button"
 				>
 					{isGenerating ? t("prompting") : t("newExercise")}
 				</button>

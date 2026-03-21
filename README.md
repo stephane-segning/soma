@@ -11,7 +11,7 @@ Soma is a local-first workspace platform built around a structured note-taking a
 At the product level:
 
 - `Soma` is the main Notion-like note-taking and workspace application
-- `Tapia` is the companion app for small IT-training jobs such as typing drills, tap-touch practice, and exams
+- `Tapia` is the companion app for focused typing practice with short passages, generated drills, and session feedback
 - the p2p layer exists so workspaces can keep working even where normal internet access is weak or unavailable
 - spaces/workspaces are private collaboration groups with memberships, approvals, and capability-based permissions for both humans and bots
 

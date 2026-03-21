@@ -1,7 +1,7 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router";
-import type { ExerciseAttempt } from "../../../../shared/exercise";
+import type { ExerciseAttempt, LeaderboardEntry } from "../../../../shared/exercise";
 import { useAppLayoutContext } from "../../app";
 import { ExercisePlayer } from "../../components/exercise-player";
 import { useExercises } from "../../hooks/useExercises";
@@ -12,6 +12,7 @@ function ExerciseDetail(): React.JSX.Element {
 	const { activeSpaceId } = useAppLayoutContext();
 	const { exercises, status, recordSession, findExercise } =
 		useExercises(activeSpaceId);
+	const [recentLeaderboard, setRecentLeaderboard] = useState<LeaderboardEntry[]>([]);
 
 	const exercise = useMemo(
 		() =>
@@ -23,7 +24,7 @@ function ExerciseDetail(): React.JSX.Element {
 	const onComplete = useCallback(
 		async (attempt: ExerciseAttempt) => {
 			if (!exercise) return;
-			await recordSession({
+			const leaderboard = await recordSession({
 				exerciseId: exercise.meta.id,
 				spaceId: exercise.meta.spaceId,
 				wpm: attempt.wpm,
@@ -31,6 +32,8 @@ function ExerciseDetail(): React.JSX.Element {
 				durationMs: attempt.durationMs,
 				completedAtMs: Date.now(),
 			});
+			setRecentLeaderboard(leaderboard);
+			return leaderboard;
 		},
 		[exercise, recordSession],
 	);
@@ -51,7 +54,7 @@ function ExerciseDetail(): React.JSX.Element {
 					className="ghost-button"
 					to={`/spaces/${params.spaceId}/exercises`}
 				>
-					{t("exercises")}
+					{t("backToPractice")}
 				</Link>
 			</section>
 		);
@@ -67,16 +70,17 @@ function ExerciseDetail(): React.JSX.Element {
 						{exercise.meta.length} {t("characters")} ·{" "}
 						{exercise.meta.difficulty}
 					</p>
+					<p className="muted">{t("practiceHint")}</p>
 				</div>
 				<Link
 					className="ghost-button"
 					to={`/spaces/${exercise.meta.spaceId}/exercises`}
 				>
-					{t("exercises")}
+					{t("backToPractice")}
 				</Link>
 			</div>
 
-			<ExercisePlayer exercise={exercise} onComplete={onComplete} />
+			<ExercisePlayer exercise={exercise} leaderboard={recentLeaderboard} onComplete={onComplete} />
 		</section>
 	);
 }
