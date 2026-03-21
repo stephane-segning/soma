@@ -16,6 +16,14 @@ Spaces are secure collaboration units. Access is governed by explicit capabiliti
 - Stored inside the requesting daemon once issued so membership survives restarts.
 - Encodes the granted membership for the requesting peer and may carry role information.
 
+### Human-facing roles
+
+- `Owner` - full workspace control, including access and settings.
+- `Editor` - can create and edit workspace content.
+- `Viewer` - can open and read content, but should not edit.
+- `Member` - general workspace access when you do not want a more specific role yet.
+- `Bot` - non-human peer used for approved automation, caching, or indexing.
+
 ### IssuerCapability
 
 - Grants authority to create MembershipCapabilities for a space.

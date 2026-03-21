@@ -36,3 +36,9 @@ Controllers are thin; the check should live in the service layer so all surfaces
 - Owner public key discovery is required to validate delegations where owner ≠ sender.
 - UI guardrails should redirect non-members from space routes, but the backend is the security boundary.
 - Future work: revocation + key rotation, and optional end-to-end encryption by space.
+
+## Terminology note
+
+- `Owner`, `Editor`, `Viewer`, `Member`, and `Bot` are workspace access roles.
+- Bot operating mode like `admin` is deployment/runtime terminology, not a human workspace role.
+- Local AI model feature hints in the desktop UI are not security capabilities and do not grant access.

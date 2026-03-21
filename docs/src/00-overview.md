@@ -17,6 +17,14 @@ It combines:
 - optional local AI assistance
 - a focused companion app (Tapia)
 
+Human roles inside a space stay intentionally simple:
+
+- owners manage access and settings
+- editors can create and edit content
+- viewers can read without editing
+- members are general participants when you do not need a more specific role yet
+- bots are non-human peers that must be granted access intentionally
+
 Soma is designed to work:
 - fully offline on a local network
 - partially online (mixed local + remote)

@@ -16,7 +16,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
-import { formatRoleLabel } from "./access-utils";
+import { describeRole, formatRoleLabel } from "./access-utils";
 
 function Component(): React.JSX.Element {
 	const { t } = useTranslation("common");
@@ -147,7 +147,12 @@ function Component(): React.JSX.Element {
 			},
 			{
 				header: "Role",
-				cell: ({ row }) => <span>{formatRoleLabel(row.original.role || "unknown")}</span>,
+				cell: ({ row }) => (
+					<div className="space-y-1">
+						<div className="font-medium text-sm">{formatRoleLabel(row.original.role || "unknown")}</div>
+						<div className="max-w-xs text-base-content/60 text-xs">{describeRole(row.original.role)}</div>
+					</div>
+				),
 			},
 			{
 				header: "Expiry",
@@ -261,7 +266,7 @@ function Component(): React.JSX.Element {
 				<div className="card-body space-y-4">
 					<h2 className="card-title text-base">People and access</h2>
 					<p className="text-base-content/70 text-sm">
-						Review which spaces this device can already open and jump to the dedicated join screen when someone shares connection details.
+						These are this device&apos;s current space memberships. Open a space&apos;s settings to manage other members and approvals.
 					</p>
 					{spaceMessage ? <div className="rounded-lg bg-base-200 px-3 py-2 text-sm">{spaceMessage}</div> : null}
 

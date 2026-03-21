@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatRoleLabel, membershipSummary } from "./access-utils";
+import { describeRole, formatRoleLabel, membershipSummary, requestedAccessLevelLabel, roleOptions } from "./access-utils";
 
 describe("formatRoleLabel", () => {
 	it("maps known roles to readable labels", () => {
@@ -10,6 +10,29 @@ describe("formatRoleLabel", () => {
 
 	it("falls back for unknown roles", () => {
 		expect(formatRoleLabel("mystery")).toBe("Unknown");
+	});
+});
+
+describe("describeRole", () => {
+	it("explains member and bot roles in plain language", () => {
+		expect(describeRole("member")).toContain("General workspace access");
+		expect(describeRole("bot")).toContain("Non-human peer");
+	});
+});
+
+describe("roleOptions", () => {
+	it("keeps normal human roles first and warnings on exceptional roles", () => {
+		const options = roleOptions();
+		expect(options.map((option) => option.value)).toEqual(["editor", "viewer", "member", "owner", "bot"]);
+		expect(options.find((option) => option.value === "owner")?.warning).toContain("full workspace control");
+	});
+});
+
+describe("requestedAccessLevelLabel", () => {
+	it("maps known numeric values to readable labels", () => {
+		expect(requestedAccessLevelLabel(2)).toBe("Editor");
+		expect(requestedAccessLevelLabel(5)).toBe("Bot");
+		expect(requestedAccessLevelLabel(99)).toBe("Member");
 	});
 });
 

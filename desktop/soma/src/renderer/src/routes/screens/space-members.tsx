@@ -4,7 +4,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router";
-import { formatRoleLabel, membershipSummary } from "./access-utils";
+import { describeRole, formatRoleLabel, membershipSummary } from "./access-utils";
 
 function Component(): React.JSX.Element {
 	const { t } = useTranslation("common");
@@ -47,9 +47,12 @@ function Component(): React.JSX.Element {
 			{
 				header: "Role",
 				cell: ({ row }) => (
-					<span className="badge badge-outline badge-sm">
-						{formatRoleLabel(row.original.role || t("space.members.roleUnknown", "unknown"))}
-					</span>
+					<div className="space-y-1">
+						<span className="badge badge-outline badge-sm">
+							{formatRoleLabel(row.original.role || t("space.members.roleUnknown", "unknown"))}
+						</span>
+						<div className="max-w-xs text-base-content/60 text-xs">{describeRole(row.original.role)}</div>
+					</div>
 				),
 			},
 			{
@@ -73,6 +76,10 @@ function Component(): React.JSX.Element {
 					<div className="font-medium">{membershipSummary(members)}</div>
 					<div className="mt-1 text-base-content/70">
 						Use space settings to approve join requests or revoke access for a member.
+					</div>
+					<div className="mt-2 grid gap-2 text-base-content/60 text-xs md:grid-cols-2">
+						<div>Owner manages access and settings. Editors can change content.</div>
+						<div>Viewers are read-only. Members are general participants. Bots are non-human peers.</div>
 					</div>
 					<div className="mt-3">
 						<Link className="btn btn-ghost btn-xs" to={`/spaces/${spaceId}/settings`}>

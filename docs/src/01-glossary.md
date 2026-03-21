@@ -51,6 +51,9 @@ Local desktop metadata describing whether an AI model is suitable for chat, embe
 **MembershipCapability**  
 Grants a peer access to a space.
 
+**Role**  
+The human-facing access level inside a space, such as Owner, Editor, Viewer, Member, or Bot.
+
 **IssuerCapability**  
 Delegates authority from an owner to a bot or trusted member.
 

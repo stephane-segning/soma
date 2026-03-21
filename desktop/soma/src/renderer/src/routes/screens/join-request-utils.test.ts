@@ -12,15 +12,27 @@ describe("parseMultiaddrs", () => {
 
 describe("validateJoinDraft", () => {
 	it("requires a space id first", () => {
-		expect(
-			validateJoinDraft({
-				spaceId: "",
+			expect(
+				validateJoinDraft({
+					spaceId: "",
 				targetPeerId: "peer-1",
 				targetMultiaddrs: "/ip4/1/tcp/2",
 				displayName: "",
 				deviceName: "",
 			}),
 		).toBe("Add the space ID you were invited to.");
+	});
+
+	it("requires an approver peer id", () => {
+		expect(
+			validateJoinDraft({
+				spaceId: "space-1",
+				targetPeerId: "",
+				targetMultiaddrs: "/ip4/1/tcp/2",
+				displayName: "",
+				deviceName: "",
+			}),
+		).toBe("Add the peer ID for the space owner or delegated approver bot.");
 	});
 
 	it("requires at least one network address", () => {

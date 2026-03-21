@@ -26,7 +26,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router";
-import { formatRoleLabel, membershipSummary } from "./access-utils";
+import { describeRole, formatRoleLabel, membershipSummary, requestedAccessLevelLabel, roleOptions } from "./access-utils";
 
 function Component(): React.JSX.Element {
 	const { t } = useTranslation("common");
@@ -77,23 +77,6 @@ function Component(): React.JSX.Element {
 		const date = new Date(millis);
 		if (Number.isNaN(date.getTime())) return "Unknown";
 		return date.toLocaleString();
-	}, []);
-
-	const requestedRoleLabel = useCallback((role: number): string => {
-		switch (role) {
-			case 1:
-				return "owner";
-			case 2:
-				return "editor";
-			case 3:
-				return "viewer";
-			case 4:
-				return "member";
-			case 5:
-				return "bot";
-			default:
-				return "unspecified";
-		}
 	}, []);
 
 	const updateCapability = useCallback((
@@ -218,6 +201,7 @@ function Component(): React.JSX.Element {
 		}
 	}, [revokeMembershipAsync, spaceId]);
 	const memberRows = membersQuery.data ?? [];
+	const approvalRoleOptions = useMemo(() => roleOptions(), []);
 	const joinApprovalColumns = useMemo<ColumnDef<JoinRequestRecord>[]>(
 		() => [
 			{
@@ -233,15 +217,20 @@ function Component(): React.JSX.Element {
 				),
 			},
 			{
-				header: "Requested role",
-				cell: ({ row }) => <span className="uppercase">{requestedRoleLabel(row.original.requestedRole)}</span>,
+				header: "Requested access level",
+				cell: ({ row }) => (
+					<div className="space-y-1">
+						<div className="font-medium text-sm">{requestedAccessLevelLabel(row.original.requestedRole)}</div>
+						<div className="max-w-xs text-base-content/60 text-xs">Requests currently default to Member unless the approver changes it.</div>
+					</div>
+				),
 			},
 			{
 				header: "Requested at",
 				cell: ({ row }) => formatEpoch(row.original.createdAt),
 			},
 			{
-				header: "Role override",
+				header: "Grant as",
 				cell: ({ row }) => (
 					<select
 						className="select select-bordered select-xs w-full min-w-28"
@@ -254,11 +243,11 @@ function Component(): React.JSX.Element {
 						value={decisionRoleByRequest[row.original.requestId] ?? ""}
 					>
 						<option value="">requested/default</option>
-						<option value="owner">owner</option>
-						<option value="editor">editor</option>
-						<option value="viewer">viewer</option>
-						<option value="member">member</option>
-						<option value="bot">bot</option>
+						{approvalRoleOptions.map((option) => (
+							<option key={option.value} value={option.value}>
+								{option.label}
+							</option>
+						))}
 					</select>
 				),
 			},
@@ -304,12 +293,12 @@ function Component(): React.JSX.Element {
 			},
 		],
 		[
+			approvalRoleOptions,
 			decisionReasonByRequest,
 			decisionRoleByRequest,
 			decideJoinRequest,
 			formatEpoch,
 			isDecidingJoin,
-			requestedRoleLabel,
 		],
 	);
 	const memberBoardColumns = useMemo<ColumnDef<SpaceMember>[]>(
@@ -320,7 +309,12 @@ function Component(): React.JSX.Element {
 			},
 			{
 				header: "Role",
-				cell: ({ row }) => <span>{formatRoleLabel(row.original.role || "unspecified")}</span>,
+				cell: ({ row }) => (
+					<div className="space-y-1">
+						<div className="font-medium text-sm">{formatRoleLabel(row.original.role || "unspecified")}</div>
+						<div className="max-w-xs text-base-content/60 text-xs">{describeRole(row.original.role)}</div>
+					</div>
+				),
 			},
 			{
 				header: "Expiry",
@@ -460,7 +454,10 @@ function Component(): React.JSX.Element {
 			<div className="card border border-base-300 bg-base-100">
 				<div className="card-body space-y-3">
 					<h3 className="card-title text-base">Join approvals</h3>
-					<p className="text-base-content/70 text-sm">Review people waiting for access to this workspace and decide what role they should get.</p>
+					<p className="text-base-content/70 text-sm">Review pending access requests and choose the access level this peer should receive.</p>
+					<div className="rounded-xl border border-base-300 bg-base-200/50 px-4 py-3 text-xs text-base-content/70">
+						Most people should be granted Editor, Viewer, or Member. Use Owner sparingly. Use Bot only for trusted non-human peers.
+					</div>
 					<TanstackTable
 						columns={joinApprovalColumns}
 						data={pendingJoinRequests}
@@ -475,7 +472,7 @@ function Component(): React.JSX.Element {
 			<div className="card border border-base-300 bg-base-100">
 				<div className="card-body space-y-3">
 					<h3 className="card-title text-base">Current access</h3>
-					<p className="text-base-content/70 text-sm">See who is currently in this workspace and revoke access when needed.</p>
+					<p className="text-base-content/70 text-sm">See who currently has access, what level they hold, and when that access expires.</p>
 					<TanstackTable
 						columns={memberBoardColumns}
 						data={memberRows}
