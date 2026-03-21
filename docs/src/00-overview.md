@@ -6,7 +6,7 @@ It is designed for:
 
 - anyone who wants a structured, local-first note-taking app
 - teams and small groups collaborating privately
-- students and educators in offline-sensitive environments
+- people working in offline-sensitive environments
 - employees in organizations with restricted connectivity
 
 It combines:
@@ -15,7 +15,7 @@ It combines:
 - peer-to-peer data resolution and caching
 - capability-based permissions for humans and bots
 - optional local AI assistance
-- a focused training companion app (Tapia)
+- a focused companion app (Tapia)
 
 Soma is designed to work:
 - fully offline on a local network
@@ -105,7 +105,7 @@ Capabilities are intended to cover permissions for both humans and bots, such as
 ---
 
 ## Companion app: Tapia
-Tapia is the focused training app shipped alongside Soma.
+Tapia is the focused companion app shipped alongside Soma.
 
 - launched via deep link or adjacent workflows from Soma
 - focused on IT-training tasks such as typing drills, tap-touch, and small exam-like exercises

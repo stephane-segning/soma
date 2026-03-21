@@ -23,9 +23,10 @@ function useCreatePage(spaceId: string) {
 	const navigate = useNavigate();
 
 	const createPage = useCallback(
-		async (parentPageIds: string[], nav = false) => {
+		async (parentPageIds: string[], nav = true) => {
 			const created = await ensurePage.mutateAsync({
 				spaceId,
+				title: "Untitled",
 				parentPageIds,
 			});
 

@@ -1,6 +1,6 @@
 {
 	"app.title": "Soma",
-	"app.tagline": "Build an Electron app with React and TypeScript",
+	"app.tagline": "Local-first workspaces for structured notes",
 	"routes": {
 		"spaces": "Spaces",
 		"join": "Join",

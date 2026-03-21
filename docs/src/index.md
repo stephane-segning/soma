@@ -1,8 +1,8 @@
 # Soma Documentation
 
-Welcome to the Soma documentation.
+Soma is a local-first workspace app for structured notes, private collaboration, and offline-friendly peer sync.
 
-Start with the [Overview](00-overview.md), [Glossary](01-glossary.md), and [V2 Clarity Plan](02-v2.md), then dive deeper:
+Start with the [Overview](00-overview.md), [Getting Started](getting-started/index.md), and [Glossary](01-glossary.md), then dive deeper:
 
 - [Platform Components](architecture/soma-tapia.md) – desktop apps, local daemon, and supporting infrastructure.
 - [End-to-End Flows](architecture/e2e-flows.md) – join, blobs (CID fetch), and local AI flows.

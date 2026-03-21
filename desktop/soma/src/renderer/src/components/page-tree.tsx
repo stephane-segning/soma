@@ -1,11 +1,19 @@
 import { cn } from "@app/lib/cn";
 import {
-	type PageRecord,
+	buildTree,
+	filterTree,
+	flattenVisibleTree,
+	moveInArray,
+	type FlatNode,
+	type TreeNode,
+} from "@app/components/page-tree-utils";
+import {
 	useCreatePage,
 	useEnsurePageMutation,
 	usePagesQuery,
 	useSetPageParentsMutation,
 } from "@app/queries/pages";
+import { UNTITLED_PAGE_TITLE } from "@app/routes/screens/page-title";
 import {
 	DndContext,
 	type DragEndEvent,
@@ -24,17 +32,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronDown, ChevronRight, Move, Plus } from "react-feather";
 import { Link } from "react-router";
 
-type TreeNode = {
-	page: PageRecord;
-	children: TreeNode[];
-};
-
-type FlatNode = {
-	id: string;
-	parentId: string | null;
-	depth: number;
-};
-
 type Props = {
 	spaceId: string;
 	activePageId?: string;
@@ -44,91 +41,6 @@ type Props = {
 
 const MAX_TREE_DEPTH = 8;
 const HORIZONTAL_INDENT_PX = 28;
-
-function moveInArray<T>(items: T[], from: number, to: number): T[] {
-	if (from === to) return items;
-	const next = [...items];
-	const [moved] = next.splice(from, 1);
-	next.splice(to, 0, moved);
-	return next;
-}
-
-function buildTree(pages: PageRecord[]): TreeNode[] {
-	const nodes = new Map<string, TreeNode>();
-	for (const page of pages) {
-		nodes.set(page.pageId, {
-			page,
-			children: [],
-		});
-	}
-
-	const roots: TreeNode[] = [];
-	for (const page of pages) {
-		const node = nodes.get(page.pageId);
-		if (!node) continue;
-
-		const primaryParentId = page.parentPageIds[0];
-		if (!primaryParentId || primaryParentId === page.pageId) {
-			roots.push(node);
-			continue;
-		}
-
-		const parent = nodes.get(primaryParentId);
-		if (!parent) {
-			roots.push(node);
-			continue;
-		}
-
-		parent.children.push(node);
-	}
-
-	return roots;
-}
-
-function filterTree(nodes: TreeNode[], term: string): TreeNode[] {
-	if (!term.trim()) return nodes;
-	const needle = term.trim().toLowerCase();
-
-	const walk = (node: TreeNode): TreeNode | null => {
-		const title = node.page.title.toLowerCase();
-		const filteredChildren = node.children.map((child) => walk(child)).filter(Boolean) as TreeNode[];
-
-		if (title.includes(needle) || filteredChildren.length > 0) {
-			return {
-				...node,
-				children: filteredChildren,
-			};
-		}
-		return null;
-	};
-
-	return nodes.map((node) => walk(node)).filter(Boolean) as TreeNode[];
-}
-
-function flattenVisibleTree(
-	nodes: TreeNode[],
-	expandedByPageId: Record<string, boolean>,
-	filterActive: boolean,
-	parentId: string | null = null,
-	depth = 0,
-): FlatNode[] {
-	const flat: FlatNode[] = [];
-
-	for (const node of nodes) {
-		flat.push({
-			id: node.page.pageId,
-			parentId,
-			depth,
-		});
-
-		const isExpanded = filterActive || (expandedByPageId[node.page.pageId] ?? true);
-		if (node.children.length > 0 && isExpanded) {
-			flat.push(...flattenVisibleTree(node.children, expandedByPageId, filterActive, node.page.pageId, depth + 1));
-		}
-	}
-
-	return flat;
-}
 
 function PageTree({ spaceId, activePageId, filterTerm = "", showNewButton = true }: Props): React.JSX.Element | null {
 	const { data, isLoading } = usePagesQuery(spaceId);
@@ -167,7 +79,9 @@ function PageTree({ spaceId, activePageId, filterTerm = "", showNewButton = true
 
 	const orderRank = useMemo(() => {
 		const rank = new Map<string, number>();
-		orderedIds.forEach((id, index) => rank.set(id, index));
+		for (const [index, id] of orderedIds.entries()) {
+			rank.set(id, index);
+		}
 		return rank;
 	}, [orderedIds]);
 
@@ -249,8 +163,7 @@ function PageTree({ spaceId, activePageId, filterTerm = "", showNewButton = true
 			const activeId = String(event.active.id);
 			const overId = event.over?.id ? String(event.over.id) : null;
 			if (!spaceId || !overId) return;
-
-				if (!flatVisibleById.has(activeId)) return;
+			if (!flatVisibleById.has(activeId)) return;
 
 			const currentParentId = parentById.get(activeId) ?? null;
 			let nextParentId = currentParentId;
@@ -432,14 +345,6 @@ function TreeItem({
 	filterActive: boolean;
 	depth?: number;
 }): React.JSX.Element {
-	if (depth > MAX_TREE_DEPTH) {
-		return (
-			<li className="text-warning text-xs">
-				<Link to={`/spaces/${spaceId}/pages/${node.page.pageId}`}>Loop detected...</Link>
-			</li>
-		);
-	}
-
 	const hasChildren = node.children.length > 0;
 	const isExpanded = hasChildren ? filterActive || (expandedByPageId[node.page.pageId] ?? true) : false;
 	const isActive = node.page.pageId === activePageId;
@@ -469,6 +374,14 @@ function TreeItem({
 		transition,
 		opacity: isDragging ? 0.52 : 1,
 	};
+
+	if (depth > MAX_TREE_DEPTH) {
+		return (
+			<li className="text-warning text-xs">
+				<Link to={`/spaces/${spaceId}/pages/${node.page.pageId}`}>Loop detected...</Link>
+			</li>
+		);
+	}
 
 	const expandButton = hasChildren ? (
 		<button
@@ -530,26 +443,24 @@ function TreeItem({
 					}}
 					to={`/spaces/${spaceId}/pages/${node.page.pageId}`}
 				>
-					<span className="truncate">{node.page.title || "Untitled"}</span>
+					<span className="truncate">{node.page.title || UNTITLED_PAGE_TITLE}</span>
 				</Link>
 
 				<div className="flex items-center gap-1">
-					{hasChildren ? (
-						<button
-							aria-label="Create child page"
-							className="btn btn-ghost btn-xs btn-circle shrink-0 opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100"
-							disabled={isCreating}
-							onClick={(event) => {
-								event.preventDefault();
-								event.stopPropagation();
-								void onCreateChild(node.page.pageId);
-							}}
-							onPointerDown={(event) => event.stopPropagation()}
-							type="button"
-						>
-							<Plus className="size-3.5" />
-						</button>
-					) : null}
+					<button
+						aria-label="Create child page"
+						className="btn btn-ghost btn-xs btn-circle shrink-0 opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100"
+						disabled={isCreating}
+						onClick={(event) => {
+							event.preventDefault();
+							event.stopPropagation();
+							void onCreateChild(node.page.pageId);
+						}}
+						onPointerDown={(event) => event.stopPropagation()}
+						type="button"
+					>
+						<Plus className="size-3.5" />
+					</button>
 
 					{dragHandle}
 				</div>

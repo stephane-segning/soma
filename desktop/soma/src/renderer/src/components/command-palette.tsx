@@ -15,7 +15,6 @@ function CommandPaletteShell(): React.JSX.Element {
 	const dispatch = useAppDispatch();
 	const [selected, setSelected] = useState<number>(0);
 	const [search, setSearch] = useState<string>("");
-	const [page, setPage] = useState<"root" | "positions">("root");
 	const isCommandPaletteOpen = useAppSelector(uiSelectors.selectIsCommandPaletteOpen);
 	const navigate = useNavigate();
 	const searchResults = useSearchQuery(search);
@@ -30,7 +29,6 @@ function CommandPaletteShell(): React.JSX.Element {
 
 	useEffect(() => {
 		if (!isCommandPaletteOpen) {
-			setPage("root");
 			setSearch("");
 			setSelected(0);
 		}
@@ -71,11 +69,11 @@ function CommandPaletteShell(): React.JSX.Element {
 						},
 					},
 					{
-						children: "Join Space",
+						children: "Create or join space",
 						id: "route:join-space",
-						keywords: ["route", "spaces", "join"],
+						keywords: ["route", "spaces", "join", "create"],
 						onClick: () => {
-							navigate("/spaces/join");
+							navigate("/spaces/landing");
 							dispatch(uiActions.toggleCommandPalette(false));
 						},
 					},
@@ -87,31 +85,6 @@ function CommandPaletteShell(): React.JSX.Element {
 							navigate("/settings");
 							dispatch(uiActions.toggleCommandPalette(false));
 						},
-					},
-				],
-			},
-			{
-				heading: "Home",
-				id: "home",
-				items: [
-					{
-						children: "Positions",
-						icon: "BriefcaseIcon",
-						closeOnSelect: false,
-						keywords: ["jobs"],
-						id: "positions",
-						onClick: () => {
-							setPage("positions");
-							setSearch("");
-						},
-					},
-					{
-						children: "Documentation",
-						icon: "BookOpenIcon",
-						id: "docs",
-						href: "https://electron-vite.org/",
-						target: "_blank",
-						rel: "noreferrer",
 					},
 				],
 			},
@@ -167,7 +140,7 @@ function CommandPaletteShell(): React.JSX.Element {
 			onChangeOpen={handleOpenChange}
 			onChangeSearch={setSearch}
 			onChangeSelected={setSelected}
-			page={page}
+			page="root"
 			search={search}
 			selected={selected}
 		>
@@ -175,25 +148,8 @@ function CommandPaletteShell(): React.JSX.Element {
 				{rootItems.length ? (
 					renderJsonStructure(rootItems)
 				) : (
-					<CommandPalette.FreeSearchAction
-						closeOnSelect={false}
-						href={`https://google.com/?q=${search}`}
-						rel="noopener noreferrer"
-						target="_blank"
-					/>
+					<div className="px-4 py-6 text-base-content/60 text-sm">No matching command or page.</div>
 				)}
-			</CommandPalette.Page>
-
-			<CommandPalette.Page
-				id="positions"
-				onEscape={() => {
-					setPage("root");
-				}}
-				searchPrefix={["General", "Positions"]}
-			>
-				<CommandPalette.List heading="Positions">
-					<CommandPalette.ListItem index={0}>Nothing here</CommandPalette.ListItem>
-				</CommandPalette.List>
 			</CommandPalette.Page>
 		</CommandPalette>
 	);

@@ -242,7 +242,7 @@ export class StartupService {
 <body>
   <div class="card">
     <h1 class="title">Starting Soma</h1>
-    <p class="subtitle">Waiting for daemon readiness...</p>
+    <p class="subtitle">Preparing your workspace...</p>
     <div class="bar"></div>
   </div>
 </body>

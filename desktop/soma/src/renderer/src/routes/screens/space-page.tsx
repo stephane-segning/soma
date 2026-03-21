@@ -12,6 +12,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ErrorBoundary, type FallbackProps } from "react-error-boundary";
 import { HotkeysProvider } from "react-hotkeys-hook";
 import { type LoaderFunctionArgs, useLoaderData } from "react-router";
+import {
+	deriveTitleFromDocument,
+	normalizePageTitle,
+	shouldSyncDerivedTitle,
+	UNTITLED_PAGE_TITLE,
+} from "./page-title";
 import * as chatService from "../../services/chat-service";
 import * as documentsService from "../../services/documents-service";
 import * as spacesService from "../../services/spaces-service";
@@ -19,6 +25,7 @@ import * as spacesService from "../../services/spaces-service";
 type LoaderData = {
 	spaceId: string;
 	pageId: string;
+	pageTitle: string;
 	initialContentJson: string | null;
 };
 
@@ -69,25 +76,6 @@ function parseContent(contentJson: string | null): JSONContent | undefined {
 	}
 }
 
-function extractPlainText(node: JSONContent | undefined): string {
-	if (!node) return "";
-	if (node.type === "text" && typeof node.text === "string") return node.text;
-	if (node.type === "hardBreak") return "\n";
-	if (!Array.isArray(node.content) || node.content.length === 0) return "";
-	return node.content.map((child) => extractPlainText(child)).join("");
-}
-
-function deriveTitleFromDocument(content: JSONContent | undefined): string {
-	if (!content || !Array.isArray(content.content)) return "Untitled";
-
-	for (const block of content.content) {
-		const firstLine = extractPlainText(block).split(/\r?\n/, 1)[0]?.replace(/\s+/g, " ").trim();
-		if (firstLine) return firstLine.slice(0, 160);
-	}
-
-	return "Untitled";
-}
-
 async function loader({ params }: LoaderFunctionArgs): Promise<LoaderData> {
 	const spaceId = params.spaceId ?? "";
 	const pageId = params.pageId ?? "";
@@ -97,7 +85,14 @@ async function loader({ params }: LoaderFunctionArgs): Promise<LoaderData> {
 		});
 	}
 
-	// Minimal fetch: try to hydrate from drafts; fall back to empty.
+	const pages = await documentsService.listPages({ spaceId });
+	const page = pages.find((candidate) => candidate.pageId === pageId);
+	if (!page) {
+		throw new Response("Page not found", {
+			status: 404,
+		});
+	}
+
 	const draft = await documentsService.getDraft({
 		spaceId,
 		documentId: pageId,
@@ -106,6 +101,7 @@ async function loader({ params }: LoaderFunctionArgs): Promise<LoaderData> {
 	return {
 		spaceId,
 		pageId,
+		pageTitle: normalizePageTitle(page.title),
 		initialContentJson: draft?.contentJson ?? null,
 	};
 }
@@ -122,6 +118,7 @@ function Component(): React.JSX.Element {
 	const autosaveTimerRef = useRef<number | null>(null);
 	const pendingPageInsertRef = useRef<PendingPageInsert | null>(null);
 	const syncedTitleRef = useRef<string | null>(null);
+	const currentPageTitleRef = useRef<string>(data.pageTitle);
 
 	const [isPagePickerOpen, setIsPagePickerOpen] = useState(false);
 
@@ -132,8 +129,9 @@ function Component(): React.JSX.Element {
 			window.clearTimeout(autosaveTimerRef.current);
 			autosaveTimerRef.current = null;
 		}
+		currentPageTitleRef.current = data.pageTitle;
 		syncedTitleRef.current = null;
-	}, [initialValue]);
+	}, [data.pageTitle, initialValue]);
 
 	useEffect(() => {
 		return () => {
@@ -155,7 +153,13 @@ function Component(): React.JSX.Element {
 
 				const latestValue = latestValueRef.current;
 				const nextTitle = deriveTitleFromDocument(latestValue);
-				if (syncedTitleRef.current !== nextTitle) {
+				if (
+					shouldSyncDerivedTitle({
+						currentPageTitle: currentPageTitleRef.current,
+						lastSyncedTitle: syncedTitleRef.current,
+						nextDerivedTitle: nextTitle,
+					})
+				) {
 					const updated = await documentsService.updatePageTitle({
 						spaceId: data.spaceId,
 						pageId: data.pageId,
@@ -163,6 +167,7 @@ function Component(): React.JSX.Element {
 					});
 					if (updated?.title) {
 						syncedTitleRef.current = updated.title;
+						currentPageTitleRef.current = normalizePageTitle(updated.title);
 					}
 				}
 
@@ -240,7 +245,7 @@ function Component(): React.JSX.Element {
 					type: "pageLink",
 					attrs: {
 						pageId: page.pageId,
-						title: page.title || "Untitled",
+						title: page.title || UNTITLED_PAGE_TITLE,
 						href: `/spaces/${data.spaceId}/pages/${page.pageId}`,
 					},
 				})
@@ -264,12 +269,12 @@ function Component(): React.JSX.Element {
 			name: "New sub-page",
 			description: "Create a nested page and insert a link",
 			keywords: ["page", "subpage", "nested"],
-			handler: async ({ editor, range }) => {
-				const created = await documentsService.ensurePage({
-					spaceId: data.spaceId,
-					title: "Untitled",
-					parentPageIds: [data.pageId],
-				});
+				handler: async ({ editor, range }) => {
+					const created = await documentsService.ensurePage({
+						spaceId: data.spaceId,
+						title: UNTITLED_PAGE_TITLE,
+						parentPageIds: [data.pageId],
+					});
 
 				editor
 					.chain()
@@ -279,7 +284,7 @@ function Component(): React.JSX.Element {
 						type: "pageLink",
 						attrs: {
 							pageId: created.pageId,
-							title: created.title || "Untitled",
+							title: created.title || UNTITLED_PAGE_TITLE,
 							href: `/spaces/${data.spaceId}/pages/${created.pageId}`,
 						},
 					})
@@ -450,7 +455,7 @@ function Component(): React.JSX.Element {
 			dispatch(
 				tabsActions.openTab({
 					path: `/spaces/${data.spaceId}/pages/${pageId}`,
-					title: title ?? "Untitled",
+					title: title ?? UNTITLED_PAGE_TITLE,
 				}),
 			);
 		},
@@ -466,9 +471,13 @@ function Component(): React.JSX.Element {
 				pageId,
 				title: trimmed,
 			});
+			if (pageId === data.pageId) {
+				currentPageTitleRef.current = normalizePageTitle(updated?.title ?? trimmed);
+				syncedTitleRef.current = updated?.title ?? trimmed;
+			}
 			return updated?.title ?? trimmed;
 		},
-		[data.spaceId],
+		[data.pageId, data.spaceId],
 	);
 
 	const mentionProviders = useMemo<MentionProvider[]>(() => {
@@ -520,7 +529,7 @@ function Component(): React.JSX.Element {
 					})
 					.map((page) => ({
 						id: page.pageId,
-						label: page.title || page.pageId,
+						label: page.title || UNTITLED_PAGE_TITLE,
 						detail: page.pageId,
 						href: `/spaces/${data.spaceId}/pages/${page.pageId}`,
 					}));
@@ -618,6 +627,7 @@ function PageLinkPicker({
 	const [pages, setPages] = useState<PageRecord[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [activeIndex, setActiveIndex] = useState(0);
+	const inputRef = useRef<HTMLInputElement | null>(null);
 
 	useEffect(() => {
 		if (!isOpen) return;
@@ -654,8 +664,9 @@ function PageLinkPicker({
 	}, [pages, query]);
 
 	useEffect(() => {
-		setActiveIndex(0);
-	}, [query, pages, isOpen]);
+		if (!isOpen) return;
+		inputRef.current?.focus();
+	}, [isOpen]);
 
 	const handleKeyDown = useCallback(
 		(event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -693,11 +704,14 @@ function PageLinkPicker({
 			<div className="w-[520px] max-w-[90vw] overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-2xl">
 				<div className="border-base-200 border-b px-4 py-3">
 					<input
-						autoFocus
 						className="input input-bordered w-full"
-						onChange={(event) => setQuery(event.target.value)}
+						onChange={(event) => {
+							setQuery(event.target.value);
+							setActiveIndex(0);
+						}}
 						onKeyDown={handleKeyDown}
 						placeholder="Search pages..."
+						ref={inputRef}
 						value={query}
 					/>
 				</div>
@@ -717,7 +731,7 @@ function PageLinkPicker({
 								onClick={() => onSelect(page)}
 								type="button"
 							>
-								<span className="truncate font-medium">{page.title || "Untitled"}</span>
+							<span className="truncate font-medium">{page.title || UNTITLED_PAGE_TITLE}</span>
 								<span className="shrink-0 text-base-content/50 text-xs">{page.pageId}</span>
 							</button>
 						))

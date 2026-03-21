@@ -72,6 +72,25 @@ export function ActionMenu({
 				onSelect: () => insertAt({ type: "heading", attrs: { level: 2 } }),
 			},
 			{
+				id: "add-bullet-list",
+				label: "Bulleted list",
+				onSelect: () => insertAt({ type: "bulletList", content: [{ type: "listItem", content: [{ type: "paragraph" }] }] }),
+			},
+			{
+				id: "add-numbered-list",
+				label: "Numbered list",
+				onSelect: () => insertAt({ type: "orderedList", content: [{ type: "listItem", content: [{ type: "paragraph" }] }] }),
+			},
+			{
+				id: "add-task-list",
+				label: "Task list",
+				onSelect: () =>
+					insertAt({
+						type: "taskList",
+						content: [{ type: "taskItem", attrs: { checked: false }, content: [{ type: "paragraph" }] }],
+					}),
+			},
+			{
 				id: "add-divider",
 				label: "Divider",
 				onSelect: () => insertAt({ type: "horizontalRule" }),
@@ -84,31 +103,19 @@ export function ActionMenu({
 			{
 				id: "add-page-link",
 				label: "Page link",
-				onSelect: () =>
-					insertAt({
-						type: "pageLink",
-						attrs: {
-							pageId: "page_demo_789",
-							title: "New page link",
-							href: "/spaces/demo/pages/page_demo_789",
-						},
-					}),
-			},
-			{
-				id: "add-external-link",
-				label: "External link",
-				onSelect: () =>
-					insertAt({
-						type: "pageLink",
-						attrs: {
-							title: "DaisyUI",
-							href: "https://daisyui.com",
-						},
-					}),
+					onSelect: () =>
+						insertAt({
+							type: "pageLink",
+							attrs: {
+								pageId: "page_demo_789",
+								title: "Linked page",
+								href: "/spaces/demo/pages/page_demo_789",
+							},
+						}),
 			},
 			{
 				id: "add-text-rotate",
-				label: "Text rotate",
+				label: "Text rotate (decorative)",
 				onSelect: () =>
 					insertAt({
 						type: "textRotate",
@@ -119,7 +126,7 @@ export function ActionMenu({
 			},
 			{
 				id: "add-carousel",
-				label: "Carousel",
+				label: "Carousel (decorative)",
 				onSelect: () =>
 					insertAt({
 						type: "carousel",
@@ -140,7 +147,7 @@ export function ActionMenu({
 			},
 			{
 				id: "add-accordion",
-				label: "Accordion",
+				label: "Accordion (decorative)",
 				onSelect: () =>
 					insertAt({
 						type: "accordion",

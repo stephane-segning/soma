@@ -43,7 +43,7 @@ function SpacesRail(): React.JSX.Element {
 			})}
 
 			{/* TODO implement a logic using `useCreateSpaceMutation` to create a new space or redirect to `/spaces/join` to join a new space*/}
-			<Link className="avatar" to="/spaces">
+			<Link aria-label="Open spaces landing" className="avatar" to="/spaces/landing">
 				<div className="flex w-12 items-center justify-center rounded-2xl bg-base-100 outline-dotted outline-2 outline-base-300">
 					<Plus className="size-4" />
 				</div>
