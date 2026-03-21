@@ -6,7 +6,7 @@ import type { NodeViewProps } from "@tiptap/core";
 import { NodeViewWrapper } from "@tiptap/react";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlignCenter, Crop, Maximize2 } from "react-feather";
+import { AlignCenter, Crop, Maximize2, MoreHorizontal } from "react-feather";
 
 const MIN_WIDTH = 240;
 const MAX_WIDTH = 1400;
@@ -23,10 +23,12 @@ type ImageSource = {
 
 export function BlobImageView({
 	node,
+	deleteNode,
 	updateAttributes,
 }: NodeViewProps): React.JSX.Element {
 	const src = node.attrs.src as string | undefined;
 	const name = node.attrs.name as string | undefined;
+	const error = node.attrs.error as string | undefined;
 	const width = node.attrs.width as number | undefined;
 	const height = node.attrs.height as number | undefined;
 	const displayWidth = node.attrs.displayWidth as number | null;
@@ -179,11 +181,6 @@ export function BlobImageView({
 					ref={containerRef}
 					className={`relative ${containerClassName}`}
 					style={containerStyle}
-					onContextMenu={(event) => {
-						event.preventDefault();
-						setMenuPosition({ x: event.clientX, y: event.clientY });
-						setMenuOpen(true);
-					}}
 				>
 					<div className={figureGridClassName}>
 						{sources.map((item, index) => (
@@ -201,6 +198,17 @@ export function BlobImageView({
 							/>
 						))}
 					</div>
+					<button
+						className="btn btn-circle btn-xs absolute right-2 top-2 border border-base-300 bg-base-100/85"
+						onClick={(event) => {
+							event.preventDefault();
+							setMenuPosition({ x: event.clientX, y: event.clientY });
+							setMenuOpen(true);
+						}}
+						type="button"
+					>
+						<MoreHorizontal className="size-3.5" />
+					</button>
 					{effectiveLayout !== "full" ? (
 						<button
 							type="button"
@@ -214,6 +222,16 @@ export function BlobImageView({
 						items={menuItems}
 						onClose={closeMenu}
 					/>
+				</div>
+			) : error ? (
+				<div className="flex items-center justify-between gap-3 rounded-lg border border-error/30 bg-error/5 px-3 py-2 text-sm">
+					<div>
+						<div className="font-medium">Image upload failed</div>
+						<div className="text-base-content/70 text-xs">{error}</div>
+					</div>
+					<button className="btn btn-ghost btn-xs" onClick={() => deleteNode()} type="button">
+						Remove
+					</button>
 				</div>
 			) : (
 				<div className="rounded-lg border border-base-300 bg-base-200 px-3 py-2 text-sm text-base-content/60">

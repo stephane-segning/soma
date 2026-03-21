@@ -220,10 +220,58 @@ export function DocumentEditor({
 		},
 	});
 
+	const handleInsertImage = async (targetEditor: typeof editor, insertPos: number) => {
+		if (!targetEditor || !uploadImage) return;
+		const input = document.createElement("input");
+		input.type = "file";
+		input.accept = "image/*";
+		input.multiple = true;
+		input.onchange = async () => {
+			const files = input.files ? Array.from(input.files) : [];
+			input.remove();
+			for (const file of files) {
+				if (!file.type.startsWith("image/")) continue;
+				const uploaded = await uploadImage(file);
+				targetEditor
+					.chain()
+					.focus()
+					.insertContentAt(insertPos, {
+						type: "blobImage",
+						attrs: uploaded,
+					})
+					.run();
+			}
+		};
+		input.click();
+	};
+
+	const handleInsertFile = async (targetEditor: typeof editor, insertPos: number) => {
+		if (!targetEditor || !uploadFile) return;
+		const input = document.createElement("input");
+		input.type = "file";
+		input.multiple = true;
+		input.onchange = async () => {
+			const files = input.files ? Array.from(input.files) : [];
+			input.remove();
+			for (const file of files) {
+				const uploaded = await uploadFile(file);
+				targetEditor
+					.chain()
+					.focus()
+					.insertContentAt(insertPos, {
+						type: "blobFile",
+						attrs: uploaded,
+					})
+					.run();
+			}
+		};
+		input.click();
+	};
+
 	return (
 		<div className={className}>
 			<div className="relative">
-				<ActionMenu editor={editor} />
+				<ActionMenu editor={editor} onInsertFile={handleInsertFile} onInsertImage={handleInsertImage} />
 				<EditorContent editor={editor} />
 
 				{editor && (

@@ -1,13 +1,15 @@
 import { TanstackTable } from "@app/components/tables/tanstack-table";
-import { useSpaceMembersQuery } from "@app/queries/spaces";
+import { useSpaceQuery, useSpaceMembersQuery } from "@app/queries/spaces";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useParams } from "react-router";
+import { Link, useParams } from "react-router";
+import { formatRoleLabel, membershipSummary } from "./access-utils";
 
 function Component(): React.JSX.Element {
 	const { t } = useTranslation("common");
 	const { spaceId } = useParams();
+	const spaceQuery = useSpaceQuery(spaceId ?? "");
 	const membersQuery = useSpaceMembersQuery(spaceId ?? "");
 
 	const members = membersQuery.data ?? [];
@@ -34,14 +36,19 @@ function Component(): React.JSX.Element {
 	const columns = useMemo<ColumnDef<(typeof members)[number]>[]>(
 		() => [
 			{
-				header: "Peer",
-				cell: ({ row }) => <span className="font-mono text-sm">{row.original.peerId}</span>,
+				header: "Member",
+				cell: ({ row }) => (
+					<div>
+						<div className="font-medium text-sm">{row.original.peerId === spaceQuery.data?.ownerPeerId ? "Owner device" : row.original.peerId}</div>
+						<div className="font-mono text-base-content/60 text-xs">{row.original.peerId}</div>
+					</div>
+				),
 			},
 			{
 				header: "Role",
 				cell: ({ row }) => (
-					<span className="badge badge-outline badge-sm uppercase">
-						{row.original.role || t("space.members.roleUnknown", "unknown")}
+					<span className="badge badge-outline badge-sm">
+						{formatRoleLabel(row.original.role || t("space.members.roleUnknown", "unknown"))}
 					</span>
 				),
 			},
@@ -50,15 +57,28 @@ function Component(): React.JSX.Element {
 				cell: ({ row }) => <span className="text-base-content/70 text-xs">{formatExpiry(row.original.expiresAt)}</span>,
 			},
 		],
-		[formatExpiry, t],
+		[formatExpiry, spaceQuery.data?.ownerPeerId, t],
 	);
 
 	return (
 		<div className="space-y-4">
-			<h2 className="font-semibold text-lg">{t("space.members.title", "Members")}</h2>
+			<div className="space-y-2">
+				<h2 className="font-semibold text-lg">{t("space.members.title", "Members")}</h2>
+				<p className="text-base-content/70 text-sm">
+					{spaceQuery.data?.displayName?.trim() || spaceId || "This space"} shows who currently has access and what role they hold.
+				</p>
+			</div>
 			<div className="rounded-lg border border-base-300 bg-base-100">
-				<div className="border-base-300 border-b px-4 py-3 text-base-content/70 text-sm">
-					{t("space.members.subtitle", "Roster and roles are pulled from the daemon.")}
+				<div className="border-base-300 border-b px-4 py-3 text-sm">
+					<div className="font-medium">{membershipSummary(members)}</div>
+					<div className="mt-1 text-base-content/70">
+						Use space settings to approve join requests or revoke access for a member.
+					</div>
+					<div className="mt-3">
+						<Link className="btn btn-ghost btn-xs" to={`/spaces/${spaceId}/settings`}>
+							Open people and access settings
+						</Link>
+					</div>
 				</div>
 
 				{membersQuery.isError && (

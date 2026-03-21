@@ -22,8 +22,12 @@ type ActiveNode = {
 
 export function ActionMenu({
 	editor,
+	onInsertImage,
+	onInsertFile,
 }: {
 	editor: Editor | null;
+	onInsertImage?: (editor: Editor, insertPos: number) => Promise<void>;
+	onInsertFile?: (editor: Editor, insertPos: number) => Promise<void>;
 }): React.JSX.Element | null {
 	const [activeNode, setActiveNode] = useState<ActiveNode | null>(null);
 	const [isDragging, setIsDragging] = useState(false);
@@ -89,6 +93,22 @@ export function ActionMenu({
 						type: "taskList",
 						content: [{ type: "taskItem", attrs: { checked: false }, content: [{ type: "paragraph" }] }],
 					}),
+			},
+			{
+				id: "add-image-upload",
+				label: "Image",
+				onSelect: async () => {
+					if (!editor || !activeNode || !onInsertImage) return;
+					await onInsertImage(editor, activeNode.insertPos);
+				},
+			},
+			{
+				id: "add-file-upload",
+				label: "File",
+				onSelect: async () => {
+					if (!editor || !activeNode || !onInsertFile) return;
+					await onInsertFile(editor, activeNode.insertPos);
+				},
 			},
 			{
 				id: "add-divider",
@@ -167,7 +187,7 @@ export function ActionMenu({
 					}),
 			},
 		],
-		[insertAt],
+		[activeNode, editor, insertAt, onInsertFile, onInsertImage],
 	);
 
 	if (!editor) return null;

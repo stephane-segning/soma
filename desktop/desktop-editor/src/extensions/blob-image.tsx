@@ -63,6 +63,7 @@ export const BlobImageNode = Node.create<BlobImageOptions>({
 	addAttributes() {
 		return {
 			uploadId: { default: null },
+			error: { default: null },
 			cid: { default: null },
 			src: { default: null },
 			sources: { default: null },
@@ -91,48 +92,66 @@ export const BlobImageNode = Node.create<BlobImageOptions>({
 		const nodeTypeName = this.name;
 
 		async function uploadAndHydrate(uploadId: string, file: File) {
-			const result = await upload(file);
+			try {
+				const result = await upload(file);
 
-			let found = false;
-			const tr = editor.state.tr;
-			editor.state.doc.descendants((node, pos) => {
-				if (node.type.name !== nodeTypeName) return;
-				if (node.attrs.uploadId !== uploadId) return;
+				let found = false;
+				const tr = editor.state.tr;
+				editor.state.doc.descendants((node, pos) => {
+					if (node.type.name !== nodeTypeName) return;
+					if (node.attrs.uploadId !== uploadId) return;
 
-				found = true;
-				const sources =
-					result.variants && result.variants.length > 0
-						? [
-								{
-									src: result.src,
-									alt: result.name ?? file.name,
-									width: result.width ?? null,
-									height: result.height ?? null,
-								},
-								...result.variants.map((variant) => ({
-									src: variant.url,
-									alt: variant.name,
-									width: variant.width ?? null,
-									height: variant.height ?? null,
-								})),
-							]
-						: null;
-				tr.setNodeMarkup(pos, undefined, {
-					...node.attrs,
-					uploadId: null,
-					cid: result.cid,
-					src: result.src,
-					sources,
-					mime: result.mime,
-					size: result.size,
-					name: result.name ?? file.name,
-					width: result.width ?? null,
-					height: result.height ?? null,
+					found = true;
+					const sources =
+						result.variants && result.variants.length > 0
+							? [
+									{
+										src: result.src,
+										alt: result.name ?? file.name,
+										width: result.width ?? null,
+										height: result.height ?? null,
+									},
+									...result.variants.map((variant) => ({
+										src: variant.url,
+										alt: variant.name,
+										width: variant.width ?? null,
+										height: variant.height ?? null,
+									})),
+								]
+							: null;
+					tr.setNodeMarkup(pos, undefined, {
+						...node.attrs,
+						uploadId: null,
+						error: null,
+						cid: result.cid,
+						src: result.src,
+						sources,
+						mime: result.mime,
+						size: result.size,
+						name: result.name ?? file.name,
+						width: result.width ?? null,
+						height: result.height ?? null,
+					});
+					return false;
 				});
-				return false;
-			});
 
-			if (found) dispatchIfMounted(editor, tr);
+				if (found) dispatchIfMounted(editor, tr);
+			} catch (error) {
+				let found = false;
+				const tr = editor.state.tr;
+				editor.state.doc.descendants((node, pos) => {
+					if (node.type.name !== nodeTypeName) return;
+					if (node.attrs.uploadId !== uploadId) return;
+					found = true;
+					tr.setNodeMarkup(pos, undefined, {
+						...node.attrs,
+						uploadId: null,
+						error: error instanceof Error ? error.message : String(error),
+					});
+					return false;
+				});
+				if (found) dispatchIfMounted(editor, tr);
+			}
 		}
 
 		function insertUploadingNode(at: number | null, file: File): string {
@@ -142,6 +161,7 @@ export const BlobImageNode = Node.create<BlobImageOptions>({
 				type: nodeTypeName,
 				attrs: {
 					uploadId,
+					error: null,
 					name: file.name,
 					mime: file.type || "application/octet-stream",
 					size: file.size,

@@ -19,12 +19,24 @@ function extractPlainText(node: JSONContent | undefined): string {
 	return node.content.map((child) => extractPlainText(child)).join("");
 }
 
+function extractAttachmentLabel(node: JSONContent | undefined): string {
+	const fileName = typeof node?.attrs?.originalName === "string" ? node.attrs.originalName : undefined;
+	const nodeName = typeof node?.attrs?.name === "string" ? node.attrs.name : undefined;
+	return (fileName ?? nodeName ?? "").trim();
+}
+
+function isDocumentEffectivelyEmpty(content: JSONContent | undefined): boolean {
+	return deriveTitleFromDocument(content) === UNTITLED_PAGE_TITLE;
+}
+
 function deriveTitleFromDocument(content: JSONContent | undefined): string {
 	if (!content || !Array.isArray(content.content)) return UNTITLED_PAGE_TITLE;
 
 	for (const block of content.content) {
 		const firstLine = extractPlainText(block).split(/\r?\n/, 1)[0]?.replace(/\s+/g, " ").trim();
 		if (firstLine) return firstLine.slice(0, 160);
+		const attachmentLabel = extractAttachmentLabel(block);
+		if (attachmentLabel) return attachmentLabel.slice(0, 160);
 	}
 
 	return UNTITLED_PAGE_TITLE;
@@ -48,6 +60,7 @@ export {
 	UNTITLED_PAGE_TITLE,
 	deriveTitleFromDocument,
 	extractPlainText,
+	isDocumentEffectivelyEmpty,
 	isDefaultPageTitle,
 	normalizePageTitle,
 	shouldSyncDerivedTitle,

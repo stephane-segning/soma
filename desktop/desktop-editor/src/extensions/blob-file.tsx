@@ -52,11 +52,15 @@ export const BlobFileNode = Node.create<BlobFileOptions>({
 	addAttributes() {
 		return {
 			uploadId: { default: null },
+			error: { default: null },
 			cid: { default: null },
 			href: { default: null },
 			mime: { default: null },
 			size: { default: null },
 			name: { default: null },
+			originalName: { default: null },
+			originalMime: { default: null },
+			originalSize: { default: null },
 		};
 	},
 
@@ -74,28 +78,51 @@ export const BlobFileNode = Node.create<BlobFileOptions>({
 		const nodeTypeName = this.name;
 
 		async function uploadAndHydrate(uploadId: string, file: File) {
-			const result = await upload(file);
+			try {
+				const result = await upload(file);
 
-			const tr = editor.state.tr;
-			let mutated = false;
+				const tr = editor.state.tr;
+				let mutated = false;
 
-			editor.state.doc.descendants((node, pos) => {
-				if (node.type.name !== nodeTypeName) return;
-				if (node.attrs.uploadId !== uploadId) return;
+				editor.state.doc.descendants((node, pos) => {
+					if (node.type.name !== nodeTypeName) return;
+					if (node.attrs.uploadId !== uploadId) return;
 
-				mutated = true;
-				tr.setNodeMarkup(pos, undefined, {
-					...node.attrs,
-					uploadId: null,
-					cid: result.cid,
-					href: result.href,
-					mime: result.mime,
-					size: result.size,
-					name: result.name ?? file.name,
+					mutated = true;
+					tr.setNodeMarkup(pos, undefined, {
+						...node.attrs,
+						uploadId: null,
+						error: null,
+						cid: result.cid,
+						href: result.href,
+						mime: result.mime,
+						size: result.size,
+						name: result.name ?? file.name,
+						originalName: file.name,
+						originalMime: file.type || "application/octet-stream",
+						originalSize: file.size,
+					});
 				});
-			});
 
-			if (mutated) dispatchIfMounted(editor, tr);
+				if (mutated) dispatchIfMounted(editor, tr);
+			} catch (error) {
+				const tr = editor.state.tr;
+				let mutated = false;
+				editor.state.doc.descendants((node, pos) => {
+					if (node.type.name !== nodeTypeName) return;
+					if (node.attrs.uploadId !== uploadId) return;
+					mutated = true;
+					tr.setNodeMarkup(pos, undefined, {
+						...node.attrs,
+						uploadId: null,
+						error: error instanceof Error ? error.message : String(error),
+						originalName: file.name,
+						originalMime: file.type || "application/octet-stream",
+						originalSize: file.size,
+					});
+				});
+				if (mutated) dispatchIfMounted(editor, tr);
+			}
 		}
 
 		function insertUploadingNode(at: number | null, file: File): string {
@@ -105,9 +132,13 @@ export const BlobFileNode = Node.create<BlobFileOptions>({
 				type: nodeTypeName,
 				attrs: {
 					uploadId,
+					error: null,
 					name: file.name,
 					mime: file.type || "application/octet-stream",
 					size: file.size,
+					originalName: file.name,
+					originalMime: file.type || "application/octet-stream",
+					originalSize: file.size,
 				},
 			};
 

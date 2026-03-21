@@ -19,8 +19,9 @@ import {
 } from "@app/queries/spaces";
 import { api } from "@app/store/api";
 import type { ColumnDef } from "@tanstack/react-table";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { formatRoleLabel } from "./access-utils";
 
 function Component(): React.JSX.Element {
 	const { t } = useTranslation("common");
@@ -64,7 +65,7 @@ function Component(): React.JSX.Element {
 		});
 	};
 
-	const updateCapability = (
+	const updateCapability = useCallback((
 		modelName: string,
 		key: keyof Omit<AgentModelCapabilities, "updatedAtMs">,
 		value: boolean,
@@ -86,9 +87,9 @@ function Component(): React.JSX.Element {
 				},
 			};
 		});
-	};
+	}, []);
 
-	const removeCapabilityModel = (modelName: string) => {
+	const removeCapabilityModel = useCallback((modelName: string) => {
 		setDraft((prev) => {
 			const next = {
 				...prev.modelCapabilities,
@@ -99,9 +100,9 @@ function Component(): React.JSX.Element {
 				modelCapabilities: next,
 			};
 		});
-	};
+	}, []);
 
-	const addCapabilityModel = () => {
+	const addCapabilityModel = useCallback(() => {
 		const modelName = normalizeOptionalString(newCapabilityModel);
 		if (!modelName) return;
 		setDraft((prev) => ({
@@ -115,7 +116,7 @@ function Component(): React.JSX.Element {
 			},
 		}));
 		setNewCapabilityModel("");
-	};
+	}, [newCapabilityModel]);
 
 	const spaceNameById = useMemo(() => {
 		const map = new Map<string, string>();
@@ -139,19 +140,19 @@ function Component(): React.JSX.Element {
 		try {
 			const targetMultiaddrs = parseMultiaddrs(joinDraft.targetMultiaddrs);
 			if (!joinDraft.spaceId.trim()) {
-				setSpaceMessage("Space ID is required.");
+				setSpaceMessage("Add the workspace ID you were invited to.");
 				return;
 			}
 			if (!joinDraft.targetPeerId.trim()) {
-				setSpaceMessage("Target peer ID is required.");
+				setSpaceMessage("Add the peer ID for the owner or delegated bot.");
 				return;
 			}
 			if (targetMultiaddrs.length === 0) {
-				setSpaceMessage("At least one target multiaddr is required.");
+				setSpaceMessage("Add at least one network address so Soma knows where to send the request.");
 				return;
 			}
 
-			const result = await joinSpaceAsync({
+			await joinSpaceAsync({
 				spaceId: joinDraft.spaceId.trim(),
 				targetPeerId: joinDraft.targetPeerId.trim(),
 				targetMultiaddrs,
@@ -159,7 +160,7 @@ function Component(): React.JSX.Element {
 				deviceName: joinDraft.deviceName.trim() || undefined,
 			});
 
-			setSpaceMessage(`Join request submitted (${result.requestId}).`);
+			setSpaceMessage(`Access request sent. Soma is now waiting for approval from the workspace owner or bot.`);
 			setJoinDraft((prev) => ({
 				...prev,
 				targetMultiaddrs: "",
@@ -170,7 +171,11 @@ function Component(): React.JSX.Element {
 		}
 	};
 
-	const leaveSpace = async (spaceId: string, subjectPeerId: string) => {
+	const leaveSpace = useCallback(async (spaceId: string, subjectPeerId: string) => {
+		const spaceName = spaceNameById.get(spaceId) ?? spaceId;
+		if (!window.confirm(`Leave ${spaceName}? This removes this device's current membership for that workspace.`)) {
+			return;
+		}
 		try {
 			const accepted = await revokeMembershipAsync({
 				spaceId,
@@ -179,14 +184,14 @@ function Component(): React.JSX.Element {
 			});
 			setSpaceMessage(
 				accepted
-					? `Left space ${spaceNameById.get(spaceId) ?? spaceId}.`
-					: `No membership row removed for ${spaceNameById.get(spaceId) ?? spaceId}.`,
+					? `Left ${spaceName}.`
+					: `No active membership was removed for ${spaceName}.`,
 			);
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
 			setSpaceMessage(`Failed to leave space: ${message}`);
 		}
-	};
+	}, [revokeMembershipAsync, spaceNameById]);
 	const memberships = membershipsQuery.data ?? [];
 	const membershipColumns = useMemo<ColumnDef<SpaceMember>[]>(
 		() => [
@@ -198,7 +203,7 @@ function Component(): React.JSX.Element {
 			},
 			{
 				header: "Role",
-				cell: ({ row }) => <span className="uppercase">{row.original.role || "unknown"}</span>,
+				cell: ({ row }) => <span>{formatRoleLabel(row.original.role || "unknown")}</span>,
 			},
 			{
 				header: "Expiry",
@@ -310,15 +315,33 @@ function Component(): React.JSX.Element {
 
 			<div className="card border border-base-300 bg-base-100">
 				<div className="card-body space-y-4">
-					<h2 className="card-title text-base">Space access</h2>
+					<h2 className="card-title text-base">People and access</h2>
 					<p className="text-base-content/70 text-sm">
-						Manage memberships, submit join requests, and leave spaces from one place.
+						Manage current workspace memberships and use the advanced join flow when someone gives you peer details.
 					</p>
 					{spaceMessage ? <div className="rounded-lg bg-base-200 px-3 py-2 text-sm">{spaceMessage}</div> : null}
 
+					<div className="grid gap-3 md:grid-cols-3">
+						<div className="rounded-xl border border-base-300 bg-base-200/60 px-4 py-3">
+							<div className="text-base-content/60 text-xs uppercase tracking-[0.12em]">Memberships</div>
+							<div className="mt-1 font-semibold text-xl">{memberships.length}</div>
+							<div className="text-base-content/70 text-xs">Workspaces this device can currently open</div>
+						</div>
+						<div className="rounded-xl border border-base-300 bg-base-200/60 px-4 py-3">
+							<div className="text-base-content/60 text-xs uppercase tracking-[0.12em]">Advanced join</div>
+							<div className="mt-1 font-semibold text-base">Space ID + peer details</div>
+							<div className="text-base-content/70 text-xs">Use this when an existing member sends manual connection info</div>
+						</div>
+						<div className="rounded-xl border border-base-300 bg-base-200/60 px-4 py-3">
+							<div className="text-base-content/60 text-xs uppercase tracking-[0.12em]">What happens next</div>
+							<div className="mt-1 font-semibold text-base">Pending until approval</div>
+							<div className="text-base-content/70 text-xs">A request does not grant access until the workspace approves it</div>
+						</div>
+					</div>
+
 					<div className="grid grid-cols-1 gap-3 md:grid-cols-2">
 						<label className="form-control w-full">
-							<span className="label-text">Space ID</span>
+							<span className="label-text">Workspace ID</span>
 							<input
 								className="input input-bordered w-full"
 								onChange={(event) =>
@@ -332,7 +355,7 @@ function Component(): React.JSX.Element {
 							/>
 						</label>
 						<label className="form-control w-full">
-							<span className="label-text">Target peer ID</span>
+							<span className="label-text">Owner or bot peer ID</span>
 							<input
 								className="input input-bordered w-full"
 								onChange={(event) =>
@@ -346,7 +369,7 @@ function Component(): React.JSX.Element {
 							/>
 						</label>
 						<label className="form-control w-full md:col-span-2">
-							<span className="label-text">Target multiaddrs (newline or comma separated)</span>
+							<span className="label-text">Network addresses (one per line or comma separated)</span>
 							<textarea
 								className="textarea textarea-bordered min-h-20 w-full"
 								onChange={(event) =>
@@ -397,7 +420,7 @@ function Component(): React.JSX.Element {
 							onClick={() => void submitJoinRequest()}
 							type="button"
 						>
-							{isJoiningSpace ? "Submitting..." : "Join space"}
+							{isJoiningSpace ? "Submitting..." : "Request access"}
 						</button>
 					</div>
 

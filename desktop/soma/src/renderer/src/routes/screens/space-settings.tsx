@@ -23,9 +23,10 @@ import {
 } from "@app/queries/spaces";
 import { api } from "@app/store/api";
 import type { ColumnDef } from "@tanstack/react-table";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useParams } from "react-router";
+import { Link, useParams } from "react-router";
+import { formatRoleLabel, membershipSummary } from "./access-utils";
 
 function Component(): React.JSX.Element {
 	const { t } = useTranslation("common");
@@ -70,15 +71,15 @@ function Component(): React.JSX.Element {
 		return (joinRequestsQuery.data ?? []).filter((request) => request.spaceId === spaceId);
 	}, [joinRequestsQuery.data, spaceId]);
 
-	const formatEpoch = (value: number): string => {
+	const formatEpoch = useCallback((value: number): string => {
 		if (!value || value <= 0) return "Unknown";
 		const millis = value > 10_000_000_000 ? value : value * 1000;
 		const date = new Date(millis);
 		if (Number.isNaN(date.getTime())) return "Unknown";
 		return date.toLocaleString();
-	};
+	}, []);
 
-	const requestedRoleLabel = (role: number): string => {
+	const requestedRoleLabel = useCallback((role: number): string => {
 		switch (role) {
 			case 1:
 				return "owner";
@@ -93,9 +94,9 @@ function Component(): React.JSX.Element {
 			default:
 				return "unspecified";
 		}
-	};
+	}, []);
 
-	const updateCapability = (
+	const updateCapability = useCallback((
 		modelName: string,
 		key: keyof Omit<AgentModelCapabilities, "updatedAtMs">,
 		value: boolean,
@@ -113,9 +114,9 @@ function Component(): React.JSX.Element {
 				},
 			},
 		}));
-	};
+	}, []);
 
-	const addCapabilityModel = () => {
+	const addCapabilityModel = useCallback(() => {
 		const modelName = normalizeOptionalString(newCapabilityModel);
 		if (!modelName) return;
 		setWorkspaceDraft((prev) => ({
@@ -129,9 +130,9 @@ function Component(): React.JSX.Element {
 			},
 		}));
 		setNewCapabilityModel("");
-	};
+	}, [newCapabilityModel]);
 
-	const removeCapabilityModel = (modelName: string) => {
+	const removeCapabilityModel = useCallback((modelName: string) => {
 		setWorkspaceDraft((prev) => {
 			const nextCaps = {
 				...(prev.modelCapabilities ?? {}),
@@ -142,7 +143,7 @@ function Component(): React.JSX.Element {
 				modelCapabilities: nextCaps,
 			};
 		});
-	};
+	}, []);
 
 	const persist = async () => {
 		if (!spaceId) return;
@@ -168,7 +169,7 @@ function Component(): React.JSX.Element {
 		});
 	};
 
-	const decideJoinRequest = async (requestId: string, approve: boolean) => {
+	const decideJoinRequest = useCallback(async (requestId: string, approve: boolean) => {
 		try {
 			const role = decisionRoleByRequest[requestId]?.trim();
 			const reason = decisionReasonByRequest[requestId]?.trim();
@@ -197,10 +198,13 @@ function Component(): React.JSX.Element {
 			const message = error instanceof Error ? error.message : String(error);
 			setSpaceOpsMessage(`Failed to decide join request: ${message}`);
 		}
-	};
+	}, [decideJoinAsync, decisionReasonByRequest, decisionRoleByRequest]);
 
-	const revokeMember = async (subjectPeerId: string) => {
+	const revokeMember = useCallback(async (subjectPeerId: string) => {
 		if (!spaceId) return;
+		if (!window.confirm(`Revoke access for ${subjectPeerId}? They will lose their current membership for this workspace.`)) {
+			return;
+		}
 		try {
 			const accepted = await revokeMembershipAsync({
 				spaceId,
@@ -212,17 +216,18 @@ function Component(): React.JSX.Element {
 			const message = error instanceof Error ? error.message : String(error);
 			setSpaceOpsMessage(`Failed to revoke member: ${message}`);
 		}
-	};
+	}, [revokeMembershipAsync, spaceId]);
 	const memberRows = membersQuery.data ?? [];
 	const joinApprovalColumns = useMemo<ColumnDef<JoinRequestRecord>[]>(
 		() => [
 			{
-				header: "Peer",
+				header: "Requester",
 				cell: ({ row }) => (
 					<div>
+						<div className="font-medium text-sm">{row.original.displayName || row.original.subjectPeerId}</div>
 						<div className="font-mono text-xs">{row.original.subjectPeerId}</div>
 						{row.original.displayName ? (
-							<div className="text-base-content/60 text-xs">{row.original.displayName}</div>
+							<div className="text-base-content/60 text-xs">{row.original.deviceName || "Unknown device"}</div>
 						) : null}
 					</div>
 				),
@@ -315,7 +320,7 @@ function Component(): React.JSX.Element {
 			},
 			{
 				header: "Role",
-				cell: ({ row }) => <span className="uppercase">{row.original.role || "unspecified"}</span>,
+				cell: ({ row }) => <span>{formatRoleLabel(row.original.role || "unspecified")}</span>,
 			},
 			{
 				header: "Expiry",
@@ -430,10 +435,32 @@ function Component(): React.JSX.Element {
 
 			{spaceOpsMessage ? <div className="rounded-lg bg-base-200 px-3 py-2 text-sm">{spaceOpsMessage}</div> : null}
 
+			<div className="grid gap-3 md:grid-cols-3">
+				<div className="rounded-xl border border-base-300 bg-base-100 px-4 py-3">
+					<div className="text-base-content/60 text-xs uppercase tracking-[0.12em]">Members</div>
+					<div className="mt-1 font-semibold text-xl">{memberRows.length}</div>
+					<div className="text-base-content/70 text-xs">{membershipSummary(memberRows)}</div>
+				</div>
+				<div className="rounded-xl border border-base-300 bg-base-100 px-4 py-3">
+					<div className="text-base-content/60 text-xs uppercase tracking-[0.12em]">Pending requests</div>
+					<div className="mt-1 font-semibold text-xl">{pendingJoinRequests.length}</div>
+					<div className="text-base-content/70 text-xs">Approve or reject people waiting for access</div>
+				</div>
+				<div className="rounded-xl border border-base-300 bg-base-100 px-4 py-3">
+					<div className="text-base-content/60 text-xs uppercase tracking-[0.12em]">Members page</div>
+					<div className="mt-1 font-semibold text-base">Read-only roster</div>
+					<div className="mt-2">
+						<Link className="btn btn-ghost btn-xs" to={`/spaces/${spaceId}/members`}>
+							Open members view
+						</Link>
+					</div>
+				</div>
+			</div>
+
 			<div className="card border border-base-300 bg-base-100">
 				<div className="card-body space-y-3">
 					<h3 className="card-title text-base">Join approvals</h3>
-					<p className="text-base-content/70 text-sm">Review pending join requests for this space.</p>
+					<p className="text-base-content/70 text-sm">Review people waiting for access to this workspace and decide what role they should get.</p>
 					<TanstackTable
 						columns={joinApprovalColumns}
 						data={pendingJoinRequests}
@@ -447,8 +474,8 @@ function Component(): React.JSX.Element {
 
 			<div className="card border border-base-300 bg-base-100">
 				<div className="card-body space-y-3">
-					<h3 className="card-title text-base">Member board</h3>
-					<p className="text-base-content/70 text-sm">Current memberships and revoke action for this space.</p>
+					<h3 className="card-title text-base">Current access</h3>
+					<p className="text-base-content/70 text-sm">See who is currently in this workspace and revoke access when needed.</p>
 					<TanstackTable
 						columns={memberBoardColumns}
 						data={memberRows}
@@ -461,6 +488,9 @@ function Component(): React.JSX.Element {
 			</div>
 
 			<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+				<div className="md:col-span-2 rounded-xl border border-base-300 bg-base-100 px-4 py-3 text-base-content/70 text-sm">
+					Workspace model overrides stay local to this device. They do not change who can access the workspace.
+				</div>
 				<label className="form-control w-full">
 					<span className="label-text">Workspace chat model override</span>
 					<input

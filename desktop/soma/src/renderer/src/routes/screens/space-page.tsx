@@ -14,6 +14,7 @@ import { HotkeysProvider } from "react-hotkeys-hook";
 import { type LoaderFunctionArgs, useLoaderData } from "react-router";
 import {
 	deriveTitleFromDocument,
+	isDocumentEffectivelyEmpty,
 	normalizePageTitle,
 	shouldSyncDerivedTitle,
 	UNTITLED_PAGE_TITLE,
@@ -111,6 +112,7 @@ function Component(): React.JSX.Element {
 	const dispatch = useAppDispatch();
 
 	const initialValue = useMemo(() => parseContent(data.initialContentJson), [data.initialContentJson]);
+	const showEmptyPageHint = useMemo(() => isDocumentEffectivelyEmpty(initialValue), [initialValue]);
 
 	const latestValueRef = useRef<JSONContent | undefined>(initialValue);
 	const dirtyRef = useRef(false);
@@ -579,6 +581,11 @@ function Component(): React.JSX.Element {
 
 	return (
 		<div className="h-full min-h-full px-14 py-8 md:py-12">
+			{showEmptyPageHint ? (
+				<div className="mx-auto mb-6 max-w-4xl rounded-2xl border border-dashed border-base-300 bg-base-100/70 px-4 py-3 text-sm text-base-content/70">
+					Start with a note, press `/` for commands, or drag images and files directly into the page.
+				</div>
+			) : null}
 			<HotkeysProvider initiallyActiveScopes={["rich-text"]}>
 				<ErrorBoundary FallbackComponent={PageEditorFallback} onError={console.error}>
 					<DocumentEditor
