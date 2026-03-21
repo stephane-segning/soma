@@ -10,6 +10,12 @@ The implementation lives in the shared peer runtime: `backend/crates/peer` (`som
 - Work across NAT / different networks with minimal configuration (production-friendly).
 - Prefer direct connections, but fall back to relayed connections when necessary.
 
+## User Expectations
+
+- Content already stored on a device stays usable locally, even on weak networks.
+- Peer-dependent actions such as new joins, first-time attachment fetches, and remote updates may wait until another peer is reachable.
+- Relay, rendezvous, and cache peers improve reachability. They do not guarantee immediate delivery.
+
 ## Mechanisms (in order of “what to try first”)
 
 ### 1) Direct dialing (preferred)
@@ -163,3 +169,24 @@ In logs you should see:
 - identify events,
 - rendezvous discoveries,
 - relay reservation acceptance / relayed circuits (when used).
+
+## Troubleshooting
+
+### A join request does not complete
+
+- Confirm the requester has the correct approver peer ID and reachable connection addresses.
+- Confirm the approver is actually authorized to approve for that space.
+- Remember that a submitted request does not make the requester a member yet.
+- If either peer is offline, approval delivery may be queued until connectivity returns.
+
+### An attachment does not open on this device
+
+- If the attachment was already fetched locally, it should still open without another peer.
+- If this is the first fetch, the daemon may still need a reachable peer or cache peer that has the blob.
+- Relay and rendezvous help peers find each other, but they do not store uncached attachment bytes.
+
+### A peer looks reachable, but content still does not arrive
+
+- Discovery is not the same as successful content delivery.
+- Check whether the device is actually a member of the space before assuming blob or document access should work.
+- Inspect daemon and bot logs for join failures, blob read failures, or missing membership state.

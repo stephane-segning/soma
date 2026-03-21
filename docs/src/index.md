@@ -1,6 +1,12 @@
 # Soma Documentation
 
-Soma is a local-first workspace app for structured notes, private collaboration, and offline-friendly peer sync.
+Soma is a local-first workspace app for structured notes, private collaboration, and peer sync that improves as peers become reachable.
+
+Practical expectation:
+
+- work already on this device stays usable on weak networks
+- joins, first-time attachment fetches, and some remote updates may wait for reachable peers
+- relay, rendezvous, and cache peers improve reachability but do not guarantee instant delivery
 
 Start with the [Overview](00-overview.md), [Getting Started](getting-started/index.md), and [Glossary](01-glossary.md), then dive deeper:
 

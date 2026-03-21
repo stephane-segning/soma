@@ -77,13 +77,16 @@ function JoinRequestPanel(): React.JSX.Element {
 					/>
 				</label>
 				<label className="form-control w-full">
-					<span className="label-text">Owner or bot peer ID</span>
+					<span className="label-text">Owner or delegated approver peer ID</span>
 					<input
 						className="input input-bordered w-full"
 						onChange={(event) => setJoinDraft((prev) => ({ ...prev, targetPeerId: event.target.value }))}
 						placeholder="12D3KooW..."
 						value={joinDraft.targetPeerId}
 					/>
+					<span className="mt-1 text-base-content/60 text-xs">
+						A bot only works here if it was explicitly delegated approval authority for this space.
+					</span>
 				</label>
 				<label className="form-control w-full md:col-span-2">
 					<span className="label-text">Network addresses (one per line or comma separated)</span>

@@ -307,6 +307,24 @@ function Component(): React.JSX.Element {
 			<div className="card border border-base-300 bg-base-100">
 				<div className="card-body space-y-4">
 					<h2 className="card-title text-base">{t("settings.connectivity", "Connectivity")}</h2>
+					<p className="text-base-content/70 text-sm">
+						Local work already on this device stays usable on weak networks. Peer-dependent actions like new joins,
+						first-time attachment fetches, and remote updates may wait until another peer is reachable.
+					</p>
+					<div className="grid gap-3 md:grid-cols-3">
+						<div className="rounded-xl border border-base-300 bg-base-200/60 px-4 py-3 text-sm">
+							<div className="font-medium">Works locally now</div>
+							<div className="mt-1 text-base-content/70 text-xs">Pages and attachments already stored on this device remain available.</div>
+						</div>
+						<div className="rounded-xl border border-base-300 bg-base-200/60 px-4 py-3 text-sm">
+							<div className="font-medium">May complete later</div>
+							<div className="mt-1 text-base-content/70 text-xs">Access requests, first-time blob fetches, and remote updates can wait for connectivity.</div>
+						</div>
+						<div className="rounded-xl border border-base-300 bg-base-200/60 px-4 py-3 text-sm">
+							<div className="font-medium">Improves with infra</div>
+							<div className="mt-1 text-base-content/70 text-xs">Relay, rendezvous, and cache peers improve reachability, but they do not guarantee instant delivery.</div>
+						</div>
+					</div>
 					<div className="grid grid-cols-1 gap-3 md:grid-cols-2">
 						<label className="form-control w-full">
 							<span className="label-text">Provider</span>

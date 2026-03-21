@@ -15,6 +15,7 @@ User-facing summary:
 - submitting a request does not make the device a member yet
 - pending means the request is still waiting for an approver's decision
 - approval can be recorded before it is delivered if the requester is offline
+- delivery failures can be retried later when peers become reachable again
 
 ## RPC Contracts
 
