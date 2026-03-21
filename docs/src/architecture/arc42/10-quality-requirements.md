@@ -4,7 +4,7 @@ This section lists concrete “quality scenarios” that guide design and testin
 
 ## Availability and offline
 
-- A classroom can operate on LAN with no internet: peers discover via mDNS and sync directly.
+- A workspace can operate on LAN with no internet: peers discover via mDNS and sync directly.
 - When the internet is available, peers can discover/dial via rendezvous and fall back to relays.
 - Always-on bots (VDF role) can improve availability by caching frequently needed content.
 

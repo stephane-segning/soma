@@ -192,9 +192,9 @@ async fn join_request_submit_handler(
     let requested_role = payload
         .requested_role
         .as_deref()
-        .unwrap_or("student")
+        .unwrap_or("member")
         .to_lowercase();
-    let role = parse_role_str(&requested_role).unwrap_or(SpaceRole::Student);
+    let role = parse_role_str(&requested_role).unwrap_or(SpaceRole::Member);
 
     let request_id = format!("req-{:016x}", rand::random::<u64>());
     let join_request = soma_proto_build::space::JoinRequest {
@@ -206,7 +206,7 @@ async fn join_request_submit_handler(
         }),
         display_name: payload.display_name.clone().unwrap_or_default(),
         device_name: payload.device_name.clone().unwrap_or_default(),
-        student_code: String::new(),
+        requester_code: String::new(),
         requested_role: role as i32,
         invite_proof: None,
         created_at: Some(prost_types::Timestamp::from(SystemTime::now())),

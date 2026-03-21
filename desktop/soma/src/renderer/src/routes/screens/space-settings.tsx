@@ -87,7 +87,7 @@ function Component(): React.JSX.Element {
 			case 3:
 				return "viewer";
 			case 4:
-				return "student";
+				return "member";
 			case 5:
 				return "bot";
 			default:
@@ -252,7 +252,7 @@ function Component(): React.JSX.Element {
 						<option value="owner">owner</option>
 						<option value="editor">editor</option>
 						<option value="viewer">viewer</option>
-						<option value="student">student</option>
+						<option value="member">member</option>
 						<option value="bot">bot</option>
 					</select>
 				),

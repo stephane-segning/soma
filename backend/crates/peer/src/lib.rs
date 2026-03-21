@@ -1192,8 +1192,8 @@ mod tests {
             }),
             display_name: "User".into(),
             device_name: "Device".into(),
-            student_code: String::new(),
-            requested_role: space::SpaceRole::Student as i32,
+            requester_code: String::new(),
+            requested_role: space::SpaceRole::Member as i32,
             invite_proof: None,
             created_at: None,
         }

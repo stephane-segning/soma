@@ -1,14 +1,21 @@
-# Soma — Local-First Learning Platform
+# Soma — Local-First Workspace Platform
 
-Soma is a **desktop-first, offline-capable learning and collaboration platform**
-designed for schools.
+Soma is a **desktop-first, offline-capable workspace platform** centered on structured note-taking and collaboration.
+
+It is designed for:
+
+- anyone who wants a structured, local-first note-taking app
+- teams and small groups collaborating privately
+- students and educators in offline-sensitive environments
+- employees in organizations with restricted connectivity
 
 It combines:
-- structured course material (Notion-like tree + editor)
-- peer-to-peer networking
-- secure space membership
+- a Notion-like note-taking experience
+- private workspaces with memberships and approvals
+- peer-to-peer data resolution and caching
+- capability-based permissions for humans and bots
 - optional local AI assistance
-- a typing companion app (Tapia)
+- a focused training companion app (Tapia)
 
 Soma is designed to work:
 - fully offline on a local network
@@ -16,21 +23,29 @@ Soma is designed to work:
 - across the internet when available
 without requiring a browser or cloud accounts.
 
+The network model is simple:
+
+- if a peer in the network already has the content, another peer should be able to resolve it from there
+- internet infrastructure helps, but it is not supposed to be the only path to useful work
+- private workspaces should be able to exist without sharing their content with the outside world
+
 ---
 
 ## Key ideas
 
-### Spaces
-A **Space** is the main unit of sharing and permissions.
+### Spaces and workspaces
+A **Space** is the main unit of sharing, permissions, and local collaboration.
 
 A space contains:
-- topics (tree structure)
+- pages and structured notes
 - documents
 - attachments (blobs)
-- chat
-- members (students, teachers, bots)
+- optional AI-assisted workflows
+- members (humans and bots)
 
 A device can be enrolled in **multiple spaces at the same time**.
+
+Workspaces are intended to support small groups who want to collaborate privately, without exposing content to the public internet by default.
 
 ---
 
@@ -40,23 +55,27 @@ A device can be enrolled in **multiple spaces at the same time**.
 - Internet is optional
 - Data stays with the space
 
+The peer-to-peer layer exists to improve reachability and availability, especially in places where the internet is expensive, unstable, filtered, or simply not always there.
+
 ---
 
 ### Bots
 A **bot** is a special space member:
-- read-only
-- caches resources
-- serves content to students
-- can onboard students when authorized
+
+- can cache and serve resources
+- can organize or index workspace content
+- can perform approved automation
+- can accept or process membership flows when authorized
+- may run scripts or background jobs if granted that capability
 
 Bots can run:
-- on a school NAS
-- on Soma servers
+
+- on a NAS or shared server
+- on an office or team machine
+- on Soma-operated infrastructure
 - on multiple locations for redundancy
 
-Teachers can remove a bot at any time, which:
-- revokes its authority
-- wipes its cached data for the space
+Workspace owners or trusted admins can remove a bot at any time, which revokes its authority for that space.
 
 ---
 
@@ -65,6 +84,13 @@ Teachers can remove a bot at any time, which:
 - Each device has a cryptographic identity (PeerId)
 - Human names are UI-only
 - Access is controlled by signed capabilities
+
+Capabilities are intended to cover permissions for both humans and bots, such as:
+
+- accepting new members
+- reading and editing pages
+- serving cached content
+- running scripts or automation
 
 ---
 
@@ -79,12 +105,12 @@ Teachers can remove a bot at any time, which:
 ---
 
 ## Companion app: Tapia
-Tapia is a typing-speed application shipped alongside Soma.
+Tapia is the focused training app shipped alongside Soma.
 
-- launched via deep link from Soma
-- no chat, no docs
-- shares data via the same daemon
-- optimized for typing exercises
+- launched via deep link or adjacent workflows from Soma
+- focused on IT-training tasks such as typing drills, tap-touch, and small exam-like exercises
+- shares runtime conventions and can integrate with the same local backend
+- intentionally narrower in scope than Soma
 
 ---
 
@@ -94,4 +120,4 @@ Tapia is a typing-speed application shipped alongside Soma.
 - Capabilities > Accounts
 - Explicit trust > Implicit trust
 - Simple UX > Enterprise complexity
-- Education-first
+- Structured workspaces > generic file dumping

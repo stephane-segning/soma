@@ -94,7 +94,7 @@ impl JoinDecider for StorageBackedJoinDecider {
             return reject("missing peer_id", request);
         };
 
-        let role = SpaceRole::try_from(request.requested_role).unwrap_or(SpaceRole::Student);
+        let role = SpaceRole::try_from(request.requested_role).unwrap_or(SpaceRole::Member);
         let now = SystemTime::now();
         let now_ts = Timestamp::from(now);
         let now_secs = epoch_seconds(now);
@@ -300,7 +300,7 @@ pub async fn decide_join_request(
     let role_i32 = role_override
         .map(|r| r as i32)
         .unwrap_or(req.requested_role);
-    let role = SpaceRole::try_from(role_i32).unwrap_or(SpaceRole::Student);
+    let role = SpaceRole::try_from(role_i32).unwrap_or(SpaceRole::Member);
 
     // Authorization: only the space owner or a delegated issuer can approve.
     let is_owner = repos
@@ -562,7 +562,7 @@ pub fn parse_role_str(role: &str) -> Option<SpaceRole> {
         "editor" => Some(SpaceRole::Editor),
         "viewer" => Some(SpaceRole::Viewer),
         "bot" => Some(SpaceRole::Bot),
-        "student" => Some(SpaceRole::Student),
+        "member" => Some(SpaceRole::Member),
         _ => None,
     }
 }
@@ -572,7 +572,7 @@ pub fn role_to_str(role: SpaceRole) -> &'static str {
         SpaceRole::Owner => "owner",
         SpaceRole::Editor => "editor",
         SpaceRole::Viewer => "viewer",
-        SpaceRole::Student => "student",
+        SpaceRole::Member => "member",
         SpaceRole::Bot => "bot",
         SpaceRole::Unspecified => "unspecified",
     }
@@ -768,7 +768,7 @@ pub async fn apply_join_decision(
             .as_ref()
             .map(|p| p.value.clone())
             .unwrap_or_else(|| "unknown".into());
-        let role = SpaceRole::try_from(cap.role).unwrap_or(SpaceRole::Student);
+        let role = SpaceRole::try_from(cap.role).unwrap_or(SpaceRole::Member);
         let issued_at = cap
             .issued_at
             .as_ref()

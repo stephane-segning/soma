@@ -21,7 +21,7 @@ enum SpaceRole {
   SPACE_ROLE_OWNER = 1;
   SPACE_ROLE_EDITOR = 2;
   SPACE_ROLE_VIEWER = 3;
-  SPACE_ROLE_STUDENT = 4;
+  SPACE_ROLE_MEMBER = 4;
   SPACE_ROLE_BOT = 5; // read-only + serve (cache bot)
 }
 
@@ -66,7 +66,7 @@ message CborSigned {
 message InviteState {
   SpaceId space_id = 1;
 
-  // Default role teacher will usually approve.
+  // Default role owner will usually approve.
   SpaceRole default_role = 2;
 
   // Optional: invites expire.
@@ -82,7 +82,7 @@ message InviteState {
   // Optional label for UX ("Form 4 Maths").
   string space_label = 6;
 
-  // Signed by owner/teacher or by an already-authorized bot (rare).
+  // Signed by owner or by an already-authorized bot (rare).
   // Sign canonical CBOR of this InviteState without the `signature` field.
   CborSigned signed = 7;
 }
@@ -105,21 +105,21 @@ message InviteProof {
 }
 
 // -----------------------------------------------------------------------------
-// Join flow (student -> teacher/bot)
+// Join flow (requester -> owner/bot)
 // -----------------------------------------------------------------------------
 
 message JoinRequest {
   SpaceId space_id = 1;
   PeerId peer_id = 2;
 
-  // Human-friendly data for teacher approval UI (NOT identity).
+  // Human-friendly data for owner approval UI (NOT identity).
   string display_name = 3; // "Armand N."
   string device_name = 4;  // "Dell Laptop"
 
-  // Optional: teacher asks for a code to disambiguate (student ID fragment).
-  string student_code = 5;
+  // Optional: owner asks for a code to disambiguate (optional identifier).
+  string requester_code = 5;
 
-  // Student can request, teacher/bot may override.
+  // Requester can request, owner/bot may override.
   SpaceRole requested_role = 6;
 
   InviteProof invite_proof = 7;
@@ -138,7 +138,7 @@ message IssuerCapability {
   PeerId issuer_peer_id = 2;
 
   // Least privilege: bot may issue only these roles.
-  repeated SpaceRole allowed_roles = 3; // typically STUDENT, VIEWER
+  repeated SpaceRole allowed_roles = 3; // typically VIEWER, EDITOR
 
   // Optional permission set for issued memberships (defaults if empty).
   repeated SpacePermission default_permissions = 4;
@@ -171,7 +171,7 @@ message MembershipCapability {
   repeated SpacePermission permissions = 4;
 
   google.protobuf.Timestamp issued_at = 5;
-  google.protobuf.Timestamp expires_at = 6; // recommend set (semester end)
+  google.protobuf.Timestamp expires_at = 6; // recommend set (membership expiry)
 
   // Who issued this membership (owner or bot).
   PeerId issuer_peer_id = 7;
@@ -185,7 +185,7 @@ message MembershipCapability {
 }
 
 // -----------------------------------------------------------------------------
-// Join decision (teacher/bot -> student)
+// Join decision (owner/bot -> requester)
 // -----------------------------------------------------------------------------
 
 enum JoinDecisionType {
@@ -211,19 +211,19 @@ message JoinDecision {
 }
 
 // -----------------------------------------------------------------------------
-// Revocation model (teacher choice: none/partial/all)
+// Revocation model (owner choice: none/partial/all)
 // -----------------------------------------------------------------------------
 
 enum IssuerRevocationMode {
   ISSUER_REVOCATION_MODE_UNSPECIFIED = 0;
 
-  // Teacher kicked bot but keeps all already-issued memberships valid until expiry.
+  // Owner kicked bot but keeps all already-issued memberships valid until expiry.
   ISSUER_REVOCATION_NONE = 1;
 
-  // Teacher revokes ONLY memberships issued in a recent window (e.g. last 5 days).
+  // Owner revokes ONLY memberships issued in a recent window (e.g. last 5 days).
   ISSUER_REVOCATION_PARTIAL_WINDOW = 2;
 
-  // Teacher revokes ALL memberships ever issued by that bot (strict).
+  // Owner revokes ALL memberships ever issued by that bot (strict).
   ISSUER_REVOCATION_ALL = 3;
 }
 
@@ -333,17 +333,17 @@ message PutMailboxItemRequest {
 // The message types defined above are used by the real implementation.
 // Desktop code should NOT attempt to call these RPCs.
 service MembershipService {
-  // Student device: create and broadcast join request (daemon handles P2P publish).
+  // Requester device: create and broadcast join request (daemon handles P2P publish).
   rpc SubmitJoinRequest(JoinRequest) returns (google.protobuf.Empty);
 
-  // Teacher UI: stream join requests as they arrive.
+  // Owner UI: stream join requests as they arrive.
   rpc SubscribeJoinRequests(SpaceId) returns (stream JoinRequest);
 
-  // Teacher UI OR bot UI: approve/reject/block.
+  // Owner UI OR bot UI: approve/reject/block.
   // Daemon tries direct delivery; if unavailable, stores to mailbox on an available bot.
   rpc DecideJoin(JoinDecision) returns (google.protobuf.Empty);
 
-  // Student UI: stream decisions received (direct or mailbox fetched).
+  // Requester UI: stream decisions received (direct or mailbox fetched).
   rpc SubscribeJoinDecisions(SpaceId) returns (stream JoinDecision);
 
   // Owner UI: delegate bot issuance power.

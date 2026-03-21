@@ -11,7 +11,7 @@
 ## Product constraints
 
 - **No accounts/passwords**: identity is device-based (PeerId); human names are UI-only.
-- **Bots are explicit members**: VDF/bot peers are not implicit trusted infrastructure; teachers can remove/revoke them.
+- **Bots are explicit members**: VDF/bot peers are not implicit trusted infrastructure; space owners can remove/revoke them.
 - **Cache-only VDF role**: bots never accept user uploads; cache writes only as a side-effect of verified fetch-by-CID.
 
 ## Operational constraints

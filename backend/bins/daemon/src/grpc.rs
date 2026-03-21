@@ -173,8 +173,8 @@ impl daemon::daemon_server::Daemon for DaemonService {
             }),
             display_name: payload.display_name,
             device_name: payload.device_name,
-            student_code: String::new(),
-            requested_role: space::SpaceRole::Student as i32,
+            requester_code: String::new(),
+            requested_role: space::SpaceRole::Member as i32,
             invite_proof: None,
             created_at: Some(Timestamp::from(SystemTime::now())),
         };

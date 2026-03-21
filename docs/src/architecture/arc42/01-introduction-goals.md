@@ -1,19 +1,19 @@
 # 1. Introduction and Goals
 
-Soma is a local-first learning and collaboration platform for schools, designed for reliability, privacy, and offline-friendly collaboration.
+Soma is a local-first workspace platform for structured note-taking and collaboration, designed for reliability, privacy, and offline-friendly workflows.
 
 ## Stakeholders
 
-- **Students**: access class content and collaborate with peers.
-- **Teachers**: create/manage classes, approve membership, moderate.
-- **School IT / operators**: run optional infrastructure (bots, relay, rendezvous) and manage updates.
+- **Members**: access workspace content, take notes, and collaborate with peers.
+- **Owners/Admins**: create/manage spaces, approve membership, and configure bots.
+- **Workspace operators**: run optional infrastructure (bots, relay, rendezvous) and manage updates.
 - **Developers**: extend the desktop apps, peer protocols, and storage.
 
 ## Primary goals
 
 - **Local-first**: operate without a mandatory cloud backend.
-- **Offline-capable**: work on LAN-only classroom networks and degrade gracefully on poor internet.
-- **Decentralized collaboration**: peer-to-peer networking with optional “connectivity-only” infra.
+- **Offline-capable**: work on LAN-only networks and degrade gracefully on poor internet.
+- **Decentralized collaboration**: peer-to-peer networking with optional "connectivity-only" infra.
 - **Capability-based security**: membership without accounts/passwords; explicit delegation to bots.
 - **Fast UX**: responsive desktop apps with background networking handled by a daemon.
 

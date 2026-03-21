@@ -30,7 +30,7 @@ Two lightweight libp2p services run in Kubernetes to help peers discover and con
 
 ### Optional Hosted Bots
 
-- Some classes rely on always-on bots (e.g., system-wide onboarding). Those bots can also be containerized and deployed via Helm with environment variables specifying class IDs, IssuerCapabilities, or admin tokens.
+- Some workspaces rely on always-on bots (e.g., system-wide onboarding). Those bots can also be containerized and deployed via Helm with environment variables specifying space IDs, IssuerCapabilities, or admin tokens.
 
 ## Release and Operations Workflow
 

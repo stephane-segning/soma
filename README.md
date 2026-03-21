@@ -6,7 +6,14 @@
 [![Release bundle](https://github.com/stephane-segning/soma/actions/workflows/release.yml/badge.svg)](https://github.com/stephane-segning/soma/actions/workflows/release.yml)
 [![Build backend Docker images](https://github.com/stephane-segning/soma/actions/workflows/docker-backend.yml/badge.svg)](https://github.com/stephane-segning/soma/actions/workflows/docker-backend.yml)
 
-Soma is a local-first collaboration platform built around a desktop daemon, Electron apps, and optional peer/network infrastructure.
+Soma is a local-first workspace platform built around a structured note-taking app, a focused training companion app, and optional peer/network infrastructure.
+
+At the product level:
+
+- `Soma` is the main Notion-like note-taking and workspace application
+- `Tapia` is the companion app for small IT-training jobs such as typing drills, tap-touch practice, and exams
+- the p2p layer exists so workspaces can keep working even where normal internet access is weak or unavailable
+- spaces/workspaces are private collaboration groups with memberships, approvals, and capability-based permissions for both humans and bots
 
 The repo is still a monorepo, but the day-to-day tooling is being separated more clearly:
 

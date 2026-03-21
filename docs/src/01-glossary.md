@@ -3,11 +3,17 @@
 **Space**  
 A shared collaboration unit containing documents, members, and resources.
 
+**Workspace**  
+Product-level term for a private collaboration group; currently modeled by spaces and their associated content, members, and permissions.
+
 **Topic**  
 A node in the space tree. Can contain content and sub-topics.
 
 **Document**  
 The editable content attached to a topic.
+
+**Page**  
+The main navigable note or document unit inside a workspace.
 
 **Blob**  
 An attachment (PDF, image, etc.), content-addressed by hash.
@@ -46,7 +52,7 @@ Grants a peer access to a space.
 Delegates authority from an owner to a bot or trusted member.
 
 **Bot**  
-A read-only space member that caches and serves content.
+A non-human space member that can cache content, serve content, organize resources, or run approved automation depending on its granted capabilities.
 
 **Relay**  
 A connectivity service that forwards encrypted traffic.
@@ -58,4 +64,7 @@ A discovery service helping peers find each other.
 A bot-backed queue for delivering approvals asynchronously.
 
 **Tapia**  
-Typing-speed companion app.
+Focused training companion app for typing drills, tap-touch, exams, and similar small IT-training tasks.
+
+**Soma**  
+The main structured note-taking and workspace application in the platform.
