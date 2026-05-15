@@ -4,10 +4,7 @@ use crate::runtime::{RuntimeState, relay_circuit_addr};
 use libp2p::{identify, mdns, ping, relay, rendezvous, swarm::SwarmEvent};
 use tracing::warn;
 
-pub(super) async fn handle_swarm_event(
-    state: &mut RuntimeState,
-    event: SwarmEvent<AppEvent>,
-) {
+pub(super) async fn handle_swarm_event(state: &mut RuntimeState, event: SwarmEvent<AppEvent>) {
     match event {
         SwarmEvent::NewListenAddr { address, .. } => {
             state.swarm.add_external_address(address.clone());
@@ -110,11 +107,12 @@ fn handle_connection_established(state: &mut RuntimeState, remote: libp2p::PeerI
         let namespace = rendezvous::Namespace::new(state.rendezvous_namespace.clone())
             .unwrap_or_else(|_| rendezvous::Namespace::from_static("soma"));
 
-        if let Err(err) = state
-            .swarm
-            .behaviour_mut()
-            .rendezvous
-            .register(namespace.clone(), remote, None)
+        if let Err(err) =
+            state
+                .swarm
+                .behaviour_mut()
+                .rendezvous
+                .register(namespace.clone(), remote, None)
         {
             warn!(?err, "rendezvous register failed");
         } else {
@@ -153,11 +151,9 @@ fn handle_rendezvous_event(state: &mut RuntimeState, event: rendezvous::client::
                     let _ = state.swarm.dial(addr.clone());
                 }
             }
-            let _ = state
-                .event_tx
-                .try_send(PeerEvent::RendezvousDiscovered {
-                    registrations: total,
-                });
+            let _ = state.event_tx.try_send(PeerEvent::RendezvousDiscovered {
+                registrations: total,
+            });
         }
         rendezvous::client::Event::DiscoverFailed {
             rendezvous_node,

@@ -10,8 +10,9 @@ pub fn create_ico(png_output_dir: &Path, win_output_dir: &Path) -> Result<()> {
     let mut icon_dir = IconDir::new(ResourceType::Icon);
     for size in PNG_SIZES {
         let file_path = png_output_dir.join(format!("{size}.png"));
-        let file =
-            BufReader::new(File::open(&file_path).with_context(|| format!("open {}", file_path.display()))?);
+        let file = BufReader::new(
+            File::open(&file_path).with_context(|| format!("open {}", file_path.display()))?,
+        );
         let image = IconImage::read_png(file)
             .with_context(|| format!("read png {}", file_path.display()))?;
         let entry = IconDirEntry::encode(&image)

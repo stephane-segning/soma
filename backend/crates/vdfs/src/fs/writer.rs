@@ -2,10 +2,7 @@ use std::path::PathBuf;
 
 use sha2::{Digest, Sha256};
 use soma_core::{Error, SomaResult};
-use tokio::{
-    fs,
-    io::AsyncWriteExt,
-};
+use tokio::{fs, io::AsyncWriteExt};
 
 use crate::BlobWriteStream;
 

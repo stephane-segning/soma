@@ -22,11 +22,14 @@ pub(super) async fn handle_command(state: &mut RuntimeState, cmd: PeerCommand) -
                 state.swarm.add_peer_address(target, addr.clone());
                 let _ = state.swarm.dial(addr.clone());
             }
-            let req_id = state.swarm.behaviour_mut().join.send_request(&target, request);
-            state.outbound_join_requests.insert(
-                req_id,
-                (target, delivery_id.clone(), request_id.clone()),
-            );
+            let req_id = state
+                .swarm
+                .behaviour_mut()
+                .join
+                .send_request(&target, request);
+            state
+                .outbound_join_requests
+                .insert(req_id, (target, delivery_id.clone(), request_id.clone()));
             let _ = state
                 .event_tx
                 .try_send(crate::PeerEvent::JoinRequestSubmitted {

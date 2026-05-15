@@ -7,7 +7,7 @@ use tokio::sync::mpsc;
 use tracing::warn;
 
 use crate::{
-    decode_outgoing_join_request_payload, MAILBOX_KIND_JOIN_DECISION, MAILBOX_KIND_JOIN_REQUEST,
+    MAILBOX_KIND_JOIN_DECISION, MAILBOX_KIND_JOIN_REQUEST, decode_outgoing_join_request_payload,
 };
 
 pub(super) async fn lease_for_send(

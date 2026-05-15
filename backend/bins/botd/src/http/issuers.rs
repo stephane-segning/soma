@@ -111,12 +111,9 @@ fn parse_peer_id(
     status: StatusCode,
     error: &'static str,
 ) -> Result<PeerId, (StatusCode, Json<serde_json::Value>)> {
-    value.parse().map_err(|_| {
-        (
-            status,
-            Json(serde_json::json!({"error": error})),
-        )
-    })
+    value
+        .parse()
+        .map_err(|_| (status, Json(serde_json::json!({"error": error}))))
 }
 
 fn now_secs() -> i64 {

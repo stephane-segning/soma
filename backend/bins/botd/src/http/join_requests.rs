@@ -1,10 +1,6 @@
 use std::{sync::Arc, time::SystemTime};
 
-use axum::{
-    Json,
-    extract::State,
-    http::StatusCode,
-};
+use axum::{Json, extract::State, http::StatusCode};
 use libp2p::PeerId;
 use serde::Deserialize;
 use soma_membership::{enqueue_outgoing_join_request, parse_role_str};

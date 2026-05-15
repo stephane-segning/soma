@@ -6,8 +6,8 @@ use tracing::warn;
 use crate::services::blobs::BlobsService;
 
 use super::{
-    mappers::{now_ms, to_blob_metadata},
     DaemonService,
+    mappers::{now_ms, to_blob_metadata},
 };
 
 const MAX_UPLOAD_BYTES: usize = 8 * 1024 * 1024;
@@ -110,7 +110,9 @@ impl DaemonService {
             return Err(Status::resource_exhausted("blob too large"));
         }
 
-        let mime = self.blob_mime_or_default(&payload.space_id, &payload.cid).await;
+        let mime = self
+            .blob_mime_or_default(&payload.space_id, &payload.cid)
+            .await;
         Ok(Response::new(daemon::ReadBlobResponse {
             size: bytes.len() as u64,
             data: bytes,
@@ -167,7 +169,11 @@ impl DaemonService {
             .list_blobs(
                 &payload.space_id,
                 document_id,
-                if payload.limit == 0 { 100 } else { payload.limit },
+                if payload.limit == 0 {
+                    100
+                } else {
+                    payload.limit
+                },
                 payload.offset,
             )
             .await

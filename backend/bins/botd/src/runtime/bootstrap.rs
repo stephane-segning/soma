@@ -6,10 +6,7 @@ use std::{
 use async_trait::async_trait;
 use soma_membership::{JoinPolicy, build_join_decider};
 use soma_net::NetIdentity;
-use soma_peer::{
-    PeerConfig, SpaceAuthorizer,
-    bootstrap::PeerBootstrapper,
-};
+use soma_peer::{PeerConfig, SpaceAuthorizer, bootstrap::PeerBootstrapper};
 use soma_storage::RepositoryProvider;
 use soma_vdfs::BlobProvider;
 

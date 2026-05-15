@@ -1,7 +1,4 @@
-use libp2p::{
-    PeerId,
-    identity::PublicKey,
-};
+use libp2p::{PeerId, identity::PublicKey};
 use soma_core::{Error, SomaResult};
 use soma_proto_build::space::{IssuerCapability, MembershipCapability};
 use std::time::SystemTime;
@@ -25,7 +22,9 @@ pub fn verify_membership_capability(
         .map(|p| p.value.clone())
         .unwrap_or_default();
     if signer_peer_id.to_string() != signed_peer_id {
-        return Err(Error::service("membership signer does not match public key"));
+        return Err(Error::service(
+            "membership signer does not match public key",
+        ));
     }
 
     if !signer_pub.verify(&signed.cbor, &signed.signature) {
@@ -33,7 +32,11 @@ pub fn verify_membership_capability(
     }
 
     verify_membership_subject(cap, subject_peer_id)?;
-    verify_expires_at(cap.expires_at.as_ref(), now, "membership capability expired")?;
+    verify_expires_at(
+        cap.expires_at.as_ref(),
+        now,
+        "membership capability expired",
+    )?;
     verify_membership_issuer(cap, &signer_peer_id)
 }
 
@@ -65,7 +68,10 @@ pub fn verify_issuer_capability(
     verify_expires_at(cap.expires_at.as_ref(), now, "issuer capability expired")
 }
 
-fn verify_membership_subject(cap: &MembershipCapability, subject_peer_id: &PeerId) -> SomaResult<()> {
+fn verify_membership_subject(
+    cap: &MembershipCapability,
+    subject_peer_id: &PeerId,
+) -> SomaResult<()> {
     let subject_ok = cap
         .subject_peer_id
         .as_ref()
@@ -102,7 +108,10 @@ fn verify_expires_at(
         .duration_since(SystemTime::UNIX_EPOCH)
         .unwrap_or_default()
         .as_secs() as i64;
-    if expires_at.map(|exp| exp.seconds <= now_secs).unwrap_or(false) {
+    if expires_at
+        .map(|exp| exp.seconds <= now_secs)
+        .unwrap_or(false)
+    {
         Err(Error::service(message))
     } else {
         Ok(())

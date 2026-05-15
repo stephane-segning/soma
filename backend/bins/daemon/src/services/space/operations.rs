@@ -35,7 +35,10 @@ impl SpaceManager for DefaultSpaceManager {
         let next_offset = (filtered.len() as u32 == limit).then_some(offset + limit);
 
         Ok((
-            filtered.into_iter().map(|space| self.record(space)).collect(),
+            filtered
+                .into_iter()
+                .map(|space| self.record(space))
+                .collect(),
             next_offset,
         ))
     }

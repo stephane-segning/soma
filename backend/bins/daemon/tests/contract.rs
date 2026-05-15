@@ -4,19 +4,10 @@
 //! Implementation tests should be done via integration tests that spawn a real daemon.
 
 use soma_proto_build::daemon::{
-    CreateSpaceRequest, CreateSpaceResponse, DaemonEvent, DecideJoinRequest, DecideJoinResponse,
-    DeleteSpaceRequest, DeleteSpaceResponse, DiscoverSpacesRequest, DiscoverSpacesResponse,
-    DocumentBlobAddedEvent, EnsurePageRequest, EnsurePageResponse, GetBlobMetadataRequest,
-    GetBlobMetadataResponse, GetDocumentRequest, GetDocumentResponse, GetSpaceRequest,
-    GetSpaceResponse, IssueIssuerCapabilityRequest, IssueIssuerCapabilityResponse,
-    JoinDecisionEvent, JoinFailedEvent, JoinRequest, JoinSpaceRequest, JoinSpaceResponse,
-    JoinSubmitEvent, ListBlobsRequest, ListBlobsResponse, ListJoinRequestsRequest,
-    ListJoinRequestsResponse, ListMyMembershipsResponse, ListPagesRequest, ListPagesResponse,
-    ListSpaceMembersRequest, ListSpaceMembersResponse, ListSpacesRequest, ListSpacesResponse,
-    PageRecord, ReadBlobRequest, ReadBlobResponse, RevokeSpaceRequest, RevokeSpaceResponse,
-    SetPageParentsRequest, SetPageParentsResponse, StatusRequest, StatusResponse,
-    UpdatePageTitleRequest, UpdatePageTitleResponse, UpdateSpaceRequest, UpdateSpaceResponse,
-    UploadBlobRequest, UploadBlobResponse,
+    DaemonEvent, DecideJoinRequest, DiscoverSpacesRequest, DocumentBlobAddedEvent,
+    IssueIssuerCapabilityRequest, JoinDecisionEvent, JoinFailedEvent, JoinSpaceRequest,
+    JoinSpaceResponse, JoinSubmitEvent, ListJoinRequestsRequest, PageRecord, ReadBlobResponse,
+    StatusRequest, StatusResponse, UploadBlobRequest,
 };
 
 #[test]

@@ -3,10 +3,7 @@ use sqlx_utils::types::Pool;
 
 use super::{JoinDecision, mapping::map_join_decision_row};
 
-pub(super) async fn record_join_decision(
-    pool: &Pool,
-    decision: &JoinDecision,
-) -> SomaResult<()> {
+pub(super) async fn record_join_decision(pool: &Pool, decision: &JoinDecision) -> SomaResult<()> {
     sqlx::query(
         r#"
         INSERT INTO join_decisions (

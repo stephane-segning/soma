@@ -5,7 +5,10 @@ use soma_proto_build::space::{self, MembershipCapability};
 use std::time::SystemTime;
 
 fn ts_from_secs(secs: i64) -> Timestamp {
-    Timestamp { seconds: secs, nanos: 0 }
+    Timestamp {
+        seconds: secs,
+        nanos: 0,
+    }
 }
 
 fn signed_membership(
@@ -58,17 +61,26 @@ fn membership_verify_rejects_wrong_subject() {
         SystemTime::UNIX_EPOCH,
     )
     .expect_err("should fail");
-    assert!(format!("{err}").contains("subject"), "unexpected error: {err}");
+    assert!(
+        format!("{err}").contains("subject"),
+        "unexpected error: {err}"
+    );
 }
 
 #[test]
 fn membership_verify_rejects_wrong_issuer() {
     let signer = Keypair::generate_ed25519();
     let peer_id = signer.public().to_peer_id();
-    let cap = signed_membership(&signer, peer_id.to_string(), PeerId::random().to_string(), 10_000);
+    let cap = signed_membership(
+        &signer,
+        peer_id.to_string(),
+        PeerId::random().to_string(),
+        10_000,
+    );
 
-    let err = verify_membership_capability(&cap, &signer.public(), &peer_id, SystemTime::UNIX_EPOCH)
-        .expect_err("should fail");
+    let err =
+        verify_membership_capability(&cap, &signer.public(), &peer_id, SystemTime::UNIX_EPOCH)
+            .expect_err("should fail");
     assert!(
         format!("{err}").contains("issuer does not match"),
         "unexpected error: {err}"
@@ -88,7 +100,10 @@ fn membership_verify_rejects_expired() {
         SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(30),
     )
     .expect_err("should fail");
-    assert!(format!("{err}").contains("expired"), "unexpected error: {err}");
+    assert!(
+        format!("{err}").contains("expired"),
+        "unexpected error: {err}"
+    );
 }
 
 #[test]

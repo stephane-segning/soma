@@ -75,7 +75,10 @@ pub async fn serve_http(
     Ok(())
 }
 
-fn admin_routes(mut app: Router<Arc<BotState>>, admin_token: Option<String>) -> Router<Arc<BotState>> {
+fn admin_routes(
+    mut app: Router<Arc<BotState>>,
+    admin_token: Option<String>,
+) -> Router<Arc<BotState>> {
     let token_join_request = admin_token.clone();
     let token_create_space = admin_token.clone();
     let token_list_spaces = admin_token.clone();
@@ -138,11 +141,7 @@ fn admin_routes(mut app: Router<Arc<BotState>>, admin_token: Option<String>) -> 
         .route(
             "/v1/memberships",
             get(move |state: State<Arc<BotState>>, query| {
-                memberships::list_my_memberships_handler(
-                    state,
-                    query,
-                    token_my_memberships.clone(),
-                )
+                memberships::list_my_memberships_handler(state, query, token_my_memberships.clone())
             }),
         );
 

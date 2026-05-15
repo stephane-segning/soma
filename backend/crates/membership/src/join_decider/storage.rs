@@ -78,7 +78,10 @@ impl JoinDecider for StorageBackedJoinDecider {
         let now_ts = Timestamp::from(now);
         let now_secs = epoch_seconds(now);
 
-        if let Some(decision) = self.replay_latest_decision(&space_id, &subject_peer_id).await {
+        if let Some(decision) = self
+            .replay_latest_decision(&space_id, &subject_peer_id)
+            .await
+        {
             return decision;
         }
 

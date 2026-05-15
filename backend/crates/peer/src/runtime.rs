@@ -27,8 +27,7 @@ pub(crate) struct RuntimeState {
     pub(crate) rendezvous_peers: HashSet<PeerId>,
     pub(crate) relay_peers: HashMap<PeerId, Multiaddr>,
     pub(crate) requested_reservations: HashSet<PeerId>,
-    pub(crate) outbound_join_requests:
-        HashMap<reqres::OutboundRequestId, (PeerId, String, String)>,
+    pub(crate) outbound_join_requests: HashMap<reqres::OutboundRequestId, (PeerId, String, String)>,
     pub(crate) outbound_join_decisions: HashMap<reqres::OutboundRequestId, (PeerId, String)>,
     pub(crate) blob_downloads: HashMap<(String, String), BlobDownloadState>,
     pub(crate) join_decider: Arc<dyn JoinDecider>,

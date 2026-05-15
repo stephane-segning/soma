@@ -2,9 +2,9 @@ use soma_proto_build::agent;
 use tonic::{Request, Response, Status};
 
 use super::{
+    AgentdService,
     chat::MODEL_RPCS_DISABLED_MESSAGE,
     mappings::{map_background_task_record, proto_kind_to_store},
-    AgentdService,
 };
 
 pub(super) async fn enqueue_background_task(
@@ -50,7 +50,11 @@ pub(super) async fn list_background_tasks(
     } else {
         Some(trimmed_space_id)
     };
-    let limit = if payload.limit == 0 { 50 } else { payload.limit };
+    let limit = if payload.limit == 0 {
+        50
+    } else {
+        payload.limit
+    };
     let tasks = service
         .state
         .task_store

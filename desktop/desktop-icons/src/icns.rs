@@ -55,16 +55,19 @@ fn write_icon_family(
             continue;
         };
         let file_path = png_output_dir.join(format!("{size}.png"));
-        let file =
-            BufReader::new(File::open(&file_path).with_context(|| format!("open {}", file_path.display()))?);
-        let image = Image::read_png(file).with_context(|| format!("read png {}", file_path.display()))?;
+        let file = BufReader::new(
+            File::open(&file_path).with_context(|| format!("open {}", file_path.display()))?,
+        );
+        let image =
+            Image::read_png(file).with_context(|| format!("read png {}", file_path.display()))?;
         icon_family
             .add_icon_with_type(&image, icon_type)
             .with_context(|| format!("add png {} as {:?}", file_path.display(), icon_type))?;
     }
 
-    let file =
-        BufWriter::new(File::create(icns_path).with_context(|| format!("create {}", icns_path.display()))?);
+    let file = BufWriter::new(
+        File::create(icns_path).with_context(|| format!("create {}", icns_path.display()))?,
+    );
     icon_family
         .write(file)
         .with_context(|| format!("write {}", icns_path.display()))

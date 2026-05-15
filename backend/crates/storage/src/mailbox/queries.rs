@@ -38,11 +38,7 @@ pub(super) async fn get(pool: &Pool, id: &str) -> SomaResult<Option<MailboxEntry
     Ok(row.map(map_row))
 }
 
-pub(super) async fn list_due(
-    pool: &Pool,
-    now: i64,
-    limit: i64,
-) -> SomaResult<Vec<MailboxEntry>> {
+pub(super) async fn list_due(pool: &Pool, now: i64, limit: i64) -> SomaResult<Vec<MailboxEntry>> {
     let sql = format!(
         "{} WHERE status = 'queued' AND available_at <= $1 ORDER BY available_at ASC, id ASC LIMIT $2",
         select_mailbox()

@@ -1,5 +1,5 @@
-pub mod bootstrap;
 mod behaviour;
+pub mod bootstrap;
 mod codec;
 mod config;
 pub mod events;

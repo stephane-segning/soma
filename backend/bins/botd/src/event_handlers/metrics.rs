@@ -4,9 +4,9 @@ use soma_peer::{
     events::{PeerEventHandler, PeerEventKind},
 };
 
+use super::metrics_labels::{EventKindLabel, JoinDecisionOutcome};
 use crate::http::BotState;
 use crate::metrics::{BotMetrics, EventLabels, JoinDecisionLabels, PingLabels};
-use super::metrics_labels::{EventKindLabel, JoinDecisionOutcome};
 
 /// Handler that records metrics for every peer event.
 pub(super) struct MetricsHandler;
@@ -94,10 +94,7 @@ impl PeerEventHandler<BotState> for MetricsHandler {
     }
 }
 
-fn record_join_decision(
-    metrics: &BotMetrics,
-    decision: &soma_proto_build::space::JoinDecision,
-) {
+fn record_join_decision(metrics: &BotMetrics, decision: &soma_proto_build::space::JoinDecision) {
     record_event(metrics, EventKindLabel::JoinDecision);
     let outcome = soma_proto_build::space::JoinDecisionType::try_from(decision.decision)
         .map(JoinDecisionOutcome::from)

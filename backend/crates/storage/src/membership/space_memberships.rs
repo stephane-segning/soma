@@ -3,10 +3,7 @@ use sqlx_utils::types::Pool;
 
 use super::{SpaceMembership, mapping::map_membership_row};
 
-pub(super) async fn upsert_membership(
-    pool: &Pool,
-    membership: &SpaceMembership,
-) -> SomaResult<()> {
+pub(super) async fn upsert_membership(pool: &Pool, membership: &SpaceMembership) -> SomaResult<()> {
     sqlx::query(
         r#"
         INSERT INTO space_memberships (

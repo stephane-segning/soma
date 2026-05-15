@@ -38,7 +38,7 @@ impl BlobRange {
 
 /// Streaming writer handle for large blob ingestion.
 #[async_trait]
-pub trait BlobWriteStream: Send {
+pub trait BlobWriteStream: Send + Sync {
     /// Append a chunk at the expected offset. Implementations should reject out-of-order offsets.
     async fn write_chunk(&mut self, offset: u64, bytes: &[u8]) -> SomaResult<()>;
 

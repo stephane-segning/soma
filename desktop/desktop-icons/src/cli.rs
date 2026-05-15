@@ -6,7 +6,12 @@ use std::path::PathBuf;
 #[derive(Parser)]
 #[command(name = "desktp-icons", about = "Generate electron icon assets")]
 pub struct Cli {
-    #[arg(short, long, default_value = "./icon.png", help = "Input PNG or SVG file.")]
+    #[arg(
+        short,
+        long,
+        default_value = "./icon.png",
+        help = "Input PNG or SVG file."
+    )]
     input: PathBuf,
     #[arg(short, long, default_value = "./")]
     output: PathBuf,

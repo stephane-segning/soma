@@ -56,21 +56,6 @@ impl BackgroundTaskStore {
         })
     }
 
-    pub async fn mark_running(&self, task_id: &str) -> anyhow::Result<()> {
-        self.update_state(task_id, BackgroundTaskStatus::Running, None, None)
-            .await
-    }
-
-    pub async fn mark_succeeded(&self, task_id: &str, result_text: &str) -> anyhow::Result<()> {
-        self.update_state(
-            task_id,
-            BackgroundTaskStatus::Succeeded,
-            Some(result_text),
-            None,
-        )
-        .await
-    }
-
     pub async fn mark_failed(&self, task_id: &str, error: &str) -> anyhow::Result<()> {
         self.update_state(task_id, BackgroundTaskStatus::Failed, None, Some(error))
             .await

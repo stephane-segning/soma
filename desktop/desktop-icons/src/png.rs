@@ -23,8 +23,8 @@ pub fn create_pngs(input_path: &Path, png_output_dir: &Path) -> Result<()> {
 }
 
 fn create_pngs_from_raster(input_path: &Path, png_output_dir: &Path) -> Result<()> {
-    let base_image =
-        image::open(input_path).with_context(|| format!("read input image {}", input_path.display()))?;
+    let base_image = image::open(input_path)
+        .with_context(|| format!("read input image {}", input_path.display()))?;
 
     for size in PNG_SIZES {
         let output_path = png_output_dir.join(format!("{size}.png"));
@@ -68,8 +68,7 @@ fn create_pngs_from_svg(input_path: &Path, png_output_dir: &Path) -> Result<()> 
     for size in PNG_SIZES {
         let output_path = png_output_dir.join(format!("{size}.png"));
         let mut pixmap = tiny_skia::Pixmap::new(size, size).context("create svg render surface")?;
-        let transform =
-            tiny_skia::Transform::from_scale(size as f32 / width, size as f32 / height);
+        let transform = tiny_skia::Transform::from_scale(size as f32 / width, size as f32 / height);
         resvg::render(&tree, transform, &mut pixmap.as_mut());
         let png = image::RgbaImage::from_raw(size, size, pixmap.data().to_vec())
             .context("convert svg render to rgba image")?;
@@ -87,8 +86,9 @@ pub fn rename_pngs(png_output_dir: &Path) -> Result<()> {
         let end_name = format!("{size}x{size}.png");
         let start_path = png_output_dir.join(&start_name);
         let end_path = png_output_dir.join(&end_name);
-        fs::rename(&start_path, &end_path)
-            .with_context(|| format!("rename {} to {}", start_path.display(), end_path.display()))?;
+        fs::rename(&start_path, &end_path).with_context(|| {
+            format!("rename {} to {}", start_path.display(), end_path.display())
+        })?;
         println!("Renamed {start_name} to {end_name}");
     }
 

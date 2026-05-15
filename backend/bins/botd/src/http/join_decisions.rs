@@ -83,7 +83,9 @@ async fn validate_join_request_target(
         if req.is_outgoing {
             return Err((
                 StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({"error": "cannot decide outgoing (self-initiated) join request"})),
+                Json(
+                    serde_json::json!({"error": "cannot decide outgoing (self-initiated) join request"}),
+                ),
             ));
         }
         let issuer = issuer_peer_id.to_string();
@@ -139,15 +141,12 @@ fn required_str<'a>(
     payload: &'a serde_json::Value,
     field: &str,
 ) -> Result<&'a str, (StatusCode, Json<serde_json::Value>)> {
-    payload
-        .get(field)
-        .and_then(|v| v.as_str())
-        .ok_or_else(|| {
-            (
-                StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({"error": format!("{field} is required")})),
-            )
-        })
+    payload.get(field).and_then(|v| v.as_str()).ok_or_else(|| {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({"error": format!("{field} is required")})),
+        )
+    })
 }
 
 fn internal_error<E: std::fmt::Display>(

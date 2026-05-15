@@ -3,7 +3,9 @@ use super::streaming::{abort_download, begin_streaming_write};
 use crate::PeerEvent;
 use crate::runtime::RuntimeState;
 use libp2p::PeerId;
-use soma_vdfs::{BlobRequest, BlobResponse, MAX_BLOB_MESSAGE_BYTES};
+use soma_vdfs::{BlobProvider, BlobRequest, BlobResponse, MAX_BLOB_MESSAGE_BYTES};
+use std::sync::Arc;
+use tokio::sync::mpsc;
 
 pub(super) async fn handle_blob_response(
     state: &mut RuntimeState,
@@ -32,7 +34,12 @@ pub(super) async fn handle_blob_response(
         && chunk_len == response.size
         && chunk_len as usize <= MAX_BLOB_MESSAGE_BYTES;
     if is_single_chunk {
-        let stored = store_single_chunk(state, peer, &response, &space_id).await;
+        let Some(provider) = state.blob_provider.clone() else {
+            emit_blob_received(state, &response, true, false);
+            return;
+        };
+        let stored =
+            store_single_chunk(provider, state.event_tx.clone(), peer, &response, &space_id).await;
         emit_blob_received(state, &response, true, stored);
         return;
     }
@@ -69,12 +76,19 @@ pub(super) async fn handle_blob_response(
         .await;
     if let Err(err) = write_result {
         abort_download(state, &key).await;
-        emit_connection_error(state, Some(peer), format!("failed to persist blob chunk: {err}"));
+        emit_connection_error(
+            state,
+            Some(peer),
+            format!("failed to persist blob chunk: {err}"),
+        );
         emit_blob_received(state, &response, true, false);
         return;
     }
 
-    let download = state.blob_downloads.get_mut(&key).expect("download checked");
+    let download = state
+        .blob_downloads
+        .get_mut(&key)
+        .expect("download checked");
     download.next_offset += chunk_len;
     let done = download.next_offset >= download.total_size || response.eof;
     let (next_offset, chunk_size) = (download.next_offset, download.chunk_size);
@@ -90,22 +104,27 @@ pub(super) async fn handle_blob_response(
 }
 
 async fn store_single_chunk(
-    state: &RuntimeState,
+    provider: Arc<dyn BlobProvider>,
+    event_tx: mpsc::Sender<PeerEvent>,
     peer: PeerId,
     response: &BlobResponse,
     space_id: &str,
 ) -> bool {
-    let Some(provider) = state.blob_provider.as_ref() else {
-        return false;
-    };
-
     match provider
-        .put(&response.cid, Some(space_id), &response.data, &response.mime)
+        .put(
+            &response.cid,
+            Some(space_id),
+            &response.data,
+            &response.mime,
+        )
         .await
     {
         Ok(written) => written,
         Err(err) => {
-            emit_connection_error(state, Some(peer), format!("blob store failed: {err}"));
+            let _ = event_tx.try_send(PeerEvent::ConnectionError {
+                peer: Some(peer),
+                error: format!("blob store failed: {err}"),
+            });
             false
         }
     }

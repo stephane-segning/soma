@@ -55,7 +55,10 @@ pub async fn apply_join_decision(
     let Some(space_id) = decision.space_id.as_ref().map(|space| space.value.clone()) else {
         return Err(Error::service("missing decision.space_id"));
     };
-    let Some(subject_peer_id) = decision.subject_peer_id.as_ref().map(|peer| peer.value.clone())
+    let Some(subject_peer_id) = decision
+        .subject_peer_id
+        .as_ref()
+        .map(|peer| peer.value.clone())
     else {
         return Err(Error::service("missing decision.subject_peer_id"));
     };

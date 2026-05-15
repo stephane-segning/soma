@@ -96,10 +96,7 @@ async fn verify_delegated_issuer(
     true
 }
 
-async fn peer_public_key(
-    ctx: &DaemonState,
-    peer: &PeerId,
-) -> Option<libp2p::identity::PublicKey> {
+async fn peer_public_key(ctx: &DaemonState, peer: &PeerId) -> Option<libp2p::identity::PublicKey> {
     let cached = {
         let map = ctx.identify_keys.lock().await;
         map.get(peer).cloned()

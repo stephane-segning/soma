@@ -95,12 +95,10 @@ pub(super) async fn handle_join_decision_event(
                 if let Some((target, delivery_id)) =
                     state.outbound_join_decisions.remove(&request_id)
                 {
-                    let _ = state
-                        .event_tx
-                        .try_send(PeerEvent::JoinDecisionDeliveryAck {
-                            target,
-                            delivery_id,
-                        });
+                    let _ = state.event_tx.try_send(PeerEvent::JoinDecisionDeliveryAck {
+                        target,
+                        delivery_id,
+                    });
                 }
             }
         },

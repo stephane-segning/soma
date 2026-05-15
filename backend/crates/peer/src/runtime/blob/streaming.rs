@@ -12,7 +12,7 @@ pub(super) async fn begin_streaming_write(
     space_id: &str,
     key: (String, String),
 ) -> bool {
-    let Some(provider) = state.blob_provider.as_ref() else {
+    let Some(provider) = state.blob_provider.clone() else {
         return false;
     };
 

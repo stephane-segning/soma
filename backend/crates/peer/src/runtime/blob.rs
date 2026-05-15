@@ -3,8 +3,8 @@ mod response;
 mod streaming;
 
 use crate::runtime::RuntimeState;
-use libp2p::request_response as reqres;
 use libp2p::PeerId;
+use libp2p::request_response as reqres;
 use soma_vdfs::{BlobRequest, BlobResponse};
 
 pub(super) async fn handle_blob_event(

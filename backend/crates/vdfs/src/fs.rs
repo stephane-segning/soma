@@ -8,7 +8,7 @@ use tokio::{
     io::{AsyncReadExt, AsyncSeekExt},
 };
 
-use crate::{BlobProvider, BlobRange, BlobResponse, BlobWriteInit, BlobWriteStream, cid_for};
+use crate::{BlobProvider, BlobRange, BlobResponse, BlobWriteInit, cid_for};
 use writer::FsBlobWriter;
 
 /// A filesystem-backed, content-addressed blob store.

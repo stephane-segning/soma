@@ -127,7 +127,10 @@ pub(crate) fn issuer_cap_valid(
         .map(|ts| ts.seconds > now_secs)
         .unwrap_or(true);
     let role_ok = cap.allowed_roles.is_empty()
-        || cap.allowed_roles.iter().any(|role| *role == requested_role as i32);
+        || cap
+            .allowed_roles
+            .iter()
+            .any(|role| *role == requested_role as i32);
 
     space_ok && issuer_ok && not_expired && role_ok
 }

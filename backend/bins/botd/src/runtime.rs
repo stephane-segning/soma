@@ -10,7 +10,6 @@ use tracing::{info, warn};
 
 use crate::{
     config::{Args, BotConfig, Command, Mode},
-    event_handlers,
     http::{self, BotInfo, BotState},
     metrics::BotMetrics,
 };
