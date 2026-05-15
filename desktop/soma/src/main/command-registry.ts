@@ -7,6 +7,7 @@ import type { SearchController } from "./controllers/search-controller";
 import type { SettingsController } from "./controllers/settings-controller";
 import type { SpacesController } from "./controllers/spaces-controller";
 import type { WindowController } from "./controllers/window-controller";
+import type { DaemonControlAction, DaemonProcessManager } from "./services/daemon-process-manager";
 import type { DomainEventsService } from "./services/domain-events";
 import type { AppLogger } from "./services/logger";
 
@@ -21,6 +22,7 @@ export class CommandRegistry {
 		private readonly dbStorage: DbStorageController,
 		private readonly domainEvents: DomainEventsService,
 		private readonly windows: WindowController,
+		private readonly daemonProcess: DaemonProcessManager,
 		private readonly logger: AppLogger,
 	) {}
 
@@ -243,6 +245,10 @@ export class CommandRegistry {
 		ipc.handle("settings_set", (_event, params) => {
 			this.settings.set(params?.key, params?.value);
 		});
+		ipc.handle("daemon_status", () => this.daemonProcess.status());
+		ipc.handle("daemon_control", (_event, params) =>
+			this.daemonProcess.control(normalizeDaemonControlAction(params?.action)),
+		);
 
 		ipc.on("db_storage_get", (event, key) => {
 			const targetKey = typeof key === "string" ? key : key?.key;
@@ -294,6 +300,11 @@ export class CommandRegistry {
 	}
 }
 
+function normalizeDaemonControlAction(action: unknown): DaemonControlAction {
+	if (action === "stop" || action === "restart") return action;
+	return "start";
+}
+
 function normalizeLogLevel(level: string): "error" | "warn" | "info" | "debug" {
 	switch (level) {
 		case "error":
@@ -302,8 +313,6 @@ function normalizeLogLevel(level: string): "error" | "warn" | "info" | "debug" {
 			return "warn";
 		case "debug":
 			return "debug";
-		case "info":
-		case "log":
 		default:
 			return "info";
 	}

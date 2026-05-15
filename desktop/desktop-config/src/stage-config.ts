@@ -1,5 +1,6 @@
-import { app } from "electron";
+import { tmpdir, userInfo } from "node:os";
 import { join } from "node:path";
+import { app } from "electron";
 
 export type StageConfigOptions = {
 	appPrefix: string;
@@ -31,11 +32,15 @@ export class StageConfigService {
 		const allowEnvOverride = app.isPackaged
 			? this.options.allowEnvOverrideInPackaged === true
 			: true;
-		const stageEnvKeys = this.options.stageEnvKeys ?? ["SOMA_STAGE", "SOMA_CHANNEL"];
+		const stageEnvKeys = this.options.stageEnvKeys ?? [
+			"SOMA_STAGE",
+			"SOMA_CHANNEL",
+		];
 		const appName = app.getName();
 		const stageFromName = this.stageFromAppName(appName, appPrefix);
 		const envStage = allowEnvOverride ? this.readEnv(stageEnvKeys) : null;
-		const rawStage = envStage || stageFromName || (this.options.isDev ? "dev" : "prod");
+		const rawStage =
+			envStage || stageFromName || (this.options.isDev ? "dev" : "prod");
 		const stage = this.normalizeStage(rawStage);
 
 		if (stage !== "prod") {
@@ -49,9 +54,12 @@ export class StageConfigService {
 			app.setName(`${appPrefix}-${stage}`);
 		}
 
-		const socketDir = this.options.socketDir ?? "/tmp";
-		const daemonSocketBaseName = this.options.daemonSocketBaseName ?? `${appPrefix}-daemon`;
-		const agentSocketBaseName = this.options.agentSocketBaseName ?? `${appPrefix}-agentd`;
+		const socketDir =
+			this.options.socketDir ?? this.defaultSocketDir(stage, appPrefix);
+		const daemonSocketBaseName =
+			this.options.daemonSocketBaseName ?? `${appPrefix}-daemon`;
+		const agentSocketBaseName =
+			this.options.agentSocketBaseName ?? `${appPrefix}-agentd`;
 		const daemonSocketPath = this.resolveSocketPath({
 			stage,
 			socketDir,
@@ -115,5 +123,37 @@ export class StageConfigService {
 		}
 		const suffix = options.stage === "prod" ? "" : `-${options.stage}`;
 		return join(options.socketDir, `${options.baseName}${suffix}.sock`);
+	}
+
+	private defaultSocketDir(stage: string, appPrefix: string): string {
+		if (stage !== "prod") {
+			return "/tmp";
+		}
+		return join(this.defaultProdRuntimeDir(appPrefix), appPrefix);
+	}
+
+	private defaultProdRuntimeDir(appPrefix: string): string {
+		if (process.platform === "linux") {
+			const xdgRuntimeDir = process.env.XDG_RUNTIME_DIR?.trim();
+			if (xdgRuntimeDir) {
+				return xdgRuntimeDir;
+			}
+			return join(tmpdir(), `${appPrefix}-${this.currentUid()}`);
+		}
+
+		if (process.platform === "darwin") {
+			const userTmpDir = process.env.TMPDIR?.trim();
+			if (userTmpDir) {
+				return userTmpDir;
+			}
+			return join(tmpdir(), `${appPrefix}-${this.currentUid()}`);
+		}
+
+		return tmpdir();
+	}
+
+	private currentUid(): string {
+		const uid = userInfo().uid;
+		return Number.isFinite(uid) && uid >= 0 ? String(uid) : "user";
 	}
 }

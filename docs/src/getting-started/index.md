@@ -48,7 +48,7 @@ The `just` recipes also keep local data under `.data/` instead of scattering it 
 ## What Each Process Does
 
 - `soma-daemon`: local peer/backend for spaces, pages, documents, blobs, memberships, and peer connectivity
-- `soma-agentd`: local helper for chat, embeddings, rerank, and drift resolution
+- `soma-agentd`: local helper for drift resolution and persisted background task records; it is not a model provider
 - `desktop/soma`: main Electron UI; Electron main talks to daemon and agentd over local IPC
 
 ## Optional: Run Tapia
@@ -94,7 +94,7 @@ pnpm --filter @soma/docs run build
 ## Troubleshooting
 
 - if Soma does not start cleanly, verify that `soma-daemon` is already running on the expected socket
-- if agent features are unavailable, verify that `soma-agentd` is running on the matching stage socket
+- if agent helper features are unavailable, verify that `soma-agentd` is running on the matching stage socket
 - if peer flows fail, start with `RUST_LOG=debug` and add `soma-botd` / relay / rendezvous only after the local daemon path works
 
 ## More Specific Docs

@@ -1,6 +1,7 @@
 export const TYPES = {
 	AppDataStore: Symbol("AppDataStore"),
 	DaemonClient: Symbol("DaemonClient"),
+	DaemonProcessManager: Symbol("DaemonProcessManager"),
 	AgentClient: Symbol("AgentClient"),
 	AgentEvents: Symbol("AgentEvents"),
 	BlobProtocol: Symbol("BlobProtocol"),

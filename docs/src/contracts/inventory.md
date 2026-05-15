@@ -62,21 +62,21 @@ This document tracks the shared contract surface between backend (Rust gRPC) and
 
 | RPC | Proto | Backend | Desktop | Docs | Status | Notes |
 |-----|-------|---------|---------|------|--------|-------|
-| `Status` | ✅ | ✅ | ✅ | ❌ | `implemented` | Returns version, default models, model list |
-| `ListModels` | ✅ | ✅ | ✅ | ❌ | `implemented` | Enumerate available models with kind/path/loaded |
-| `InlineComplete` | ✅ | ✅ | ❌ | ❌ | `desktop-hidden` | Implemented; desktop uses ChatStream instead |
-| `Chat` | ✅ | ✅ | ❌ | ❌ | `desktop-hidden` | Implemented; desktop uses ChatStream instead |
-| `ChatStream` | ✅ | ✅ | ✅ | ❌ | `transitional` | Streaming chat; semantics ambiguous (token/done overlap, no error event) |
-| `Embed` | ✅ | ✅ | ❌ | ❌ | `desktop-hidden` | Implemented; used internally via Rerank |
-| `Rerank` | ✅ | ✅ | ✅ | ❌ | `implemented` | Cosine similarity ranking via embed model |
+| `Status` | ✅ | ✅ | ✅ | ✅ | `implemented` | Returns version; default models and model list are empty |
+| `ListModels` | ✅ | ✅ | ✅ | ✅ | `compatibility` | Returns an empty list from agentd |
+| `InlineComplete` | ✅ | ✅ | ❌ | ✅ | `compatibility-stub` | Returns `UNIMPLEMENTED` from agentd |
+| `Chat` | ✅ | ✅ | ❌ | ✅ | `compatibility-stub` | Returns `UNIMPLEMENTED` from agentd |
+| `ChatStream` | ✅ | ✅ | ✅ | ✅ | `compatibility-stub` | Returns `UNIMPLEMENTED` from agentd |
+| `Embed` | ✅ | ✅ | ❌ | ✅ | `compatibility-stub` | Returns `UNIMPLEMENTED` from agentd |
+| `Rerank` | ✅ | ✅ | ✅ | ✅ | `compatibility-stub` | Returns `UNIMPLEMENTED` from agentd |
 | `ResolveDrift` | ✅ | ✅ | ✅ | ❌ | `implemented` | Merge Yjs updates |
-| `EnqueueBackgroundTask` | ✅ | ✅ | ✅ | ❌ | `implemented` | Queue explain/expand/research tasks |
+| `EnqueueBackgroundTask` | ✅ | ✅ | ✅ | ❌ | `compatibility` | Persists a failed task record; no model worker |
 | `ListBackgroundTasks` | ✅ | ✅ | ✅ | ❌ | `implemented` | Query background task status |
 
 ### Agent Client Dual-Path Behavior
 
 The desktop `AgentClient` has two runtime paths:
-- **agentd path**: Uses gRPC to `soma-agentd` (Unix socket)
+- **agentd path**: Uses gRPC to `soma-agentd` (Unix socket) for local helper RPCs only
 - **openai-compatible path**: Direct HTTP calls to OpenAI-compatible endpoints (Ollama, etc.)
 
 This means not all agent features are strictly bound to `agent.proto`. See Phase 3 deliverable.
@@ -149,11 +149,11 @@ These require documentation and/or fixes before backend/desktop can evolve indep
 - **Risk:** UI cannot rely on MIME for rendering decisions
 - **Action:** Fix to return stored MIME or document limitation
 
-### 6. `ChatStream` semantics
+### 6. `ChatStream` ownership
 
-- **Current:** Token stream followed by `done` event with full content; no explicit error event
-- **Risk:** Error handling unclear; cannot abort mid-stream
-- **Action:** Freeze semantics or redesign before treating as stable
+- **Current:** `soma-agentd` keeps the proto method but returns `UNIMPLEMENTED`
+- **Risk:** Desktop callers must use an explicit provider path for model chat
+- **Action:** Remove or redesign the agentd proto method once generated-client compatibility permits it
 
 ---
 
@@ -181,6 +181,6 @@ These require documentation and/or fixes before backend/desktop can evolve indep
 ## Next Steps (Phase 2-5)
 
 - **Phase 2:** Document and fix high-risk semantics
-- **Phase 3:** Decide agent contract ownership (agentd vs openai-compatible)
+- **Phase 3:** Remove or quarantine agentd model compatibility stubs
 - **Phase 4:** Remove/quarantine dead declarations
 - **Phase 5:** Add contract tests (proto smoke, desktop wrapper tests)

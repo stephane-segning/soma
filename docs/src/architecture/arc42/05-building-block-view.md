@@ -28,7 +28,7 @@ This section lists the major building blocks in the repo and how they relate.
 - `backend/bins/bffd` (`soma-bffd`)
   - Axum business API for LLM-facing features; optional libp2p peer for diagnostics.
 - `backend/bins/agentd` (`soma-agentd`)
-  - desktop-only worker for local compute (LLM inference, embeddings, …).
+  - desktop-only local helper for Yjs drift resolution and persisted task records.
 - `backend/bins/serverd` (`soma-serverd`)
   - convenience “all-in-one” runner (dev/operator ergonomics).
 
