@@ -47,7 +47,7 @@ runs:
   using: composite
   steps:
     - name: Dockerfile scan (Trivy)
-      uses: aquasecurity/trivy-action@0.36.0
+      uses: aquasecurity/trivy-action@v0.36.0
       with:
         scan-type: config
         scan-ref: .
@@ -123,7 +123,7 @@ runs:
 
     - name: Vulnerability scan (Trivy)
       if: ${{ inputs.push == 'true' }}
-      uses: aquasecurity/trivy-action@0.36.0
+      uses: aquasecurity/trivy-action@v0.36.0
       with:
         image-ref: ${{ steps.img.outputs.ref }}
         format: table
@@ -132,4 +132,3 @@ runs:
         exit-code: "1"
         ignore-unfixed: true
         hide-progress: true
-
