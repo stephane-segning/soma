@@ -84,7 +84,7 @@ jobs:
           (cd "$OUT" && shasum -a 256 soma-* > SHA256SUMS.txt 2>/dev/null || sha256sum soma-* > SHA256SUMS.txt)
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: backend-bins-${{ matrix.arch }}
           path: dist/backend/linux-${{ matrix.arch }}
