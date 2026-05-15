@@ -969,7 +969,7 @@ dependencies = [
 
 [[package]]
 name = "desktp-icons"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "clap",
@@ -4255,7 +4255,7 @@ dependencies = [
 
 [[package]]
 name = "soma-agent"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "soma-net",
  "tempfile",
@@ -4263,7 +4263,7 @@ dependencies = [
 
 [[package]]
 name = "soma-agentd"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "clap",
@@ -4285,7 +4285,7 @@ dependencies = [
 
 [[package]]
 name = "soma-api"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "soma-net",
  "tempfile",
@@ -4293,7 +4293,7 @@ dependencies = [
 
 [[package]]
 name = "soma-bff"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "axum",
  "reqwest",
@@ -4307,7 +4307,7 @@ dependencies = [
 
 [[package]]
 name = "soma-bffd"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "axum",
  "clap",
@@ -4326,7 +4326,7 @@ dependencies = [
 
 [[package]]
 name = "soma-botd"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "async-trait",
  "axum",
@@ -4360,7 +4360,7 @@ dependencies = [
 
 [[package]]
 name = "soma-cache"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "async-trait",
  "tokio",
@@ -4368,7 +4368,7 @@ dependencies = [
 
 [[package]]
 name = "soma-common"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "ciborium",
  "libp2p",
@@ -4381,7 +4381,7 @@ dependencies = [
 
 [[package]]
 name = "soma-core"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "axum",
@@ -4396,7 +4396,7 @@ dependencies = [
 
 [[package]]
 name = "soma-daemon"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "async-trait",
  "clap",
@@ -4427,7 +4427,7 @@ dependencies = [
 
 [[package]]
 name = "soma-membership"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "async-trait",
  "libp2p",
@@ -4445,7 +4445,7 @@ dependencies = [
 
 [[package]]
 name = "soma-metrics"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "axum",
  "prometheus-client 0.22.3",
@@ -4455,7 +4455,7 @@ dependencies = [
 
 [[package]]
 name = "soma-net"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "futures",
  "libp2p",
@@ -4466,7 +4466,7 @@ dependencies = [
 
 [[package]]
 name = "soma-peer"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "async-trait",
  "derive_builder",
@@ -4484,7 +4484,7 @@ dependencies = [
 
 [[package]]
 name = "soma-proto-build"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "prost",
  "prost-build",
@@ -4497,7 +4497,7 @@ dependencies = [
 
 [[package]]
 name = "soma-relay"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "axum",
  "futures",
@@ -4514,7 +4514,7 @@ dependencies = [
 
 [[package]]
 name = "soma-relayd"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "axum",
  "clap",
@@ -4529,7 +4529,7 @@ dependencies = [
 
 [[package]]
 name = "soma-rendezvous"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "axum",
  "futures",
@@ -4546,7 +4546,7 @@ dependencies = [
 
 [[package]]
 name = "soma-rendezvousd"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "axum",
  "clap",
@@ -4561,7 +4561,7 @@ dependencies = [
 
 [[package]]
 name = "soma-serverd"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "axum",
  "clap",
@@ -4578,7 +4578,7 @@ dependencies = [
 
 [[package]]
 name = "soma-socket"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "soma-core",
  "tokio",
@@ -4589,7 +4589,7 @@ dependencies = [
 
 [[package]]
 name = "soma-storage"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "async-trait",
  "serde_json",
@@ -4601,7 +4601,7 @@ dependencies = [
 
 [[package]]
 name = "soma-vdfs"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "async-trait",
  "prost",
@@ -6199,7 +6199,7 @@ checksum = "ec7a2a501ed189703dba8b08142f057e887dfc4b2cc4db2d343ac6376ba3e0b9"
 
 [[package]]
 name = "xtask"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "clap",
