@@ -1,81 +1,14 @@
-import { createId } from "@paralleldrive/cuid2";
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
-
-type PersistedTab = {
-	id: string;
-	title: string;
-	path: string;
-};
-
-type PersistedTabsStateV1 = {
-	version: 1;
-	activeId: string;
-	tabs: PersistedTab[];
-};
-
-type Tab = PersistedTab;
-
-type TabsState = {
-	initialized: boolean;
-	activeId: string;
-	tabs: Tab[];
-};
-
-const MAX_TABS = 10;
-
-function newTabId(): string {
-	return createId();
-}
-
-function coercePath(path: string): string {
-	const trimmed = path.trim();
-	if (!trimmed) return "/";
-	return trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
-}
-
-function createDefaultState(initialPath = "/"): PersistedTabsStateV1 {
-	const id = newTabId();
-	return {
-		version: 1,
-		activeId: id,
-		tabs: [
-			{
-				id,
-				title: "Tab 1",
-				path: coercePath(initialPath),
-			},
-		],
-	};
-}
-
-function isPersistedTabsStateV1(value: unknown): value is PersistedTabsStateV1 {
-	if (!value || typeof value !== "object") return false;
-	const maybe = value as Partial<PersistedTabsStateV1>;
-	if (maybe.version !== 1) return false;
-	if (typeof maybe.activeId !== "string") return false;
-	if (!Array.isArray(maybe.tabs) || maybe.tabs.length === 0) return false;
-	for (const tab of maybe.tabs) {
-		if (!tab || typeof tab !== "object") return false;
-		const t = tab as Partial<PersistedTab>;
-		if (typeof t.id !== "string") return false;
-		if (typeof t.title !== "string") return false;
-		if (typeof t.path !== "string") return false;
-	}
-	return true;
-}
-
-function tabsToPersisted(state: TabsState): PersistedTabsStateV1 {
-	const safeActiveId = state.tabs.some((t) => t.id === state.activeId) ? state.activeId : (state.tabs[0]?.id ?? "");
-	return {
-		version: 1,
-		activeId: safeActiveId,
-		tabs: state.tabs.map(({ id, title, path }) => ({
-			id,
-			title,
-			path,
-		})),
-	};
-}
+import {
+	MAX_TABS,
+	coercePath,
+	createDefaultState,
+	isPersistedTabsStateV1,
+	newTabId,
+	tabsToPersisted,
+	type PersistedTabsStateV1,
+	type TabsState,
+} from "./tabs-model";
 
 const initialState: TabsState = {
 	initialized: false,

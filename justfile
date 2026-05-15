@@ -161,6 +161,10 @@ ci-verify:
 	just ci-backend
 	just ci-desktop
 
+# Fail when Rust or TypeScript source files exceed the repository LoC limit
+check-lines:
+	./scripts/check-file-lines.sh
+
 #
 # Backward-compatible aliases kept during the current repo-shape transition
 #
