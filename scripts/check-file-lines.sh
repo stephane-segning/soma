@@ -16,6 +16,8 @@ done < <(
     -not -path './backend/target/*' \
     -not -path './node_modules/*' \
     -not -path './desktop/*/node_modules/*' \
+    -not -path './desktop/desktop-proto/dist/*' \
+    -not -path './desktop/desktop-proto/src/gen/*' \
     -not -path './desktop/desktop-proto/src/generated/*' \
     -print0
 )

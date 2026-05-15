@@ -7,8 +7,11 @@ license.workspace = true
 authors.workspace = true
 
 [dependencies]
-soma-core = { workspace = true }
+soma-core = { workspace = true, features = ["db"] }
 sqlx = { workspace = true }
 async-trait = { workspace = true }
 sqlx-utils = { workspace = true }
 serde_json = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }

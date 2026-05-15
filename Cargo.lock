@@ -4596,6 +4596,7 @@ dependencies = [
  "soma-core",
  "sqlx",
  "sqlx-utils",
+ "tempfile",
 ]
 
 [[package]]

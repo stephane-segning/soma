@@ -1,9 +1,9 @@
 use std::{
     fs,
-    path::{Path, PathBuf},
+    path::{Component, Path, PathBuf},
 };
 
-use soma_core::SomaResult;
+use soma_core::{Error, SomaResult};
 
 /// Basic filesystem-backed storage used by daemons and bots.
 ///
@@ -26,7 +26,7 @@ impl Storage {
 
     /// Persist a blob to disk and return its absolute path.
     pub fn write_blob(&self, name: &str, data: &[u8]) -> SomaResult<PathBuf> {
-        let path = self.blob_path(name);
+        let path = self.blob_path(name)?;
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent)?;
         }
@@ -36,7 +36,7 @@ impl Storage {
 
     /// Read a blob if it exists.
     pub fn read_blob(&self, name: &str) -> SomaResult<Option<Vec<u8>>> {
-        let path = self.blob_path(name);
+        let path = self.blob_path(name)?;
         if path.exists() {
             Ok(Some(fs::read(path)?))
         } else {
@@ -59,10 +59,10 @@ impl Storage {
         Ok(entries)
     }
 
-    fn blob_path(&self, name: &str) -> PathBuf {
-        // Prevent path traversal while still allowing descriptive names.
+    fn blob_path(&self, name: &str) -> SomaResult<PathBuf> {
         let sanitized = name.replace(['/', '\\'], "_");
-        self.blobs.join(sanitized)
+        validate_blob_name(&sanitized)?;
+        Ok(self.blobs.join(sanitized))
     }
 
     /// Expose the root directory for callers that need to create structured stores.
@@ -73,5 +73,40 @@ impl Storage {
     /// Expose the blob directory.
     pub fn blobs(&self) -> &Path {
         &self.blobs
+    }
+}
+
+fn validate_blob_name(name: &str) -> SomaResult<()> {
+    let mut components = Path::new(name).components();
+    match (components.next(), components.next()) {
+        (Some(Component::Normal(component)), None) if !component.is_empty() => Ok(()),
+        _ => Err(Error::service("invalid blob name")),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Storage;
+
+    #[test]
+    fn rejects_parent_dir_blob_name() {
+        let store = Storage::open(tempfile::tempdir().unwrap().path()).unwrap();
+        assert!(store.write_blob("..", b"bad").is_err());
+        assert!(store.read_blob("..").is_err());
+    }
+
+    #[test]
+    fn rejects_current_dir_and_empty_blob_names() {
+        let store = Storage::open(tempfile::tempdir().unwrap().path()).unwrap();
+        assert!(store.write_blob(".", b"bad").is_err());
+        assert!(store.write_blob("", b"bad").is_err());
+    }
+
+    #[test]
+    fn sanitizes_path_separators_into_single_blob_name() {
+        let store = Storage::open(tempfile::tempdir().unwrap().path()).unwrap();
+        let path = store.write_blob("../secret", b"ok").unwrap();
+        assert_eq!(path.file_name().unwrap(), ".._secret");
+        assert_eq!(store.read_blob("../secret").unwrap(), Some(b"ok".to_vec()));
     }
 }
