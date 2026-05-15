@@ -6,6 +6,7 @@ import type { SearchController } from "../controllers/search-controller";
 import type { SettingsController } from "../controllers/settings-controller";
 import type { SpacesController } from "../controllers/spaces-controller";
 import type { WindowController } from "../controllers/window-controller";
+import type { DaemonProcessManager } from "../services/daemon-process-manager";
 import type { DomainEventsService } from "../services/domain-events";
 import type { AppLogger } from "../services/logger";
 
@@ -19,5 +20,6 @@ export type CommandRegistryContext = {
 	dbStorage: DbStorageController;
 	domainEvents: DomainEventsService;
 	windows: WindowController;
+	daemonProcess: DaemonProcessManager;
 	logger: AppLogger;
 };

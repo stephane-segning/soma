@@ -15,7 +15,7 @@ export function startAgentRuntimeEventStream(options: RuntimeEventStreamOptions)
 	const run = async () => {
 		if (stopped) return;
 		const config = options.resolveConfig();
-		const baseUrl = baseUrlForProvider(config);
+		const baseUrl = config.openAiBaseUrl;
 		try {
 			const models = await options.listModels();
 			if (!emittedReady) {
@@ -57,11 +57,4 @@ export function startAgentRuntimeEventStream(options: RuntimeEventStreamOptions)
 			timer = null;
 		}
 	};
-}
-
-function baseUrlForProvider(config: ResolvedWorkspaceAgentConfig): string {
-	if (config.provider === "agentd") {
-		return "unix://local-agentd";
-	}
-	return config.openAiBaseUrl;
 }

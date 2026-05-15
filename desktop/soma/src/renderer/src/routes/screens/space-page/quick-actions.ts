@@ -45,7 +45,7 @@ export function usePageQuickActions({
 
 			return {
 				status: "queued",
-				message: "Research task queued in agentd.",
+				message: "Research task queued.",
 			};
 		},
 		[pageId, spaceId],

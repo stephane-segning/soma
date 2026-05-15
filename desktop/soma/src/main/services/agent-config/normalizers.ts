@@ -1,7 +1,7 @@
 import type { AgentModelCapabilities, AgentProvider, AgentWorkspaceRuntimeConfig } from "../agent-config";
 
 export function normalizeProvider(provider: unknown, fallback: AgentProvider): AgentProvider {
-	if (provider === "agentd" || provider === "openai-compatible") {
+	if (provider === "openai-compatible") {
 		return provider;
 	}
 	return fallback;

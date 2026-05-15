@@ -11,11 +11,11 @@ It centralizes:
 
 Package location:
 
-- `desktop/desktp-config/`
+- `desktop/desktop-config/`
 
 Main implementation:
 
-- `desktop/desktp-config/src/stage-config.ts`
+- `desktop/desktop-config/src/stage-config.ts`
 
 ## What It Does
 
@@ -51,19 +51,22 @@ Important behavior:
 
 Default socket directory:
 
-- `/tmp`
+- prod Linux: `$XDG_RUNTIME_DIR/soma` (systemd user units use `%t/soma`)
+- prod macOS: `$TMPDIR/soma`
+- dev/staging: `/tmp`
 
 Default socket names for the Soma app family:
 
 | Stage | Daemon socket | Agent socket |
 | --- | --- | --- |
-| `prod` | `/tmp/soma-daemon.sock` | `/tmp/soma-agentd.sock` |
+| `prod` on Linux | `$XDG_RUNTIME_DIR/soma/soma-daemon.sock` | `$XDG_RUNTIME_DIR/soma/soma-agentd.sock` |
+| `prod` on macOS | `$TMPDIR/soma/soma-daemon.sock` | `$TMPDIR/soma/soma-agentd.sock` |
 | `dev` | `/tmp/soma-daemon-dev.sock` | `/tmp/soma-agentd-dev.sock` |
 | `staging` | `/tmp/soma-daemon-staging.sock` | `/tmp/soma-agentd-staging.sock` |
 
 The suffix rule is simple:
 
-- `prod`: no suffix
+- `prod`: no suffix, under the per-user runtime socket directory
 - everything else: `-<stage>.sock`
 
 ## Local Development Implication

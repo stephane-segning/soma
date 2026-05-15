@@ -30,11 +30,7 @@ impl AgentdService {
     }
 
     pub(super) async fn status_inner(&self) -> Result<EngineStatus, Status> {
-        self.state
-            .engine
-            .status()
-            .await
-            .map_err(|err| Status::internal(err.to_string()))
+        Ok(self.state.engine.status())
     }
 }
 

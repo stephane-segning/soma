@@ -1,13 +1,10 @@
 # Agentd IPC
 
-`soma-agentd` is the local helper process for model-backed and CPU-heavy work.
+`soma-agentd` is the local helper process for desktop-only background helpers.
 
 Current implemented responsibilities include:
 
-- model status and model listing
-- chat and chat-stream RPCs
-- embeddings
-- rerank
+- service status and an empty compatibility model listing
 - Yjs drift merge / resolution
 - persisted background task tracking
 
@@ -27,7 +24,8 @@ There is still a broader architectural desire to move more policy mediation behi
 
 Default socket naming follows the desktop stage configuration:
 
-- prod: `/tmp/soma-agentd.sock`
+- prod Linux: `$XDG_RUNTIME_DIR/soma/soma-agentd.sock`
+- prod macOS: `$TMPDIR/soma/soma-agentd.sock`
 - dev: `/tmp/soma-agentd-dev.sock`
 - staging: `/tmp/soma-agentd-staging.sock`
 
@@ -46,18 +44,16 @@ TypeScript/Electron consumers use:
 Key RPCs currently exposed by `soma-agentd` include:
 
 - `Status`
-- `ListModels`
-- `Chat`
-- `ChatStream`
-- `InlineComplete`
-- `Embed`
-- `Rerank`
+- `ListModels` (compatibility only; returns no models)
 - `ResolveDrift`
+- `EnqueueBackgroundTask`
+- `ListBackgroundTasks`
+
+The proto still contains `Chat`, `ChatStream`, `InlineComplete`, `Embed`, and `Rerank`, but the Rust `soma-agentd` service now returns `UNIMPLEMENTED` for those model-backed methods.
 
 ## Important Behavior Notes
 
-- model capability metadata used by the UI is still local desktop configuration, not a daemon-owned contract
-- current chat streaming should be treated as the current implemented behavior, not as a guarantee of token-perfect provider streaming semantics
+- model capability metadata used by the UI is still local desktop configuration, not an agentd-owned contract
 - `soma-agentd` is local IPC, not a network service
 
 ## Runtime Events To Renderer
@@ -80,6 +76,6 @@ Current event kinds include:
 
 - keep `soma-agentd` local-only
 - keep the socket path aligned with the app stage
-- when debugging model availability, start with `ListModels` and the configured provider base URL
+- when debugging model availability, use the explicit model provider path, not `soma-agentd`
 
-For local provider/model configuration, see `docs/src/development/agentd-models.md`.
+For the current compatibility boundary, see `docs/src/development/agentd-models.md`.

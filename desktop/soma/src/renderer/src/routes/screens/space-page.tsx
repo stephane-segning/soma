@@ -2,14 +2,14 @@ import { useAppDispatch } from "@app/store/hooks";
 import { tabsActions } from "@app/store/tabs";
 import { DocumentEditor, type JSONContent } from "@soma/editor";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { ErrorBoundary, type FallbackProps } from "react-error-boundary";
+import { ErrorBoundary } from "react-error-boundary";
 import { HotkeysProvider } from "react-hotkeys-hook";
 import { useLoaderData } from "react-router";
 import {
 	isDocumentEffectivelyEmpty,
-	normalizePageTitle,
 	UNTITLED_PAGE_TITLE,
 } from "./page-title";
+import { PageEditorFallback } from "./space-page/fallback";
 import { usePageEditorCommands } from "./space-page/editor-commands";
 import { loader } from "./space-page/loader";
 import { usePageMentionProviders } from "./space-page/mentions";
@@ -44,10 +44,7 @@ function Component(): React.JSX.Element {
 		pageTitle: data.pageTitle,
 		initialValue,
 	});
-	const { uploadFile, uploadImage } = usePageUploads({
-		spaceId: data.spaceId,
-		pageId: data.pageId,
-	});
+	const { uploadFile, uploadImage } = usePageUploads({ spaceId: data.spaceId, pageId: data.pageId });
 
 	const handleOpenPagePicker = useCallback((editor: EditorLike, range: { from: number; to: number }) => {
 		pendingPageInsertRef.current = { editor, range };
@@ -95,10 +92,7 @@ function Component(): React.JSX.Element {
 		uploadImage,
 	});
 	const mentionProviders = usePageMentionProviders(data.spaceId);
-	const handleQuickAction = usePageQuickActions({
-		spaceId: data.spaceId,
-		pageId: data.pageId,
-	});
+	const handleQuickAction = usePageQuickActions({ spaceId: data.spaceId, pageId: data.pageId });
 
 	const handleOpenPageLink = useCallback(
 		(pageId: string, title?: string) => {
@@ -122,9 +116,7 @@ function Component(): React.JSX.Element {
 				title: trimmed,
 			});
 			const title = updated?.title ?? trimmed;
-			if (pageId === data.pageId) {
-				noteTitleSynced(title);
-			}
+			if (pageId === data.pageId) noteTitleSynced(title);
 			return title;
 		},
 		[data.pageId, data.spaceId, noteTitleSynced],
@@ -133,7 +125,7 @@ function Component(): React.JSX.Element {
 	return (
 		<div className="h-full min-h-full px-14 py-8 md:py-12">
 			{showEmptyPageHint ? (
-				<div className="mx-auto mb-6 max-w-4xl rounded-2xl border border-dashed border-base-300 bg-base-100/70 px-4 py-3 text-sm text-base-content/70">
+				<div className="mx-auto mb-6 max-w-4xl rounded-2xl border border-base-300 border-dashed bg-base-100/70 px-4 py-3 text-base-content/70 text-sm">
 					Start with a note, press `/` for commands, or drag images and files into this page.
 				</div>
 			) : null}
@@ -166,22 +158,6 @@ function Component(): React.JSX.Element {
 	);
 }
 
-function PageEditorFallback({ error, resetErrorBoundary }: FallbackProps): React.JSX.Element {
-	const detail = error instanceof Error ? error.message : String(error);
-	return (
-		<div className="mx-auto my-8 w-full max-w-4xl rounded-2xl border border-error/30 bg-base-100 p-6 shadow-lg">
-			<h2 className="font-semibold text-lg">Editor crashed</h2>
-			<p className="mt-2 text-base-content/70 text-sm">{detail}</p>
-			<div className="mt-4 flex items-center gap-2">
-				<button className="btn btn-error btn-sm" onClick={resetErrorBoundary} type="button">
-					Retry editor
-				</button>
-				<button className="btn btn-ghost btn-sm" onClick={() => globalThis.location.reload()} type="button">
-					Reload page
-				</button>
-			</div>
-		</div>
-	);
-}
+Component.displayName = "SpacePage";
 
 export { Component, loader };

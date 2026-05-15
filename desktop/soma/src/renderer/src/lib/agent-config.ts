@@ -1,6 +1,6 @@
 export const AGENT_CONFIG_SETTINGS_KEY = "agent.config";
 
-export type AgentProvider = "agentd" | "openai-compatible";
+export type AgentProvider = "openai-compatible";
 
 export type AgentModelCapabilities = {
 	chat?: boolean;
@@ -105,7 +105,7 @@ export function normalizeWorkspaceRuntimeConfig(value: unknown): AgentWorkspaceR
 }
 
 function normalizeProvider(provider: unknown): AgentProvider {
-	if (provider === "agentd" || provider === "openai-compatible") {
+	if (provider === "openai-compatible") {
 		return provider;
 	}
 	return DEFAULT_AGENT_RUNTIME_CONFIG.provider;

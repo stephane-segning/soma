@@ -9,11 +9,13 @@ import type { SpacesController } from "./controllers/spaces-controller";
 import type { WindowController } from "./controllers/window-controller";
 import { registerAgentHandlers } from "./command-registry/agent-handlers";
 import { registerBlobHandlers } from "./command-registry/blob-handlers";
+import { registerDaemonHandlers } from "./command-registry/daemon-handlers";
 import { registerDocumentHandlers } from "./command-registry/document-handlers";
 import { registerSettingsStorageHandlers } from "./command-registry/settings-storage-handlers";
 import { registerSpaceHandlers } from "./command-registry/space-handlers";
-import { registerWindowLogHandlers } from "./command-registry/window-log-handlers";
 import type { CommandRegistryContext } from "./command-registry/types";
+import { registerWindowLogHandlers } from "./command-registry/window-log-handlers";
+import type { DaemonProcessManager } from "./services/daemon-process-manager";
 import type { DomainEventsService } from "./services/domain-events";
 import type { AppLogger } from "./services/logger";
 
@@ -30,6 +32,7 @@ export class CommandRegistry {
 		dbStorage: DbStorageController,
 		domainEvents: DomainEventsService,
 		windows: WindowController,
+		daemonProcess: DaemonProcessManager,
 		logger: AppLogger,
 	) {
 		this.context = {
@@ -42,6 +45,7 @@ export class CommandRegistry {
 			dbStorage,
 			domainEvents,
 			windows,
+			daemonProcess,
 			logger,
 		};
 	}
@@ -51,6 +55,7 @@ export class CommandRegistry {
 		registerDocumentHandlers(ipc, this.context);
 		registerAgentHandlers(ipc, this.context);
 		registerSpaceHandlers(ipc, this.context);
+		registerDaemonHandlers(ipc, this.context);
 		registerSettingsStorageHandlers(ipc, this.context);
 		registerWindowLogHandlers(ipc, this.context);
 	}

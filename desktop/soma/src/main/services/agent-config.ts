@@ -9,7 +9,7 @@ import {
 
 export const AGENT_CONFIG_SETTINGS_KEY = "agent.config";
 
-export type AgentProvider = "agentd" | "openai-compatible";
+export type AgentProvider = "openai-compatible";
 
 export type AgentModelCapabilities = {
 	chat?: boolean;
@@ -62,16 +62,12 @@ export type ResolvedWorkspaceAgentConfig = {
 
 export function normalizeAgentRuntimeConfig(value: unknown): AgentRuntimeConfig {
 	if (!value || typeof value !== "object") {
-		return {
-			...DEFAULT_AGENT_RUNTIME_CONFIG,
-		};
+		return { ...DEFAULT_AGENT_RUNTIME_CONFIG };
 	}
 
 	const maybe = value as Partial<AgentRuntimeConfig>;
-	const provider = normalizeProvider(maybe.provider, DEFAULT_AGENT_RUNTIME_CONFIG.provider);
-
 	return {
-		provider,
+		provider: normalizeProvider(maybe.provider, DEFAULT_AGENT_RUNTIME_CONFIG.provider),
 		openAiBaseUrl: normalizeUrl(maybe.openAiBaseUrl, DEFAULT_AGENT_RUNTIME_CONFIG.openAiBaseUrl),
 		openAiApiKey: typeof maybe.openAiApiKey === "string" ? maybe.openAiApiKey.trim() : "",
 		openAiChatModel: normalizeString(maybe.openAiChatModel, DEFAULT_AGENT_RUNTIME_CONFIG.openAiChatModel),

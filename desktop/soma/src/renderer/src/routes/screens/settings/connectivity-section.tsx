@@ -1,5 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
-import type { AgentProvider, AgentRuntimeConfig } from "./use-global-agent-settings";
+import type { AgentRuntimeConfig } from "./use-global-agent-settings";
 
 type ConnectivitySectionProps = {
 	draft: AgentRuntimeConfig;
@@ -25,17 +25,10 @@ export function ConnectivitySection({ draft, setDraft, title }: ConnectivitySect
 					Peer connectivity helps members reach each other. It does not bypass workspace membership, and discovery services do not store your private content.
 				</div>
 				<div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-					<label className="form-control w-full">
-						<span className="label-text">Provider</span>
-						<select
-							className="select select-bordered w-full"
-							onChange={(event) => setDraft((prev) => ({ ...prev, provider: event.target.value as AgentProvider }))}
-							value={draft.provider}
-						>
-							<option value="openai-compatible">openai-compatible</option>
-							<option value="agentd">agentd</option>
-						</select>
-					</label>
+					<div className="rounded-xl border border-base-300 bg-base-200/60 px-4 py-3 text-sm">
+						<div className="font-medium">Provider</div>
+						<div className="mt-1 text-base-content/70 text-xs">OpenAI-compatible endpoint</div>
+					</div>
 					<AgentTextInput label="API base URL" onChange={(openAiBaseUrl) => setDraft((prev) => ({ ...prev, openAiBaseUrl }))} placeholder="http://127.0.0.1:11434/v1" value={draft.openAiBaseUrl} />
 					<AgentTextInput label="API key (optional)" onChange={(openAiApiKey) => setDraft((prev) => ({ ...prev, openAiApiKey }))} placeholder="sk-..." type="password" value={draft.openAiApiKey ?? ""} />
 					<AgentTextInput label="Default chat model" onChange={(openAiChatModel) => setDraft((prev) => ({ ...prev, openAiChatModel }))} placeholder="llama3.2" value={draft.openAiChatModel} />

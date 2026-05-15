@@ -40,4 +40,5 @@ How they are used:
 
 Conventions:
 - Binaries are expected at `{{install_prefix}}/bin/soma-daemon` and `{{install_prefix}}/bin/soma-agentd`.
+- Production services bind sockets under the current user's runtime temp area, not directly under global `/tmp`: Linux uses `%t/soma/*.sock` (`$XDG_RUNTIME_DIR/soma`), and macOS uses `${TMPDIR}/soma/*.sock` with a uid-scoped `/tmp` fallback.
 - Services are not auto-enabled; operators should `systemctl --user enable --now soma-daemon` (and `soma-agentd`) or load the LaunchAgents via `launchctl bootstrap gui/$(id -u)`.

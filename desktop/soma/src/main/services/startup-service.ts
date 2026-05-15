@@ -8,8 +8,9 @@ import type { AgentEventsService } from "./agent-events";
 import type { AppDataStore, WindowState } from "./app-data-store";
 import type { BlobProtocolRegistrar } from "./blob-protocol";
 import type { DaemonClient } from "./daemon-client";
+import type { DaemonProcessManager } from "./daemon-process-manager";
 import { DaemonEventStreamBridge } from "./startup-service/daemon-events";
-import { waitForDaemonReady } from "./startup-service/daemon-readiness";
+import { checkDaemonOnce, ensureDaemonInBackground } from "./startup-service/daemon-readiness";
 import { createMainWindow, saveWindowStateOnChanges } from "./startup-service/main-window";
 import { createSplashWindow } from "./startup-service/splash-window";
 import type { DomainEventsService } from "./domain-events";
@@ -29,6 +30,7 @@ export class StartupService {
 		private readonly blobProtocol: BlobProtocolRegistrar,
 		private readonly commands: CommandRegistry,
 		private readonly daemon: DaemonClient,
+		private readonly daemonProcess: DaemonProcessManager,
 		private readonly agent: AgentClient,
 		private readonly agentEvents: AgentEventsService,
 		domainEvents: DomainEventsService,
@@ -40,10 +42,7 @@ export class StartupService {
 		protocol.registerSchemesAsPrivileged([
 			{
 				scheme: `${this.deepLinkScheme}-blob`,
-				privileges: {
-					secure: true,
-					standard: true,
-				},
+				privileges: { secure: true, standard: true },
 			},
 		]);
 
@@ -61,8 +60,7 @@ export class StartupService {
 	}
 
 	private registerEarlyHandlers(): void {
-		const hasSingleInstanceLock = app.requestSingleInstanceLock();
-		if (!hasSingleInstanceLock) {
+		if (!app.requestSingleInstanceLock()) {
 			app.quit();
 			return;
 		}
@@ -89,7 +87,8 @@ export class StartupService {
 		});
 
 		this.openSplashWindow();
-		await waitForDaemonReady(this.daemon, this.logger);
+		void checkDaemonOnce(this.daemon, this.logger);
+		void ensureDaemonInBackground(this.daemonProcess, this.logger);
 		this.daemonEvents.start();
 		this.startAgentEventStream();
 		this.openMainWindow(this.appDataStore.windowState);
@@ -180,8 +179,6 @@ export class StartupService {
 
 	private logPendingDeepLink(): void {
 		if (!this.pendingDeepLink) return;
-		this.logger.log("info", "received deep link", {
-			url: this.pendingDeepLink,
-		});
+		this.logger.log("info", "received deep link", { url: this.pendingDeepLink });
 	}
 }

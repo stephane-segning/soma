@@ -76,6 +76,18 @@ impl BackgroundTaskStore {
             .await
     }
 
+    pub async fn mark_failed_record(
+        &self,
+        mut record: BackgroundTaskRecord,
+        error: &str,
+    ) -> anyhow::Result<BackgroundTaskRecord> {
+        self.mark_failed(&record.task_id, error).await?;
+        record.status = BackgroundTaskStatus::Failed;
+        record.error = Some(error.to_string());
+        record.updated_at_ms = now_ms();
+        Ok(record)
+    }
+
     async fn update_state(
         &self,
         task_id: &str,
