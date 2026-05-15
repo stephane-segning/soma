@@ -89,30 +89,30 @@ sequenceDiagram
   Note over A: verify CID before persisting
 ```
 
-## 5) Local AI chat streaming (renderer -> main -> agent)
+## 5) Model chat (renderer -> main -> provider)
 
-The desktop renderer initiates a chat request via Electron IPC. The Electron main process coordinates `soma-agentd` and forwards runtime updates back to the renderer.
+The desktop renderer initiates a chat request via Electron IPC. Model-backed chat uses an explicit provider path rather than `soma-agentd`.
 
 Relevant code (desktop side):
 
 - Renderer: `desktop/soma/src/renderer/src/services/chat-service.ts`
-- Agent engine: `backend/bins/agentd/src/engine.rs`
+- Agent helper compatibility: `backend/bins/agentd/src/grpc.rs`
 
 ```mermaid
 sequenceDiagram
   participant R as Renderer (React)
   participant M as Electron main
-  participant A as soma-agentd
+  participant P as Model provider
 
   R->>M: chatStream(messages)
-  M->>A: start stream
-  A-->>M: stream events / result
+  M->>P: request completion
+  P-->>M: stream events / result
   M-->>R: stream events / result
 ```
 
 Implementation note:
 
-- current `ChatStream` behavior should be treated as the implemented runtime behavior, not as a guarantee of provider-native token-by-token streaming semantics
+- `soma-agentd` keeps model RPC declarations for compatibility but returns `UNIMPLEMENTED` for model-backed methods.
 
 ## 6) Server LLM BFF (optional)
 

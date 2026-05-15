@@ -12,6 +12,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ErrorBoundary, type FallbackProps } from "react-error-boundary";
 import { HotkeysProvider } from "react-hotkeys-hook";
 import { type LoaderFunctionArgs, useLoaderData } from "react-router";
+import * as chatService from "../../services/chat-service";
+import * as documentsService from "../../services/documents-service";
+import * as spacesService from "../../services/spaces-service";
 import {
 	deriveTitleFromDocument,
 	isDocumentEffectivelyEmpty,
@@ -19,9 +22,6 @@ import {
 	shouldSyncDerivedTitle,
 	UNTITLED_PAGE_TITLE,
 } from "./page-title";
-import * as chatService from "../../services/chat-service";
-import * as documentsService from "../../services/documents-service";
-import * as spacesService from "../../services/spaces-service";
 
 type LoaderData = {
 	spaceId: string;
@@ -271,12 +271,12 @@ function Component(): React.JSX.Element {
 			name: "New sub-page",
 			description: "Create a nested page and insert a link",
 			keywords: ["page", "subpage", "nested"],
-				handler: async ({ editor, range }) => {
-					const created = await documentsService.ensurePage({
-						spaceId: data.spaceId,
-						title: UNTITLED_PAGE_TITLE,
-						parentPageIds: [data.pageId],
-					});
+			handler: async ({ editor, range }) => {
+				const created = await documentsService.ensurePage({
+					spaceId: data.spaceId,
+					title: UNTITLED_PAGE_TITLE,
+					parentPageIds: [data.pageId],
+				});
 
 				editor
 					.chain()
@@ -573,7 +573,7 @@ function Component(): React.JSX.Element {
 
 			return {
 				status: "queued" as const,
-				message: "Research task queued in agentd.",
+				message: "Research task queued.",
 			};
 		},
 		[data.pageId, data.spaceId],
@@ -582,7 +582,7 @@ function Component(): React.JSX.Element {
 	return (
 		<div className="h-full min-h-full px-14 py-8 md:py-12">
 			{showEmptyPageHint ? (
-				<div className="mx-auto mb-6 max-w-4xl rounded-2xl border border-dashed border-base-300 bg-base-100/70 px-4 py-3 text-sm text-base-content/70">
+				<div className="mx-auto mb-6 max-w-4xl rounded-2xl border border-base-300 border-dashed bg-base-100/70 px-4 py-3 text-base-content/70 text-sm">
 					Start with a note, press `/` for commands, or drag images and files into this page.
 				</div>
 			) : null}
@@ -738,7 +738,7 @@ function PageLinkPicker({
 								onClick={() => onSelect(page)}
 								type="button"
 							>
-							<span className="truncate font-medium">{page.title || UNTITLED_PAGE_TITLE}</span>
+								<span className="truncate font-medium">{page.title || UNTITLED_PAGE_TITLE}</span>
 								<span className="shrink-0 text-base-content/50 text-xs">{page.pageId}</span>
 							</button>
 						))

@@ -1,6 +1,6 @@
+import { join, resolve } from "node:path";
 import { electronApp, is, optimizer } from "@electron-toolkit/utils";
 import { app, BrowserWindow, ipcMain, protocol, shell } from "electron";
-import { join, resolve } from "path";
 import icon from "../../../resources/icon.png?asset";
 import type { CommandRegistry } from "../command-registry";
 import type { AgentClient } from "./agent-client";
@@ -8,6 +8,7 @@ import type { AgentEventsService } from "./agent-events";
 import type { AppDataStore, WindowState } from "./app-data-store";
 import type { BlobProtocolRegistrar } from "./blob-protocol";
 import type { DaemonClient, DaemonStreamEvent } from "./daemon-client";
+import type { DaemonProcessManager } from "./daemon-process-manager";
 import type { DomainEventsService } from "./domain-events";
 import type { AppLogger } from "./logger";
 
@@ -27,6 +28,7 @@ export class StartupService {
 		private readonly blobProtocol: BlobProtocolRegistrar,
 		private readonly commands: CommandRegistry,
 		private readonly daemon: DaemonClient,
+		private readonly daemonProcess: DaemonProcessManager,
 		private readonly agent: AgentClient,
 		private readonly agentEvents: AgentEventsService,
 		private readonly domainEvents: DomainEventsService,
@@ -102,7 +104,8 @@ export class StartupService {
 		});
 
 		this.openSplashWindow();
-		await this.waitForDaemonReady();
+		void this.checkDaemonOnce();
+		void this.ensureDaemonInBackground();
 		this.startDaemonEventStream();
 		this.startAgentEventStream();
 
@@ -165,8 +168,8 @@ export class StartupService {
 
 		// HMR for renderer base on electron-vite cli.
 		// Load the remote URL for development or the local html file for production.
-		if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
-			mainWindow.loadURL(process.env["ELECTRON_RENDERER_URL"]);
+		if (is.dev && process.env.ELECTRON_RENDERER_URL) {
+			mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL);
 		} else {
 			mainWindow.loadFile(join(__dirname, "../renderer/index.html"));
 		}
@@ -272,34 +275,48 @@ export class StartupService {
 		this.attachWindowStateTracking(this.mainWindow);
 	}
 
-	private async waitForDaemonReady(): Promise<void> {
-		let attempts = 0;
-		this.logger.log("info", "waiting for daemon readiness");
-		while (true) {
-			attempts += 1;
-			try {
-				const status = await this.daemon.status();
-				if (status.peerId) {
-					this.logger.log("info", "daemon ready", {
-						peerId: status.peerId,
-						listenAddrs: status.listenAddrs,
-					});
-					return;
-				}
-				if (attempts % 20 === 0) {
-					this.logger.log("warn", "daemon status reported without peer id yet", {
-						attempt: attempts,
-					});
-				}
-			} catch (error) {
-				if (attempts === 1 || attempts % 20 === 0) {
-					this.logger.log("warn", "daemon not ready yet", {
-						attempt: attempts,
-						error: error instanceof Error ? error.message : String(error),
-					});
-				}
+	private async checkDaemonOnce(): Promise<void> {
+		this.logger.log("info", "checking daemon readiness");
+		try {
+			const status = await this.daemon.status();
+			if (status.peerId) {
+				this.logger.log("info", "daemon ready", {
+					peerId: status.peerId,
+					listenAddrs: status.listenAddrs,
+				});
+				return;
 			}
-			await sleep(500);
+			this.logger.log("warn", "daemon status reported without peer id");
+		} catch (error) {
+			this.logger.log("warn", "daemon unavailable at startup; opening app anyway", {
+				error: error instanceof Error ? error.message : String(error),
+			});
+		}
+	}
+
+	private async ensureDaemonInBackground(): Promise<void> {
+		try {
+			const status = await this.daemonProcess.status();
+			if (status.reachable) return;
+
+			this.logger.log("warn", "daemon is unavailable; attempting background start", {
+				socketPath: status.socketPath,
+				socketExists: status.socket?.exists,
+				socketOwnedByCurrentUser: status.socket?.ownedByCurrentUser,
+				error: status.error,
+			});
+
+			const result = await this.daemonProcess.control("start");
+			this.logger.log(result.ok ? "info" : "warn", "background daemon start finished", {
+				ok: result.ok,
+				message: result.message,
+				reachable: result.status.reachable,
+				socketPath: result.status.socketPath,
+			});
+		} catch (error) {
+			this.logger.log("warn", "background daemon start failed", {
+				error: error instanceof Error ? error.message : String(error),
+			});
 		}
 	}
 
@@ -484,10 +501,4 @@ export class StartupService {
 		this.mainWindow.show();
 		this.mainWindow.focus();
 	}
-}
-
-function sleep(ms: number): Promise<void> {
-	return new Promise((resolve) => {
-		setTimeout(resolve, ms);
-	});
 }

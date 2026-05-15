@@ -116,7 +116,7 @@ Events should follow the pattern: `<entity>_<action>`
 | Binary | Purpose | Notes |
 |--------|---------|-------|
 | `soma-daemon` | Desktop peer/IPC | Stable |
-| `soma-agentd` | Desktop LLM proxy | Stable |
+| `soma-agentd` | Desktop local helper | Stable |
 | `soma-botd` | Server peer/bot | Stable |
 | `soma-relayd` | Circuit relay | Stable |
 | `soma-rendezvousd` | Rendezvous discovery | Stable |

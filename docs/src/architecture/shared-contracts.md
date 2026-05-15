@@ -104,15 +104,15 @@ Transport: gRPC over Unix domain socket
 
 | RPC | Status | Description |
 |-----|--------|-------------|
-| `Status` | Stable | Get agent status and models |
-| `ListModels` | Stable | List available models |
-| `InlineComplete` | Stable | Inline code completion |
-| `Chat` | Stable | Single-turn chat |
-| `ChatStream` | Stable | Streaming chat |
-| `Embed` | Stable | Generate embeddings |
-| `Rerank` | Stable | Rerank candidates by relevance |
+| `Status` | Stable | Get local helper status |
+| `ListModels` | Compatibility | Returns an empty model list from agentd |
+| `InlineComplete` | Compatibility stub | Returns `UNIMPLEMENTED` from agentd |
+| `Chat` | Compatibility stub | Returns `UNIMPLEMENTED` from agentd |
+| `ChatStream` | Compatibility stub | Returns `UNIMPLEMENTED` from agentd |
+| `Embed` | Compatibility stub | Returns `UNIMPLEMENTED` from agentd |
+| `Rerank` | Compatibility stub | Returns `UNIMPLEMENTED` from agentd |
 | `ResolveDrift` | Stable | Merge Yjs updates |
-| `EnqueueBackgroundTask` | Stable | Queue background task |
+| `EnqueueBackgroundTask` | Compatibility | Persist a failed background task record |
 | `ListBackgroundTasks` | Stable | List background tasks |
 
 ### Event Types

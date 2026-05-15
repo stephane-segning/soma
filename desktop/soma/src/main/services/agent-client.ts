@@ -1,14 +1,6 @@
 import * as grpc from "@grpc/grpc-js";
-import {
-	type ChatStreamEvent,
-	AgentClient as GrpcAgentClient,
-	type BackgroundTask as ProtoBackgroundTask,
-	BackgroundTaskKind as ProtoBackgroundTaskKind,
-	BackgroundTaskStatus as ProtoBackgroundTaskStatus,
-	type ListModelsResponse,
-	ModelKind,
-} from "@soma/proto/agent/v1/agent";
-import Long from "long";
+import { createId } from "@paralleldrive/cuid2";
+import { AgentClient as GrpcAgentClient } from "@soma/proto/agent/v1/agent";
 import { type AgentProvider, normalizeAgentRuntimeConfig, resolveWorkspaceAgentConfig } from "./agent-config";
 
 export type ChatMessage = {
@@ -127,6 +119,7 @@ export type ListBackgroundTasksParams = {
 export class AgentClient {
 	private client: GrpcAgentClient;
 	private readonly readConfig: () => ReturnType<typeof normalizeAgentRuntimeConfig>;
+	private readonly backgroundTasks = new Map<string, BackgroundTask>();
 
 	constructor(socketPath: string, readConfig?: () => unknown) {
 		const address = `unix://${socketPath}`;
@@ -137,9 +130,6 @@ export class AgentClient {
 	async chatStream(messages: ChatMessage[], options: ChatOptions = {}): Promise<StreamEvent> {
 		const config = this.resolveRuntimeConfig(options.spaceId);
 		try {
-			if (config.provider === "agentd") {
-				return await this.chatStreamViaAgentd(messages, options);
-			}
 			return await this.chatStreamViaOpenAi(messages, options, config);
 		} catch (error) {
 			return {
@@ -150,17 +140,11 @@ export class AgentClient {
 
 	async listModels(spaceId?: string): Promise<AgentModel[]> {
 		const config = this.resolveRuntimeConfig(spaceId);
-		if (config.provider === "agentd") {
-			return this.listModelsViaAgentd();
-		}
 		return this.listModelsViaOpenAi(config);
 	}
 
 	async rerank(params: RerankParams): Promise<RerankResult[]> {
 		const config = this.resolveRuntimeConfig(params.spaceId);
-		if (config.provider === "agentd") {
-			return this.rerankViaAgentd(params);
-		}
 		if (!params.query?.trim()) {
 			throw new Error("query is required");
 		}
@@ -185,44 +169,32 @@ export class AgentClient {
 			throw new Error("selectionText is required");
 		}
 
-		const response = await new Promise<{ task?: ProtoBackgroundTask }>((resolve, reject) => {
-			this.client.enqueueBackgroundTask(
-				{
-					kind: this.toProtoTaskKind(params.kind),
-					spaceId: params.spaceId,
-					documentId: params.documentId,
-					selectionText: params.selectionText,
-					model: params.model ?? "",
-					persistInDocument: params.persistInDocument ?? false,
-				},
-				(err, result) => {
-					if (err) return reject(err);
-					resolve(result);
-				},
-			);
-		});
-
-		if (!response.task) {
-			throw new Error("agentd did not return the enqueued task");
-		}
-		return this.mapBackgroundTask(response.task);
+		const now = Date.now();
+		const task: BackgroundTask = {
+			taskId: createId(),
+			kind: params.kind,
+			status: "queued",
+			spaceId: params.spaceId,
+			documentId: params.documentId,
+			selectionText: params.selectionText,
+			persistInDocument: params.persistInDocument ?? false,
+			resultText: "",
+			error: "",
+			createdAtMs: now,
+			updatedAtMs: now,
+		};
+		this.backgroundTasks.set(task.taskId, task);
+		void this.runBackgroundTask(task.taskId, params.model);
+		return task;
 	}
 
 	async listBackgroundTasks(params: ListBackgroundTasksParams = {}): Promise<BackgroundTask[]> {
-		const response = await new Promise<{ tasks?: ProtoBackgroundTask[] }>((resolve, reject) => {
-			this.client.listBackgroundTasks(
-				{
-					spaceId: params.spaceId ?? "",
-					limit: params.limit ?? 50,
-				},
-				(err, result) => {
-					if (err) return reject(err);
-					resolve(result);
-				},
-			);
-		});
-
-		return (response.tasks ?? []).map((task) => this.mapBackgroundTask(task));
+		const limit = Math.max(1, params.limit ?? 50);
+		return Array.from(this.backgroundTasks.values())
+			.filter((task) => !params.spaceId || task.spaceId === params.spaceId)
+			.sort((left, right) => right.createdAtMs - left.createdAtMs)
+			.slice(0, limit)
+			.map((task) => ({ ...task }));
 	}
 
 	startEventStream(handlers: AgentRuntimeEventHandlers): () => void {
@@ -233,7 +205,6 @@ export class AgentClient {
 		const run = async () => {
 			if (stopped) return;
 			const config = this.resolveRuntimeConfig();
-			const baseUrl = this.baseUrlForProvider(config);
 			try {
 				const models = await this.listModels();
 				if (!emittedReady) {
@@ -241,7 +212,7 @@ export class AgentClient {
 						kind: "ready",
 						atMs: Date.now(),
 						provider: config.provider,
-						baseUrl,
+						baseUrl: config.openAiBaseUrl,
 					});
 					emittedReady = true;
 				}
@@ -249,7 +220,7 @@ export class AgentClient {
 					kind: "status",
 					atMs: Date.now(),
 					provider: config.provider,
-					baseUrl,
+					baseUrl: config.openAiBaseUrl,
 					models,
 				});
 			} catch (error) {
@@ -257,12 +228,13 @@ export class AgentClient {
 					kind: "error",
 					atMs: Date.now(),
 					provider: config.provider,
-					baseUrl,
+					baseUrl: config.openAiBaseUrl,
 					error: error instanceof Error ? error.message : String(error),
 				});
 			} finally {
-				if (stopped) return;
-				timer = setTimeout(run, Math.max(1_000, config.pollIntervalMs));
+				if (!stopped) {
+					timer = setTimeout(run, Math.max(1_000, config.pollIntervalMs));
+				}
 			}
 		};
 
@@ -275,103 +247,6 @@ export class AgentClient {
 				timer = null;
 			}
 		};
-	}
-
-	private async chatStreamViaAgentd(messages: ChatMessage[], options: ChatOptions = {}): Promise<StreamEvent> {
-		try {
-			const stream: grpc.ClientReadableStream<ChatStreamEvent> = this.client.chatStream({
-				model: options.model ?? "",
-				messages: messages.map((m) => ({
-					role: m.role,
-					content: m.content,
-				})),
-				temperature: options.temperature ?? 0,
-				maxTokens: Long.fromNumber(options.maxTokens ?? 256),
-			});
-
-			let combined = "";
-			return await new Promise<StreamEvent>((resolve, reject) => {
-				stream.on("data", (chunk: ChatStreamEvent) => {
-					if (chunk.token) combined += chunk.token;
-					if (chunk.done?.content) combined += chunk.done.content;
-				});
-				stream.on("end", () =>
-					resolve({
-						token: combined,
-						done: true,
-					}),
-				);
-				stream.on("error", (err) => reject(err));
-			});
-		} catch (error) {
-			return {
-				error: error instanceof Error ? error.message : String(error),
-			};
-		}
-	}
-
-	private async listModelsViaAgentd(): Promise<AgentModel[]> {
-		try {
-			const res = await new Promise<ListModelsResponse>((resolve, reject) => {
-				this.client.listModels({}, (err, response) => {
-					if (err) return reject(err);
-					resolve(response);
-				});
-			});
-			return (res.models ?? []).map((m) => ({
-				name: m.name,
-				kind: this.normalizeKind(m.kind),
-				path: m.path,
-				loaded: !!m.loaded,
-				sizeBytes: m.sizeBytes ? Number(m.sizeBytes) : undefined,
-			}));
-		} catch (err: any) {
-			if (err?.code === grpc.status.UNIMPLEMENTED) {
-				const status: any = await new Promise((resolve, reject) => {
-					this.client.status({}, (error, response) => {
-						if (error) return reject(error);
-						resolve(response);
-					});
-				});
-				return (status.models ?? []).map((m: any) => ({
-					name: m.name,
-					kind: this.normalizeKind(m.kind),
-					path: m.path,
-					loaded: !!m.loaded,
-					sizeBytes: m.size_bytes ? Number(m.size_bytes) : undefined,
-				}));
-			}
-			throw err;
-		}
-	}
-
-	private async rerankViaAgentd(params: RerankParams): Promise<RerankResult[]> {
-		if (!params.query?.trim()) {
-			throw new Error("query is required");
-		}
-		if (!params.candidates?.length) {
-			throw new Error("at least one candidate is required");
-		}
-
-		const res = await new Promise<{
-			results?: RerankResult[];
-		}>((resolve, reject) => {
-			this.client.rerank(
-				{
-					query: params.query,
-					candidates: params.candidates,
-					model: params.model ?? "",
-					topN: params.topN ?? 0,
-				},
-				(err, response) => {
-					if (err) return reject(err);
-					resolve(response);
-				},
-			);
-		});
-
-		const results = res.results ?? [];
-		return results.slice().sort((a, b) => a.rank - b.rank);
 	}
 
 	private async resolveDriftViaAgentd(params: ResolveDriftParams): Promise<ResolveDriftResult> {
@@ -404,6 +279,93 @@ export class AgentClient {
 		return {
 			mergedUpdateBase64: merged.toString("base64"),
 		};
+	}
+
+	private async runBackgroundTask(taskId: string, model?: string): Promise<void> {
+		const task = this.backgroundTasks.get(taskId);
+		if (!task) return;
+
+		this.updateBackgroundTask(taskId, {
+			status: "running",
+			error: "",
+		});
+
+		try {
+			const config = this.resolveRuntimeConfig(task.spaceId);
+			const response = await this.chatStreamViaOpenAi(
+				this.backgroundTaskMessages(task),
+				{
+					model,
+					maxTokens: 1_200,
+					temperature: task.kind === "research-selection" ? 0.3 : 0.2,
+					spaceId: task.spaceId,
+				},
+				config,
+			);
+			if (response.error) {
+				throw new Error(response.error);
+			}
+			this.updateBackgroundTask(taskId, {
+				status: "succeeded",
+				resultText: (response.token ?? "").trim(),
+			});
+		} catch (error) {
+			this.updateBackgroundTask(taskId, {
+				status: "failed",
+				error: error instanceof Error ? error.message : String(error),
+			});
+		}
+	}
+
+	private updateBackgroundTask(taskId: string, patch: Partial<BackgroundTask>): void {
+		const task = this.backgroundTasks.get(taskId);
+		if (!task) return;
+		this.backgroundTasks.set(taskId, {
+			...task,
+			...patch,
+			updatedAtMs: Date.now(),
+		});
+	}
+
+	private backgroundTaskMessages(task: BackgroundTask): ChatMessage[] {
+		const selection = task.selectionText.trim();
+		switch (task.kind) {
+			case "explain-selection":
+				return [
+					{
+						role: "system",
+						content: "Explain the selected text clearly and concisely. Avoid filler.",
+					},
+					{
+						role: "user",
+						content: selection,
+					},
+				];
+			case "expand-selection":
+				return [
+					{
+						role: "system",
+						content:
+							"Expand the selected text into richer, accurate prose that can be inserted directly into the document. Return only the expanded text.",
+					},
+					{
+						role: "user",
+						content: selection,
+					},
+				];
+			case "research-selection":
+				return [
+					{
+						role: "system",
+						content:
+							"Research and synthesize the selected text using the configured model provider. Return concise findings, useful context, and any uncertainty. Do not claim external web access unless the provider actually has it.",
+					},
+					{
+						role: "user",
+						content: selection,
+					},
+				];
+		}
 	}
 
 	private async chatStreamViaOpenAi(
@@ -526,13 +488,6 @@ export class AgentClient {
 		}));
 	}
 
-	private baseUrlForProvider(config: ReturnType<typeof resolveWorkspaceAgentConfig>): string {
-		if (config.provider === "agentd") {
-			return "unix://local-agentd";
-		}
-		return config.openAiBaseUrl;
-	}
-
 	private resolveRuntimeConfig(spaceId?: string): ReturnType<typeof resolveWorkspaceAgentConfig> {
 		return resolveWorkspaceAgentConfig(this.readConfig(), spaceId);
 	}
@@ -572,66 +527,6 @@ export class AgentClient {
 			return (await response.json()) as T;
 		} finally {
 			clearTimeout(timeout);
-		}
-	}
-
-	private normalizeKind(kind: ModelKind): AgentModel["kind"] {
-		if (kind === ModelKind.MODEL_KIND_CHAT) return "chat";
-		if (kind === ModelKind.MODEL_KIND_EMBED) return "embed";
-		return "unknown";
-	}
-
-	private toProtoTaskKind(kind: BackgroundTaskKind): ProtoBackgroundTaskKind {
-		switch (kind) {
-			case "explain-selection":
-				return ProtoBackgroundTaskKind.BACKGROUND_TASK_KIND_EXPLAIN_SELECTION;
-			case "expand-selection":
-				return ProtoBackgroundTaskKind.BACKGROUND_TASK_KIND_EXPAND_SELECTION;
-			case "research-selection":
-				return ProtoBackgroundTaskKind.BACKGROUND_TASK_KIND_RESEARCH_SELECTION;
-		}
-	}
-
-	private mapBackgroundTask(task: ProtoBackgroundTask): BackgroundTask {
-		return {
-			taskId: task.taskId,
-			kind: this.fromProtoTaskKind(task.kind),
-			status: this.fromProtoTaskStatus(task.status),
-			spaceId: task.spaceId,
-			documentId: task.documentId,
-			selectionText: task.selectionText,
-			persistInDocument: task.persistInDocument,
-			resultText: task.resultText,
-			error: task.error,
-			createdAtMs: Number(task.createdAtMs ?? 0),
-			updatedAtMs: Number(task.updatedAtMs ?? 0),
-		};
-	}
-
-	private fromProtoTaskKind(kind: ProtoBackgroundTaskKind): BackgroundTaskKind {
-		switch (kind) {
-			case ProtoBackgroundTaskKind.BACKGROUND_TASK_KIND_EXPLAIN_SELECTION:
-				return "explain-selection";
-			case ProtoBackgroundTaskKind.BACKGROUND_TASK_KIND_EXPAND_SELECTION:
-				return "expand-selection";
-			case ProtoBackgroundTaskKind.BACKGROUND_TASK_KIND_RESEARCH_SELECTION:
-			default:
-				return "research-selection";
-		}
-	}
-
-	private fromProtoTaskStatus(status: ProtoBackgroundTaskStatus): BackgroundTaskStatus {
-		switch (status) {
-			case ProtoBackgroundTaskStatus.BACKGROUND_TASK_STATUS_QUEUED:
-				return "queued";
-			case ProtoBackgroundTaskStatus.BACKGROUND_TASK_STATUS_RUNNING:
-				return "running";
-			case ProtoBackgroundTaskStatus.BACKGROUND_TASK_STATUS_SUCCEEDED:
-				return "succeeded";
-			case ProtoBackgroundTaskStatus.BACKGROUND_TASK_STATUS_FAILED:
-				return "failed";
-			default:
-				return "unknown";
 		}
 	}
 }

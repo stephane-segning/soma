@@ -2,7 +2,6 @@ import { TanstackTable } from "@app/components/tables/tanstack-table";
 import {
 	AGENT_CONFIG_SETTINGS_KEY,
 	type AgentModelCapabilities,
-	type AgentProvider,
 	type AgentRuntimeConfig,
 	DEFAULT_AGENT_RUNTIME_CONFIG,
 	normalizeAgentRuntimeConfig,
@@ -10,12 +9,18 @@ import {
 	normalizeOptionalString,
 } from "@app/lib/agent-config";
 import { useSetSettingMutation, useSettingQuery } from "@app/queries/settings";
-import { type SpaceMember, useMyMembershipsQuery, useRevokeMembershipMutation, useSpacesQuery } from "@app/queries/spaces";
+import {
+	type SpaceMember,
+	useMyMembershipsQuery,
+	useRevokeMembershipMutation,
+	useSpacesQuery,
+} from "@app/queries/spaces";
 import { api } from "@app/store/api";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
+import * as daemonService from "../../services/daemon-service";
 import { describeRole, formatRoleLabel } from "./access-utils";
 
 function Component(): React.JSX.Element {
@@ -30,6 +35,9 @@ function Component(): React.JSX.Element {
 	}));
 	const [newCapabilityModel, setNewCapabilityModel] = useState("");
 	const [spaceMessage, setSpaceMessage] = useState<string | null>(null);
+	const [daemonStatus, setDaemonStatus] = useState<daemonService.DaemonRuntimeStatus | null>(null);
+	const [daemonMessage, setDaemonMessage] = useState<string | null>(null);
+	const [isDaemonBusy, setIsDaemonBusy] = useState(false);
 	const membershipsQuery = useMyMembershipsQuery();
 	const spacesQuery = useSpacesQuery();
 	const { mutateAsync: revokeMembershipAsync, isLoading: isRevokingMembership } = useRevokeMembershipMutation();
@@ -37,6 +45,21 @@ function Component(): React.JSX.Element {
 	useEffect(() => {
 		setDraft(normalizeAgentRuntimeConfig(rawConfig));
 	}, [rawConfig]);
+
+	const refreshDaemonStatus = useCallback(async () => {
+		try {
+			const status = await daemonService.getDaemonStatus();
+			setDaemonStatus(status);
+			setDaemonMessage(status.reachable ? null : (status.error ?? "Daemon is not reachable."));
+		} catch (error) {
+			setDaemonStatus(null);
+			setDaemonMessage(error instanceof Error ? error.message : String(error));
+		}
+	}, []);
+
+	useEffect(() => {
+		void refreshDaemonStatus();
+	}, [refreshDaemonStatus]);
 
 	const capabilityModels = useMemo(() => {
 		const names = new Set<string>();
@@ -52,29 +75,42 @@ function Component(): React.JSX.Element {
 		});
 	};
 
-	const updateCapability = useCallback((
-		modelName: string,
-		key: keyof Omit<AgentModelCapabilities, "updatedAtMs">,
-		value: boolean,
-	) => {
-		const normalizedName = normalizeOptionalString(modelName);
-		if (!normalizedName) return;
-		setDraft((prev) => {
-			const current = prev.modelCapabilities[normalizedName] ?? {};
-			const nextCaps: AgentModelCapabilities = {
-				...current,
-				[key]: value,
-				updatedAtMs: Date.now(),
-			};
-			return {
-				...prev,
-				modelCapabilities: {
-					...prev.modelCapabilities,
-					[normalizedName]: nextCaps,
-				},
-			};
-		});
+	const runDaemonAction = useCallback(async (action: daemonService.DaemonControlAction) => {
+		setIsDaemonBusy(true);
+		setDaemonMessage(null);
+		try {
+			const result = await daemonService.controlDaemon(action);
+			setDaemonStatus(result.status);
+			setDaemonMessage(result.message ?? (result.ok ? `Daemon ${action} completed.` : `Daemon ${action} failed.`));
+		} catch (error) {
+			setDaemonMessage(error instanceof Error ? error.message : String(error));
+		} finally {
+			setIsDaemonBusy(false);
+		}
 	}, []);
+
+	const updateCapability = useCallback(
+		(modelName: string, key: keyof Omit<AgentModelCapabilities, "updatedAtMs">, value: boolean) => {
+			const normalizedName = normalizeOptionalString(modelName);
+			if (!normalizedName) return;
+			setDraft((prev) => {
+				const current = prev.modelCapabilities[normalizedName] ?? {};
+				const nextCaps: AgentModelCapabilities = {
+					...current,
+					[key]: value,
+					updatedAtMs: Date.now(),
+				};
+				return {
+					...prev,
+					modelCapabilities: {
+						...prev.modelCapabilities,
+						[normalizedName]: nextCaps,
+					},
+				};
+			});
+		},
+		[],
+	);
 
 	const removeCapabilityModel = useCallback((modelName: string) => {
 		setDraft((prev) => {
@@ -115,27 +151,26 @@ function Component(): React.JSX.Element {
 		return map;
 	}, [spacesQuery.data?.spaces]);
 
-	const leaveSpace = useCallback(async (spaceId: string, subjectPeerId: string) => {
-		const spaceName = spaceNameById.get(spaceId) ?? spaceId;
-		if (!window.confirm(`Leave ${spaceName}? This removes this device's current membership for that workspace.`)) {
-			return;
-		}
-		try {
-			const accepted = await revokeMembershipAsync({
-				spaceId,
-				subjectPeerId,
-				reason: "left from settings",
-			});
-			setSpaceMessage(
-				accepted
-					? `Left ${spaceName}.`
-					: `No active membership was removed for ${spaceName}.`,
-			);
-		} catch (error) {
-			const message = error instanceof Error ? error.message : String(error);
-			setSpaceMessage(`Failed to leave space: ${message}`);
-		}
-	}, [revokeMembershipAsync, spaceNameById]);
+	const leaveSpace = useCallback(
+		async (spaceId: string, subjectPeerId: string) => {
+			const spaceName = spaceNameById.get(spaceId) ?? spaceId;
+			if (!window.confirm(`Leave ${spaceName}? This removes this device's current membership for that workspace.`)) {
+				return;
+			}
+			try {
+				const accepted = await revokeMembershipAsync({
+					spaceId,
+					subjectPeerId,
+					reason: "left from settings",
+				});
+				setSpaceMessage(accepted ? `Left ${spaceName}.` : `No active membership was removed for ${spaceName}.`);
+			} catch (error) {
+				const message = error instanceof Error ? error.message : String(error);
+				setSpaceMessage(`Failed to leave space: ${message}`);
+			}
+		},
+		[revokeMembershipAsync, spaceNameById],
+	);
 	const memberships = membershipsQuery.data ?? [];
 	const membershipColumns = useMemo<ColumnDef<SpaceMember>[]>(
 		() => [
@@ -264,9 +299,85 @@ function Component(): React.JSX.Element {
 
 			<div className="card border border-base-300 bg-base-100">
 				<div className="card-body space-y-4">
+					<div className="flex flex-wrap items-start justify-between gap-3">
+						<div>
+							<h2 className="card-title text-base">Local daemon</h2>
+							<p className="text-base-content/70 text-sm">
+								Soma can open without the daemon, but spaces, pages, memberships, and attachments need it to be
+								reachable.
+							</p>
+						</div>
+						<div className={daemonStatus?.reachable ? "badge badge-success" : "badge badge-warning"}>
+							{daemonStatus?.reachable ? "Reachable" : "Unavailable"}
+						</div>
+					</div>
+					{daemonMessage ? <div className="rounded-lg bg-base-200 px-3 py-2 text-sm">{daemonMessage}</div> : null}
+					<div className="grid gap-3 md:grid-cols-3">
+						<div className="rounded-xl border border-base-300 bg-base-200/60 px-4 py-3">
+							<div className="text-base-content/60 text-xs uppercase tracking-[0.12em]">Socket</div>
+							<div className="mt-1 break-all font-mono text-xs">{daemonStatus?.socketPath ?? "Unknown"}</div>
+							<div className="mt-1 text-base-content/70 text-xs">
+								{daemonStatus?.socket?.exists
+									? daemonStatus.socket.ownedByCurrentUser === false
+										? "Socket exists but is not owned by this user"
+										: "Socket exists"
+									: "Socket missing"}
+							</div>
+						</div>
+						<div className="rounded-xl border border-base-300 bg-base-200/60 px-4 py-3">
+							<div className="text-base-content/60 text-xs uppercase tracking-[0.12em]">Peer</div>
+							<div className="mt-1 truncate font-mono text-xs">{daemonStatus?.peerId ?? "Not connected"}</div>
+							<div className="mt-1 text-base-content/70 text-xs">
+								{daemonStatus?.listenAddrs.length ?? 0} listen addresses
+							</div>
+						</div>
+						<div className="rounded-xl border border-base-300 bg-base-200/60 px-4 py-3">
+							<div className="text-base-content/60 text-xs uppercase tracking-[0.12em]">Control</div>
+							<div className="mt-2 flex flex-wrap gap-2">
+								<button
+									className="btn btn-primary btn-xs"
+									disabled={isDaemonBusy}
+									onClick={() => void runDaemonAction("start")}
+									type="button"
+								>
+									Start
+								</button>
+								<button
+									className="btn btn-outline btn-xs"
+									disabled={isDaemonBusy}
+									onClick={() => void runDaemonAction("restart")}
+									type="button"
+								>
+									Restart
+								</button>
+								<button
+									className="btn btn-ghost btn-xs"
+									disabled={isDaemonBusy}
+									onClick={() => void runDaemonAction("stop")}
+									type="button"
+								>
+									Stop
+								</button>
+								<button
+									className="btn btn-ghost btn-xs"
+									disabled={isDaemonBusy}
+									onClick={() => void refreshDaemonStatus()}
+									type="button"
+								>
+									Refresh
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div className="card border border-base-300 bg-base-100">
+				<div className="card-body space-y-4">
 					<h2 className="card-title text-base">People and access</h2>
 					<p className="text-base-content/70 text-sm">
-						These are this device&apos;s current space memberships. Open a space&apos;s settings to manage other members and approvals.
+						These are this device&apos;s current space memberships. Open a space&apos;s settings to manage other members
+						and approvals.
 					</p>
 					{spaceMessage ? <div className="rounded-lg bg-base-200 px-3 py-2 text-sm">{spaceMessage}</div> : null}
 
@@ -279,7 +390,9 @@ function Component(): React.JSX.Element {
 						<div className="rounded-xl border border-base-300 bg-base-200/60 px-4 py-3">
 							<div className="text-base-content/60 text-xs uppercase tracking-[0.12em]">Advanced join</div>
 							<div className="mt-1 font-semibold text-base">Request access to a space</div>
-							<div className="text-base-content/70 text-xs">Use this when an existing member sends manual connection info</div>
+							<div className="text-base-content/70 text-xs">
+								Use this when an existing member sends manual connection info
+							</div>
 							<div className="mt-2">
 								<Link className="btn btn-ghost btn-xs" to="/spaces/join">
 									Open join screen
@@ -289,14 +402,18 @@ function Component(): React.JSX.Element {
 						<div className="rounded-xl border border-base-300 bg-base-200/60 px-4 py-3">
 							<div className="text-base-content/60 text-xs uppercase tracking-[0.12em]">What happens next</div>
 							<div className="mt-1 font-semibold text-base">Waiting for approval</div>
-							<div className="text-base-content/70 text-xs">Submitting a request does not make this device a member yet</div>
+							<div className="text-base-content/70 text-xs">
+								Submitting a request does not make this device a member yet
+							</div>
 						</div>
 					</div>
 
 					<TanstackTable
 						columns={membershipColumns}
 						data={memberships}
-						emptyMessage={<span>This device is not a member of any spaces yet. Use the join screen or create a new space.</span>}
+						emptyMessage={
+							<span>This device is not a member of any spaces yet. Use the join screen or create a new space.</span>
+						}
 						getRowId={(row) => `${row.spaceId}:${row.peerId}`}
 						isLoading={membershipsQuery.isLoading}
 						loadingMessage="Loading memberships..."
@@ -314,37 +431,34 @@ function Component(): React.JSX.Element {
 					<div className="grid gap-3 md:grid-cols-3">
 						<div className="rounded-xl border border-base-300 bg-base-200/60 px-4 py-3 text-sm">
 							<div className="font-medium">Works locally now</div>
-							<div className="mt-1 text-base-content/70 text-xs">Pages and attachments already stored on this device remain available.</div>
+							<div className="mt-1 text-base-content/70 text-xs">
+								Pages and attachments already stored on this device remain available.
+							</div>
 						</div>
 						<div className="rounded-xl border border-base-300 bg-base-200/60 px-4 py-3 text-sm">
 							<div className="font-medium">May complete later</div>
-							<div className="mt-1 text-base-content/70 text-xs">Access requests, attachments this device has not downloaded yet, and remote updates can wait for connectivity.</div>
+							<div className="mt-1 text-base-content/70 text-xs">
+								Access requests, attachments this device has not downloaded yet, and remote updates can wait for
+								connectivity.
+							</div>
 						</div>
 						<div className="rounded-xl border border-base-300 bg-base-200/60 px-4 py-3 text-sm">
 							<div className="font-medium">Improves with infra</div>
-							<div className="mt-1 text-base-content/70 text-xs">Discovery services help devices find each other. If your space has an always-on bot, it can also keep shared attachments available when another member device is offline.</div>
+							<div className="mt-1 text-base-content/70 text-xs">
+								Discovery services help devices find each other. If your space has an always-on bot, it can also keep
+								shared attachments available when another member device is offline.
+							</div>
 						</div>
 					</div>
-					<div className="rounded-xl border border-base-300 bg-base-200/40 px-4 py-3 text-sm text-base-content/70">
-						Peer connectivity helps members reach each other. It does not bypass workspace membership, and discovery services do not store your private content.
+					<div className="rounded-xl border border-base-300 bg-base-200/40 px-4 py-3 text-base-content/70 text-sm">
+						Peer connectivity helps members reach each other. It does not bypass workspace membership, and discovery
+						services do not store your private content.
 					</div>
 					<div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-						<label className="form-control w-full">
-							<span className="label-text">Provider</span>
-							<select
-								className="select select-bordered w-full"
-								onChange={(event) =>
-									setDraft((prev) => ({
-										...prev,
-										provider: event.target.value as AgentProvider,
-									}))
-								}
-								value={draft.provider}
-							>
-								<option value="openai-compatible">openai-compatible</option>
-								<option value="agentd">agentd</option>
-							</select>
-						</label>
+						<div className="rounded-xl border border-base-300 bg-base-200/60 px-4 py-3 text-sm">
+							<div className="font-medium">Provider</div>
+							<div className="mt-1 text-base-content/70 text-xs">OpenAI-compatible endpoint</div>
+						</div>
 						<label className="form-control w-full">
 							<span className="label-text">API base URL</span>
 							<input

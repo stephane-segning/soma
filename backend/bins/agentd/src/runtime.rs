@@ -14,8 +14,7 @@ pub async fn run_from_cli() -> SomaResult<()> {
     let args = Args::parse();
     let config = AgentdConfig::from_args(&args);
 
-    let engine =
-        EngineHandle::spawn(config.clone()).map_err(|err| soma_core::Error::Anyhow(err.into()))?;
+    let engine = EngineHandle::spawn(config.clone());
     let task_store = BackgroundTaskStore::connect(&config.db_path)
         .await
         .map_err(|err| soma_core::Error::Anyhow(err.into()))?;
@@ -23,9 +22,6 @@ pub async fn run_from_cli() -> SomaResult<()> {
     info!(
         socket = %config.socket_path.display(),
         db_path = %config.db_path.display(),
-        provider_base_url = %config.provider_base_url,
-        default_chat_model = %config.default_chat_model,
-        default_embed_model = %config.default_embed_model,
         "soma-agentd starting"
     );
 

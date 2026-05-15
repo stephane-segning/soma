@@ -7,7 +7,7 @@ On a user device you typically run:
 - **Soma desktop app** (`desktop/soma`, Electron + React) — the main UI for spaces, documents, and chat.
 - **Tapia** (`desktop/tapia`, Electron + React) — a typing-practice companion app that shares stage/socket conventions, but currently has a lighter and less backend-integrated feature surface than Soma.
 - **soma-daemon** (`backend/bins/daemon`) — the local Rust backend that owns the libp2p identity, storage, and networking.
-- **soma-agentd** (`backend/bins/agentd`, optional) — a local “CPU-heavy” worker (LLM inference, OCR, indexing, …).
+- **soma-agentd** (`backend/bins/agentd`, optional) — a local helper process for desktop-only background helpers such as Yjs drift resolution.
 
 This document explains how those pieces fit together and how optional infrastructure (relay/rendezvous/bots) improves connectivity and availability.
 
@@ -31,7 +31,7 @@ The key design rule is: **desktop apps do not implement libp2p**; they delegate 
 
 ## Optional local worker: `soma-agentd`
 
-`soma-agentd` is a desktop-only helper process intended for long-running CPU/GPU tasks (LLMs, embeddings, rerank, drift resolution, and related model-backed work).
+`soma-agentd` is a desktop-only helper process for local helper RPCs. It no longer proxies or serves model calls; model/provider access is handled by explicit provider paths outside agentd.
 
 In the current desktop implementation, the Electron main process coordinates the agent process and forwards runtime updates back to the renderer.
 
@@ -45,7 +45,7 @@ flowchart LR
     SomaUI["Soma desktop app<br/>(Electron + React)"]
     TapiaUI["Tapia companion app<br/>(Electron + React)"]
     Daemon["soma-daemon<br/>(Rust libp2p peer + storage)"]
-    Agent["soma-agentd (optional)<br/>(local AI/compute)"]
+    Agent["soma-agentd (optional)<br/>(local helpers)"]
 
     SomaUI -- IPC (gRPC over UDS) --> Daemon
     TapiaUI -. optional or app-specific use .-> Daemon

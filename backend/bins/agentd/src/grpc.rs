@@ -1,16 +1,11 @@
-use std::{cmp::Ordering, pin::Pin, sync::Arc};
+use std::{pin::Pin, sync::Arc};
 
 use futures::Stream;
 use soma_proto_build::agent;
-use tokio_stream::{StreamExt as TokioStreamExt, wrappers::UnboundedReceiverStream};
 use tonic::{Request, Response, Status};
-use tracing::warn;
 use yrs::{Doc, ReadTxn, StateVector, Transact, Update, updates::decoder::Decode};
 
-use crate::engine::{
-    ChatMessage, ChatRequest, EmbedRequest, EngineChatStreamEvent, EngineHandle, EngineStatus,
-    ModelKind,
-};
+use crate::engine::{EngineHandle, EngineStatus};
 use crate::tasks::{
     BackgroundTaskKind as StoreBackgroundTaskKind, BackgroundTaskRecord,
     BackgroundTaskStatus as StoreBackgroundTaskStatus, BackgroundTaskStore,
@@ -35,11 +30,7 @@ impl AgentdService {
     }
 
     async fn status_inner(&self) -> Result<EngineStatus, Status> {
-        self.state
-            .engine
-            .status()
-            .await
-            .map_err(|err| Status::internal(err.to_string()))
+        Ok(self.state.engine.status())
     }
 }
 
@@ -73,87 +64,16 @@ impl agent::agent_server::Agent for AgentdService {
         &self,
         request: Request<agent::InlineCompleteRequest>,
     ) -> Result<Response<agent::InlineCompleteResponse>, Status> {
-        let payload = request.into_inner();
-        let prompt = payload.prompt.trim();
-        if prompt.is_empty() {
-            return Ok(Response::new(agent::InlineCompleteResponse {
-                completion: String::new(),
-                model: payload.model,
-            }));
-        }
-
-        let mut messages = Vec::new();
-        if !payload.context.trim().is_empty() {
-            messages.push(ChatMessage {
-                role: "system".to_string(),
-                content: payload.context,
-            });
-        }
-        messages.push(ChatMessage {
-            role: "user".to_string(),
-            content: prompt.to_string(),
-        });
-
-        let model = if payload.model.trim().is_empty() {
-            None
-        } else {
-            Some(payload.model.clone())
-        };
-
-        let completion = self
-            .state
-            .engine
-            .chat(ChatRequest {
-                model: model.clone(),
-                messages,
-                temperature: 0.7,
-                max_tokens: 256,
-            })
-            .await
-            .map_err(|err| Status::internal(err.to_string()))?;
-
-        Ok(Response::new(agent::InlineCompleteResponse {
-            completion,
-            model: model.unwrap_or_default(),
-        }))
+        let _ = request;
+        Err(model_rpcs_disabled())
     }
 
     async fn chat(
         &self,
         request: Request<agent::ChatRequest>,
     ) -> Result<Response<agent::ChatResponse>, Status> {
-        let payload = request.into_inner();
-        let model = if payload.model.trim().is_empty() {
-            None
-        } else {
-            Some(payload.model.clone())
-        };
-
-        let messages = payload
-            .messages
-            .into_iter()
-            .map(|m| ChatMessage {
-                role: m.role,
-                content: m.content,
-            })
-            .collect();
-
-        let content = self
-            .state
-            .engine
-            .chat(ChatRequest {
-                model: model.clone(),
-                messages,
-                temperature: payload.temperature,
-                max_tokens: payload.max_tokens,
-            })
-            .await
-            .map_err(|err| Status::internal(err.to_string()))?;
-
-        Ok(Response::new(agent::ChatResponse {
-            model: model.unwrap_or_default(),
-            content,
-        }))
+        let _ = request;
+        Err(model_rpcs_disabled())
     }
 
     type ChatStreamStream =
@@ -163,161 +83,24 @@ impl agent::agent_server::Agent for AgentdService {
         &self,
         request: Request<agent::ChatRequest>,
     ) -> Result<Response<Self::ChatStreamStream>, Status> {
-        let payload = request.into_inner();
-        let model = if payload.model.trim().is_empty() {
-            None
-        } else {
-            Some(payload.model.clone())
-        };
-
-        let messages = payload
-            .messages
-            .into_iter()
-            .map(|m| ChatMessage {
-                role: m.role,
-                content: m.content,
-            })
-            .collect();
-
-        let token_rx = self
-            .state
-            .engine
-            .chat_stream(ChatRequest {
-                model: model.clone(),
-                messages,
-                temperature: payload.temperature,
-                max_tokens: payload.max_tokens,
-            })
-            .await
-            .map_err(|err| Status::internal(err.to_string()))?;
-
-        let stream = UnboundedReceiverStream::new(token_rx).map(move |res| match res {
-            Ok(EngineChatStreamEvent::Token(tok)) => Ok(agent::ChatStreamEvent {
-                event: Some(agent::chat_stream_event::Event::Token(tok)),
-            }),
-            Ok(EngineChatStreamEvent::Done(content)) => Ok(agent::ChatStreamEvent {
-                event: Some(agent::chat_stream_event::Event::Done(agent::ChatResponse {
-                    model: model.clone().unwrap_or_default(),
-                    content,
-                })),
-            }),
-            Err(err) => Err(Status::internal(err.to_string())),
-        });
-
-        Ok(Response::new(Box::pin(stream)))
+        let _ = request;
+        Err(model_rpcs_disabled())
     }
 
     async fn embed(
         &self,
         request: Request<agent::EmbedRequest>,
     ) -> Result<Response<agent::EmbedResponse>, Status> {
-        let payload = request.into_inner();
-        let model = if payload.model.trim().is_empty() {
-            None
-        } else {
-            Some(payload.model.clone())
-        };
-
-        let embeddings = self
-            .state
-            .engine
-            .embed(EmbedRequest {
-                model: model.clone(),
-                input: payload.input,
-            })
-            .await
-            .map_err(|err| Status::internal(err.to_string()))?;
-
-        Ok(Response::new(agent::EmbedResponse {
-            model: model.unwrap_or_default(),
-            embeddings: embeddings
-                .into_iter()
-                .map(|values| agent::EmbedVector { values })
-                .collect(),
-        }))
+        let _ = request;
+        Err(model_rpcs_disabled())
     }
 
     async fn rerank(
         &self,
         request: Request<agent::RerankRequest>,
     ) -> Result<Response<agent::RerankResponse>, Status> {
-        let payload = request.into_inner();
-        let top_n = payload.top_n;
-        let query = payload.query;
-        let candidates = payload.candidates;
-
-        if query.trim().is_empty() {
-            return Err(Status::invalid_argument("query is required"));
-        }
-        if candidates.is_empty() {
-            return Err(Status::invalid_argument("candidates are required"));
-        }
-
-        let model = if payload.model.trim().is_empty() {
-            None
-        } else {
-            Some(payload.model.clone())
-        };
-
-        let mut inputs = Vec::with_capacity(candidates.len() + 1);
-        inputs.push(query.clone());
-        for cand in &candidates {
-            if cand.content.trim().is_empty() {
-                return Err(Status::invalid_argument("candidate content is required"));
-            }
-            inputs.push(cand.content.clone());
-        }
-
-        let embeddings = self
-            .state
-            .engine
-            .embed(EmbedRequest {
-                model: model.clone(),
-                input: inputs,
-            })
-            .await
-            .map_err(|err| Status::internal(err.to_string()))?;
-
-        if embeddings.len() != candidates.len() + 1 {
-            return Err(Status::internal("embed returned unexpected vector count"));
-        }
-
-        let mut embeddings_iter = embeddings.into_iter();
-        let Some(query_vec) = embeddings_iter.next() else {
-            return Err(Status::internal("missing query embedding"));
-        };
-        let mut scored = candidates
-            .into_iter()
-            .zip(embeddings_iter)
-            .map(|(cand, emb)| ScoredCandidate {
-                id: cand.id,
-                score: cosine_similarity(&query_vec, &emb),
-            })
-            .collect::<Vec<_>>();
-
-        scored.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(Ordering::Equal));
-
-        let top_n = if top_n == 0 {
-            scored.len()
-        } else {
-            top_n as usize
-        };
-
-        let results = scored
-            .into_iter()
-            .take(top_n)
-            .enumerate()
-            .map(|(idx, cand)| agent::RerankResult {
-                id: cand.id,
-                score: cand.score,
-                rank: (idx + 1) as u32,
-            })
-            .collect();
-
-        Ok(Response::new(agent::RerankResponse {
-            model: model.unwrap_or_default(),
-            results,
-        }))
+        let _ = request;
+        Err(model_rpcs_disabled())
     }
 
     async fn resolve_drift(
@@ -373,19 +156,12 @@ impl agent::agent_server::Agent for AgentdService {
             .await
             .map_err(|err| Status::internal(err.to_string()))?;
 
-        let model = payload.model.trim();
-        let model = if model.is_empty() {
-            None
-        } else {
-            Some(model.to_string())
-        };
-
-        let task_store = self.state.task_store.clone();
-        let engine = self.state.engine.clone();
-        let task_for_worker = record.clone();
-        tokio::spawn(async move {
-            run_background_task(engine, task_store, task_for_worker, model).await;
-        });
+        let record = self
+            .state
+            .task_store
+            .mark_failed_record(record, MODEL_RPCS_DISABLED_MESSAGE)
+            .await
+            .map_err(|err| Status::internal(err.to_string()))?;
 
         Ok(Response::new(agent::EnqueueBackgroundTaskResponse {
             task: Some(map_background_task_record(record)),
@@ -421,104 +197,21 @@ impl agent::agent_server::Agent for AgentdService {
     }
 }
 
+const MODEL_RPCS_DISABLED_MESSAGE: &str =
+    "soma-agentd no longer provides model-backed RPCs; use an explicit model provider instead";
+
+fn model_rpcs_disabled() -> Status {
+    Status::unimplemented(MODEL_RPCS_DISABLED_MESSAGE)
+}
+
 fn map_model_info(m: crate::engine::ModelInfo) -> agent::ModelInfo {
     agent::ModelInfo {
         name: m.name,
-        kind: match m.kind {
-            ModelKind::Chat => agent::ModelKind::Chat as i32,
-            ModelKind::Embed => agent::ModelKind::Embed as i32,
-            ModelKind::Unknown => agent::ModelKind::Unspecified as i32,
-        },
+        kind: agent::ModelKind::Unspecified as i32,
         path: m.path,
         loaded: m.loaded,
         size_bytes: m.size_bytes.unwrap_or_default(),
     }
-}
-
-async fn run_background_task(
-    engine: EngineHandle,
-    task_store: BackgroundTaskStore,
-    task: BackgroundTaskRecord,
-    model: Option<String>,
-) {
-    if let Err(err) = task_store.mark_running(&task.task_id).await {
-        warn!(
-            task_id = %task.task_id,
-            error = %err,
-            "failed to mark background task as running"
-        );
-    }
-
-    let messages =
-        build_background_messages(task.kind, &task.selection_text, task.persist_in_document);
-    let result = engine
-        .chat(ChatRequest {
-            model,
-            messages,
-            temperature: 0.2,
-            max_tokens: 1_200,
-        })
-        .await;
-
-    match result {
-        Ok(content) => {
-            if let Err(err) = task_store
-                .mark_succeeded(&task.task_id, content.trim())
-                .await
-            {
-                warn!(
-                    task_id = %task.task_id,
-                    error = %err,
-                    "failed to mark background task as succeeded"
-                );
-            }
-        }
-        Err(err) => {
-            if let Err(store_err) = task_store
-                .mark_failed(&task.task_id, &err.to_string())
-                .await
-            {
-                warn!(
-                    task_id = %task.task_id,
-                    error = %store_err,
-                    "failed to mark background task as failed"
-                );
-            }
-        }
-    }
-}
-
-fn build_background_messages(
-    kind: StoreBackgroundTaskKind,
-    selection_text: &str,
-    persist_in_document: bool,
-) -> Vec<ChatMessage> {
-    let instruction = match kind {
-        StoreBackgroundTaskKind::ExplainSelection => {
-            "Explain the selected text clearly for a teammate. Be concise and practical."
-        }
-        StoreBackgroundTaskKind::ExpandSelection => {
-            if persist_in_document {
-                "Expand the selected text into richer content that can be inserted directly into the document. Return only the expanded text."
-            } else {
-                "Expand the selected text with more detail and context."
-            }
-        }
-        StoreBackgroundTaskKind::ResearchSelection => {
-            "Research the selected topic. Use search tools if available in your runtime. Return a concise summary plus bullet points and sources when possible."
-        }
-    };
-
-    vec![
-        ChatMessage {
-            role: "system".to_string(),
-            content: instruction.to_string(),
-        },
-        ChatMessage {
-            role: "user".to_string(),
-            content: selection_text.to_string(),
-        },
-    ]
 }
 
 fn map_background_task_record(record: BackgroundTaskRecord) -> agent::BackgroundTask {
@@ -567,35 +260,6 @@ fn map_store_status_to_proto(status: StoreBackgroundTaskStatus) -> agent::Backgr
         StoreBackgroundTaskStatus::Succeeded => agent::BackgroundTaskStatus::Succeeded,
         StoreBackgroundTaskStatus::Failed => agent::BackgroundTaskStatus::Failed,
     }
-}
-
-struct ScoredCandidate {
-    id: String,
-    score: f64,
-}
-
-fn cosine_similarity(a: &[f32], b: &[f32]) -> f64 {
-    if a.is_empty() || b.is_empty() || a.len() != b.len() {
-        return 0.0;
-    }
-
-    let mut dot = 0.0_f64;
-    let mut norm_a = 0.0_f64;
-    let mut norm_b = 0.0_f64;
-
-    for (ai, bi) in a.iter().zip(b.iter()) {
-        let a = f64::from(*ai);
-        let b = f64::from(*bi);
-        dot += a * b;
-        norm_a += a * a;
-        norm_b += b * b;
-    }
-
-    if norm_a == 0.0 || norm_b == 0.0 {
-        return 0.0;
-    }
-
-    dot / (norm_a.sqrt() * norm_b.sqrt())
 }
 
 fn merge_yjs_updates(left: &[u8], right: &[u8]) -> Result<Vec<u8>, String> {

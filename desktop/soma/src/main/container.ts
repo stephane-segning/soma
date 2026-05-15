@@ -17,6 +17,7 @@ import { AgentEventsService } from "./services/agent-events";
 import { AppDataStore } from "./services/app-data-store";
 import { BlobProtocolRegistrar } from "./services/blob-protocol";
 import { DaemonClient } from "./services/daemon-client";
+import { DaemonProcessManager } from "./services/daemon-process-manager";
 import { DomainEventsService } from "./services/domain-events";
 import { AppLogger } from "./services/logger";
 import { StartupService } from "./services/startup-service";
@@ -38,6 +39,17 @@ export function buildContainer(options: ContainerOptions): Container {
 	container
 		.bind<DaemonClient>(TYPES.DaemonClient)
 		.toDynamicValue(() => new DaemonClient(options.runtimeConfig.daemonSocketPath));
+	container
+		.bind<DaemonProcessManager>(TYPES.DaemonProcessManager)
+		.toDynamicValue(
+			(ctx) =>
+				new DaemonProcessManager(
+					options.runtimeConfig,
+					ctx.get(TYPES.DaemonClient),
+					ctx.get(TYPES.Logger),
+					options.isDev,
+				),
+		);
 	container.bind<AgentClient>(TYPES.AgentClient).toDynamicValue(
 		(ctx) =>
 			new AgentClient(options.runtimeConfig.agentSocketPath, () => {
@@ -94,6 +106,7 @@ export function buildContainer(options: ContainerOptions): Container {
 					ctx.get(TYPES.DbStorageController),
 					ctx.get(TYPES.DomainEvents),
 					ctx.get(TYPES.WindowController),
+					ctx.get(TYPES.DaemonProcessManager),
 					ctx.get(TYPES.Logger),
 				),
 		);
@@ -108,6 +121,7 @@ export function buildContainer(options: ContainerOptions): Container {
 					ctx.get(TYPES.BlobProtocol),
 					ctx.get(TYPES.CommandRegistry),
 					ctx.get(TYPES.DaemonClient),
+					ctx.get(TYPES.DaemonProcessManager),
 					ctx.get(TYPES.AgentClient),
 					ctx.get(TYPES.AgentEvents),
 					ctx.get(TYPES.DomainEvents),
