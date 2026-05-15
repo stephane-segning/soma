@@ -1,6 +1,6 @@
 {
 	"name": "soma",
-	"version": "1.1.0",
+	"version": "1.1.1",
 	"description": "Soma desktop workspace app",
 	"main": "./out/main/index.js",
 	"author": "example.com",
