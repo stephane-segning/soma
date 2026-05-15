@@ -13,7 +13,10 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum CommandKind {
-    Version(VersionCmd),
+    Version {
+        #[command(subcommand)]
+        command: VersionCmd,
+    },
 }
 
 #[derive(Subcommand)]
@@ -28,7 +31,7 @@ enum VersionCmd {
 fn main() -> Result<()> {
     let cli = Cli::parse();
     match cli.command {
-        CommandKind::Version(cmd) => cmd.run(),
+        CommandKind::Version { command } => command.run(),
     }
 }
 

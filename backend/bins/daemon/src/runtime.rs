@@ -1,32 +1,30 @@
-use async_trait::async_trait;
 use clap::Parser;
 use soma_core::SomaResult;
-use soma_membership::{JoinPolicy, build_join_decider};
-use soma_net::{IdentityManager, NetIdentity};
-use soma_peer::{
-    PeerCommand, PeerConfig, SpaceAuthorizer,
-    bootstrap::{PeerBootstrapper, PeerLauncher},
-    join::JoinDecider,
-};
+use soma_net::IdentityManager;
+use soma_peer::{PeerCommand, bootstrap::PeerLauncher};
 use soma_proto_build::daemon;
-use soma_socket::{GrpcUnixServer, GrpcUnixService};
+use soma_socket::GrpcUnixServer;
 use soma_storage::RepositoryProvider;
 use soma_vdfs::BlobProvider;
 use std::sync::Arc;
-use std::time::Duration;
 use tokio::{
     signal,
     sync::{Mutex, broadcast},
 };
-use tonic::transport::{Server, server::Router as TonicRouter};
 use tracing::info;
 
 use crate::config::{Args, Command, DaemonConfig};
 use crate::dispatch::build_dispatcher;
 use crate::grpc::{DaemonService, DaemonState};
 use crate::services::space::{DefaultSpaceManager, SpaceManager};
+use bootstrap::DaemonPeerBootstrap;
+use grpc_service::DaemonGrpcService;
+use helpers::{ensure_default_space, spawn_mailbox_sweeper};
 use soma_vdfs::fs::FsBlobStore;
-use std::path::{Path, PathBuf};
+
+mod bootstrap;
+mod grpc_service;
+mod helpers;
 
 /// Build configuration from CLI args and run the daemon runtime.
 pub async fn run_from_cli() -> SomaResult<()> {
@@ -153,94 +151,4 @@ pub async fn run(config: DaemonConfig) -> SomaResult<()> {
     }
 
     Ok(())
-}
-
-struct DaemonGrpcService {
-    socket_path: PathBuf,
-    svc: daemon::daemon_server::DaemonServer<DaemonService>,
-}
-
-impl GrpcUnixService for DaemonGrpcService {
-    fn socket_path(&self) -> &Path {
-        &self.socket_path
-    }
-
-    fn configure(self, mut server: Server) -> TonicRouter {
-        server.add_service(self.svc)
-    }
-}
-
-struct DaemonPeerBootstrap {
-    identity_path: PathBuf,
-    listen_addrs: Vec<libp2p::Multiaddr>,
-    bootstrap_addrs: Vec<libp2p::Multiaddr>,
-    rendezvous_addrs: Vec<libp2p::Multiaddr>,
-    relay_addrs: Vec<libp2p::Multiaddr>,
-    enable_mdns: bool,
-    blob_provider: Arc<dyn BlobProvider>,
-    repos: Arc<dyn RepositoryProvider>,
-}
-
-#[derive(Clone)]
-struct StorageSpaceAuthorizer {
-    repos: Arc<dyn RepositoryProvider>,
-}
-
-#[async_trait]
-impl SpaceAuthorizer for StorageSpaceAuthorizer {
-    async fn can_read_space(&self, peer: &libp2p::PeerId, space_id: &str) -> bool {
-        let repo = self.repos.membership_repo();
-        repo.get_membership(space_id, &peer.to_string())
-            .await
-            .map(|m| m.is_some())
-            .unwrap_or(false)
-    }
-}
-
-impl PeerBootstrapper for DaemonPeerBootstrap {
-    fn identity_path(&self) -> &Path {
-        &self.identity_path
-    }
-
-    fn build_config(&self, identity: &NetIdentity) -> PeerConfig {
-        let join_decider: Arc<dyn JoinDecider> = build_join_decider(
-            &self.repos,
-            identity.keypair().clone(),
-            identity.peer_id(),
-            JoinPolicy::manual_only(),
-        );
-
-        PeerConfig::builder()
-            .identity_path(self.identity_path.clone())
-            .listen_addrs(self.listen_addrs.clone())
-            .bootstrap_addrs(self.bootstrap_addrs.clone())
-            .rendezvous_nodes(self.rendezvous_addrs.clone())
-            .relay_addrs(self.relay_addrs.clone())
-            .enable_mdns(self.enable_mdns)
-            .join_decider(join_decider)
-            .blob_provider(self.blob_provider.clone())
-            .space_authorizer(Arc::new(StorageSpaceAuthorizer {
-                repos: self.repos.clone(),
-            }) as Arc<dyn SpaceAuthorizer>)
-            .build()
-            .expect("peer config")
-    }
-}
-
-fn spawn_mailbox_sweeper(state: Arc<DaemonState>) {
-    tokio::spawn(async move {
-        loop {
-            tokio::time::sleep(Duration::from_secs(5 * 60)).await;
-            soma_membership::outbox::sweep_due(&state.repos, &state.peer_id, &state.peer_commands)
-                .await;
-        }
-    });
-}
-
-async fn ensure_default_space(manager: &Arc<dyn SpaceManager>) -> SomaResult<()> {
-    const DEFAULT_SPACE_ID: &str = "private";
-    const DEFAULT_SPACE_NAME: &str = "Private space";
-    manager
-        .ensure_owned_space(DEFAULT_SPACE_ID, Some(DEFAULT_SPACE_NAME.to_string()))
-        .await
 }

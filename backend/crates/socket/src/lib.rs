@@ -25,10 +25,9 @@ pub async fn serve_grpc_unix(
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
-        if let Err(error) = std::fs::set_permissions(
-            socket_path,
-            std::fs::Permissions::from_mode(0o666),
-        ) {
+        if let Err(error) =
+            std::fs::set_permissions(socket_path, std::fs::Permissions::from_mode(0o666))
+        {
             warn!(?error, path=?socket_path, "failed to set unix socket permissions");
         }
     }
