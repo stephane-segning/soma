@@ -24,16 +24,21 @@ Controllers are thin; the check should live in the service layer so all surfaces
 ## Where membership is enforced today
 - libp2p blobs: blob handler calls `SpaceAuthorizer` before serving bytes.
 - Daemon gRPC: `UploadBlob`/`UpsertDocument` require membership.
-- Join decisions: membership capabilities are signature/subject/issuer-checked before persistence; issuer delegations are verified when the owner key is known.
+- Space creation: `CreateSpace` stores owner metadata plus an owner-signed `SpaceGenesisArtifact`.
+- Join decisions: membership capabilities are signature/subject/issuer-checked before persistence; delegated issuer chains are verified when the owner key is known.
+- Issuer delegation: `IssueIssuerCapability` is implemented on daemon gRPC, requires the current daemon to own the space, and persists the owner-signed delegation locally.
+- Discovery: `DiscoverSpaces` is implemented as local known-space discovery. It does not query rendezvous metadata yet.
 
 ## Verification rules
 - Verify signatures with the signer’s libp2p public key (from Identify).
 - Bind `subject_peer_id` to the remote peer identity (not payload).
 - Enforce expiry on membership and issuer capabilities.
 - Delegation chain: owner signs issuer cap → issuer signs membership cap.
+- Reject signed capability payload mismatches so post-signature field tampering does not persist.
 
 ## Notes and gaps
 - Owner public key discovery is required to validate delegations where owner ≠ sender.
+- The signing payload uses the current CBOR view helpers; canonical CBOR remains a cross-version interoperability task.
 - UI guardrails should redirect non-members from space routes, but the backend is the security boundary.
 - Future work: revocation + key rotation, and optional end-to-end encryption by space.
 

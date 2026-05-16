@@ -62,6 +62,40 @@ pub async fn issue_issuer_capability_to_storage(
     Ok(issuer_cap)
 }
 
+pub async fn issue_owned_issuer_capability_to_storage(
+    repos: &dyn RepositoryProvider,
+    signer: &Keypair,
+    owner_peer_id: &PeerId,
+    space_id: &str,
+    delegate_peer_id: &PeerId,
+    expires_at_secs: Option<i64>,
+) -> SomaResult<IssuerCapability> {
+    let space = repos
+        .membership_repo()
+        .get_space(space_id)
+        .await?
+        .ok_or_else(|| Error::service("space not found"))?;
+    let owns_space = space
+        .owner_peer_id
+        .as_ref()
+        .map(|owner| owner == &owner_peer_id.to_string())
+        .unwrap_or(false);
+    if !owns_space {
+        return Err(Error::service("current peer does not own this space"));
+    }
+
+    issue_issuer_capability_to_storage(
+        repos,
+        signer,
+        owner_peer_id,
+        space_id,
+        delegate_peer_id,
+        vec![SpaceRole::Member],
+        expires_at_secs,
+    )
+    .await
+}
+
 pub(crate) async fn ensure_can_issue_membership(
     repos: &dyn RepositoryProvider,
     issuer_peer_id: &PeerId,

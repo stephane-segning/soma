@@ -27,6 +27,14 @@ impl MembershipRepository for SqlMembershipRepository {
         spaces::upsert_space(&self.pool, space).await
     }
 
+    async fn upsert_space_genesis(&self, space_id: &str, genesis: Vec<u8>) -> SomaResult<()> {
+        spaces::upsert_space_genesis(&self.pool, space_id, genesis).await
+    }
+
+    async fn get_space_genesis(&self, space_id: &str) -> SomaResult<Option<Vec<u8>>> {
+        spaces::get_space_genesis(&self.pool, space_id).await
+    }
+
     async fn get_space(&self, space_id: &str) -> SomaResult<Option<Space>> {
         spaces::get_space(&self.pool, space_id).await
     }

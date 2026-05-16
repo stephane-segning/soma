@@ -4,10 +4,10 @@
 //! Implementation tests should be done via integration tests that spawn a real daemon.
 
 use soma_proto_build::daemon::{
-    DaemonEvent, DecideJoinRequest, DiscoverSpacesRequest, DocumentBlobAddedEvent,
-    IssueIssuerCapabilityRequest, JoinDecisionEvent, JoinFailedEvent, JoinSpaceRequest,
-    JoinSpaceResponse, JoinSubmitEvent, ListJoinRequestsRequest, PageRecord, ReadBlobResponse,
-    StatusRequest, StatusResponse, UploadBlobRequest,
+    DaemonEvent, DecideJoinRequest, DiscoverSpacesRequest, DiscoverSpacesResponse, DiscoveredSpace,
+    DocumentBlobAddedEvent, IssueIssuerCapabilityRequest, JoinDecisionEvent, JoinFailedEvent,
+    JoinSpaceRequest, JoinSpaceResponse, JoinSubmitEvent, ListJoinRequestsRequest, PageRecord,
+    ReadBlobResponse, StatusRequest, StatusResponse, UploadBlobRequest,
 };
 
 #[test]
@@ -132,6 +132,18 @@ fn upload_blob_request_has_doc_id_for_yoopta() {
 #[test]
 fn discover_spaces_request_exists() {
     let _req = DiscoverSpacesRequest {};
+}
+
+#[test]
+fn discover_spaces_response_has_discovered_spaces() {
+    let resp = DiscoverSpacesResponse {
+        spaces: vec![DiscoveredSpace {
+            space_id: "space-1".into(),
+            display_name: "Space One".into(),
+            tags: vec![],
+        }],
+    };
+    assert_eq!(resp.spaces[0].space_id, "space-1");
 }
 
 #[test]

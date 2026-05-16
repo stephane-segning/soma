@@ -78,8 +78,8 @@ Transport: gRPC over Unix domain socket
 | `RevokeSpace` | Stable | Revoke member access |
 | `ListSpaceMembers` | Stable | List space members |
 | `ListMyMemberships` | Stable | List user's memberships |
-| `IssueIssuerCapability` | Unimplemented | Delegate issuer power |
-| `DiscoverSpaces` | Unimplemented | Discover spaces via rendezvous |
+| `IssueIssuerCapability` | Stable backend / desktop-hidden | Owner-gated issuer delegation |
+| `DiscoverSpaces` | Stable backend / desktop-hidden | Discover locally known spaces |
 | `ListSpaces` | Stable | List managed spaces |
 | `CreateSpace` | Stable | Create new space |
 | `GetSpace` | Stable | Get space details |
