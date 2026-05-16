@@ -1,22 +1,43 @@
-# Soma Documentation
+---
+layout: home
 
-Soma is a local-first workspace app for structured notes, private collaboration, and peer sync that improves as peers become reachable.
+hero:
+  name: Soma
+  text: Local-first workspaces for private collaboration.
+  tagline: Desktop notes, peer sync, content-addressed blobs, and optional local AI for teams that need useful work to continue when the network does not.
+  image:
+    src: /soma-mark.svg
+    alt: Soma mark
+  actions:
+    - theme: brand
+      text: Get Started
+      link: /getting-started/
+    - theme: alt
+      text: Read the Architecture
+      link: /architecture/soma-tapia
+    - theme: alt
+      text: View V2 Plan
+      link: /02-v2
 
-Practical expectation:
+features:
+  - title: Desktop-first, offline-capable
+    details: Soma keeps already-available spaces, pages, and attachments usable on the device, even when connectivity is weak or temporarily absent.
+  - title: Private spaces with explicit trust
+    details: Membership is capability-based, device identities are cryptographic, and bots only act when they have been intentionally authorized.
+  - title: Peer sync without cloud lock-in
+    details: Peers discover and fetch data over libp2p, with relay and rendezvous infrastructure helping connectivity rather than owning the content.
+  - title: Content-addressed attachments
+    details: Blobs live outside collaborative document state and are fetched by verified CIDs, so cache peers can improve availability without becoming upload endpoints.
+  - title: Soma plus Tapia
+    details: The monorepo ships the main Soma desktop app, the focused Tapia companion, shared UI packages, Rust daemons, and packaging automation.
+  - title: Developer-ready docs
+    details: Start from setup, architecture, contracts, backend flows, desktop UI conventions, packaging, security, and deployment references.
+---
 
-- work already on this device stays usable on weak networks
-- attachments already downloaded on this device stay usable
-- joins, attachments not yet downloaded on this device, and some remote updates may wait for reachable authorized peers
-- relay and discovery services help devices connect; an always-on bot can also help keep shared attachments available, but none of these guarantees instant delivery
+## Quick Paths
 
-Start with the [Overview](00-overview.md), [Getting Started](getting-started/index.md), and [Glossary](01-glossary.md), then dive deeper:
-
-- [Platform Components](architecture/soma-tapia.md) – desktop apps, local daemon, and supporting infrastructure.
-- [End-to-End Flows](architecture/e2e-flows.md) – join, blobs (CID fetch), and local AI flows.
-- [libp2p Primer](architecture/libp2p-primer.md) – key concepts used throughout the codebase.
-- [Peer Connectivity](architecture/peer-connectivity.md) – how peers discover and dial (mDNS, rendezvous, relays).
-- [Space Membership](architecture/space-membership.md) – capability-based security model for spaces.
-- [Blobs & Cache Peers](architecture/blobs-vdfs.md) – content-addressed blobs + fetch-by-CID protocol.
-- [Traits & Abstractions](architecture/traits.md) – trait-first convention and how to apply it.
-- [Getting Started](getting-started/index.md) – run `soma-daemon`, the Soma desktop app, and optional server peers.
-- [Packaging & Deployment](architecture/deployment.md) – desktop installers plus relay/rendezvous operations.
+- [Overview](00-overview.md) explains the product shape and core ideas.
+- [Getting Started](getting-started/index.md) gets the daemon, desktop app, and optional server peers running.
+- [End-to-End Flows](architecture/e2e-flows.md) traces join, blob, and local AI paths through the stack.
+- [Blobs and VDFs](architecture/blobs-vdfs.md) describes verified CID fetch and cache-only peers.
+- [UI Components](development/ui-components.md) documents the shared desktop UI package and Storybook workflow.
