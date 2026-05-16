@@ -2,11 +2,22 @@
   "name": "@soma/desktop-db",
   "version": "0.1.1",
   "private": true,
-  "type": "module",
+  "type": "commonjs",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepare": "pnpm run build",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "format": "biome format --write .",
     "lint": "biome check --write ."
