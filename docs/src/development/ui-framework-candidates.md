@@ -1,6 +1,6 @@
 # UI Framework Candidates
 
-Soma and Tapia currently use React 19, Tailwind CSS v4, DaisyUI, Headless UI, Floating UI, CVA, Motion, and a shared `@soma/ui` package. That works, but DaisyUI is carrying too much visual opinion into an app that wants a dense, native-feeling desktop surface.
+Soma and Tapia currently use React 19, Tailwind CSS v4, DaisyUI, Floating UI, Motion, and a shared @soma/ui package. That works, but DaisyUI is carrying too much visual opinion into an app that wants a dense, native-feeling desktop surface.
 
 ## What We Need
 
