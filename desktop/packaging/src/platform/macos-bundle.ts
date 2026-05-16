@@ -126,6 +126,9 @@ async function findStagedAppBundle(staging: string, appName: string) {
       if (!entry.isDirectory()) {
         continue;
       }
+      if (entry.name === "__MACOSX") {
+        continue;
+      }
       const lowerName = entry.name.toLowerCase();
       const entryPath = path.join(dir, entry.name);
       if (lowerName.endsWith(".app")) {
