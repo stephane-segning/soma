@@ -21,7 +21,13 @@ export default defineConfig((configEnv) => ({
 	},
 	renderer: {
 		resolve: {
-			alias: [{ find: "@app", replacement: resolve("src/renderer/src") }],
+			alias: [
+				{ find: "@app", replacement: resolve("src/renderer/src") },
+				{
+					find: "@soma/desktop-db",
+					replacement: resolve("../desktop-data/src/index.ts"),
+				},
+			],
 		},
 		plugins: [
 			react(),

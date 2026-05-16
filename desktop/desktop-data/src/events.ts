@@ -4,12 +4,12 @@ export type {
   AgentRuntimeEventPayload,
   DomainEventPayload,
   DomainEventSource
-} from "./events/types.ts";
+} from "./events/types";
 export {
   isAgentRuntimeEventPayload,
   parseAgentRuntimeEventPayload
-} from "./events/agent-events.ts";
+} from "./events/agent-events";
 export {
   isDomainEventPayload,
   parseDomainEventPayload
-} from "./events/domain-events.ts";
+} from "./events/domain-events";

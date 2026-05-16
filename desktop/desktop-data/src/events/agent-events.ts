@@ -4,8 +4,8 @@ import {
   parseAgentModelPayload,
   parseAgentProvider,
   parseAtMs
-} from "./parsing.ts";
-import type { AgentModelPayload, AgentRuntimeEventPayload } from "./types.ts";
+} from "./parsing";
+import type { AgentModelPayload, AgentRuntimeEventPayload } from "./types";
 
 export function isAgentRuntimeEventPayload(value: unknown): value is AgentRuntimeEventPayload {
   return parseAgentRuntimeEventPayload(value) !== null;

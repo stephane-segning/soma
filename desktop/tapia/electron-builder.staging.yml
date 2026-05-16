@@ -9,6 +9,10 @@ files:
   - '!{biome.jsonc,dev-app-update.yml,CHANGELOG.md,README.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+  - '!node_modules/@soma/desktop-config/src/**'
+  - '!node_modules/@soma/desktop-config/tsconfig.json'
+  - '!node_modules/@soma/desktop-db/src/**'
+  - '!node_modules/@soma/desktop-db/tsconfig.json'
 asarUnpack:
   - resources/**
 win:

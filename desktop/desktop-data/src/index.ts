@@ -1,7 +1,7 @@
 export {
   createIpcStorage,
   type DbStorageBridge
-} from "./storage/ipc-storage.ts";
+} from "./storage/ipc-storage";
 
 export {
   createTabsCollection,
@@ -12,7 +12,7 @@ export {
   type TabsSnapshot,
   type TabsTab,
   TABS_RECORD_ID
-} from "./collections/tabs.ts";
+} from "./collections/tabs";
 
 export {
   createMailboxCollection,
@@ -22,7 +22,7 @@ export {
   mailboxRecordId,
   type MailboxEntry,
   type MailboxRecord
-} from "./collections/mailbox.ts";
+} from "./collections/mailbox";
 
 export {
   createUiPreferencesCollection,
@@ -30,7 +30,7 @@ export {
   isUiPreferencesRecord,
   type UiPreferencesRecord,
   UI_PREFERENCES_RECORD_ID
-} from "./collections/ui-preferences.ts";
+} from "./collections/ui-preferences";
 
 export {
   createUploadJobsCollection,
@@ -39,7 +39,7 @@ export {
   type UploadJobRecord,
   type UploadJobResult,
   type UploadJobStatus
-} from "./collections/upload-jobs.ts";
+} from "./collections/upload-jobs";
 
 export {
   createRoutingCollection,
@@ -47,7 +47,7 @@ export {
   isRoutingRecord,
   type RoutingRecord,
   ROUTING_RECORD_ID
-} from "./collections/routing.ts";
+} from "./collections/routing";
 
 export {
   isDomainEventPayload,
@@ -59,4 +59,4 @@ export {
   type AgentModelPayload,
   type AgentProvider,
   type AgentRuntimeEventPayload
-} from "./events.ts";
+} from "./events";
