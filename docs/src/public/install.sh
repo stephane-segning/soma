@@ -1,18 +1,20 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/sh
+set -eu
 
 main() {
-  local repo="${SOMA_REPO:-stephane-segning/soma}"
-  local bundle_tag="${SOMA_BUNDLE_TAG:-}"
-  local api_url="https://api.github.com/repos/${repo}/releases?per_page=100"
+  repo="${SOMA_REPO:-stephane-segning/soma}"
+  bundle_tag="${SOMA_BUNDLE_TAG:-}"
+  api_url="https://api.github.com/repos/${repo}/releases?per_page=100"
+
+  tmp="$(mktemp -d)"
+  trap 'rm -rf "$tmp"' EXIT
 
   if [ -z "$bundle_tag" ]; then
-    bundle_tag="$(
-      curl -fsSL \
-        -H "Accept: application/vnd.github+json" \
-        "$api_url" |
-        awk -F'"' '/"tag_name": "bundle-/ { print $4; exit }'
-    )"
+    curl -fsSL \
+      -H "Accept: application/vnd.github+json" \
+      "$api_url" \
+      -o "$tmp/releases.json"
+    bundle_tag="$(awk -F'"' '/"tag_name": "bundle-/ { print $4; exit }' "$tmp/releases.json")"
   fi
 
   if [ -z "$bundle_tag" ]; then
@@ -21,11 +23,12 @@ main() {
     exit 1
   fi
 
-  local tmp
-  tmp="$(mktemp -d)"
-  trap 'rm -rf "$tmp"' EXIT
+  if ! command -v bash >/dev/null 2>&1; then
+    echo "bash is required to run the Soma release installer." >&2
+    exit 1
+  fi
 
-  local installer_url="https://github.com/${repo}/releases/download/${bundle_tag}/install.sh"
+  installer_url="https://github.com/${repo}/releases/download/${bundle_tag}/install.sh"
   echo "Installing Soma from ${bundle_tag}"
   curl -fsSL "$installer_url" -o "$tmp/install.sh"
   bash "$tmp/install.sh"
