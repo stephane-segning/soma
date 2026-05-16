@@ -87,5 +87,5 @@ export function configureBundleCommand(command: Argv): Argv<BundleArgs> {
     .option("tapia-app", {
       describe: "Path to Tapia desktop artifact",
       type: "string",
-    }) as Argv<BundleArgs>;
+    }) as unknown as Argv<BundleArgs>;
 }

@@ -82,5 +82,5 @@ export function configureReleaseCommand(command: Argv): Argv<ReleaseBundleArgs> 
     .option("repo-root", {
       describe: "Repo root (default: auto-detect)",
       type: "string",
-    }) as Argv<ReleaseBundleArgs>;
+    }) as unknown as Argv<ReleaseBundleArgs>;
 }
