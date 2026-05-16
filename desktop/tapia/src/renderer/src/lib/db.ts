@@ -1,4 +1,8 @@
-import { createIpcStorage, createRoutingCollection, createUiPreferencesCollection } from "@soma/desktop-db";
+import {
+	createIpcStorage,
+	createRoutingCollection,
+	createUiPreferencesCollection,
+} from "@soma/desktop-db";
 
 const api = typeof window !== "undefined" ? (window as any).api : undefined;
 if (!api?.dbStorage) {

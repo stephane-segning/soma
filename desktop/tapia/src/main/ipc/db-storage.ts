@@ -6,7 +6,9 @@ const appDataStore = new AppDataStore();
 export function registerDbStorageIpc(): void {
 	ipcMain.on("db_storage_get", (event, key) => {
 		const targetKey = typeof key === "string" ? key : key?.key;
-		event.returnValue = targetKey ? appDataStore.getReactDbItem(targetKey) : null;
+		event.returnValue = targetKey
+			? appDataStore.getReactDbItem(targetKey)
+			: null;
 	});
 	ipcMain.on("db_storage_set", (event, payload) => {
 		const key = typeof payload?.key === "string" ? payload.key : "";

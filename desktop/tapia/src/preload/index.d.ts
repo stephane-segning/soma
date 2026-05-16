@@ -1,5 +1,10 @@
 import { ElectronAPI } from "@electron-toolkit/preload";
-import type { Exercise, ExerciseAttempt, ExerciseDraft, LeaderboardEntry } from "../shared/exercise";
+import type {
+	Exercise,
+	ExerciseAttempt,
+	ExerciseDraft,
+	LeaderboardEntry,
+} from "../shared/exercise";
 
 declare global {
 	interface Window {

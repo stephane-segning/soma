@@ -1,13 +1,13 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import {
-	MAX_TABS,
 	coercePath,
 	createDefaultState,
 	isPersistedTabsStateV1,
+	MAX_TABS,
 	newTabId,
-	tabsToPersisted,
 	type PersistedTabsStateV1,
 	type TabsState,
+	tabsToPersisted,
 } from "./tabs-model";
 
 const initialState: TabsState = {

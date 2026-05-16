@@ -55,25 +55,24 @@ export function useGlobalAgentSettings() {
 		});
 	}, [draft, mutateAsync]);
 
-	const updateCapability = useCallback((
-		modelName: string,
-		key: keyof Omit<AgentModelCapabilities, "updatedAtMs">,
-		value: boolean,
-	) => {
-		const normalizedName = normalizeOptionalString(modelName);
-		if (!normalizedName) return;
-		setDraft((prev) => ({
-			...prev,
-			modelCapabilities: {
-				...prev.modelCapabilities,
-				[normalizedName]: {
-					...(prev.modelCapabilities[normalizedName] ?? {}),
-					[key]: value,
-					updatedAtMs: Date.now(),
+	const updateCapability = useCallback(
+		(modelName: string, key: keyof Omit<AgentModelCapabilities, "updatedAtMs">, value: boolean) => {
+			const normalizedName = normalizeOptionalString(modelName);
+			if (!normalizedName) return;
+			setDraft((prev) => ({
+				...prev,
+				modelCapabilities: {
+					...prev.modelCapabilities,
+					[normalizedName]: {
+						...(prev.modelCapabilities[normalizedName] ?? {}),
+						[key]: value,
+						updatedAtMs: Date.now(),
+					},
 				},
-			},
-		}));
-	}, []);
+			}));
+		},
+		[],
+	);
 
 	const removeCapabilityModel = useCallback((modelName: string) => {
 		setDraft((prev) => {

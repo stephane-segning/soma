@@ -1,5 +1,5 @@
-import { JoinRequestPanel } from "./join-request-panel";
 import { Link } from "react-router";
+import { JoinRequestPanel } from "./join-request-panel";
 
 function Component(): React.JSX.Element {
 	return (

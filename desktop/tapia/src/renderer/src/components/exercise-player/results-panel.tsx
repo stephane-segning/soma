@@ -36,10 +36,17 @@ export function ResultsPanel({
 			<div className="player__results-grid">
 				<Stat label={t("wpm")} value={wpm.toFixed(2)} />
 				<Stat label={t("accuracy")} value={`${accuracy.toFixed(0)}%`} />
-				<Stat label={t("duration")} value={`${Math.round(elapsedMs / 1000)}s`} />
+				<Stat
+					label={t("duration")}
+					value={`${Math.round(elapsedMs / 1000)}s`}
+				/>
 			</div>
 			<div className="player__save-state muted">
-				{isSaving ? t("saving") : saveError ? `${t("saveFailed")}: ${saveError}` : t("saved")}
+				{isSaving
+					? t("saving")
+					: saveError
+						? `${t("saveFailed")}: ${saveError}`
+						: t("saved")}
 			</div>
 			{children}
 		</div>

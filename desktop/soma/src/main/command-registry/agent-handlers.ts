@@ -2,12 +2,8 @@ import type { IpcMain } from "electron";
 import type { CommandRegistryContext } from "./types";
 
 export function registerAgentHandlers(ipc: IpcMain, context: CommandRegistryContext): void {
-	ipc.handle("agent_chat_stream", (_event, params) =>
-		context.agent.chatStream(params?.messages ?? [], params ?? {}),
-	);
-	ipc.handle("agent_list_models", (_event, params) =>
-		context.agent.listModels(params?.spaceId ?? params?.workspaceId),
-	);
+	ipc.handle("agent_chat_stream", (_event, params) => context.agent.chatStream(params?.messages ?? [], params ?? {}));
+	ipc.handle("agent_list_models", (_event, params) => context.agent.listModels(params?.spaceId ?? params?.workspaceId));
 	ipc.handle("agent_rerank", (_event, params) =>
 		context.agent.rerank({
 			query: params?.query ?? "",

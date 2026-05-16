@@ -23,7 +23,7 @@ export function createMainWindow(options: CreateMainWindowOptions): BrowserWindo
 		titleBarOverlay: false,
 		icon: options.icon,
 		webPreferences: {
-			preload: join(__dirname, "../../preload/index.js"),
+			preload: join(__dirname, "../preload/index.js"),
 			sandbox: false,
 			contextIsolation: true,
 		},
@@ -43,10 +43,7 @@ export function createMainWindow(options: CreateMainWindowOptions): BrowserWindo
 	return mainWindow;
 }
 
-export function saveWindowStateOnChanges(
-	window: BrowserWindow,
-	saveWindowState: (state: WindowState) => void,
-): void {
+export function saveWindowStateOnChanges(window: BrowserWindow, saveWindowState: (state: WindowState) => void): void {
 	let saveTimer: NodeJS.Timeout | null = null;
 	const save = () => {
 		if (window.isDestroyed()) return;

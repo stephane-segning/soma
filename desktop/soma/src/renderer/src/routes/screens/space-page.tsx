@@ -5,20 +5,17 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { HotkeysProvider } from "react-hotkeys-hook";
 import { useLoaderData } from "react-router";
-import {
-	isDocumentEffectivelyEmpty,
-	UNTITLED_PAGE_TITLE,
-} from "./page-title";
-import { PageEditorFallback } from "./space-page/fallback";
+import * as documentsService from "../../services/documents-service";
+import { isDocumentEffectivelyEmpty, UNTITLED_PAGE_TITLE } from "./page-title";
 import { usePageEditorCommands } from "./space-page/editor-commands";
+import { PageEditorFallback } from "./space-page/fallback";
 import { loader } from "./space-page/loader";
 import { usePageMentionProviders } from "./space-page/mentions";
 import { PageLinkPicker } from "./space-page/page-link-picker";
 import { usePageQuickActions } from "./space-page/quick-actions";
 import type { EditorLike, LoaderData, PageRecord, PendingPageInsert } from "./space-page/types";
-import { usePageAutosave } from "./space-page/use-autosave";
 import { usePageUploads } from "./space-page/uploads";
-import * as documentsService from "../../services/documents-service";
+import { usePageAutosave } from "./space-page/use-autosave";
 
 function parseContent(contentJson: string | null): JSONContent | undefined {
 	if (!contentJson) return undefined;

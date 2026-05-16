@@ -1,17 +1,26 @@
-import * as grpc from "@grpc/grpc-js";
-import {
-	type ChatStreamEvent,
-	type ListModelsResponse,
-	type RerankResponse,
-	type ResolveDriftResponse,
-	type StatusResponse,
+import type * as grpc from "@grpc/grpc-js";
+import type {
+	ChatStreamEvent,
+	ListModelsResponse,
+	RerankResponse,
+	ResolveDriftResponse,
+	StatusResponse,
 } from "@soma/proto/agent/v1/agent";
 import Long from "long";
 
 import type { AgentGrpcClient } from "./connection";
 import { isUnimplemented, unary } from "./connection";
 import { mapModelInfo } from "./mappers";
-import type { AgentModel, ChatMessage, ChatOptions, RerankParams, RerankResult, ResolveDriftParams, ResolveDriftResult, StreamEvent } from "./types";
+import type {
+	AgentModel,
+	ChatMessage,
+	ChatOptions,
+	RerankParams,
+	RerankResult,
+	ResolveDriftParams,
+	ResolveDriftResult,
+	StreamEvent,
+} from "./types";
 
 export async function chatStreamViaAgentd(
 	client: AgentGrpcClient,

@@ -1,7 +1,7 @@
 import { useJoinSpaceMutation } from "@app/queries/spaces";
 import { useState } from "react";
 import { Link } from "react-router";
-import { parseMultiaddrs, validateJoinDraft, type JoinDraft } from "./join-request-utils";
+import { type JoinDraft, parseMultiaddrs, validateJoinDraft } from "./join-request-utils";
 
 function JoinRequestPanel(): React.JSX.Element {
 	const { mutateAsync: joinSpaceAsync, isLoading: isJoiningSpace } = useJoinSpaceMutation();
@@ -49,12 +49,16 @@ function JoinRequestPanel(): React.JSX.Element {
 				<div className="rounded-xl border border-base-300 bg-base-200/60 px-4 py-3">
 					<div className="text-base-content/60 text-xs uppercase tracking-[0.12em]">What this does</div>
 					<div className="mt-1 font-semibold text-base">Submits an access request</div>
-					<div className="text-base-content/70 text-xs">A space only appears after the request is approved and the decision reaches this device.</div>
+					<div className="text-base-content/70 text-xs">
+						A space only appears after the request is approved and the decision reaches this device.
+					</div>
 				</div>
 				<div className="rounded-xl border border-base-300 bg-base-200/60 px-4 py-3">
 					<div className="text-base-content/60 text-xs uppercase tracking-[0.12em]">What you need</div>
 					<div className="mt-1 font-semibold text-base">Space ID + connection details</div>
-					<div className="text-base-content/70 text-xs">These come from the space owner or another delegated approver for that space.</div>
+					<div className="text-base-content/70 text-xs">
+						These come from the space owner or another delegated approver for that space.
+					</div>
 				</div>
 				<div className="rounded-xl border border-base-300 bg-base-200/60 px-4 py-3">
 					<div className="text-base-content/60 text-xs uppercase tracking-[0.12em]">Need help?</div>
@@ -120,7 +124,12 @@ function JoinRequestPanel(): React.JSX.Element {
 			{message ? <div className="rounded-lg bg-base-200 px-3 py-2 text-sm">{message}</div> : null}
 
 			<div className="flex justify-end">
-				<button className="btn btn-primary btn-sm" disabled={isJoiningSpace} onClick={() => void submitJoinRequest()} type="button">
+				<button
+					className="btn btn-primary btn-sm"
+					disabled={isJoiningSpace}
+					onClick={() => void submitJoinRequest()}
+					type="button"
+				>
 					{isJoiningSpace ? "Submitting..." : "Request access"}
 				</button>
 			</div>

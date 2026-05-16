@@ -1,5 +1,5 @@
 import { TanstackTable } from "@app/components/tables/tanstack-table";
-import { useSpaceQuery, useSpaceMembersQuery } from "@app/queries/spaces";
+import { useSpaceMembersQuery, useSpaceQuery } from "@app/queries/spaces";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -39,7 +39,9 @@ function Component(): React.JSX.Element {
 				header: "Member",
 				cell: ({ row }) => (
 					<div>
-						<div className="font-medium text-sm">{row.original.peerId === spaceQuery.data?.ownerPeerId ? "Owner device" : row.original.peerId}</div>
+						<div className="font-medium text-sm">
+							{row.original.peerId === spaceQuery.data?.ownerPeerId ? "Owner device" : row.original.peerId}
+						</div>
 						<div className="font-mono text-base-content/60 text-xs">{row.original.peerId}</div>
 					</div>
 				),
@@ -68,7 +70,8 @@ function Component(): React.JSX.Element {
 			<div className="space-y-2">
 				<h2 className="font-semibold text-lg">{t("space.members.title", "Members")}</h2>
 				<p className="text-base-content/70 text-sm">
-					{spaceQuery.data?.displayName?.trim() || spaceId || "This space"} shows who currently has access and what role they hold.
+					{spaceQuery.data?.displayName?.trim() || spaceId || "This space"} shows who currently has access and what role
+					they hold.
 				</p>
 			</div>
 			<div className="rounded-lg border border-base-300 bg-base-100">
@@ -79,7 +82,11 @@ function Component(): React.JSX.Element {
 					</div>
 					<div className="mt-2 grid gap-2 text-base-content/60 text-xs md:grid-cols-2">
 						<div>Owner manages access and settings. Editors can change content.</div>
-						<div>Viewers are read-only. Members are general participants. Bot is a membership role only; approval authority must be delegated separately, and bot work should stay within keeping attachments available, organizing content, or approved automation.</div>
+						<div>
+							Viewers are read-only. Members are general participants. Bot is a membership role only; approval authority
+							must be delegated separately, and bot work should stay within keeping attachments available, organizing
+							content, or approved automation.
+						</div>
 					</div>
 					<div className="mt-3">
 						<Link className="btn btn-ghost btn-xs" to={`/spaces/${spaceId}/settings`}>

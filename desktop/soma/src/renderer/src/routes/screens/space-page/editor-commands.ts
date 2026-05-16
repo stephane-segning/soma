@@ -1,13 +1,10 @@
-import {
-	defaultCommands,
-	type EditorCommand,
-} from "@soma/editor";
+import { defaultCommands, type EditorCommand } from "@soma/editor";
 import { useMemo } from "react";
-import { UNTITLED_PAGE_TITLE } from "../page-title";
 import * as documentsService from "../../../services/documents-service";
+import { UNTITLED_PAGE_TITLE } from "../page-title";
+import type { EditorLike } from "./types";
 import type { BlobFileAttrs, BlobImageAttrs } from "./uploads";
 import { pickFiles } from "./uploads";
-import type { EditorLike } from "./types";
 
 type UsePageEditorCommandsInput = {
 	spaceId: string;

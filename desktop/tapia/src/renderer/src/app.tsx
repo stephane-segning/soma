@@ -1,3 +1,4 @@
+import { createRoutingRecord, ROUTING_RECORD_ID } from "@soma/desktop-db";
 import type { ChangeEvent } from "react";
 import { Fragment, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -9,9 +10,8 @@ import {
 	useOutletContext,
 	useParams,
 } from "react-router";
-import { DEFAULT_SPACE_ID } from "./routes/constants";
 import { routingCollection } from "./lib/db";
-import { ROUTING_RECORD_ID, createRoutingRecord } from "@soma/desktop-db";
+import { DEFAULT_SPACE_ID } from "./routes/constants";
 
 type Space = { id: string; name: string; accent: string; description: string };
 type LayoutContext = {

@@ -1,10 +1,5 @@
 import { createId } from "@paralleldrive/cuid2";
-import type {
-	BackgroundTask,
-	ChatMessage,
-	EnqueueBackgroundTaskParams,
-	ListBackgroundTasksParams,
-} from "./types";
+import type { BackgroundTask, ChatMessage, EnqueueBackgroundTaskParams, ListBackgroundTasksParams } from "./types";
 
 export type BackgroundTaskStore = Map<string, BackgroundTask>;
 
@@ -45,11 +40,7 @@ export function listBackgroundTasks(
 		.map((task) => ({ ...task }));
 }
 
-export function updateBackgroundTask(
-	store: BackgroundTaskStore,
-	taskId: string,
-	patch: Partial<BackgroundTask>,
-): void {
+export function updateBackgroundTask(store: BackgroundTaskStore, taskId: string, patch: Partial<BackgroundTask>): void {
 	const task = store.get(taskId);
 	if (!task) return;
 	store.set(taskId, {

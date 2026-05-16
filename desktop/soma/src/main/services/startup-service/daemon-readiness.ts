@@ -21,10 +21,7 @@ export async function checkDaemonOnce(daemon: DaemonClient, logger: AppLogger): 
 	}
 }
 
-export async function ensureDaemonInBackground(
-	daemonProcess: DaemonProcessManager,
-	logger: AppLogger,
-): Promise<void> {
+export async function ensureDaemonInBackground(daemonProcess: DaemonProcessManager, logger: AppLogger): Promise<void> {
 	try {
 		const status = await daemonProcess.status();
 		if (status.reachable) return;

@@ -1,11 +1,7 @@
 import { useSpaceQuery } from "@app/queries/spaces";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router";
-import {
-	CurrentAccessSection,
-	JoinRequestsSection,
-	SpaceAccessSummary,
-} from "./space-settings/access-sections";
+import { CurrentAccessSection, JoinRequestsSection, SpaceAccessSummary } from "./space-settings/access-sections";
 import { useSpaceAccessSettings } from "./space-settings/use-space-access-settings";
 import { useWorkspaceAgentSettings } from "./space-settings/use-workspace-agent-settings";
 import { WorkspaceModelSection } from "./space-settings/workspace-model-section";

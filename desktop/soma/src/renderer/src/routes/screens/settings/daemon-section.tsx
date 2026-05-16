@@ -73,9 +73,7 @@ function DaemonSocketCard({ status }: { status: daemonService.DaemonRuntimeStatu
 			: "Socket exists"
 		: "Socket missing";
 
-	return (
-		<DaemonInfoCard label="Socket" title={status?.socketPath ?? "Unknown"} detail={socketText} mono />
-	);
+	return <DaemonInfoCard detail={socketText} label="Socket" mono title={status?.socketPath ?? "Unknown"} />;
 }
 
 function DaemonPeerCard({ status }: { status: daemonService.DaemonRuntimeStatus | null }): React.JSX.Element {
@@ -102,10 +100,23 @@ function DaemonControlCard({
 		<div className="rounded-xl border border-base-300 bg-base-200/60 px-4 py-3">
 			<div className="text-base-content/60 text-xs uppercase tracking-[0.12em]">Control</div>
 			<div className="mt-2 flex flex-wrap gap-2">
-				<button className="btn btn-primary btn-xs" disabled={busy} onClick={() => void onAction("start")} type="button">Start</button>
-				<button className="btn btn-outline btn-xs" disabled={busy} onClick={() => void onAction("restart")} type="button">Restart</button>
-				<button className="btn btn-ghost btn-xs" disabled={busy} onClick={() => void onAction("stop")} type="button">Stop</button>
-				<button className="btn btn-ghost btn-xs" disabled={busy} onClick={() => void onRefresh()} type="button">Refresh</button>
+				<button className="btn btn-primary btn-xs" disabled={busy} onClick={() => void onAction("start")} type="button">
+					Start
+				</button>
+				<button
+					className="btn btn-outline btn-xs"
+					disabled={busy}
+					onClick={() => void onAction("restart")}
+					type="button"
+				>
+					Restart
+				</button>
+				<button className="btn btn-ghost btn-xs" disabled={busy} onClick={() => void onAction("stop")} type="button">
+					Stop
+				</button>
+				<button className="btn btn-ghost btn-xs" disabled={busy} onClick={() => void onRefresh()} type="button">
+					Refresh
+				</button>
 			</div>
 		</div>
 	);
@@ -124,7 +135,9 @@ function DaemonInfoCard({
 	title: string;
 	truncate?: boolean;
 }): React.JSX.Element {
-	const titleClass = [mono ? "break-all font-mono" : "", truncate ? "truncate font-mono" : "", "mt-1 text-xs"].join(" ");
+	const titleClass = [mono ? "break-all font-mono" : "", truncate ? "truncate font-mono" : "", "mt-1 text-xs"].join(
+		" ",
+	);
 	return (
 		<div className="rounded-xl border border-base-300 bg-base-200/60 px-4 py-3">
 			<div className="text-base-content/60 text-xs uppercase tracking-[0.12em]">{label}</div>

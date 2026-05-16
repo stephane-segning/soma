@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { UNTITLED_PAGE_TITLE } from "../page-title";
+import { type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as documentsService from "../../../services/documents-service";
+import { UNTITLED_PAGE_TITLE } from "../page-title";
 import type { PageRecord } from "./types";
 
 type PageLinkPickerProps = {
@@ -110,12 +110,7 @@ export function PageLinkPicker({
 					/>
 				</div>
 				<div className="max-h-80 overflow-y-auto p-2">
-					<PageLinkPickerList
-						activeIndex={activeIndex}
-						loading={loading}
-						onSelect={onSelect}
-						pages={filteredPages}
-					/>
+					<PageLinkPickerList activeIndex={activeIndex} loading={loading} onSelect={onSelect} pages={filteredPages} />
 				</div>
 				<div className="flex items-center justify-end gap-2 border-base-200 border-t px-3 py-2">
 					<button className="btn btn-ghost btn-sm" onClick={onClose} type="button">

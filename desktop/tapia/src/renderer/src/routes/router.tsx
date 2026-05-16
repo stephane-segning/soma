@@ -1,11 +1,11 @@
+import { isRoutingRecord, ROUTING_RECORD_ID } from "@soma/desktop-db";
 import { createHashRouter, Navigate } from "react-router";
-import { routingCollection } from "../lib/db";
 import { AppLayout } from "../app";
+import { routingCollection } from "../lib/db";
 import { DEFAULT_SPACE_ID } from "./constants";
 import ExerciseDetail from "./screens/exercise-detail";
 import Exercises from "./screens/exercises";
 import NotFound from "./screens/not-found";
-import { ROUTING_RECORD_ID, isRoutingRecord } from "@soma/desktop-db";
 
 const routingRecord = routingCollection.state.get(ROUTING_RECORD_ID);
 const initialPath =

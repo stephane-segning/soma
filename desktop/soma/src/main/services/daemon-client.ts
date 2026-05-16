@@ -1,6 +1,6 @@
 import type { ReadBlobResponse } from "@soma/proto/daemon/v1/daemon";
 
-import { uploadBlob, readBlob } from "./daemon-client/blobs";
+import { readBlob, uploadBlob } from "./daemon-client/blobs";
 import { createDaemonGrpcClient, type DaemonGrpcClient } from "./daemon-client/connection";
 import { getDocument, upsertDocument } from "./daemon-client/documents";
 import { streamEvents } from "./daemon-client/events";

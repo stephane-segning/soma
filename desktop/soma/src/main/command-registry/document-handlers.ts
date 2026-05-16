@@ -34,10 +34,13 @@ export function registerDocumentHandlers(ipc: IpcMain, context: CommandRegistryC
 	});
 }
 
-type DocumentChangeParams = {
-	spaceId?: string;
-	documentId?: string;
-} | null | undefined;
+type DocumentChangeParams =
+	| {
+			spaceId?: string;
+			documentId?: string;
+	  }
+	| null
+	| undefined;
 
 function broadcastDocumentChanged(context: CommandRegistryContext, params: DocumentChangeParams, reason: string): void {
 	context.domainEvents.broadcast({

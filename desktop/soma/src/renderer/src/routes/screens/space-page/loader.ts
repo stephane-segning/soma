@@ -1,6 +1,6 @@
 import type { LoaderFunctionArgs } from "react-router";
-import { normalizePageTitle } from "../page-title";
 import * as documentsService from "../../../services/documents-service";
+import { normalizePageTitle } from "../page-title";
 import type { LoaderData } from "./types";
 
 export async function loader({ params }: LoaderFunctionArgs): Promise<LoaderData> {

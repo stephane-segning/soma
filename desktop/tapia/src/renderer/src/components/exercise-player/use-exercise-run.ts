@@ -1,9 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import type { Exercise, ExerciseAttempt, LeaderboardEntry } from "../../../../shared/exercise";
+import type {
+	Exercise,
+	ExerciseAttempt,
+	LeaderboardEntry,
+} from "../../../../shared/exercise";
 
 type UseExerciseRunInput = {
 	exercise: Exercise;
-	onComplete?: (attempt: ExerciseAttempt) => Promise<LeaderboardEntry[] | void> | LeaderboardEntry[] | void;
+	onComplete?: (
+		attempt: ExerciseAttempt,
+	) => Promise<LeaderboardEntry[] | void> | LeaderboardEntry[] | void;
 };
 
 export function firstMismatchIndex(expected: string, actual: string): number {
@@ -23,22 +29,38 @@ export function useExerciseRun({ exercise, onComplete }: UseExerciseRunInput) {
 	const [saveError, setSaveError] = useState<string | null>(null);
 
 	const totalLength = exercise.message.length;
-	const mismatchIndex = useMemo(() => firstMismatchIndex(exercise.message, input), [exercise.message, input]);
+	const mismatchIndex = useMemo(
+		() => firstMismatchIndex(exercise.message, input),
+		[exercise.message, input],
+	);
 	const currentIndex = Math.min(mismatchIndex, totalLength);
 	const correctCharacters = useMemo(
 		() => countCorrectCharacters(exercise.message, input),
 		[exercise.message, input],
 	);
-	const accuracy = input.length === 0 ? 100 : Math.max(0, Math.round((correctCharacters / input.length) * 100));
+	const accuracy =
+		input.length === 0
+			? 100
+			: Math.max(0, Math.round((correctCharacters / input.length) * 100));
 	const elapsedMs = startedAt ? (completedAt ?? Date.now()) - startedAt : 0;
-	const wpm = elapsedMs > 0 && startedAt ? Math.round((correctCharacters / 5 / (elapsedMs / 1000)) * 60 * 100) / 100 : 0;
+	const wpm =
+		elapsedMs > 0 && startedAt
+			? Math.round((correctCharacters / 5 / (elapsedMs / 1000)) * 60 * 100) /
+				100
+			: 0;
 
 	useEffect(() => {
 		if (!startedAt && input.length > 0) setStartedAt(Date.now());
 	}, [input.length, startedAt]);
 
 	useEffect(() => {
-		if (input.length !== totalLength || !startedAt || completedAt || mismatchIndex !== totalLength) return;
+		if (
+			input.length !== totalLength ||
+			!startedAt ||
+			completedAt ||
+			mismatchIndex !== totalLength
+		)
+			return;
 		const finished = Date.now();
 		setCompletedAt(finished);
 		setIsSaving(true);
@@ -53,9 +75,22 @@ export function useExerciseRun({ exercise, onComplete }: UseExerciseRunInput) {
 				completedAtMs: finished,
 			}),
 		)
-			.catch((error) => setSaveError(error instanceof Error ? error.message : String(error)))
+			.catch((error) =>
+				setSaveError(error instanceof Error ? error.message : String(error)),
+			)
 			.finally(() => setIsSaving(false));
-	}, [accuracy, completedAt, exercise.meta.id, exercise.meta.spaceId, input.length, mismatchIndex, onComplete, startedAt, totalLength, wpm]);
+	}, [
+		accuracy,
+		completedAt,
+		exercise.meta.id,
+		exercise.meta.spaceId,
+		input.length,
+		mismatchIndex,
+		onComplete,
+		startedAt,
+		totalLength,
+		wpm,
+	]);
 
 	const reset = (): void => {
 		setInput("");

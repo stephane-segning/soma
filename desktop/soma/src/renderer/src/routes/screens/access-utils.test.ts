@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { describeRole, formatRoleLabel, membershipSummary, requestedAccessLevelLabel, roleOptions } from "./access-utils";
+import {
+	describeRole,
+	formatRoleLabel,
+	membershipSummary,
+	requestedAccessLevelLabel,
+	roleOptions,
+} from "./access-utils";
 
 describe("formatRoleLabel", () => {
 	it("maps known roles to readable labels", () => {

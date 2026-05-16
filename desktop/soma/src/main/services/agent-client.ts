@@ -1,12 +1,12 @@
 import { resolveDriftViaAgentd } from "./agent-client/agentd";
 import {
+	type BackgroundTaskStore,
 	backgroundTaskMessages,
 	enqueueBackgroundTask,
 	listBackgroundTasks,
-	type BackgroundTaskStore,
 	updateBackgroundTask,
 } from "./agent-client/background-tasks";
-import { createAgentGrpcClient, type AgentGrpcClient } from "./agent-client/connection";
+import { type AgentGrpcClient, createAgentGrpcClient } from "./agent-client/connection";
 import { chatStreamViaOpenAi, listModelsViaOpenAi, rerankViaOpenAi } from "./agent-client/openai";
 import { startAgentRuntimeEventStream } from "./agent-client/runtime-events";
 import type {
