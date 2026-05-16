@@ -2,11 +2,22 @@
 	"name": "@soma/desktop-config",
 	"version": "0.1.1",
 	"private": true,
-	"type": "module",
+	"type": "commonjs",
+	"main": "./dist/stage-config.js",
+	"types": "./dist/stage-config.d.ts",
 	"exports": {
-		".": "./src/stage-config.ts"
+		".": {
+			"types": "./dist/stage-config.d.ts",
+			"require": "./dist/stage-config.js",
+			"default": "./dist/stage-config.js"
+		}
 	},
+	"files": [
+		"dist"
+	],
 	"scripts": {
+		"build": "tsc -p tsconfig.json",
+		"prepare": "pnpm run build",
 		"typecheck": "tsc --noEmit -p tsconfig.json",
 		"format": "biome format --write .",
 		"lint": "biome check --write ."
