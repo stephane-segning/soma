@@ -6,8 +6,8 @@ hero:
   text: Local-first workspaces for private collaboration.
   tagline: Desktop notes, peer sync, content-addressed blobs, and optional local AI for teams that need useful work to continue when the network does not.
   image:
-    src: /soma-mark.svg
-    alt: Soma mark
+    src: /icon.png
+    alt: Soma app icon
   actions:
     - theme: brand
       text: Install Soma
