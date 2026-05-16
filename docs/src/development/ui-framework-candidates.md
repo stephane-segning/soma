@@ -38,6 +38,16 @@ Recommended experiment:
 | [Mantine](https://mantine.dev/) | Very productive full component library with many hooks and ready-made controls. | More of a replacement design system than a primitive layer; likely too opinionated for `@soma/ui`. |
 | [Chakra UI](https://chakra-ui.com/docs/components/concepts/overview) | Complete component inventory and strong composability story. | Its styling/runtime model is a larger departure from Tailwind-first desktop UI. |
 
+## VitePress Compatibility
+
+Do not add Chakra UI directly to the VitePress docs theme. Chakra UI is a React component library, while VitePress is Vue-powered. We can still document Chakra UI here as a candidate for the Electron apps, but using it inside the docs site would require a React island or iframe bridge and would add framework complexity to a content-first site.
+
+If the docs need richer interactive examples, prefer one of these:
+
+1. Keep the VitePress shell Vue-native and link to Storybook examples under `/storybook`.
+2. Build small docs-only Vue components for simple interactivity.
+3. Embed a React example as an isolated iframe only when it demonstrates real `@soma/ui` behavior.
+
 ## Provisional Direction
 
 Prototype Base UI inside @soma/ui first. If it feels too immature or thin for complex accessibility cases, compare the same component against React Aria Components. Avoid a wholesale framework migration until one vertical slice proves better behavior than the current DaisyUI-based implementation.
