@@ -40,4 +40,4 @@ Recommended experiment:
 
 ## Provisional Direction
 
-Prototype Base UI inside `@soma/ui` first. If it feels too immature or thin for complex accessibility cases, compare the same component against React Aria Components. Avoid a wholesale framework migration until one vertical slice proves better behavior than the DaisyUI/Headless UI mix.
+Prototype Base UI inside @soma/ui first. If it feels too immature or thin for complex accessibility cases, compare the same component against React Aria Components. Avoid a wholesale framework migration until one vertical slice proves better behavior than the current DaisyUI-based implementation.
