@@ -2,8 +2,8 @@ import type {
 	CreateSpaceResponse,
 	DeleteSpaceResponse,
 	GetSpaceResponse,
-	ListSpaceMembersResponse,
 	ListMyMembershipsResponse,
+	ListSpaceMembersResponse,
 	ListSpacesResponse,
 	UpdateSpaceResponse,
 } from "@soma/proto/daemon/v1/daemon";

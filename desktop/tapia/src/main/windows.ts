@@ -41,7 +41,9 @@ export function createSplashWindow(): BrowserWindow {
 		center: true,
 		webPreferences: { sandbox: true },
 	});
-	void splash.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(splashHtml)}`);
+	void splash.loadURL(
+		`data:text/html;charset=utf-8,${encodeURIComponent(splashHtml)}`,
+	);
 	splash.once("ready-to-show", () => splash.show());
 	return splash;
 }

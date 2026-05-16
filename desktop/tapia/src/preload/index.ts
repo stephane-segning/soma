@@ -9,9 +9,11 @@ import type {
 
 // Custom APIs for renderer
 const api = {
-	invoke: (channel: string, args?: unknown) => ipcRenderer.invoke(channel, args),
+	invoke: (channel: string, args?: unknown) =>
+		ipcRenderer.invoke(channel, args),
 	dbStorage: {
-		getItem: (key: string) => ipcRenderer.sendSync("db_storage_get", key) as string | null,
+		getItem: (key: string) =>
+			ipcRenderer.sendSync("db_storage_get", key) as string | null,
 		setItem: (key: string, value: string) =>
 			ipcRenderer.sendSync("db_storage_set", {
 				key,

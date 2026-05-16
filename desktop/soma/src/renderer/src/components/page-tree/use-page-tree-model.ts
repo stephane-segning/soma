@@ -1,22 +1,6 @@
-import {
-	buildTree,
-	filterTree,
-	flattenVisibleTree,
-	moveInArray,
-} from "@app/components/page-tree-utils";
-import {
-	useCreatePage,
-	useEnsurePageMutation,
-	usePagesQuery,
-	useSetPageParentsMutation,
-} from "@app/queries/pages";
-import {
-	type DragEndEvent,
-	type DragMoveEvent,
-	PointerSensor,
-	useSensor,
-	useSensors,
-} from "@dnd-kit/core";
+import { buildTree, filterTree, flattenVisibleTree, moveInArray } from "@app/components/page-tree-utils";
+import { useCreatePage, useEnsurePageMutation, usePagesQuery, useSetPageParentsMutation } from "@app/queries/pages";
+import { type DragEndEvent, type DragMoveEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { type Dispatch, type SetStateAction, useCallback, useEffect, useMemo, useState } from "react";
 import { HORIZONTAL_INDENT_PX } from "./constants";
 import type { FlatNodeById, PageTreeModel } from "./types";
@@ -168,13 +152,19 @@ function resolveNextParentId(input: {
 	if (input.overId !== "__root" && overFlat && Math.abs(input.deltaX) < HORIZONTAL_INDENT_PX) {
 		const activeIndex = input.orderedIds.indexOf(input.activeId);
 		const overIndex = input.orderedIds.indexOf(input.overId);
-		if (input.currentParentId === overFlat.parentId && activeIndex >= 0 && overIndex >= 0 && activeIndex !== overIndex) {
+		if (
+			input.currentParentId === overFlat.parentId &&
+			activeIndex >= 0 &&
+			overIndex >= 0 &&
+			activeIndex !== overIndex
+		) {
 			input.setOrderedIds((prev) => moveInArray(prev, activeIndex, overIndex));
 		}
 	}
 	if (input.deltaX > HORIZONTAL_INDENT_PX) {
 		const activeIndex = input.flatVisibleIds.indexOf(input.activeId);
-		const overIndex = input.overId === "__root" ? input.flatVisibleIds.length - 1 : input.flatVisibleIds.indexOf(input.overId);
+		const overIndex =
+			input.overId === "__root" ? input.flatVisibleIds.length - 1 : input.flatVisibleIds.indexOf(input.overId);
 		const moved = activeIndex >= 0 && overIndex >= 0 ? moveInArray(input.flatVisibleIds, activeIndex, overIndex) : [];
 		const candidateParentId = moved.indexOf(input.activeId) > 0 ? moved[moved.indexOf(input.activeId) - 1] : null;
 		if (candidateParentId && !input.isDescendantOf(candidateParentId, input.activeId)) nextParentId = candidateParentId;

@@ -1,7 +1,10 @@
 import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useParams } from "react-router";
-import type { ExerciseAttempt, LeaderboardEntry } from "../../../../shared/exercise";
+import type {
+	ExerciseAttempt,
+	LeaderboardEntry,
+} from "../../../../shared/exercise";
 import { useAppLayoutContext } from "../../app";
 import { ExercisePlayer } from "../../components/exercise-player";
 import { useExercises } from "../../hooks/useExercises";
@@ -12,7 +15,9 @@ function ExerciseDetail(): React.JSX.Element {
 	const { activeSpaceId } = useAppLayoutContext();
 	const { exercises, status, recordSession, findExercise } =
 		useExercises(activeSpaceId);
-	const [recentLeaderboard, setRecentLeaderboard] = useState<LeaderboardEntry[]>([]);
+	const [recentLeaderboard, setRecentLeaderboard] = useState<
+		LeaderboardEntry[]
+	>([]);
 
 	const exercise = useMemo(
 		() =>
@@ -80,7 +85,11 @@ function ExerciseDetail(): React.JSX.Element {
 				</Link>
 			</div>
 
-			<ExercisePlayer exercise={exercise} leaderboard={recentLeaderboard} onComplete={onComplete} />
+			<ExercisePlayer
+				exercise={exercise}
+				leaderboard={recentLeaderboard}
+				onComplete={onComplete}
+			/>
 		</section>
 	);
 }

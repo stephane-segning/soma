@@ -1,12 +1,4 @@
 import type { IpcMain } from "electron";
-import type { AgentController } from "./controllers/agent-controller";
-import type { BlobsController } from "./controllers/blobs-controller";
-import type { DbStorageController } from "./controllers/db-storage-controller";
-import type { DocumentsController } from "./controllers/documents-controller";
-import type { SearchController } from "./controllers/search-controller";
-import type { SettingsController } from "./controllers/settings-controller";
-import type { SpacesController } from "./controllers/spaces-controller";
-import type { WindowController } from "./controllers/window-controller";
 import { registerAgentHandlers } from "./command-registry/agent-handlers";
 import { registerBlobHandlers } from "./command-registry/blob-handlers";
 import { registerDaemonHandlers } from "./command-registry/daemon-handlers";
@@ -15,6 +7,14 @@ import { registerSettingsStorageHandlers } from "./command-registry/settings-sto
 import { registerSpaceHandlers } from "./command-registry/space-handlers";
 import type { CommandRegistryContext } from "./command-registry/types";
 import { registerWindowLogHandlers } from "./command-registry/window-log-handlers";
+import type { AgentController } from "./controllers/agent-controller";
+import type { BlobsController } from "./controllers/blobs-controller";
+import type { DbStorageController } from "./controllers/db-storage-controller";
+import type { DocumentsController } from "./controllers/documents-controller";
+import type { SearchController } from "./controllers/search-controller";
+import type { SettingsController } from "./controllers/settings-controller";
+import type { SpacesController } from "./controllers/spaces-controller";
+import type { WindowController } from "./controllers/window-controller";
 import type { DaemonProcessManager } from "./services/daemon-process-manager";
 import type { DomainEventsService } from "./services/domain-events";
 import type { AppLogger } from "./services/logger";

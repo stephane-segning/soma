@@ -26,8 +26,8 @@ function Keyboard({ expectedKey, lastKey }: KeyboardProps): React.JSX.Element {
 
 	return (
 		<div className="keyboard">
-			{rows.map((row, idx) => (
-				<div className="keyboard-row" key={idx}>
+			{rows.map((row) => (
+				<div className="keyboard-row" key={row.join("")}>
 					{row.map((label) => {
 						const active = normalizeKey(label) === target;
 						const pressed = normalizeKey(label) === recent;

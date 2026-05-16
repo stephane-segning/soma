@@ -8,12 +8,8 @@ import {
 	toRuntimeStatus,
 	waitForReachable,
 } from "./daemon-process-manager/status";
+import type { DaemonControlAction, DaemonControlResult, DaemonRuntimeStatus } from "./daemon-process-manager/types";
 import { startUserService, stopUserService } from "./daemon-process-manager/user-service";
-import type {
-	DaemonControlAction,
-	DaemonControlResult,
-	DaemonRuntimeStatus,
-} from "./daemon-process-manager/types";
 import type { AppLogger } from "./logger";
 
 export type { DaemonControlAction, DaemonControlResult, DaemonRuntimeStatus };

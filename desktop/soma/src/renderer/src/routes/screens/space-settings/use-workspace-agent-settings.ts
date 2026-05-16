@@ -55,25 +55,24 @@ export function useWorkspaceAgentSettings(spaceId: string | undefined) {
 		[capabilityModels, workspaceDraft.modelCapabilities],
 	);
 
-	const updateCapability = useCallback((
-		modelName: string,
-		key: keyof Omit<AgentModelCapabilities, "updatedAtMs">,
-		value: boolean,
-	) => {
-		const normalizedName = normalizeOptionalString(modelName);
-		if (!normalizedName) return;
-		setWorkspaceDraft((prev) => ({
-			...prev,
-			modelCapabilities: {
-				...(prev.modelCapabilities ?? {}),
-				[normalizedName]: {
-					...(prev.modelCapabilities?.[normalizedName] ?? {}),
-					[key]: value,
-					updatedAtMs: Date.now(),
+	const updateCapability = useCallback(
+		(modelName: string, key: keyof Omit<AgentModelCapabilities, "updatedAtMs">, value: boolean) => {
+			const normalizedName = normalizeOptionalString(modelName);
+			if (!normalizedName) return;
+			setWorkspaceDraft((prev) => ({
+				...prev,
+				modelCapabilities: {
+					...(prev.modelCapabilities ?? {}),
+					[normalizedName]: {
+						...(prev.modelCapabilities?.[normalizedName] ?? {}),
+						[key]: value,
+						updatedAtMs: Date.now(),
+					},
 				},
-			},
-		}));
-	}, []);
+			}));
+		},
+		[],
+	);
 
 	const addCapabilityModel = useCallback(() => {
 		const modelName = normalizeOptionalString(newCapabilityModel);

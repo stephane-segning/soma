@@ -12,9 +12,9 @@ describe("parseMultiaddrs", () => {
 
 describe("validateJoinDraft", () => {
 	it("requires a space id first", () => {
-			expect(
-				validateJoinDraft({
-					spaceId: "",
+		expect(
+			validateJoinDraft({
+				spaceId: "",
 				targetPeerId: "peer-1",
 				targetMultiaddrs: "/ip4/1/tcp/2",
 				displayName: "",

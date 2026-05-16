@@ -1,11 +1,7 @@
 import type { JSONContent } from "@soma/editor";
 import { useCallback, useEffect, useRef } from "react";
-import {
-	deriveTitleFromDocument,
-	normalizePageTitle,
-	shouldSyncDerivedTitle,
-} from "../page-title";
 import * as documentsService from "../../../services/documents-service";
+import { deriveTitleFromDocument, normalizePageTitle, shouldSyncDerivedTitle } from "../page-title";
 
 type UsePageAutosaveInput = {
 	spaceId: string;
@@ -14,12 +10,7 @@ type UsePageAutosaveInput = {
 	initialValue: JSONContent | undefined;
 };
 
-export function usePageAutosave({
-	spaceId,
-	pageId,
-	pageTitle,
-	initialValue,
-}: UsePageAutosaveInput): {
+export function usePageAutosave({ spaceId, pageId, pageTitle, initialValue }: UsePageAutosaveInput): {
 	onValueChange: (value: JSONContent) => void;
 	noteTitleSynced: (title: string) => void;
 } {

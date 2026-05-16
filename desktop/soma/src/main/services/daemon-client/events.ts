@@ -1,7 +1,4 @@
-import type {
-	DaemonEvent as GrpcDaemonEvent,
-	StreamEventsRequest,
-} from "@soma/proto/daemon/v1/daemon";
+import type { DaemonEvent as GrpcDaemonEvent, StreamEventsRequest } from "@soma/proto/daemon/v1/daemon";
 
 import type { DaemonGrpcClient } from "./connection";
 import { mapDaemonEvent } from "./mappers";

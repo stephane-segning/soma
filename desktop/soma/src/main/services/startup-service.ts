@@ -9,12 +9,12 @@ import type { AppDataStore, WindowState } from "./app-data-store";
 import type { BlobProtocolRegistrar } from "./blob-protocol";
 import type { DaemonClient } from "./daemon-client";
 import type { DaemonProcessManager } from "./daemon-process-manager";
+import type { DomainEventsService } from "./domain-events";
+import type { AppLogger } from "./logger";
 import { DaemonEventStreamBridge } from "./startup-service/daemon-events";
 import { checkDaemonOnce, ensureDaemonInBackground } from "./startup-service/daemon-readiness";
 import { createMainWindow, saveWindowStateOnChanges } from "./startup-service/main-window";
 import { createSplashWindow } from "./startup-service/splash-window";
-import type { DomainEventsService } from "./domain-events";
-import type { AppLogger } from "./logger";
 
 export class StartupService {
 	private readonly deepLinkScheme = "soma";

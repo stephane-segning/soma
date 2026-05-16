@@ -1,5 +1,5 @@
 import type { JoinRequestRecord } from "@app/queries/spaces";
-import { type Dispatch, type SetStateAction } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import { requestedAccessLevelLabel } from "../access-utils";
 
 export type JoinApprovalColumnInput = {
@@ -18,7 +18,9 @@ export function RequesterCell({ request }: { request: JoinRequestRecord }) {
 		<div>
 			<div className="font-medium text-sm">{request.displayName || request.subjectPeerId}</div>
 			<div className="font-mono text-xs">{request.subjectPeerId}</div>
-			{request.displayName ? <div className="text-base-content/60 text-xs">{request.deviceName || "Unknown device"}</div> : null}
+			{request.displayName ? (
+				<div className="text-base-content/60 text-xs">{request.deviceName || "Unknown device"}</div>
+			) : null}
 		</div>
 	);
 }
@@ -28,7 +30,8 @@ export function RequestedAccessCell({ request }: { request: JoinRequestRecord })
 		<div className="space-y-1">
 			<div className="font-medium text-sm">{requestedAccessLevelLabel(request.requestedRole)}</div>
 			<div className="max-w-xs text-base-content/60 text-xs">
-				Current desktop requests do not include a role choice, so they usually arrive as Member unless you change it here.
+				Current desktop requests do not include a role choice, so they usually arrive as Member unless you change it
+				here.
 			</div>
 		</div>
 	);

@@ -1,8 +1,8 @@
 import type { MentionProvider } from "@soma/editor";
 import { useMemo } from "react";
-import { UNTITLED_PAGE_TITLE } from "../page-title";
 import * as documentsService from "../../../services/documents-service";
 import * as spacesService from "../../../services/spaces-service";
+import { UNTITLED_PAGE_TITLE } from "../page-title";
 
 export function usePageMentionProviders(spaceId: string): MentionProvider[] {
 	return useMemo<MentionProvider[]>(() => {

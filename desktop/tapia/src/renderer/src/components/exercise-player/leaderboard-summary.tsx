@@ -13,7 +13,10 @@ export function LeaderboardSummary({ results, t }: LeaderboardSummaryProps) {
 			<div className="stat-label">{t("topResults")}</div>
 			<div className="player__leaderboard-list">
 				{results.map((entry, index) => (
-					<div className="player__leaderboard-row" key={`${entry.completedAtMs}-${index}`}>
+					<div
+						className="player__leaderboard-row"
+						key={`${entry.completedAtMs}-${index}`}
+					>
 						<span>#{index + 1}</span>
 						<span>{entry.wpm.toFixed(2)} WPM</span>
 						<span>{Math.round(entry.accuracy)}%</span>

@@ -4,8 +4,8 @@ import {
   parseAtMs,
   parseDomainEventSource,
   parseOptionalString
-} from "./parsing";
-import type { DomainEventPayload } from "./types";
+} from "./parsing.ts";
+import type { DomainEventPayload } from "./types.ts";
 
 export function isDomainEventPayload(value: unknown): value is DomainEventPayload {
   return parseDomainEventPayload(value) !== null;

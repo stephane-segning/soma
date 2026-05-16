@@ -1,4 +1,4 @@
-import type { AgentModelPayload, AgentProvider, DomainEventSource } from "./types";
+import type { AgentModelPayload, AgentProvider, DomainEventSource } from "./types.ts";
 
 export function parseDomainEventSource(value: unknown): DomainEventSource | null {
   if (value === "renderer" || value === "daemon") return value;

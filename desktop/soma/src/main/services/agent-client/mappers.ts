@@ -1,9 +1,9 @@
 import {
+	type ModelInfo,
+	ModelKind,
 	type BackgroundTask as ProtoBackgroundTask,
 	BackgroundTaskKind as ProtoBackgroundTaskKind,
 	BackgroundTaskStatus as ProtoBackgroundTaskStatus,
-	ModelKind,
-	type ModelInfo,
 } from "@soma/proto/agent/v1/agent";
 
 import type { AgentModel, BackgroundTask, BackgroundTaskKind, BackgroundTaskStatus } from "./types";

@@ -1,17 +1,26 @@
 import { useTranslation } from "react-i18next";
-import type { Exercise, ExerciseAttempt, LeaderboardEntry } from "../../../shared/exercise";
-import { Keyboard } from "./keyboard";
+import type {
+	Exercise,
+	ExerciseAttempt,
+	LeaderboardEntry,
+} from "../../../shared/exercise";
 import { PlayerActions } from "./exercise-player/actions";
 import { LeaderboardSummary } from "./exercise-player/leaderboard-summary";
 import { PromptView } from "./exercise-player/prompt-view";
 import { ResultsPanel } from "./exercise-player/results-panel";
 import { StatsBar } from "./exercise-player/stats-bar";
-import { firstMismatchIndex, useExerciseRun } from "./exercise-player/use-exercise-run";
+import {
+	firstMismatchIndex,
+	useExerciseRun,
+} from "./exercise-player/use-exercise-run";
+import { Keyboard } from "./keyboard";
 
 type ExercisePlayerProps = {
 	exercise: Exercise;
 	leaderboard?: LeaderboardEntry[];
-	onComplete?: (attempt: ExerciseAttempt) => Promise<LeaderboardEntry[] | void> | LeaderboardEntry[] | void;
+	onComplete?: (
+		attempt: ExerciseAttempt,
+	) => Promise<LeaderboardEntry[] | void> | LeaderboardEntry[] | void;
 };
 
 function ExercisePlayer({
@@ -25,7 +34,12 @@ function ExercisePlayer({
 
 	return (
 		<div className="player">
-			<StatsBar accuracy={run.accuracy} progress={run.progress} t={t} wpm={run.wpm} />
+			<StatsBar
+				accuracy={run.accuracy}
+				progress={run.progress}
+				t={t}
+				wpm={run.wpm}
+			/>
 			<PromptView segments={run.promptSegments} />
 			<label className="player__input">
 				<span className="stat-label">{t("typeHere")}</span>
@@ -37,7 +51,11 @@ function ExercisePlayer({
 					value={run.input}
 				/>
 			</label>
-			{run.hasMismatch ? <div className="player__hint">Fix the highlighted character, then keep going.</div> : null}
+			{run.hasMismatch ? (
+				<div className="player__hint">
+					Fix the highlighted character, then keep going.
+				</div>
+			) : null}
 			<PlayerActions nextChar={run.nextChar} onReset={run.reset} t={t} />
 			{run.completedAt ? (
 				<ResultsPanel

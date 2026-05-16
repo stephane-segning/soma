@@ -3,7 +3,14 @@ import { buildTree, filterTree, flattenVisibleTree, moveInArray } from "./page-t
 
 const pages = [
 	{ spaceId: "space_1", pageId: "root", title: "Root", parentPageIds: [], createdAtMs: 1, updatedAtMs: 1 },
-	{ spaceId: "space_1", pageId: "child", title: "Project notes", parentPageIds: ["root"], createdAtMs: 2, updatedAtMs: 2 },
+	{
+		spaceId: "space_1",
+		pageId: "child",
+		title: "Project notes",
+		parentPageIds: ["root"],
+		createdAtMs: 2,
+		updatedAtMs: 2,
+	},
 	{ spaceId: "space_1", pageId: "peer", title: "Archive", parentPageIds: [], createdAtMs: 3, updatedAtMs: 3 },
 ];
 

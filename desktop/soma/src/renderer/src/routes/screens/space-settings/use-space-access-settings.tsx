@@ -40,40 +40,51 @@ export function useSpaceAccessSettings(spaceId: string | undefined) {
 		return Number.isNaN(date.getTime()) ? "Unknown" : date.toLocaleString();
 	}, []);
 
-	const decideJoinRequest = useCallback(async (requestId: string, approve: boolean) => {
-		try {
-			const role = decisionRoleByRequest[requestId]?.trim();
-			const reason = decisionReasonByRequest[requestId]?.trim();
-			const result = await decideJoinAsync({
-				requestId,
-				approve,
-				role: role || undefined,
-				reason: reason || undefined,
-			});
-			setSpaceOpsMessage(buildDecisionMessage(approve, result?.subjectPeerId, role));
-			setDecisionRoleByRequest((prev) => omitKey(prev, requestId));
-			setDecisionReasonByRequest((prev) => omitKey(prev, requestId));
-		} catch (error) {
-			const message = error instanceof Error ? error.message : String(error);
-			setSpaceOpsMessage(`Failed to decide join request: ${message}`);
-		}
-	}, [decideJoinAsync, decisionReasonByRequest, decisionRoleByRequest]);
+	const decideJoinRequest = useCallback(
+		async (requestId: string, approve: boolean) => {
+			try {
+				const role = decisionRoleByRequest[requestId]?.trim();
+				const reason = decisionReasonByRequest[requestId]?.trim();
+				const result = await decideJoinAsync({
+					requestId,
+					approve,
+					role: role || undefined,
+					reason: reason || undefined,
+				});
+				setSpaceOpsMessage(buildDecisionMessage(approve, result?.subjectPeerId, role));
+				setDecisionRoleByRequest((prev) => omitKey(prev, requestId));
+				setDecisionReasonByRequest((prev) => omitKey(prev, requestId));
+			} catch (error) {
+				const message = error instanceof Error ? error.message : String(error);
+				setSpaceOpsMessage(`Failed to decide join request: ${message}`);
+			}
+		},
+		[decideJoinAsync, decisionReasonByRequest, decisionRoleByRequest],
+	);
 
-	const revokeMember = useCallback(async (subjectPeerId: string) => {
-		if (!spaceId) return;
-		if (!window.confirm(`Revoke access for ${subjectPeerId}? They will lose their current membership for this workspace.`)) return;
-		try {
-			const accepted = await revokeMembershipAsync({
-				spaceId,
-				subjectPeerId,
-				reason: "revoked from space settings",
-			});
-			setSpaceOpsMessage(accepted ? `Revoked ${subjectPeerId}.` : `No membership was revoked for ${subjectPeerId}.`);
-		} catch (error) {
-			const message = error instanceof Error ? error.message : String(error);
-			setSpaceOpsMessage(`Failed to revoke member: ${message}`);
-		}
-	}, [revokeMembershipAsync, spaceId]);
+	const revokeMember = useCallback(
+		async (subjectPeerId: string) => {
+			if (!spaceId) return;
+			if (
+				!window.confirm(
+					`Revoke access for ${subjectPeerId}? They will lose their current membership for this workspace.`,
+				)
+			)
+				return;
+			try {
+				const accepted = await revokeMembershipAsync({
+					spaceId,
+					subjectPeerId,
+					reason: "revoked from space settings",
+				});
+				setSpaceOpsMessage(accepted ? `Revoked ${subjectPeerId}.` : `No membership was revoked for ${subjectPeerId}.`);
+			} catch (error) {
+				const message = error instanceof Error ? error.message : String(error);
+				setSpaceOpsMessage(`Failed to revoke member: ${message}`);
+			}
+		},
+		[revokeMembershipAsync, spaceId],
+	);
 
 	const joinApprovalColumns = useJoinApprovalColumns({
 		approvalRoleOptions,
@@ -107,14 +118,31 @@ function useJoinApprovalColumns(input: JoinApprovalColumnInput) {
 			{ header: "Requested access level", cell: ({ row }) => <RequestedAccessCell request={row.original} /> },
 			{ header: "Requested at", cell: ({ row }) => input.formatEpoch(row.original.createdAt) },
 			{ header: "Grant as", cell: ({ row }) => <RoleSelect input={input} requestId={row.original.requestId} /> },
-			{ header: "Decision note", cell: ({ row }) => <DecisionNoteInput input={input} requestId={row.original.requestId} /> },
+			{
+				header: "Decision note",
+				cell: ({ row }) => <DecisionNoteInput input={input} requestId={row.original.requestId} />,
+			},
 			{
 				id: "actions",
 				header: "",
 				cell: ({ row }) => (
 					<div className="space-x-1 whitespace-nowrap text-right">
-						<button className="btn btn-success btn-outline btn-xs" disabled={input.isDecidingJoin} onClick={() => void input.decideJoinRequest(row.original.requestId, true)} type="button">Approve</button>
-						<button className="btn btn-error btn-outline btn-xs" disabled={input.isDecidingJoin} onClick={() => void input.decideJoinRequest(row.original.requestId, false)} type="button">Reject</button>
+						<button
+							className="btn btn-success btn-outline btn-xs"
+							disabled={input.isDecidingJoin}
+							onClick={() => void input.decideJoinRequest(row.original.requestId, true)}
+							type="button"
+						>
+							Approve
+						</button>
+						<button
+							className="btn btn-error btn-outline btn-xs"
+							disabled={input.isDecidingJoin}
+							onClick={() => void input.decideJoinRequest(row.original.requestId, false)}
+							type="button"
+						>
+							Reject
+						</button>
 					</div>
 				),
 			},
@@ -123,7 +151,11 @@ function useJoinApprovalColumns(input: JoinApprovalColumnInput) {
 	);
 }
 
-function useMemberBoardColumns(formatEpoch: (value: number) => string, isRevokingMembership: boolean, revokeMember: (peerId: string) => Promise<void>) {
+function useMemberBoardColumns(
+	formatEpoch: (value: number) => string,
+	isRevokingMembership: boolean,
+	revokeMember: (peerId: string) => Promise<void>,
+) {
 	return useMemo<ColumnDef<SpaceMember>[]>(
 		() => [
 			{ header: "Peer", cell: ({ row }) => <span className="font-mono text-xs">{row.original.peerId}</span> },
@@ -136,13 +168,23 @@ function useMemberBoardColumns(formatEpoch: (value: number) => string, isRevokin
 					</div>
 				),
 			},
-			{ header: "Expiry", cell: ({ row }) => (row.original.expiresAt > 0 ? formatEpoch(row.original.expiresAt) : "No expiry") },
+			{
+				header: "Expiry",
+				cell: ({ row }) => (row.original.expiresAt > 0 ? formatEpoch(row.original.expiresAt) : "No expiry"),
+			},
 			{
 				id: "actions",
 				header: "",
 				cell: ({ row }) => (
 					<div className="text-right">
-						<button className="btn btn-error btn-outline btn-xs" disabled={isRevokingMembership} onClick={() => void revokeMember(row.original.peerId)} type="button">Revoke</button>
+						<button
+							className="btn btn-error btn-outline btn-xs"
+							disabled={isRevokingMembership}
+							onClick={() => void revokeMember(row.original.peerId)}
+							type="button"
+						>
+							Revoke
+						</button>
 					</div>
 				),
 			},

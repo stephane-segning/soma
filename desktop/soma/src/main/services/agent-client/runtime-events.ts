@@ -42,10 +42,9 @@ export function startAgentRuntimeEventStream(options: RuntimeEventStreamOptions)
 				baseUrl,
 				error: error instanceof Error ? error.message : String(error),
 			});
-		} finally {
-			if (stopped) return;
-			timer = setTimeout(run, Math.max(1_000, config.pollIntervalMs));
 		}
+		if (stopped) return;
+		timer = setTimeout(run, Math.max(1_000, config.pollIntervalMs));
 	};
 
 	void run();

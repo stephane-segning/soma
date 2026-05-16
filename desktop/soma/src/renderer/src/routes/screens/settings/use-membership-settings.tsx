@@ -1,5 +1,10 @@
 import { TanstackTable } from "@app/components/tables/tanstack-table";
-import { type SpaceMember, useMyMembershipsQuery, useRevokeMembershipMutation, useSpacesQuery } from "@app/queries/spaces";
+import {
+	type SpaceMember,
+	useMyMembershipsQuery,
+	useRevokeMembershipMutation,
+	useSpacesQuery,
+} from "@app/queries/spaces";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useCallback, useMemo, useState } from "react";
 import { Link } from "react-router";
@@ -20,21 +25,25 @@ export function useMembershipSettings() {
 		return map;
 	}, [spacesQuery.data?.spaces]);
 
-	const leaveSpace = useCallback(async (spaceId: string, subjectPeerId: string) => {
-		const spaceName = spaceNameById.get(spaceId) ?? spaceId;
-		if (!window.confirm(`Leave ${spaceName}? This removes this device's current membership for that workspace.`)) return;
-		try {
-			const accepted = await revokeMembershipAsync({
-				spaceId,
-				subjectPeerId,
-				reason: "left from settings",
-			});
-			setSpaceMessage(accepted ? `Left ${spaceName}.` : `No active membership was removed for ${spaceName}.`);
-		} catch (error) {
-			const message = error instanceof Error ? error.message : String(error);
-			setSpaceMessage(`Failed to leave space: ${message}`);
-		}
-	}, [revokeMembershipAsync, spaceNameById]);
+	const leaveSpace = useCallback(
+		async (spaceId: string, subjectPeerId: string) => {
+			const spaceName = spaceNameById.get(spaceId) ?? spaceId;
+			if (!window.confirm(`Leave ${spaceName}? This removes this device's current membership for that workspace.`))
+				return;
+			try {
+				const accepted = await revokeMembershipAsync({
+					spaceId,
+					subjectPeerId,
+					reason: "left from settings",
+				});
+				setSpaceMessage(accepted ? `Left ${spaceName}.` : `No active membership was removed for ${spaceName}.`);
+			} catch (error) {
+				const message = error instanceof Error ? error.message : String(error);
+				setSpaceMessage(`Failed to leave space: ${message}`);
+			}
+		},
+		[revokeMembershipAsync, spaceNameById],
+	);
 
 	const membershipColumns = useMemo<ColumnDef<SpaceMember>[]>(
 		() => [
@@ -92,20 +101,37 @@ export function PeopleAccessSection({
 			<div className="card-body space-y-4">
 				<h2 className="card-title text-base">People and access</h2>
 				<p className="text-base-content/70 text-sm">
-					These are this device&apos;s current space memberships. Open a space&apos;s settings to manage other members and approvals.
+					These are this device&apos;s current space memberships. Open a space&apos;s settings to manage other members
+					and approvals.
 				</p>
 				{spaceMessage ? <div className="rounded-lg bg-base-200 px-3 py-2 text-sm">{spaceMessage}</div> : null}
 				<div className="grid gap-3 md:grid-cols-3">
-					<AccessStat label="Memberships" title={String(memberships.length)} detail="Workspaces this device can currently open" />
-					<AccessStat label="Advanced join" title="Request access to a space" detail="Use this when an existing member sends manual connection info">
-						<Link className="btn btn-ghost btn-xs" to="/spaces/join">Open join screen</Link>
+					<AccessStat
+						detail="Workspaces this device can currently open"
+						label="Memberships"
+						title={String(memberships.length)}
+					/>
+					<AccessStat
+						detail="Use this when an existing member sends manual connection info"
+						label="Advanced join"
+						title="Request access to a space"
+					>
+						<Link className="btn btn-ghost btn-xs" to="/spaces/join">
+							Open join screen
+						</Link>
 					</AccessStat>
-					<AccessStat label="What happens next" title="Waiting for approval" detail="Submitting a request does not make this device a member yet" />
+					<AccessStat
+						detail="Submitting a request does not make this device a member yet"
+						label="What happens next"
+						title="Waiting for approval"
+					/>
 				</div>
 				<TanstackTable
 					columns={membershipColumns}
 					data={memberships}
-					emptyMessage={<span>This device is not a member of any spaces yet. Use the join screen or create a new space.</span>}
+					emptyMessage={
+						<span>This device is not a member of any spaces yet. Use the join screen or create a new space.</span>
+					}
 					getRowId={(row) => `${row.spaceId}:${row.peerId}`}
 					isLoading={membershipsQuery.isLoading}
 					loadingMessage="Loading memberships..."
@@ -115,7 +141,17 @@ export function PeopleAccessSection({
 	);
 }
 
-function AccessStat({ label, title, detail, children }: { label: string; title: string; detail: string; children?: React.ReactNode }) {
+function AccessStat({
+	label,
+	title,
+	detail,
+	children,
+}: {
+	label: string;
+	title: string;
+	detail: string;
+	children?: React.ReactNode;
+}) {
 	return (
 		<div className="rounded-xl border border-base-300 bg-base-200/60 px-4 py-3">
 			<div className="text-base-content/60 text-xs uppercase tracking-[0.12em]">{label}</div>

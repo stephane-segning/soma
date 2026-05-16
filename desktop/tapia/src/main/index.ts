@@ -1,10 +1,10 @@
 import { electronApp, optimizer } from "@electron-toolkit/utils";
 import { app, BrowserWindow } from "electron";
-import { runtimeConfig } from "./runtime-config";
+import { waitForDaemonSocket } from "./daemon-ready";
 import { registerDbStorageIpc } from "./ipc/db-storage";
+import { runtimeConfig } from "./runtime-config";
 import { registerExerciseIpc, seedExercises } from "./services/exercises";
 import { createSplashWindow, createWindow } from "./windows";
-import { waitForDaemonSocket } from "./daemon-ready";
 
 registerDbStorageIpc();
 

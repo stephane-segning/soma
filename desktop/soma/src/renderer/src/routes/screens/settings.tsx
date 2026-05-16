@@ -2,8 +2,8 @@ import { useTranslation } from "react-i18next";
 import { ConnectivitySection } from "./settings/connectivity-section";
 import { DaemonSection } from "./settings/daemon-section";
 import { ModelFeaturesSection } from "./settings/model-features-section";
-import { PeopleAccessSection, useMembershipSettings } from "./settings/use-membership-settings";
 import { useGlobalAgentSettings } from "./settings/use-global-agent-settings";
+import { PeopleAccessSection, useMembershipSettings } from "./settings/use-membership-settings";
 
 function Component(): React.JSX.Element {
 	const { t } = useTranslation("common");

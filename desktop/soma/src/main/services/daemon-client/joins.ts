@@ -57,10 +57,7 @@ export async function listJoinRequests(client: DaemonGrpcClient): Promise<Stored
 	return (res.requests ?? []).map((request) => fromJoinRequest(request));
 }
 
-export async function decideJoin(
-	client: DaemonGrpcClient,
-	input: DecideJoinInput,
-): Promise<DecideJoinResult | null> {
+export async function decideJoin(client: DaemonGrpcClient, input: DecideJoinInput): Promise<DecideJoinResult | null> {
 	if (!input.requestId?.trim()) {
 		throw new Error("requestId is required");
 	}
@@ -88,10 +85,7 @@ export async function decideJoin(
 	};
 }
 
-export async function revokeSpaceMembership(
-	client: DaemonGrpcClient,
-	input: RevokeMembershipInput,
-): Promise<boolean> {
+export async function revokeSpaceMembership(client: DaemonGrpcClient, input: RevokeMembershipInput): Promise<boolean> {
 	if (!input.spaceId?.trim()) {
 		throw new Error("spaceId is required");
 	}
