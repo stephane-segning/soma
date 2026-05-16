@@ -125,7 +125,7 @@ export default withPwa(withMermaid({
         lineNumbers: true,
     },
     themeConfig: {
-        logo: '/soma-mark.svg',
+        logo: '/icon.png',
         nav,
         sidebar,
         search: {
