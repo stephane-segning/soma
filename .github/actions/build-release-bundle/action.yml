@@ -105,7 +105,8 @@ runs:
           exit 1
         fi
         JSON_PATH="$RUNNER_TEMP/release_bundle.json"
-        pnpm --filter @soma/packaging run bundle:release -- \
+        pnpm --filter @soma/packaging run build
+        node desktop/packaging/dist/index.js release \
           --os "$BUNDLE_OS" \
           --arch "$BUNDLE_ARCH" \
           --out-dir "$OUT_DIR" \
