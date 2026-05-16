@@ -36,18 +36,20 @@ features:
 
 ## Install
 
-Soma release bundles combine the published Rust daemons, the Soma desktop app, and Tapia into one OS/arch package. Each bundle release publishes a generated `install.sh` helper that detects Linux vs. macOS and `amd64` vs. `arm64`, then downloads the matching `.deb`, `.rpm`, or `.pkg`.
-
-Choose a published `bundle-*` tag from [GitHub Releases](https://github.com/stephane-segning/soma/releases), then run:
+Soma release bundles combine the published Rust daemons, the Soma desktop app, and Tapia into one OS/arch package. The docs site exposes a small bootstrap installer that finds the newest `bundle-*` release, then runs the generated release installer for your Linux or macOS architecture.
 
 ```bash
-BUNDLE_TAG=bundle-YYYYMMDD-HHMMSS
-curl -fsSL "https://github.com/stephane-segning/soma/releases/download/${BUNDLE_TAG}/install.sh" -o install-soma.sh
-less install-soma.sh
+curl -fsSL https://soma.vaam.store/install.sh | bash
+```
+
+To inspect it first:
+
+```bash
+curl -fsSL https://soma.vaam.store/install.sh -o install-soma.sh
 bash install-soma.sh
 ```
 
-The installer includes `soma-daemon`, `soma-agentd`, Soma, and Tapia. Bundle releases are produced by the `Release bundle` workflow after daemon and desktop releases are available; they are not assumed to be GitHub's global `latest` release.
+The installer includes `soma-daemon`, `soma-agentd`, Soma, and Tapia. Bundle releases are produced by the `Release bundle` workflow after daemon and desktop releases are available; set `SOMA_BUNDLE_TAG=bundle-...` before running the script to pin a specific release.
 
 ## Quick Paths
 
