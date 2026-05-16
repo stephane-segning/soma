@@ -26,6 +26,43 @@ pub(super) async fn upsert_space(pool: &Pool, space: &Space) -> SomaResult<()> {
     Ok(())
 }
 
+pub(super) async fn upsert_space_genesis(
+    pool: &Pool,
+    space_id: &str,
+    genesis: Vec<u8>,
+) -> SomaResult<()> {
+    sqlx::query(
+        r#"
+        UPDATE spaces
+        SET genesis = COALESCE(genesis, $2)
+        WHERE space_id = $1
+        "#,
+    )
+    .bind(space_id)
+    .bind(genesis)
+    .execute(pool)
+    .await
+    .map_err(Error::service)?;
+
+    Ok(())
+}
+
+pub(super) async fn get_space_genesis(pool: &Pool, space_id: &str) -> SomaResult<Option<Vec<u8>>> {
+    let row = sqlx::query(
+        r#"
+        SELECT genesis
+        FROM spaces
+        WHERE space_id = $1
+        "#,
+    )
+    .bind(space_id)
+    .fetch_optional(pool)
+    .await
+    .map_err(Error::service)?;
+
+    Ok(row.and_then(|row| sqlx::Row::get::<Option<Vec<u8>>, _>(&row, "genesis")))
+}
+
 pub(super) async fn get_space(pool: &Pool, space_id: &str) -> SomaResult<Option<Space>> {
     let row = sqlx::query(
         r#"

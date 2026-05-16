@@ -3,7 +3,7 @@ use std::time::SystemTime;
 use async_trait::async_trait;
 use futures::FutureExt;
 use libp2p::PeerId;
-use soma_common::{verify_issuer_capability, verify_membership_capability};
+use soma_common::{verify_membership_capability, verify_membership_capability_with_owner_key};
 use soma_membership::apply_join_decision;
 use soma_peer::PeerEvent;
 use soma_peer::events::{PeerEventHandler, PeerEventKind};
@@ -36,14 +36,22 @@ impl PeerEventHandler<DaemonState> for JoinDecisionPersistenceHandler {
             warn!(peer = %from, "rejected join decision: missing sender public key");
             return;
         };
-        if let Err(err) =
+        let verification = if cap.issuer_cap.is_some() {
+            let Some(owner_pk) = issuer_owner_public_key(ctx, from, cap).await else {
+                return;
+            };
+            verify_membership_capability_with_owner_key(
+                cap,
+                &pubkey,
+                &owner_pk,
+                &ctx.peer_id,
+                SystemTime::now(),
+            )
+        } else {
             verify_membership_capability(cap, &pubkey, &ctx.peer_id, SystemTime::now())
-        {
+        };
+        if let Err(err) = verification {
             warn!(%err, peer = %from, "rejected join decision: capability verification failed");
-            return;
-        }
-
-        if !verify_delegated_issuer(ctx, from, cap, &pubkey).await {
             return;
         }
 
@@ -53,33 +61,27 @@ impl PeerEventHandler<DaemonState> for JoinDecisionPersistenceHandler {
     }
 }
 
-async fn verify_delegated_issuer(
+async fn issuer_owner_public_key(
     ctx: &DaemonState,
     from: &PeerId,
     cap: &soma_proto_build::space::MembershipCapability,
-    pubkey: &libp2p::identity::PublicKey,
-) -> bool {
+) -> Option<libp2p::identity::PublicKey> {
     let Some(issuer_cap) = cap.issuer_cap.as_ref() else {
-        return true;
+        return None;
     };
     let owner_peer = issuer_cap
         .owner_peer_id
         .as_ref()
         .map(|p| p.value.clone())
         .unwrap_or_default();
-    let now = SystemTime::now();
 
     if owner_peer == from.to_string() {
-        if let Err(err) = verify_issuer_capability(issuer_cap, pubkey, now) {
-            warn!(%err, peer = %from, "rejected join decision: issuer capability invalid");
-            return false;
-        }
-        return true;
+        return peer_public_key(ctx, from).await;
     }
 
     let Ok(owner_id) = owner_peer.parse::<PeerId>() else {
         warn!(peer = %from, owner_peer, "rejected join decision: malformed owner peer id");
-        return false;
+        return None;
     };
     let Some(owner_pk) = peer_public_key(ctx, &owner_id).await else {
         warn!(
@@ -87,13 +89,9 @@ async fn verify_delegated_issuer(
             owner = %owner_peer,
             "rejected join decision: owner pubkey unavailable for issuer verification"
         );
-        return false;
+        return None;
     };
-    if let Err(err) = verify_issuer_capability(issuer_cap, &owner_pk, now) {
-        warn!(%err, peer = %from, owner = %owner_peer, "rejected join decision: issuer delegation invalid");
-        return false;
-    }
-    true
+    Some(owner_pk)
 }
 
 async fn peer_public_key(ctx: &DaemonState, peer: &PeerId) -> Option<libp2p::identity::PublicKey> {

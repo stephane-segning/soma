@@ -61,6 +61,8 @@ pub struct JoinRequest {
 #[async_trait]
 pub trait MembershipRepository: Send + Sync {
     async fn upsert_space(&self, space: &Space) -> SomaResult<()>;
+    async fn upsert_space_genesis(&self, space_id: &str, genesis: Vec<u8>) -> SomaResult<()>;
+    async fn get_space_genesis(&self, space_id: &str) -> SomaResult<Option<Vec<u8>>>;
     async fn get_space(&self, space_id: &str) -> SomaResult<Option<Space>>;
     async fn list_spaces(
         &self,

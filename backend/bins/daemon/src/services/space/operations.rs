@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use async_trait::async_trait;
 use rand::random;
 use soma_core::{Error, SomaResult};
-use soma_membership::create_space;
+use soma_membership::create_space_with_genesis;
 
 use super::{
     manager::DefaultSpaceManager,
@@ -69,9 +69,9 @@ impl SpaceManager for DefaultSpaceManager {
             .unwrap_or_else(|| format!("space-{:016x}", random::<u64>()));
         let display_name = Self::normalize_display_name(display_name);
 
-        create_space(
+        create_space_with_genesis(
             self.repos.as_ref(),
-            &self.peer_id,
+            &self.signer,
             &space_id,
             display_name.clone(),
         )
@@ -114,9 +114,9 @@ impl SpaceManager for DefaultSpaceManager {
     ) -> SomaResult<()> {
         let repo = self.repos.membership_repo();
         if repo.get_space(space_id).await?.is_none() {
-            create_space(
+            create_space_with_genesis(
                 self.repos.as_ref(),
-                &self.peer_id,
+                &self.signer,
                 space_id,
                 display_name.clone(),
             )

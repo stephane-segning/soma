@@ -11,7 +11,7 @@ mod roles;
 mod space_creation;
 mod time;
 
-pub use issuer::issue_issuer_capability_to_storage;
+pub use issuer::{issue_issuer_capability_to_storage, issue_owned_issuer_capability_to_storage};
 pub use join_decider::{JoinPolicy, build_join_decider};
 pub use join_decisions::{apply_join_decision, enqueue_outgoing_join_decision};
 pub use join_requests::{decide_join_request, list_pending_join_requests};
@@ -20,4 +20,7 @@ pub use outgoing_join_requests::{
     decode_outgoing_join_request_payload, enqueue_outgoing_join_request,
 };
 pub use roles::{parse_role_str, role_to_str};
-pub use space_creation::create_space;
+pub use space_creation::{
+    build_space_genesis_artifact, create_space, create_space_with_genesis,
+    verify_space_genesis_artifact,
+};

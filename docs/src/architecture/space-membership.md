@@ -35,8 +35,14 @@ These categories are not implied just by assigning the `Bot` role. They must be 
 ### IssuerCapability
 
 - Grants authority to create MembershipCapabilities for a space.
-- Held by space owners, trusted members, or onboarding bots.
-- May be delegated—transferring this capability is effectively handing over admin rights.
+- Issued by the space owner to a delegate peer through `Daemon/IssueIssuerCapability` or admin tooling.
+- Stored as an owner-signed artifact and checked for space, delegate, role, and expiry before it can mint membership.
+
+### SpaceGenesisArtifact
+
+- Owner-signed proof for the initial space record.
+- Created by the daemon during `CreateSpace` and stored beside the local `spaces` row.
+- Lets peers verify that `owner_peer_id` is not only DB-local metadata.
 
 ### Bot Onboarding
 
@@ -64,6 +70,9 @@ Revocation can be implemented by expiring capabilities, publishing revocation ev
   - `bot` mode (default): HTTP is read-only (`/info`, `/healthz`, `/metrics`); join decisions still flow over libp2p via the decider.
   - `admin` mode: exposes admin-token-gated join control endpoints over HTTP for admin tooling; controllers still delegate to the decider/storage and never "force-join".
 - Auto-approval rules: botd auto-approves only when it holds a valid issuer capability for the target space; otherwise join requests are recorded for manual approval. Manual approval surfaces now exist in both soma-daemon (gRPC) and admin HTTP.
+- Owner delegation: soma-daemon exposes `IssueIssuerCapability`; the current daemon must own the space, and the signed delegation is persisted for audit/reuse.
+- Discovery: soma-daemon exposes `DiscoverSpaces`, but it currently returns only locally known/member spaces. Rendezvous-backed space discovery is still future work.
+- Ownership proof: new daemon-created spaces carry an owner-signed genesis artifact in storage.
 - Peer event pipeline: join decisions and failures are surfaced as `PeerEvent` and dispatched via the shared event dispatcher (see `docs/src/development/peer-events.md`).
 
 ### Current limitation: pending approval is transitional

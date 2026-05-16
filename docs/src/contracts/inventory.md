@@ -2,7 +2,7 @@
 
 This document tracks the shared contract surface between backend (Rust gRPC) and desktop (Electron main-process wrappers).
 
-**Last Updated:** 2026-03-20
+**Last Updated:** 2026-05-16
 
 ## Status Legend
 
@@ -26,10 +26,10 @@ This document tracks the shared contract surface between backend (Rust gRPC) and
 | `RevokeSpace` | ✅ | ✅ | ✅ | ❌ | `implemented` | Deletes local membership; clears local cache if self-revocation |
 | `ListSpaceMembers` | ✅ | ✅ | ✅ | ❌ | `implemented` | Lists membership rows for a space |
 | `ListMyMemberships` | ✅ | ✅ | ✅ | ❌ | `implemented` | Lists memberships where subject = self |
-| `IssueIssuerCapability` | ✅ | ✅ | ❌ | ❌ | `unimplemented` | Backend returns `UNIMPLEMENTED`; declared but not implemented |
-| `DiscoverSpaces` | ✅ | ✅ | ❌ | ❌ | `unimplemented` | Backend returns `UNIMPLEMENTED`; declared but not implemented |
+| `IssueIssuerCapability` | ✅ | ✅ | ❌ | ❌ | `desktop-hidden` | Owner-gated daemon RPC signs and persists issuer delegation locally; desktop wrapper not exposed |
+| `DiscoverSpaces` | ✅ | ✅ | ❌ | ❌ | `desktop-hidden` | Returns locally known/member spaces only; rendezvous/network discovery is not implemented |
 | `ListSpaces` | ✅ | ✅ | ✅ | ❌ | `implemented` | Paginated space list with optional query filter |
-| `CreateSpace` | ✅ | ✅ | ✅ | ❌ | `implemented` | Creates space record; owner defaults to self |
+| `CreateSpace` | ✅ | ✅ | ✅ | ❌ | `implemented` | Creates local space, owner membership, and owner-signed genesis artifact |
 | `GetSpace` | ✅ | ✅ | ✅ | ❌ | `implemented` | Fetch single space by ID |
 | `UpdateSpace` | ✅ | ✅ | ✅ | ❌ | `implemented` | Update display_name |
 | `DeleteSpace` | ✅ | ✅ | ✅ | ❌ | `implemented` | Hard delete space record |
@@ -167,8 +167,8 @@ These require documentation and/or fixes before backend/desktop can evolve indep
 
 ### P1 (Misleading API)
 
-1. Decide: implement `IssueIssuerCapability` or remove from proto
-2. Decide: implement `DiscoverSpaces` or remove from proto
+1. Expose `IssueIssuerCapability` in desktop only when product UX is ready
+2. Extend `DiscoverSpaces` beyond local storage if rendezvous metadata becomes a product requirement
 3. Decide: expose `GetBlobMetadata` / `ListBlobs` in desktop or mark intentional
 
 ### P2 (Dead Declarations)

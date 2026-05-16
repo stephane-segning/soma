@@ -1,7 +1,7 @@
 use ciborium::ser::into_writer;
 use serde::Serialize;
 use soma_core::{Error, SomaResult};
-use soma_proto_build::space::{IssuerCapability, MembershipCapability};
+use soma_proto_build::space::{IssuerCapability, MembershipCapability, SpaceGenesisArtifact};
 
 #[derive(Serialize)]
 struct TimestampView {
@@ -34,6 +34,14 @@ pub(crate) struct MembershipSigningView(
     Option<IssuerCapabilitySigningView>,
 );
 
+#[derive(Serialize)]
+pub(crate) struct SpaceGenesisSigningView(
+    Option<String>,
+    Option<String>,
+    Option<String>,
+    Option<TimestampView>,
+);
+
 pub(crate) fn membership_view(cap: &MembershipCapability) -> MembershipSigningView {
     MembershipSigningView(
         cap.space_id.as_ref().map(|s| s.value.clone()),
@@ -44,6 +52,15 @@ pub(crate) fn membership_view(cap: &MembershipCapability) -> MembershipSigningVi
         cap.expires_at.as_ref().map(ts_view),
         cap.issuer_peer_id.as_ref().map(|p| p.value.clone()),
         cap.issuer_cap.as_ref().map(issuer_view),
+    )
+}
+
+pub(crate) fn space_genesis_view(genesis: &SpaceGenesisArtifact) -> SpaceGenesisSigningView {
+    SpaceGenesisSigningView(
+        genesis.space_id.as_ref().map(|s| s.value.clone()),
+        genesis.owner_peer_id.as_ref().map(|p| p.value.clone()),
+        genesis.display_name.clone(),
+        genesis.created_at.as_ref().map(ts_view),
     )
 }
 

@@ -351,12 +351,9 @@ service Daemon {
   // List all spaces the current user is a member of.
   rpc ListMyMemberships(google.protobuf.Empty) returns (ListMyMembershipsResponse);
   // Issue a capability for another peer to act as an issuer for a space.
-  // STATUS: UNIMPLEMENTED - backend returns UNIMPLEMENTED status.
-  // Planned for future release to support bot issuer delegation.
+  // Current daemon implementation is owner-gated and stores the signed delegation locally.
   rpc IssueIssuerCapability(IssueIssuerCapabilityRequest) returns (IssueIssuerCapabilityResponse);
-  // Discover available spaces.
-  // STATUS: UNIMPLEMENTED - backend returns UNIMPLEMENTED status.
-  // Planned for future release to support space discovery via rendezvous.
+  // Discover spaces known to the local daemon. Network/rendezvous discovery is future work.
   rpc DiscoverSpaces(DiscoverSpacesRequest) returns (DiscoverSpacesResponse);
   // List spaces managed by this daemon.
   rpc ListSpaces(ListSpacesRequest) returns (ListSpacesResponse);

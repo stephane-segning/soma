@@ -39,14 +39,15 @@ enum SpacePermission {
 }
 
 // -----------------------------------------------------------------------------
-// Signing strategy: CBOR canonical bytes
+// Signing strategy: CBOR signing payload bytes
 // -----------------------------------------------------------------------------
 
-// When signing capabilities, you can sign canonical CBOR bytes of a "signing view"
-// of the message (e.g., same fields but without signature bytes).
+// When signing capabilities, Soma signs CBOR bytes of a stable "signing view"
+// of the message (e.g., same fields but without signature bytes). Cross-version
+// canonical CBOR is still tracked as an interoperability hardening task.
 // This message lets you carry that signed payload explicitly if you want.
 message CborSigned {
-  // Canonical CBOR bytes of the signing payload.
+  // CBOR bytes of the signing payload.
   bytes cbor = 1;
 
   // PeerId of signer (owner or bot).
@@ -57,6 +58,17 @@ message CborSigned {
 
   // Optional: signature algorithm hint, e.g. "ed25519".
   string alg = 4;
+}
+
+// Owner-signed proof that a peer created/owns the space genesis.
+message SpaceGenesisArtifact {
+  SpaceId space_id = 1;
+  PeerId owner_peer_id = 2;
+  optional string display_name = 3;
+  google.protobuf.Timestamp created_at = 4;
+
+  // Signed by owner over CBOR of SpaceGenesisArtifact without `signed`.
+  CborSigned signed = 5;
 }
 
 // -----------------------------------------------------------------------------
@@ -155,7 +167,7 @@ message IssuerCapability {
   // Owner/teacher that signed this delegation.
   PeerId owner_peer_id = 9;
 
-  // Signed by owner over canonical CBOR of IssuerCapability without `signed`.
+  // Signed by owner over the CBOR signing view of IssuerCapability without `signed`.
   CborSigned signed = 10;
 }
 
@@ -180,7 +192,7 @@ message MembershipCapability {
   // If issued by owner, this can be omitted.
   IssuerCapability issuer_cap = 8;
 
-  // Signed by issuer_peer_id over canonical CBOR of MembershipCapability without `signed`.
+  // Signed by issuer_peer_id over the CBOR signing view of MembershipCapability without `signed`.
   CborSigned signed = 9;
 }
 
