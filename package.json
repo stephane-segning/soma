@@ -31,8 +31,7 @@
       "electron-winstaller",
       "esbuild",
       "grpc-tools",
-      "protobufjs",
-      "sharp"
+      "protobufjs"
     ]
   }
 }

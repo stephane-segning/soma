@@ -2,7 +2,6 @@ import { resolve } from "node:path";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "electron-vite";
 import type { PreRenderedAsset } from "rollup";
-import { ViteImageOptimizer } from "vite-plugin-image-optimizer";
 import { ViteMinifyPlugin } from "vite-plugin-minify";
 import topLevelAwait from "vite-plugin-top-level-await";
 import { vitePluginVersionMark } from "vite-plugin-version-mark";
@@ -34,10 +33,6 @@ export default defineConfig((configEnv) => ({
 		plugins: [
 			react(),
 			tsconfigPaths(),
-			configEnv.command === "build" &&
-				ViteImageOptimizer({
-					/* pass your config */
-				}),
 			configEnv.command === "build" &&
 				vitePluginVersionMark({
 					ifShortSHA: true,

@@ -1,4 +1,4 @@
-import { createImageVariants, zipFile } from "../services/blob-processing";
+import { zipFile } from "../services/blob-processing";
 import type { DaemonClient } from "../services/daemon-client";
 import type {
 	StageUploadPayloadParams,
@@ -28,17 +28,6 @@ export type BlobStageResult = {
 	mime: string;
 	name: string;
 	url: string;
-	variants?: BlobStageVariant[];
-};
-
-export type BlobStageVariant = {
-	cid: string;
-	size: number;
-	mime: string;
-	name: string;
-	url: string;
-	width?: number;
-	height?: number;
 };
 
 const ZIP_MIME = "application/zip";
@@ -83,43 +72,13 @@ export class BlobsController {
 			bytes: Array.from(buffer),
 		});
 
-		const variants = await this.createImageVariants(params, buffer);
-
 		return {
 			cid: res.cid,
 			size: res.size,
 			mime: res.mime,
 			name: res.name,
 			url: `soma-blob://daemon/${params.spaceId}/${res.cid}`,
-			variants,
 		};
-	}
-
-	private async createImageVariants(params: BlobStageParams, buffer: Buffer): Promise<BlobStageVariant[]> {
-		const variants = await createImageVariants(params.fileName ?? "image", buffer);
-		const results: BlobStageVariant[] = [];
-
-		for (const variant of variants) {
-			const res = await this.daemon.uploadBlob({
-				spaceId: params.spaceId,
-				docId: params.docId,
-				mime: params.mime,
-				name: variant.name,
-				bytes: Array.from(variant.data),
-			});
-
-			results.push({
-				cid: res.cid,
-				size: res.size,
-				mime: res.mime,
-				name: res.name,
-				url: `soma-blob://daemon/${params.spaceId}/${res.cid}`,
-				width: variant.width,
-				height: variant.height,
-			});
-		}
-
-		return results;
 	}
 
 	private async stageFile(params: BlobStageParams, buffer: Buffer): Promise<BlobStageResult> {
