@@ -57,7 +57,6 @@
 		"rollup": "^4.57.1",
 		"typescript": "^5.9.3",
 		"vite": "^7.3.1",
-		"vite-plugin-image-optimizer": "^2.0.3",
 		"vite-plugin-minify": "^2.1.0",
 		"vite-plugin-top-level-await": "^1.6.0",
 		"vite-plugin-version-mark": "^0.2.2",
