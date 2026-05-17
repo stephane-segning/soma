@@ -6,22 +6,26 @@
 //! Electron's main process.
 //!
 //! P3a scope: the addon can start both runtimes, hold them alive, and shut them
-//! down. Method-by-method daemon/agent surfaces (upload_blob, read_blob, chat,
-//! etc.) come in P3b after the runtime libs are extended to expose their
-//! services for in-process calls.
+//! down. P3b: every daemon and agentd in-process handle method is now mirrored
+//! as a `#[napi]` async method on [`SomaHandle`]; streaming surfaces
+//! (`stream_events`, `chat_stream`) remain TODO and live on the gRPC layer.
 
 use std::path::PathBuf;
 use std::str::FromStr;
 
 use napi::Error as NapiError;
 use napi::Status;
+use napi::bindgen_prelude::Buffer;
 use napi_derive::napi;
 use tokio::sync::Mutex;
 
-use soma_agentd::{RuntimeConfig as AgentdConfig, RuntimeHandle as AgentdHandle};
+use soma_agentd::{
+    AgentHandle as AgentInProcessHandle, RuntimeConfig as AgentdConfig,
+    RuntimeHandle as AgentdHandle, handle_types as agent_types,
+};
 use soma_daemon::{
     DaemonHandle as DaemonInProcessHandle, RuntimeConfig as DaemonConfig,
-    RuntimeHandle as DaemonHandle,
+    RuntimeHandle as DaemonHandle, handle_types as daemon_types,
 };
 
 #[napi(object)]
@@ -43,6 +47,216 @@ pub struct StartConfig {
     pub enable_mdns: Option<bool>,
 }
 
+// --- Plain napi mirror records for the daemon handle surface --------------
+
+#[napi(object)]
+pub struct PageRecordJs {
+    pub space_id: String,
+    pub page_id: String,
+    pub title: String,
+    pub parent_page_ids: Vec<String>,
+    pub created_at_ms: i64,
+    pub updated_at_ms: i64,
+}
+
+#[napi(object)]
+pub struct SpaceRecordJs {
+    pub space_id: String,
+    pub display_name: String,
+    pub owner_peer_id: String,
+    pub created_at: i64,
+}
+
+#[napi(object)]
+pub struct DocumentRecordJs {
+    pub space_id: String,
+    pub document_id: String,
+    pub content_json: String,
+    pub published: bool,
+    pub updated_at_ms: i64,
+}
+
+#[napi(object)]
+pub struct SpaceMemberJs {
+    pub space_id: String,
+    pub peer_id: String,
+    pub role: String,
+    pub expires_at: i64,
+}
+
+#[napi(object)]
+pub struct DiscoveredSpaceJs {
+    pub space_id: String,
+    pub display_name: String,
+    pub tags: Vec<String>,
+}
+
+#[napi(object)]
+pub struct CreateSpaceResultJs {
+    pub space_id: String,
+    pub owner_peer_id: String,
+}
+
+#[napi(object)]
+pub struct ListSpacesInputJs {
+    pub q: Option<String>,
+    pub limit: u32,
+    pub offset: u32,
+}
+
+#[napi(object)]
+pub struct ListSpacesOutputJs {
+    pub spaces: Vec<SpaceRecordJs>,
+    pub limit: u32,
+    pub offset: u32,
+    pub next_offset: Option<u32>,
+}
+
+#[napi(object)]
+pub struct CreateSpaceInputJs {
+    pub space_id: String,
+    pub display_name: String,
+}
+
+#[napi(object)]
+pub struct UpdateSpaceInputJs {
+    pub space_id: String,
+    pub display_name: String,
+}
+
+#[napi(object)]
+pub struct UploadBlobInputJs {
+    pub space_id: String,
+    pub data: Buffer,
+    pub mime: String,
+    pub name: String,
+    pub doc_id: String,
+}
+
+#[napi(object)]
+pub struct UploadBlobResultJs {
+    pub cid: String,
+    pub size: i64,
+    pub mime: String,
+    pub name: String,
+}
+
+#[napi(object)]
+pub struct ReadBlobResultJs {
+    pub data: Buffer,
+    pub size: i64,
+    pub mime: String,
+}
+
+#[napi(object)]
+pub struct EnsurePageInputJs {
+    pub space_id: String,
+    pub page_id: String,
+    pub title: String,
+    pub parent_page_ids: Vec<String>,
+    pub created_at_ms: i64,
+    pub updated_at_ms: i64,
+}
+
+#[napi(object)]
+pub struct UpsertDocumentInputJs {
+    pub space_id: String,
+    pub document_id: String,
+    pub content_json: String,
+    pub published: bool,
+    pub updated_at_ms: i64,
+}
+
+#[napi(object)]
+pub struct JoinSpaceInputJs {
+    pub space_id: String,
+    pub display_name: String,
+    pub device_name: String,
+    pub target_peer_id: String,
+    pub target_multiaddrs: Vec<String>,
+}
+
+#[napi(object)]
+pub struct JoinRequestRecordJs {
+    pub request_id: String,
+    pub space_id: String,
+    pub subject_peer_id: String,
+    pub display_name: String,
+    pub device_name: String,
+    pub requested_role: i32,
+    pub created_at: i64,
+}
+
+#[napi(object)]
+pub struct DecideJoinInputJs {
+    pub request_id: String,
+    pub approve: bool,
+    pub role: String,
+    pub reason: String,
+}
+
+#[napi(object)]
+pub struct JoinDecisionRecordJs {
+    pub decision_id: String,
+    pub space_id: String,
+    pub subject_peer_id: String,
+    pub decision: i32,
+    pub reason: String,
+    pub approved: bool,
+    pub created_at_ms: i64,
+}
+
+#[napi(object)]
+pub struct RevokeSpaceInputJs {
+    pub space_id: String,
+    pub subject_peer_id: String,
+    pub reason: String,
+}
+
+#[napi(object)]
+pub struct IssueIssuerCapabilityInputJs {
+    pub space_id: String,
+    pub target_peer_id: String,
+    pub expires_at: i64,
+}
+
+// --- Plain napi mirror records for the agent handle surface --------------
+
+#[napi(object)]
+pub struct ModelInfoJs {
+    pub name: String,
+    pub path: String,
+    pub loaded: bool,
+    pub size_bytes: Option<i64>,
+}
+
+#[napi(object)]
+pub struct AgentStatusJs {
+    pub version: String,
+    pub default_chat_model: String,
+    pub default_embed_model: String,
+    pub models: Vec<ModelInfoJs>,
+}
+
+#[napi(object)]
+pub struct RerankCandidateJs {
+    pub id: String,
+    pub text: String,
+}
+
+#[napi(object)]
+pub struct RerankHitJs {
+    pub id: String,
+    pub score: f64,
+}
+
+#[napi(object)]
+pub struct RerankResultJs {
+    pub hits: Vec<RerankHitJs>,
+}
+
+// ---------------------------------------------------------------------------
+
 struct RuntimeBundle {
     daemon: DaemonHandle,
     agentd: AgentdHandle,
@@ -55,16 +269,13 @@ pub struct SomaHandle {
 
 #[napi]
 impl SomaHandle {
-    /// Gracefully shut down both embedded runtimes. Idempotent: calling
-    /// `shutdown` twice is safe; the second call is a no-op.
+    /// Gracefully shut down both embedded runtimes. Idempotent.
     #[napi]
     pub async fn shutdown(&self) -> napi::Result<()> {
         let Some(bundle) = self.inner.lock().await.take() else {
             return Ok(());
         };
 
-        // Shut both down concurrently. Log every failure before returning so
-        // operators see all errors, then surface the first one to JS.
         let (daemon_res, agentd_res) =
             tokio::join!(bundle.daemon.shutdown(), bundle.agentd.shutdown());
 
@@ -80,15 +291,13 @@ impl SomaHandle {
         Ok(())
     }
 
-    /// Whether the runtimes are still alive (i.e. `shutdown` has not been
-    /// called and consumed them).
     #[napi]
     pub async fn is_running(&self) -> bool {
         self.inner.lock().await.is_some()
     }
 
-    /// Current daemon peer id + listen addresses. Errors if the runtime has
-    /// already been shut down.
+    // --- Daemon status --------------------------------------------------
+
     #[napi]
     pub async fn status(&self) -> napi::Result<DaemonStatusJs> {
         let handle = self.daemon_handle().await?;
@@ -97,6 +306,410 @@ impl SomaHandle {
             peer_id: status.peer_id,
             listen_addrs: status.listen_addrs,
         })
+    }
+
+    // --- Daemon spaces --------------------------------------------------
+
+    #[napi]
+    pub async fn list_spaces(&self, input: ListSpacesInputJs) -> napi::Result<ListSpacesOutputJs> {
+        let handle = self.daemon_handle().await?;
+        let out = handle
+            .list_spaces(daemon_types::ListSpacesInput {
+                q: input.q,
+                limit: input.limit,
+                offset: input.offset,
+            })
+            .await
+            .map_err(to_napi)?;
+        Ok(ListSpacesOutputJs {
+            spaces: out.spaces.into_iter().map(space_record_to_js).collect(),
+            limit: out.limit,
+            offset: out.offset,
+            next_offset: out.next_offset,
+        })
+    }
+
+    #[napi]
+    pub async fn create_space(
+        &self,
+        input: CreateSpaceInputJs,
+    ) -> napi::Result<CreateSpaceResultJs> {
+        let handle = self.daemon_handle().await?;
+        let out = handle
+            .create_space(daemon_types::CreateSpaceInput {
+                space_id: input.space_id,
+                display_name: input.display_name,
+            })
+            .await
+            .map_err(to_napi)?;
+        Ok(CreateSpaceResultJs {
+            space_id: out.space_id,
+            owner_peer_id: out.owner_peer_id,
+        })
+    }
+
+    #[napi]
+    pub async fn get_space(&self, space_id: String) -> napi::Result<SpaceRecordJs> {
+        let handle = self.daemon_handle().await?;
+        let space = handle.get_space(&space_id).await.map_err(to_napi)?;
+        Ok(space_record_to_js(space))
+    }
+
+    #[napi]
+    pub async fn update_space(&self, input: UpdateSpaceInputJs) -> napi::Result<SpaceRecordJs> {
+        let handle = self.daemon_handle().await?;
+        let space = handle
+            .update_space(daemon_types::UpdateSpaceInput {
+                space_id: input.space_id,
+                display_name: input.display_name,
+            })
+            .await
+            .map_err(to_napi)?;
+        Ok(space_record_to_js(space))
+    }
+
+    #[napi]
+    pub async fn delete_space(&self, space_id: String) -> napi::Result<bool> {
+        let handle = self.daemon_handle().await?;
+        handle.delete_space(&space_id).await.map_err(to_napi)
+    }
+
+    // --- Daemon members -------------------------------------------------
+
+    #[napi]
+    pub async fn list_space_members(
+        &self,
+        space_id: String,
+    ) -> napi::Result<Vec<SpaceMemberJs>> {
+        let handle = self.daemon_handle().await?;
+        let members = handle
+            .list_space_members(&space_id)
+            .await
+            .map_err(to_napi)?;
+        Ok(members.into_iter().map(member_to_js).collect())
+    }
+
+    #[napi]
+    pub async fn list_my_memberships(&self) -> napi::Result<Vec<SpaceMemberJs>> {
+        let handle = self.daemon_handle().await?;
+        let members = handle.list_my_memberships().await.map_err(to_napi)?;
+        Ok(members.into_iter().map(member_to_js).collect())
+    }
+
+    // --- Daemon blobs ---------------------------------------------------
+
+    #[napi]
+    pub async fn upload_blob(
+        &self,
+        input: UploadBlobInputJs,
+    ) -> napi::Result<UploadBlobResultJs> {
+        let handle = self.daemon_handle().await?;
+        let res = handle
+            .upload_blob(daemon_types::UploadBlobInput {
+                space_id: input.space_id,
+                data: input.data.to_vec(),
+                mime: input.mime,
+                name: input.name,
+                doc_id: input.doc_id,
+            })
+            .await
+            .map_err(to_napi)?;
+        Ok(UploadBlobResultJs {
+            cid: res.cid,
+            size: res.size as i64,
+            mime: res.mime,
+            name: res.name,
+        })
+    }
+
+    #[napi]
+    pub async fn read_blob(
+        &self,
+        space_id: String,
+        cid: String,
+    ) -> napi::Result<Option<ReadBlobResultJs>> {
+        let handle = self.daemon_handle().await?;
+        let res = handle.read_blob(&space_id, &cid).await.map_err(to_napi)?;
+        Ok(res.map(|r| ReadBlobResultJs {
+            data: Buffer::from(r.data),
+            size: r.size as i64,
+            mime: r.mime,
+        }))
+    }
+
+    // --- Daemon pages ---------------------------------------------------
+
+    #[napi]
+    pub async fn ensure_page(&self, input: EnsurePageInputJs) -> napi::Result<PageRecordJs> {
+        let handle = self.daemon_handle().await?;
+        let page = handle
+            .ensure_page(daemon_types::EnsurePageInput {
+                space_id: input.space_id,
+                page_id: input.page_id,
+                title: input.title,
+                parent_page_ids: input.parent_page_ids,
+                created_at_ms: input.created_at_ms,
+                updated_at_ms: input.updated_at_ms,
+            })
+            .await
+            .map_err(to_napi)?;
+        Ok(page_to_js(page))
+    }
+
+    #[napi]
+    pub async fn list_pages(&self, space_id: String) -> napi::Result<Vec<PageRecordJs>> {
+        let handle = self.daemon_handle().await?;
+        let pages = handle.list_pages(&space_id).await.map_err(to_napi)?;
+        Ok(pages.into_iter().map(page_to_js).collect())
+    }
+
+    #[napi]
+    pub async fn update_page_title(
+        &self,
+        space_id: String,
+        page_id: String,
+        title: String,
+    ) -> napi::Result<Option<PageRecordJs>> {
+        let handle = self.daemon_handle().await?;
+        let page = handle
+            .update_page_title(&space_id, &page_id, &title)
+            .await
+            .map_err(to_napi)?;
+        Ok(page.map(page_to_js))
+    }
+
+    #[napi]
+    pub async fn set_page_parents(
+        &self,
+        space_id: String,
+        page_id: String,
+        parent_page_ids: Vec<String>,
+    ) -> napi::Result<Option<PageRecordJs>> {
+        let handle = self.daemon_handle().await?;
+        let page = handle
+            .set_page_parents(&space_id, &page_id, &parent_page_ids)
+            .await
+            .map_err(to_napi)?;
+        Ok(page.map(page_to_js))
+    }
+
+    // --- Daemon documents -----------------------------------------------
+
+    #[napi]
+    pub async fn upsert_document(&self, input: UpsertDocumentInputJs) -> napi::Result<()> {
+        let handle = self.daemon_handle().await?;
+        handle
+            .upsert_document(daemon_types::UpsertDocumentInput {
+                space_id: input.space_id,
+                document_id: input.document_id,
+                content_json: input.content_json,
+                published: input.published,
+                updated_at_ms: input.updated_at_ms,
+            })
+            .await
+            .map_err(to_napi)
+    }
+
+    #[napi]
+    pub async fn get_document(
+        &self,
+        space_id: String,
+        document_id: String,
+    ) -> napi::Result<Option<DocumentRecordJs>> {
+        let handle = self.daemon_handle().await?;
+        let doc = handle
+            .get_document(&space_id, &document_id)
+            .await
+            .map_err(to_napi)?;
+        Ok(doc.map(|d| DocumentRecordJs {
+            space_id: d.space_id,
+            document_id: d.document_id,
+            content_json: d.content_json,
+            published: d.published,
+            updated_at_ms: d.updated_at_ms,
+        }))
+    }
+
+    // --- Daemon joins ---------------------------------------------------
+
+    #[napi]
+    pub async fn join_space(&self, input: JoinSpaceInputJs) -> napi::Result<String> {
+        let handle = self.daemon_handle().await?;
+        handle
+            .join_space(daemon_types::JoinSpaceInput {
+                space_id: input.space_id,
+                display_name: input.display_name,
+                device_name: input.device_name,
+                target_peer_id: input.target_peer_id,
+                target_multiaddrs: input.target_multiaddrs,
+            })
+            .await
+            .map_err(to_napi)
+    }
+
+    #[napi]
+    pub async fn list_join_requests(&self) -> napi::Result<Vec<JoinRequestRecordJs>> {
+        let handle = self.daemon_handle().await?;
+        let reqs = handle.list_join_requests().await.map_err(to_napi)?;
+        Ok(reqs
+            .into_iter()
+            .map(|r| JoinRequestRecordJs {
+                request_id: r.request_id,
+                space_id: r.space_id,
+                subject_peer_id: r.subject_peer_id,
+                display_name: r.display_name,
+                device_name: r.device_name,
+                requested_role: r.requested_role,
+                created_at: r.created_at,
+            })
+            .collect())
+    }
+
+    #[napi]
+    pub async fn decide_join(
+        &self,
+        input: DecideJoinInputJs,
+    ) -> napi::Result<JoinDecisionRecordJs> {
+        let handle = self.daemon_handle().await?;
+        let dec = handle
+            .decide_join(daemon_types::DecideJoinInput {
+                request_id: input.request_id,
+                approve: input.approve,
+                role: input.role,
+                reason: input.reason,
+            })
+            .await
+            .map_err(to_napi)?;
+        Ok(JoinDecisionRecordJs {
+            decision_id: dec.decision_id,
+            space_id: dec.space_id,
+            subject_peer_id: dec.subject_peer_id,
+            decision: dec.decision,
+            reason: dec.reason,
+            approved: dec.approved,
+            created_at_ms: dec.created_at_ms,
+        })
+    }
+
+    // --- Daemon revoke --------------------------------------------------
+
+    #[napi]
+    pub async fn revoke_space(&self, input: RevokeSpaceInputJs) -> napi::Result<bool> {
+        let handle = self.daemon_handle().await?;
+        handle
+            .revoke_space(daemon_types::RevokeSpaceInput {
+                space_id: input.space_id,
+                subject_peer_id: input.subject_peer_id,
+                reason: input.reason,
+            })
+            .await
+            .map_err(to_napi)
+    }
+
+    // --- Daemon discover ------------------------------------------------
+
+    #[napi]
+    pub async fn discover_spaces(&self) -> napi::Result<Vec<DiscoveredSpaceJs>> {
+        let handle = self.daemon_handle().await?;
+        let spaces = handle.discover_spaces().await.map_err(to_napi)?;
+        Ok(spaces
+            .into_iter()
+            .map(|s| DiscoveredSpaceJs {
+                space_id: s.space_id,
+                display_name: s.display_name,
+                tags: s.tags,
+            })
+            .collect())
+    }
+
+    // --- Daemon issuer --------------------------------------------------
+
+    #[napi]
+    pub async fn issue_issuer_capability(
+        &self,
+        input: IssueIssuerCapabilityInputJs,
+    ) -> napi::Result<bool> {
+        let handle = self.daemon_handle().await?;
+        handle
+            .issue_issuer_capability(daemon_types::IssueIssuerCapabilityInput {
+                space_id: input.space_id,
+                target_peer_id: input.target_peer_id,
+                expires_at: input.expires_at,
+            })
+            .await
+            .map_err(to_napi)
+    }
+
+    // --- Agent status & models -----------------------------------------
+
+    #[napi]
+    pub async fn agent_status(&self) -> napi::Result<AgentStatusJs> {
+        let handle = self.agent_handle().await?;
+        let status = handle.status().await;
+        Ok(AgentStatusJs {
+            version: status.version,
+            default_chat_model: status.default_chat_model,
+            default_embed_model: status.default_embed_model,
+            models: status.models.into_iter().map(model_to_js).collect(),
+        })
+    }
+
+    #[napi]
+    pub async fn list_models(&self) -> napi::Result<Vec<ModelInfoJs>> {
+        let handle = self.agent_handle().await?;
+        Ok(handle.list_models().await.into_iter().map(model_to_js).collect())
+    }
+
+    // --- Agent rerank ---------------------------------------------------
+
+    #[napi]
+    pub async fn rerank(
+        &self,
+        query: String,
+        candidates: Vec<RerankCandidateJs>,
+        top_n: i32,
+    ) -> napi::Result<RerankResultJs> {
+        let handle = self.agent_handle().await?;
+        let res = handle
+            .rerank(
+                query,
+                candidates
+                    .into_iter()
+                    .map(|c| agent_types::RerankCandidate {
+                        id: c.id,
+                        text: c.text,
+                    })
+                    .collect(),
+                top_n,
+            )
+            .await
+            .map_err(to_napi)?;
+        Ok(RerankResultJs {
+            hits: res
+                .hits
+                .into_iter()
+                .map(|h| RerankHitJs {
+                    id: h.id,
+                    score: h.score as f64,
+                })
+                .collect(),
+        })
+    }
+
+    // --- Agent drift ----------------------------------------------------
+
+    #[napi]
+    pub async fn resolve_drift(
+        &self,
+        local: Buffer,
+        remote: Buffer,
+    ) -> napi::Result<Buffer> {
+        let handle = self.agent_handle().await?;
+        let merged = handle
+            .resolve_drift(local.to_vec(), remote.to_vec())
+            .await
+            .map_err(to_napi)?;
+        Ok(Buffer::from(merged))
     }
 }
 
@@ -110,7 +723,58 @@ impl SomaHandle {
         })?;
         Ok(bundle.daemon.handle())
     }
+
+    /// Get a cloned in-process handle to the agent runtime.
+    async fn agent_handle(&self) -> napi::Result<AgentInProcessHandle> {
+        let guard = self.inner.lock().await;
+        let bundle = guard.as_ref().ok_or_else(|| {
+            NapiError::new(Status::GenericFailure, "soma runtime is not running")
+        })?;
+        Ok(bundle.agentd.handle())
+    }
 }
+
+// --- Mappers --------------------------------------------------------------
+
+fn space_record_to_js(s: daemon_types::SpaceRecord) -> SpaceRecordJs {
+    SpaceRecordJs {
+        space_id: s.space_id,
+        display_name: s.display_name,
+        owner_peer_id: s.owner_peer_id,
+        created_at: s.created_at,
+    }
+}
+
+fn member_to_js(m: daemon_types::SpaceMemberRecord) -> SpaceMemberJs {
+    SpaceMemberJs {
+        space_id: m.space_id,
+        peer_id: m.peer_id,
+        role: m.role,
+        expires_at: m.expires_at,
+    }
+}
+
+fn page_to_js(p: daemon_types::PageRecord) -> PageRecordJs {
+    PageRecordJs {
+        space_id: p.space_id,
+        page_id: p.page_id,
+        title: p.title,
+        parent_page_ids: p.parent_page_ids,
+        created_at_ms: p.created_at_ms,
+        updated_at_ms: p.updated_at_ms,
+    }
+}
+
+fn model_to_js(m: agent_types::ModelInfo) -> ModelInfoJs {
+    ModelInfoJs {
+        name: m.name,
+        path: m.path,
+        loaded: m.loaded,
+        size_bytes: m.size_bytes.map(|v| v as i64),
+    }
+}
+
+// ---------------------------------------------------------------------------
 
 /// Start the Soma embedded runtimes (peer + agent) and return a handle that
 /// keeps them alive. Both run in the napi-rs tokio runtime owned by this
@@ -125,7 +789,6 @@ pub async fn start(config: StartConfig) -> napi::Result<SomaHandle> {
     let agentd = match soma_agentd::run(agentd_config).await {
         Ok(h) => h,
         Err(err) => {
-            // Daemon is already up; tear it down before propagating.
             if let Err(shutdown_err) = daemon.shutdown().await {
                 tracing::error!(error = %shutdown_err, "rolling back daemon after agentd start failure");
             }
