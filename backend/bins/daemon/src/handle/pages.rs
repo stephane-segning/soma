@@ -1,12 +1,10 @@
-use std::time::{SystemTime, UNIX_EPOCH};
-
 use soma_core::SomaResult;
 use soma_storage::pages::Page;
 
 use crate::services::pages::PagesService;
 
 use super::{
-    DaemonHandle, invalid,
+    DaemonHandle, invalid, now_ms,
     types::{EnsurePageInput, PageRecord},
 };
 
@@ -105,14 +103,6 @@ impl DaemonHandle {
             .await?;
         Ok(page.map(to_page_record))
     }
-}
-
-fn now_ms() -> i64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis()
-        .min(i64::MAX as u128) as i64
 }
 
 fn to_page_record(page: Page) -> PageRecord {

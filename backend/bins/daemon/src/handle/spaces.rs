@@ -32,10 +32,16 @@ impl DaemonHandle {
             space_id,
             display_name,
         } = input;
+        // Empty strings mean "let the space manager auto-generate". Passing
+        // `Some("")` would persist an empty identifier instead of triggering
+        // the default-value path.
         let space = self
             .state
             .space_manager
-            .create_space(Some(space_id), Some(display_name))
+            .create_space(
+                (!space_id.is_empty()).then_some(space_id),
+                (!display_name.is_empty()).then_some(display_name),
+            )
             .await?;
         Ok(CreateSpaceResult {
             space_id: space.space_id,

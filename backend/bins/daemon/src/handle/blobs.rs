@@ -1,12 +1,12 @@
-use std::time::{SystemTime, UNIX_EPOCH};
-
 use soma_core::SomaResult;
+use soma_proto_build::daemon;
 use soma_storage::blobs::BlobMetadata;
+use tracing::info;
 
 use crate::services::blobs::BlobsService;
 
 use super::{
-    DaemonHandle, invalid,
+    DaemonHandle, invalid, now_ms,
     types::{ReadBlobResult, UploadBlobInput, UploadBlobResult},
 };
 
@@ -60,6 +60,31 @@ impl DaemonHandle {
             .record_upload(&blob_metadata, doc_id_ref)
             .await?;
 
+        // Mirror the gRPC path: when the upload is associated with a Yoopta
+        // document (non-empty doc_id), publish DocumentBlobAdded so subscribers
+        // and downstream peer/cache workflows see the same event regardless of
+        // whether the upload came in via the addon or via gRPC.
+        if let Some(doc_id) = doc_id_ref {
+            self.state
+                .publish(daemon::DaemonEvent {
+                    event: Some(daemon::daemon_event::Event::DocumentBlobAdded(
+                        daemon::DocumentBlobAddedEvent {
+                            space_id: space_id.clone(),
+                            doc_id: doc_id.to_string(),
+                            cid: write_res.cid.clone(),
+                            mime: mime.clone(),
+                            size: write_res.size,
+                            name: name.clone(),
+                        },
+                    )),
+                })
+                .await;
+            info!(
+                %space_id, %doc_id, cid = %write_res.cid, size = write_res.size,
+                "document blob stored (in-process)"
+            );
+        }
+
         Ok(UploadBlobResult {
             cid: write_res.cid,
             size: write_res.size,
@@ -81,13 +106,14 @@ impl DaemonHandle {
         }
         super::ensure_membership(&self.state, space_id).await?;
 
+        // Read intentionally has no size cap: MAX_UPLOAD_BYTES gates ingress
+        // only. Blobs created under a higher historical limit (or by another
+        // client) must still be readable; and by the time we get here the
+        // bytes are already in memory anyway, so a cap would be useless as
+        // a memory-exhaustion mitigation.
         let Some(bytes) = self.state.blob_store.read(space_id, cid).await? else {
             return Ok(None);
         };
-
-        if bytes.len() > MAX_UPLOAD_BYTES {
-            return Err(invalid("blob too large"));
-        }
 
         let mime = BlobsService::new(self.state.repos.clone())
             .get_metadata(space_id, cid)
@@ -105,12 +131,4 @@ impl DaemonHandle {
             mime,
         }))
     }
-}
-
-fn now_ms() -> i64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis()
-        .min(i64::MAX as u128) as i64
 }

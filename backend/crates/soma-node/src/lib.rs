@@ -136,7 +136,7 @@ pub struct UploadBlobInputJs {
 #[napi(object)]
 pub struct UploadBlobResultJs {
     pub cid: String,
-    pub size: u32,
+    pub size: i64,
     pub mime: String,
     pub name: String,
 }
@@ -144,7 +144,7 @@ pub struct UploadBlobResultJs {
 #[napi(object)]
 pub struct ReadBlobResultJs {
     pub data: Buffer,
-    pub size: u32,
+    pub size: i64,
     pub mime: String,
 }
 
@@ -416,7 +416,7 @@ impl SomaHandle {
             .map_err(to_napi)?;
         Ok(UploadBlobResultJs {
             cid: res.cid,
-            size: res.size as u32,
+            size: res.size as i64,
             mime: res.mime,
             name: res.name,
         })
@@ -432,7 +432,7 @@ impl SomaHandle {
         let res = handle.read_blob(&space_id, &cid).await.map_err(to_napi)?;
         Ok(res.map(|r| ReadBlobResultJs {
             data: Buffer::from(r.data),
-            size: r.size as u32,
+            size: r.size as i64,
             mime: r.mime,
         }))
     }

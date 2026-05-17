@@ -70,3 +70,14 @@ pub(crate) async fn ensure_membership(
         None => Err(invalid("not a member of this space")),
     }
 }
+
+/// Wall-clock millis since the Unix epoch, clamped to `i64::MAX`. Shared by
+/// every handle that needs `created_at_ms` / `updated_at_ms` defaults.
+pub(crate) fn now_ms() -> i64 {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis()
+        .min(i64::MAX as u128) as i64
+}
