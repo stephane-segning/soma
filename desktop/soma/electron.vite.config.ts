@@ -29,6 +29,10 @@ export default defineConfig((configEnv) => ({
 					replacement: resolve("src/renderer/src"),
 				},
 				{
+					find: "@shared",
+					replacement: resolve("src/shared"),
+				},
+				{
 					find: "@soma/desktop-db",
 					replacement: resolve("../desktop-data/src/index.ts"),
 				},

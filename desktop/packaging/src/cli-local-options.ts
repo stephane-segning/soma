@@ -39,7 +39,7 @@ export function configureBundleCommand(command: Argv): Argv<BundleArgs> {
       type: "string",
     })
     .option("desktop-version", {
-      describe: "Desktop version (default: soma/tapia package.json)",
+      describe: "Desktop version (default: soma package.json)",
       type: "string",
     })
     .option("repo", {
@@ -82,10 +82,6 @@ export function configureBundleCommand(command: Argv): Argv<BundleArgs> {
     })
     .option("soma-app", {
       describe: "Path to Soma desktop artifact",
-      type: "string",
-    })
-    .option("tapia-app", {
-      describe: "Path to Tapia desktop artifact",
       type: "string",
     }) as unknown as Argv<BundleArgs>;
 }

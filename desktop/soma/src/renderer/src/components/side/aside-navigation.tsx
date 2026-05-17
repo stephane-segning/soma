@@ -1,6 +1,6 @@
 import { PageTree } from "@app/components/page-tree.tsx";
 import { useCreatePage } from "@app/queries/pages";
-import { Plus, Settings, Users } from "react-feather";
+import { Plus, Settings, Type, Users } from "react-feather";
 import { useTranslation } from "react-i18next";
 import { NavLink, useParams } from "react-router";
 
@@ -46,6 +46,10 @@ function AsideNavigation() {
 					>
 						<Settings className="size-4" />
 						<span>{t("space.tabs.settings", "Settings")}</span>
+					</NavLink>
+					<NavLink className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-base-200" to="/practice">
+						<Type className="size-4" />
+						<span>{t("practice.exercises", "Practice")}</span>
 					</NavLink>
 				</nav>
 			</div>

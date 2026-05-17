@@ -130,8 +130,6 @@ if [ "$OS" = "macos" ]; then
   xattr -cr "$MACOS_APP_DIR/soma-daemon.app" 2>/dev/null || true
   xattr -dr com.apple.quarantine "$MACOS_APP_DIR/soma-agentd.app" 2>/dev/null || true
   xattr -cr "$MACOS_APP_DIR/soma-agentd.app" 2>/dev/null || true
-  xattr -dr com.apple.quarantine "$MACOS_APP_DIR/tapia.app" 2>/dev/null || true
-  xattr -cr "$MACOS_APP_DIR/tapia.app" 2>/dev/null || true
 
   services_missing=0
   prepare_macos_runtime_dirs
@@ -141,7 +139,7 @@ if [ "$OS" = "macos" ]; then
   start_macos_launch_agent "$SERVICE_LABEL_AGENT" || services_missing=1
 
   missing=0
-  for app in soma soma-daemon soma-agentd tapia; do
+  for app in soma soma-daemon soma-agentd; do
     if [ ! -d "$MACOS_APP_DIR/$app.app" ]; then
       echo "Missing $MACOS_APP_DIR/$app.app after install." >&2
       missing=1
@@ -151,7 +149,7 @@ if [ "$OS" = "macos" ]; then
     echo "Install appears incomplete. Check /var/log/install.log and pkgutil --files digital.camer.soma.bundle" >&2
     exit 1
   fi
-  echo "Installed bundle package (includes soma-daemon, soma-agentd, soma, and tapia)"
+  echo "Installed bundle package (includes soma-daemon, soma-agentd, and soma)"
 elif [ "$OS" = "linux" ]; then
   DEB="soma-bundle-$BUNDLE_VERSION-linux-$ARCH.deb"
   RPM="soma-bundle-$BUNDLE_VERSION-linux-$ARCH.rpm"
@@ -160,13 +158,13 @@ elif [ "$OS" = "linux" ]; then
     curl -fsSL "$URL" -o "$tmp/$DEB"
     echo "Downloaded $DEB"
     sudo dpkg -i "$tmp/$DEB"
-    echo "Installed bundle package (includes soma-daemon, soma-agentd, soma AppImage, and tapia AppImage)"
+    echo "Installed bundle package (includes soma-daemon, soma-agentd, and soma AppImage)"
   elif command -v rpm >/dev/null 2>&1; then
     URL="$base/$BUNDLE_TAG/$RPM"
     curl -fsSL "$URL" -o "$tmp/$RPM"
     echo "Downloaded $RPM"
     sudo rpm -Uvh "$tmp/$RPM"
-    echo "Installed bundle package (includes soma-daemon, soma-agentd, soma AppImage, and tapia AppImage)"
+    echo "Installed bundle package (includes soma-daemon, soma-agentd, and soma AppImage)"
   else
     echo "No supported package manager found (need dpkg or rpm)" >&2
     exit 1

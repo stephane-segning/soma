@@ -88,14 +88,9 @@ desktop-build-soma:
 desktop-test-soma:
 	cd desktop && pnpm --filter soma run typecheck
 
-# Typecheck the Tapia desktop app (Node + Web)
-desktop-test-tapia:
-	cd desktop && pnpm --filter tapia run typecheck
-
-# Run lint + typecheck for both desktop apps
+# Run lint + typecheck for the desktop app
 desktop-test-all:
 	cd desktop && pnpm --filter soma run lint && pnpm --filter soma run typecheck
-	cd desktop && pnpm --filter tapia run lint && pnpm --filter tapia run typecheck
 
 # Generate icon assets for the Electron-based Soma app (desktop/soma)
 desktop-icons-soma input="desktop/soma/build/icon.png":
@@ -107,17 +102,6 @@ desktop-icons-soma input="desktop/soma/build/icon.png":
 	cp desktop/soma/build/icons/1024x1024.png desktop/soma/resources/icon.png
 	mkdir -p desktop/soma/src/renderer/public
 	cp desktop/soma/build/icons/1024x1024.png desktop/soma/src/renderer/public/icon.png
-
-# Generate icon assets for the Electron-based Tapia app (desktop/tapia)
-desktop-icons-tapia input="desktop/tapia/build/icon.png":
-	input_path="{{input}}"; input_path="${input_path#input=}"; cargo icons --input "$input_path" --output desktop/tapia/build --flatten
-	cp desktop/tapia/build/icons/icon.icns desktop/tapia/build/icon.icns
-	cp desktop/tapia/build/icons/icon-legacy.icns desktop/tapia/build/icon-legacy.icns
-	cp desktop/tapia/build/icons/icon.ico desktop/tapia/build/icon.ico
-	cp desktop/tapia/build/icons/1024x1024.png desktop/tapia/build/icon.png
-	cp desktop/tapia/build/icons/1024x1024.png desktop/tapia/resources/icon.png
-	mkdir -p desktop/tapia/src/renderer/public
-	cp desktop/tapia/build/icons/1024x1024.png desktop/tapia/src/renderer/public/icon.png
 
 #
 # Docs and compose helpers
@@ -208,17 +192,11 @@ test-rendezvousd-smoke:
 test-desktop-soma:
 	just desktop-test-soma
 
-test-desktop-tapia:
-	just desktop-test-tapia
-
 test-desktop-all:
 	just desktop-test-all
 
 icons-soma input="desktop/soma/build/icon.png":
 	just desktop-icons-soma {{input}}
-
-icons-tapia input="desktop/tapia/build/icon.png":
-	just desktop-icons-tapia {{input}}
 
 build-docs:
 	just docs-build

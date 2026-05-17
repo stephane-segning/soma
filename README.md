@@ -10,8 +10,7 @@ Soma is a local-first workspace platform built around a structured note-taking a
 
 At the product level:
 
-- `Soma` is the main Notion-like note-taking and workspace application
-- `Tapia` is the companion app for focused typing practice with short passages, generated drills, and session feedback
+- `Soma` is the main Notion-like note-taking and workspace application; it also ships a `/practice` route for short typing drills (formerly the separate `Tapia` companion app)
 - the p2p layer exists so workspaces can keep working even where normal internet access is weak or unavailable
 - spaces/workspaces are private collaboration groups with memberships, approvals, and capability-based permissions for both humans and bots
 
@@ -24,8 +23,7 @@ The repo is still a monorepo, but the day-to-day tooling is being separated more
 ## What Is Here
 
 - `backend/`: Rust workspace for `soma-daemon`, `soma-botd`, `soma-agentd`, relay/rendezvous services, shared peer/storage crates, and server utilities
-- `desktop/soma`: the main Electron desktop app
-- `desktop/tapia`: a lighter Electron app with a smaller current feature surface
+- `desktop/soma`: the Electron desktop app (workspace + typing practice)
 - `desktop/desktop-*`: shared desktop packages for proto bindings, config, editor, data, UI, and packaging
 - `proto/`: shared daemon/agent/membership contracts
 - `docs/`: current documentation

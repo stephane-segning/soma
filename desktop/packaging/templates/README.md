@@ -5,7 +5,7 @@ Rendered by the packaging CLI (`pnpm --filter @soma/packaging run bundle` or `bu
 Variables available to all templates (compatible with Nunjucks syntax: `{{var}}`):
 - `name` – package name (e.g. `soma-daemon`)
 - `version` – daemon/agent version (from `daemons_version`)
-- `desktop_version` – desktop app version (used for both Soma + Tapia desktop apps)
+- `desktop_version` – desktop app version (used for the Soma desktop app)
 - `bundle_version` – bundle version label
 - `os` / `arch` – target platform identifiers (`linux|macos`, `amd64|arm64`; macOS supports `arm64` only)
 - `install_prefix` – default `/usr/local`

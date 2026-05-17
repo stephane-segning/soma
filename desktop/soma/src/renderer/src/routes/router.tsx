@@ -110,6 +110,36 @@ const routes: RouteObject[] = [
 				],
 			},
 			{
+				path: "practice",
+				handle: {
+					title: "Practice",
+				},
+				lazy: () => import("./practice/layout"),
+				children: [
+					{
+						index: true,
+						handle: {
+							title: "Practice",
+						},
+						lazy: () => import("./practice/screens/exercises"),
+					},
+					{
+						path: "spaces/:spaceId/exercises",
+						handle: {
+							title: "Practice",
+						},
+						lazy: () => import("./practice/screens/exercises"),
+					},
+					{
+						path: "spaces/:spaceId/exercises/:exerciseId",
+						handle: {
+							title: "Practice run",
+						},
+						lazy: () => import("./practice/screens/exercise-detail"),
+					},
+				],
+			},
+			{
 				path: "*",
 				handle: {
 					title: "Not Found",

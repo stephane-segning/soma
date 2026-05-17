@@ -22,18 +22,9 @@ export async function resolveDesktopVersion(
   if (override) {
     return override;
   }
-  const somaVersion = await readPackageVersion(
+  return readPackageVersion(
     path.join(repoRoot, "desktop", "soma", "package.json")
   );
-  const tapiaVersion = await readPackageVersion(
-    path.join(repoRoot, "desktop", "tapia", "package.json")
-  );
-  if (somaVersion !== tapiaVersion) {
-    throw new Error(
-      `Desktop versions differ (soma=${somaVersion}, tapia=${tapiaVersion}). Pass --desktop-version to override.`
-    );
-  }
-  return somaVersion;
 }
 
 export async function readPackageVersion(packagePath: string) {

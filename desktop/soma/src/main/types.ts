@@ -13,6 +13,7 @@ export const TYPES = {
 	SearchController: Symbol("SearchController"),
 	SettingsController: Symbol("SettingsController"),
 	DbStorageController: Symbol("DbStorageController"),
+	PracticeController: Symbol("PracticeController"),
 	UploadPayloadStore: Symbol("UploadPayloadStore"),
 	DomainEvents: Symbol("DomainEvents"),
 	WindowController: Symbol("WindowController"),
