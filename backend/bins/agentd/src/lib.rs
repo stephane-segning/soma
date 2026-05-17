@@ -21,7 +21,10 @@ use tracing::info;
 mod config;
 mod engine;
 mod grpc;
+mod handle;
 mod tasks;
+
+pub use handle::{AgentHandle, types as handle_types};
 
 use engine::EngineHandle;
 use grpc::AgentdService;
@@ -65,6 +68,16 @@ pub struct RuntimeHandle {
     shutdown: Option<oneshot::Sender<()>>,
     supervisor: JoinHandle<SomaResult<()>>,
     socket_path: Option<PathBuf>,
+    /// Clones of the engine + task store so in-process callers (the napi
+    /// addon, tests) can obtain an [`AgentHandle`] without touching gRPC.
+    agent: AgentHandle,
+}
+
+impl RuntimeHandle {
+    /// Cloneable in-process accessor for agent operations.
+    pub fn handle(&self) -> AgentHandle {
+        self.agent.clone()
+    }
 }
 
 impl RuntimeHandle {
@@ -130,6 +143,10 @@ pub async fn run(config: RuntimeConfig) -> SomaResult<RuntimeHandle> {
     let (shutdown_tx, shutdown_rx) = oneshot::channel::<()>();
     let socket_path = config.socket_path.clone();
 
+    // Clone engine + task store so the in-process AgentHandle survives the
+    // supervisor task taking ownership of the original copies.
+    let agent = AgentHandle::new(engine.clone(), task_store.clone());
+
     let supervisor: JoinHandle<SomaResult<()>> = match socket_path.clone() {
         Some(path) => {
             let svc = agent::agent_server::AgentServer::new(AgentdService::new(engine, task_store));
@@ -144,8 +161,7 @@ pub async fn run(config: RuntimeConfig) -> SomaResult<RuntimeHandle> {
         None => {
             // No socket: keep the service alive in-process until shutdown is
             // signalled. The embedder reaches the underlying engine/store via
-            // a future in-process surface (not yet wired); shutdown here just
-            // needs to drop the service when asked.
+            // the AgentHandle exposed on the RuntimeHandle.
             let service = AgentdService::new(engine, task_store);
             tokio::spawn(async move {
                 let _service = service;
@@ -159,5 +175,6 @@ pub async fn run(config: RuntimeConfig) -> SomaResult<RuntimeHandle> {
         shutdown: Some(shutdown_tx),
         supervisor,
         socket_path,
+        agent,
     })
 }

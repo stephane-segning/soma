@@ -31,11 +31,13 @@ use tracing::info;
 mod config;
 mod dispatch;
 mod grpc;
+mod handle;
 mod handlers;
 mod runtime;
 mod services;
 
 pub use config::default_listen_addrs;
+pub use handle::{DaemonHandle, DaemonStatus, types as handle_types};
 
 use dispatch::build_dispatcher;
 use grpc::{DaemonService, DaemonState};
@@ -97,31 +99,6 @@ impl Default for RuntimeConfig {
     }
 }
 
-/// Snapshot of daemon health for in-process callers (the napi addon, tests).
-#[derive(Debug, Clone)]
-pub struct DaemonStatus {
-    pub peer_id: String,
-    pub listen_addrs: Vec<String>,
-}
-
-/// Opaque accessor for in-process callers to invoke daemon operations
-/// without going through the gRPC trampoline. Cloneable — handles share
-/// the same underlying [`DaemonState`].
-#[derive(Clone)]
-pub struct DaemonHandle {
-    state: Arc<DaemonState>,
-}
-
-impl DaemonHandle {
-    /// Current peer id + listen addresses.
-    pub async fn status(&self) -> DaemonStatus {
-        DaemonStatus {
-            peer_id: self.state.peer_id.to_string(),
-            listen_addrs: self.state.listen_addrs.lock().await.clone(),
-        }
-    }
-}
-
 /// Handle to a running daemon. Drop without calling [`shutdown`] is allowed but
 /// will leave the runtime running until its background tasks finish on their
 /// own (e.g. ctrl-c handled by the embedder).
@@ -140,9 +117,7 @@ impl RuntimeHandle {
     /// addon (or tests) invoke daemon methods without going through the gRPC
     /// trampoline.
     pub fn handle(&self) -> DaemonHandle {
-        DaemonHandle {
-            state: self.state.clone(),
-        }
+        DaemonHandle::new(self.state.clone())
     }
 
     /// Gracefully shut the runtime down: tell the peer to stop, cancel the
