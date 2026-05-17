@@ -17,7 +17,7 @@ export function configureBundleCommand(command: Argv): Argv<BundleArgs> {
     .option("arch", {
       choices: ["amd64", "arm64"] as const,
       demandOption: true,
-      describe: "Target arch",
+      describe: "Target arch (macOS supports arm64 only)",
       type: "string",
     })
     .option("out-dir", {

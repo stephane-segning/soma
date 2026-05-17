@@ -16,7 +16,7 @@ export function configureReleaseCommand(command: Argv): Argv<ReleaseBundleArgs> 
     .option("arch", {
       choices: ["amd64", "arm64"] as const,
       demandOption: true,
-      describe: "Target arch",
+      describe: "Target arch (macOS supports arm64 only)",
       type: "string",
     })
     .option("out-dir", {

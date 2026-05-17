@@ -16,6 +16,10 @@ import { buildTemplateContext, renderTemplates } from "../templates.js";
 import type { ReleaseBundleArgs } from "../types.js";
 
 export async function runReleaseBundle(args: ReleaseBundleArgs) {
+  if (args.os === "macos" && args.arch !== "arm64") {
+    throw new Error("macOS bundles are only supported for arm64");
+  }
+
   const repoRoot = args.repoRoot
     ? path.resolve(args.repoRoot)
     : await findRepoRoot(process.cwd());

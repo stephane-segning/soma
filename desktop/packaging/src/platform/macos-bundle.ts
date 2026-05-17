@@ -17,6 +17,10 @@ type MacBundleArgs = {
 };
 
 export async function buildMacosBundle(args: MacBundleArgs): Promise<string[]> {
+  if (args.arch !== "arm64") {
+    throw new Error(`macOS bundles are only supported for arm64, got ${args.arch}`);
+  }
+
   const pkgroot = path.join(args.platformOut, "pkgroot");
   await fse.remove(pkgroot);
 
@@ -25,10 +29,6 @@ export async function buildMacosBundle(args: MacBundleArgs): Promise<string[]> {
   await fse.ensureDir(path.join(pkgroot, "Library/LaunchAgents"));
   await fse.ensureDir(path.join(pkgroot, "Applications", "Soma"));
 
-  await fse.copy(
-    path.join(args.staging, "soma-agentd"),
-    path.join(pkgroot, "usr/local/bin/soma-agentd")
-  );
   await fse.copy(
     path.join(args.staging, "README.md"),
     path.join(pkgroot, "usr/local/share/soma/README.md")
@@ -60,19 +60,43 @@ export async function buildMacosBundle(args: MacBundleArgs): Promise<string[]> {
     "Soma",
     "soma-daemon.app"
   );
+  const agentAppPath = path.join(
+    pkgroot,
+    "Applications",
+    "Soma",
+    "soma-agentd.app"
+  );
+  const iconPath = await findAppIcon(somaApp);
 
   await fse.copy(somaApp, path.join(pkgroot, "Applications", "Soma", "soma.app"));
   await fse.copy(tapiaApp, path.join(pkgroot, "Applications", "Soma", "tapia.app"));
-  await stageDaemonApp({
+  await stageServiceApp({
     appPath: daemonAppPath,
-    daemonBinaryPath: path.join(args.staging, "soma-daemon"),
-    iconPath: await findAppIcon(somaApp),
+    binaryPath: path.join(args.staging, "soma-daemon"),
+    executableName: "soma-daemon",
+    bundleIdentifier: "digital.camer.soma.daemon",
+    bundleName: "Soma Daemon",
+    iconPath,
+    bundleVersion: args.bundleVersion,
+    adhocSign: args.adhocSign,
+  });
+  await stageServiceApp({
+    appPath: agentAppPath,
+    binaryPath: path.join(args.staging, "soma-agentd"),
+    executableName: "soma-agentd",
+    bundleIdentifier: "digital.camer.soma.agentd",
+    bundleName: "Soma Agent",
+    iconPath,
     bundleVersion: args.bundleVersion,
     adhocSign: args.adhocSign,
   });
   await createSymlink(
     "/Applications/Soma/soma-daemon.app/Contents/MacOS/soma-daemon",
     path.join(pkgroot, "usr/local/bin/soma-daemon")
+  );
+  await createSymlink(
+    "/Applications/Soma/soma-agentd.app/Contents/MacOS/soma-agentd",
+    path.join(pkgroot, "usr/local/bin/soma-agentd")
   );
 
   const pkgOut = path.join(
@@ -95,28 +119,36 @@ export async function buildMacosBundle(args: MacBundleArgs): Promise<string[]> {
   return [pkgOut];
 }
 
-type DaemonAppArgs = {
+type ServiceAppArgs = {
   appPath: string;
-  daemonBinaryPath: string;
+  binaryPath: string;
+  executableName: string;
+  bundleIdentifier: string;
+  bundleName: string;
   iconPath: string;
   bundleVersion: string;
   adhocSign: boolean;
 };
 
-async function stageDaemonApp(args: DaemonAppArgs) {
+async function stageServiceApp(args: ServiceAppArgs) {
   const contentsPath = path.join(args.appPath, "Contents");
   const macosPath = path.join(contentsPath, "MacOS");
   const resourcesPath = path.join(contentsPath, "Resources");
   await fse.ensureDir(macosPath);
   await fse.ensureDir(resourcesPath);
 
-  const executablePath = path.join(macosPath, "soma-daemon");
-  await fse.copy(args.daemonBinaryPath, executablePath);
+  const executablePath = path.join(macosPath, args.executableName);
+  await fse.copy(args.binaryPath, executablePath);
   await makeExecutable(executablePath);
   await fse.copy(args.iconPath, path.join(resourcesPath, "icon.icns"));
   await fs.writeFile(
     path.join(contentsPath, "Info.plist"),
-    daemonInfoPlist(args.bundleVersion),
+    serviceInfoPlist({
+      executableName: args.executableName,
+      bundleIdentifier: args.bundleIdentifier,
+      bundleName: args.bundleName,
+      bundleVersion: args.bundleVersion,
+    }),
     "utf8"
   );
 
@@ -137,8 +169,15 @@ async function findAppIcon(appPath: string) {
   return path.join(resourcesPath, icon.name);
 }
 
-function daemonInfoPlist(bundleVersion: string) {
-  const plistVersion = escapePlistValue(normalizePlistVersion(bundleVersion));
+type ServiceInfoPlistArgs = {
+  executableName: string;
+  bundleIdentifier: string;
+  bundleName: string;
+  bundleVersion: string;
+};
+
+function serviceInfoPlist(args: ServiceInfoPlistArgs) {
+  const plistVersion = escapePlistValue(normalizePlistVersion(args.bundleVersion));
   return `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -146,15 +185,15 @@ function daemonInfoPlist(bundleVersion: string) {
   <key>CFBundleDevelopmentRegion</key>
   <string>en</string>
   <key>CFBundleExecutable</key>
-  <string>soma-daemon</string>
+  <string>${escapePlistValue(args.executableName)}</string>
   <key>CFBundleIconFile</key>
   <string>icon.icns</string>
   <key>CFBundleIdentifier</key>
-  <string>digital.camer.soma.daemon</string>
+  <string>${escapePlistValue(args.bundleIdentifier)}</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleName</key>
-  <string>Soma Daemon</string>
+  <string>${escapePlistValue(args.bundleName)}</string>
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>

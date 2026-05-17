@@ -86,9 +86,6 @@ jobs:
             arch: arm64
             runs_on: ubuntu-24.04-arm
           - os: macos
-            arch: amd64
-            runs_on: macos-15-intel
-          - os: macos
             arch: arm64
             runs_on: macos-latest
 
@@ -236,8 +233,9 @@ jobs:
           base = f"https://github.com/{repo}/releases/download/{tag}"
           extension_by_os = {"linux": "AppImage", "macos": "zip"}
           artifacts = []
+          arch_by_os = {"linux": ("amd64", "arm64"), "macos": ("arm64",)}
           for os_name, ext in extension_by_os.items():
-              for arch in ("amd64", "arm64"):
+              for arch in arch_by_os[os_name]:
                   for app in ("soma", "tapia"):
                       name = f"{app}-desktop-{version}-{os_name}-{arch}.{ext}"
                       artifacts.append(

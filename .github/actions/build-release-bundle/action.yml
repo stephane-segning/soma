@@ -42,7 +42,7 @@ inputs:
     description: linux or macos
     required: true
   bundle_arch:
-    description: amd64 or arm64
+    description: amd64 or arm64 (macOS supports arm64 only)
     required: true
 
 outputs:
