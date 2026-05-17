@@ -10,7 +10,7 @@ use soma_peer::{PeerConfig, SpaceAuthorizer, bootstrap::PeerBootstrapper};
 use soma_storage::RepositoryProvider;
 use soma_vdfs::BlobProvider;
 
-use crate::config::BotConfig;
+use crate::commands::bot::config::BotConfig;
 
 pub(super) struct BotPeerBootstrap {
     pub(super) identity_path: PathBuf,

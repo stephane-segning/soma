@@ -24,41 +24,41 @@ backend-run-daemon:
 backend-run-agentd:
 	export SOMA_DATA_DIR="$PWD/.data" && mkdir -p "$SOMA_DATA_DIR/db" && cd backend && cargo run -p soma-agentd -- --socket-path "/tmp/soma-agentd-dev.sock" --db-path "$SOMA_DATA_DIR/db/agentd.db"
 
-# Build the server-side binaries from the backend workspace
+# Build the unified server binary
 backend-build-servers:
-	cd backend && cargo build -p soma-botd -p soma-relayd -p soma-rendezvousd -p soma-bffd -p soma-serverd
+	cd backend && cargo build -p somad
 
-# Run soma-botd
-backend-run-botd:
-	export SOMA_DATA_DIR="$PWD/.data" && mkdir -p "$SOMA_DATA_DIR/db" && cd backend && cargo run -p soma-botd -- --http-addr 127.0.0.1:0 --db-url "sqlite://$SOMA_DATA_DIR/db/botd.db" --blob-dir "$SOMA_DATA_DIR/blobs/botd" --listen-addrs /ip4/127.0.0.1/tcp/0
+# Run somad bot
+backend-run-bot:
+	export SOMA_DATA_DIR="$PWD/.data" && mkdir -p "$SOMA_DATA_DIR/db" && cd backend && cargo run -p somad -- bot --http-addr 127.0.0.1:0 --db-url "sqlite://$SOMA_DATA_DIR/db/botd.db" --blob-dir "$SOMA_DATA_DIR/blobs/botd" --listen-addrs /ip4/127.0.0.1/tcp/0
 
-# Run soma-relayd
-backend-run-relayd:
-	export SOMA_DATA_DIR="$PWD/.data" && cd backend && cargo run -p soma-relayd
+# Run somad relay
+backend-run-relay:
+	export SOMA_DATA_DIR="$PWD/.data" && cd backend && cargo run -p somad -- relay
 
-# Run soma-rendezvousd
-backend-run-rendezvousd:
-	export SOMA_DATA_DIR="$PWD/.data" && cd backend && cargo run -p soma-rendezvousd
+# Run somad rendezvous
+backend-run-rendezvous:
+	export SOMA_DATA_DIR="$PWD/.data" && cd backend && cargo run -p somad -- rendezvous
 
-# Run soma-bffd
-backend-run-bffd:
-	export SOMA_DATA_DIR="$PWD/.data" && cd backend && cargo run -p soma-bffd
+# Run somad bff
+backend-run-bff:
+	export SOMA_DATA_DIR="$PWD/.data" && cd backend && cargo run -p somad -- bff
 
-# Run soma-serverd (all-in-one server runner)
-backend-run-serverd:
-	export SOMA_DATA_DIR="$PWD/.data" && cd backend && cargo run -p soma-serverd
+# Run somad all (compose multiple modes via TOML config)
+backend-run-all config="server.toml":
+	export SOMA_DATA_DIR="$PWD/.data" && cd backend && cargo run -p somad -- all --config {{config}}
 
 # Run the full Rust backend test suite
 backend-test:
 	cd backend && cargo test
 
-# Run soma-relayd smoke tests (ignored by default)
-backend-test-relayd-smoke:
-	cd backend && cargo test -p soma-relayd --test smoke -- --ignored
+# Run relay smoke tests (ignored by default)
+backend-test-relay-smoke:
+	cd backend && cargo test -p soma-relay --test smoke -- --ignored
 
-# Run soma-rendezvousd smoke tests (ignored by default)
-backend-test-rendezvousd-smoke:
-	cd backend && cargo test -p soma-rendezvousd --test smoke -- --ignored
+# Run rendezvous smoke tests (ignored by default)
+backend-test-rendezvous-smoke:
+	cd backend && cargo test -p soma-rendezvous --test smoke -- --ignored
 
 # Show xtask help from the backend workspace
 backend-xtask-help:

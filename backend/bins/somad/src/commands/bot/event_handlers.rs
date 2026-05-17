@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use soma_peer::events::PeerEventHandler;
 
-use crate::http::BotState;
+use crate::commands::bot::http::BotState;
 
 mod join_decision_apply;
 mod logging;

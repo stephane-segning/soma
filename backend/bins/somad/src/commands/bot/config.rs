@@ -1,11 +1,10 @@
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::{Subcommand, ValueEnum};
 use libp2p::Multiaddr;
 use soma_net::IdentityManager;
 use std::{net::SocketAddr, path::PathBuf};
 
-/// CLI for soma-botd.
-#[derive(Debug, Parser)]
-#[command(name = "soma-botd", version)]
+/// CLI args for `somad bot`.
+#[derive(Debug, clap::Args)]
 pub struct Args {
     #[command(subcommand)]
     pub cmd: Option<Command>,

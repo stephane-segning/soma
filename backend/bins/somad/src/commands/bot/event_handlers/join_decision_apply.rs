@@ -6,7 +6,7 @@ use soma_peer::{
 };
 use tracing::warn;
 
-use crate::http::BotState;
+use crate::commands::bot::http::BotState;
 
 /// Applies accepted join decisions to local storage (requester side).
 pub(super) struct JoinDecisionApplyHandler;

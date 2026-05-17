@@ -5,7 +5,7 @@ use soma_peer::{
 };
 use soma_storage::RepositoryProvider;
 
-use crate::http::BotState;
+use crate::commands::bot::http::BotState;
 
 pub(super) struct MailboxOutboxHandler;
 

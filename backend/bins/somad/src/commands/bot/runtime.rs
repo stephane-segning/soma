@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use clap::Parser;
 use soma_core::SomaResult;
 use soma_membership::JoinPolicy;
 use soma_net::IdentityManager;
@@ -8,7 +7,7 @@ use soma_peer::PeerCommand;
 use soma_vdfs::BlobProvider;
 use tracing::{info, warn};
 
-use crate::{
+use crate::commands::bot::{
     config::{Args, BotConfig, Command, Mode},
     http::{self, BotInfo, BotState},
     metrics::BotMetrics,
@@ -21,31 +20,26 @@ use soma_vdfs::fs::FsBlobStore;
 mod bootstrap;
 mod dispatcher;
 
-/// Build configuration from CLI args and run the bot runtime.
-pub async fn run_from_cli() -> SomaResult<()> {
-    let args = Args::parse();
-
+/// Entry point for `somad bot`. Handles the `generate-identity` short-circuit
+/// then dispatches to [`run_bot`].
+pub async fn run(args: Args) -> anyhow::Result<()> {
     let idm = IdentityManager::from_env();
 
     if let Some(Command::GenerateIdentity { path }) = args.cmd {
         let path = path.unwrap_or_else(|| idm.default_identity_path("bot"));
-        let id = idm.generate(&path)?;
-        info!(
-            "generated bot identity at {:?}, peer_id={}",
-            path,
-            id.peer_id()
-        );
+        let id = idm.generate(&path).map_err(|e| anyhow::anyhow!(e))?;
+        info!(?path, peer_id = %id.peer_id(), "generated bot identity");
         return Ok(());
     }
 
     let config = BotConfig::from_args(&args);
     let metrics = BotMetrics::new();
 
-    run(config, metrics).await
+    run_bot(config, metrics).await.map_err(|e| anyhow::anyhow!(e))
 }
 
-/// Run botd: spawn peer + HTTP server, then dispatch peer events until shutdown.
-pub async fn run(config: BotConfig, metrics: BotMetrics) -> SomaResult<()> {
+/// Run the bot: spawn peer + HTTP server, dispatch peer events until shutdown.
+pub async fn run_bot(config: BotConfig, metrics: BotMetrics) -> SomaResult<()> {
     std::fs::create_dir_all(&config.blob_dir)?;
     let blob_store = FsBlobStore::new(config.blob_dir.clone());
     let blob_provider: Arc<dyn BlobProvider> = Arc::new(blob_store.clone());

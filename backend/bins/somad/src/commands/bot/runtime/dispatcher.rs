@@ -3,7 +3,7 @@ use std::{sync::Arc, time::Duration};
 use soma_peer::events::{PeerEventDispatcher, PeerEventHandler, handler_with_queue};
 use tokio::task::JoinHandle;
 
-use crate::{event_handlers, http::BotState};
+use crate::commands::bot::{event_handlers, http::BotState};
 
 pub(super) fn spawn_mailbox_sweeper(state: Arc<BotState>) {
     tokio::spawn(async move {

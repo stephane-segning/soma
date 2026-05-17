@@ -5,8 +5,8 @@ use soma_peer::{
 };
 
 use super::metrics_labels::{EventKindLabel, JoinDecisionOutcome};
-use crate::http::BotState;
-use crate::metrics::{BotMetrics, EventLabels, JoinDecisionLabels, PingLabels};
+use crate::commands::bot::http::BotState;
+use crate::commands::bot::metrics::{BotMetrics, EventLabels, JoinDecisionLabels, PingLabels};
 
 /// Handler that records metrics for every peer event.
 pub(super) struct MetricsHandler;

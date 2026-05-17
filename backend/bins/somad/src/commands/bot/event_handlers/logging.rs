@@ -5,7 +5,7 @@ use soma_peer::{
 };
 use tracing::{info, warn};
 
-use crate::http::BotState;
+use crate::commands::bot::http::BotState;
 
 /// Handler that emits human-readable traces for notable peer events.
 pub(super) struct LoggingHandler;

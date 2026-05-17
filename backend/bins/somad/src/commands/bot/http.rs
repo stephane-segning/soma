@@ -13,7 +13,7 @@ use soma_peer::PeerCommand;
 use soma_storage::RepositoryFactory;
 use tokio::sync::mpsc;
 
-use crate::{config::Mode, metrics::BotMetrics};
+use crate::commands::bot::{config::Mode, metrics::BotMetrics};
 
 mod auth;
 mod issuers;
