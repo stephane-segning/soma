@@ -182,7 +182,7 @@ jobs:
           cp "$SOMA_FILE" "$SOMA_OUT"
 
       - name: Upload release assets
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.prepare.outputs.tag }}
           files: |
@@ -247,7 +247,7 @@ jobs:
           PY
 
       - name: Upload manifest asset
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.prepare.outputs.tag }}
           files: artifacts/desktop/manifest/desktop-release-manifest.json

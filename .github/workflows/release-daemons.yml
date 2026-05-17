@@ -146,7 +146,7 @@ jobs:
           upload-release-assets: false
 
       - name: Upload release assets
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.prepare.outputs.tag }}
           files: |
@@ -213,7 +213,7 @@ jobs:
           PY
 
       - name: Upload manifest asset
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.prepare.outputs.tag }}
           files: artifacts/daemons/manifest/daemons-release-manifest.json
