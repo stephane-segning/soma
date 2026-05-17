@@ -1,9 +1,12 @@
 use clap::{Parser, Subcommand};
 use libp2p::Multiaddr;
-use soma_net::IdentityManager;
 use std::path::PathBuf;
 
-/// CLI arguments for the daemon.
+/// CLI arguments for the `soma-daemon` binary.
+///
+/// Lives in the library only because the binary shim re-imports it via the
+/// `__bin` module; embedders should construct a [`crate::RuntimeConfig`]
+/// directly instead.
 #[derive(Debug, Parser)]
 #[command(name = "soma-daemon", version)]
 pub struct Args {
@@ -62,43 +65,8 @@ pub enum Command {
     },
 }
 
-/// Daemon runtime configuration.
-#[derive(Debug, Clone)]
-pub struct DaemonConfig {
-    pub socket_path: PathBuf,
-    pub blob_dir: PathBuf,
-    pub db_path: PathBuf,
-    pub identity_path: PathBuf,
-    pub listen_addrs: Vec<Multiaddr>,
-    pub bootstrap_addrs: Vec<Multiaddr>,
-    pub rendezvous_addrs: Vec<Multiaddr>,
-    pub relay_addrs: Vec<Multiaddr>,
-    pub enable_mdns: bool,
-}
-
-impl DaemonConfig {
-    pub fn from_args(args: &Args) -> Self {
-        let idm = IdentityManager::from_env();
-        Self {
-            socket_path: args.socket_path.clone(),
-            blob_dir: args.blob_dir.clone(),
-            db_path: args.db_path.clone(),
-            identity_path: idm.default_identity_path("daemon"),
-            listen_addrs: args.listen_addrs.clone(),
-            bootstrap_addrs: args.bootstrap_addrs.clone(),
-            rendezvous_addrs: args.rendezvous_addrs.clone(),
-            relay_addrs: args.relay_addrs.clone(),
-            enable_mdns: !args.disable_mdns,
-        }
-    }
-}
-
-impl From<&Args> for DaemonConfig {
-    fn from(args: &Args) -> Self {
-        DaemonConfig::from_args(args)
-    }
-}
-
+/// Default libp2p listen multiaddrs used by both the binary CLI defaults and
+/// the embeddable [`crate::RuntimeConfig::default`] impl.
 pub fn default_listen_addrs() -> Vec<Multiaddr> {
     vec![
         "/ip4/0.0.0.0/tcp/14007"

@@ -2,7 +2,10 @@ use std::path::PathBuf;
 
 use clap::Parser;
 
-/// CLI arguments for the desktop agent (local helper RPCs).
+/// CLI arguments for the `soma-agentd` binary.
+///
+/// Only used by the binary shim; embedders should build a
+/// [`crate::RuntimeConfig`] directly.
 #[derive(Debug, Parser)]
 #[command(name = "soma-agentd", version)]
 pub struct Args {
@@ -17,19 +20,4 @@ pub struct Args {
     /// SQLite path for persisted background tasks.
     #[arg(long, env = "SOMA_AGENTD_DB_PATH", default_value = "./agentd.db")]
     pub db_path: PathBuf,
-}
-
-#[derive(Debug, Clone)]
-pub struct AgentdConfig {
-    pub socket_path: PathBuf,
-    pub db_path: PathBuf,
-}
-
-impl AgentdConfig {
-    pub fn from_args(args: &Args) -> Self {
-        Self {
-            socket_path: args.socket_path.clone(),
-            db_path: args.db_path.clone(),
-        }
-    }
 }

@@ -16,7 +16,7 @@ export async function main() {
     .scriptName("soma-packaging")
     .command<ReleaseBundleArgs>(
       "release",
-      "Build a release Soma + Tapia bundle from GitHub assets",
+      "Build a release Soma bundle from GitHub assets",
       configureReleaseCommand,
       async (commandArgs) => {
         await runReleaseBundle(commandArgs);
@@ -24,7 +24,7 @@ export async function main() {
     )
     .command<BundleArgs>(
       "$0",
-      "Build a local Soma + Tapia bundle from local build artifacts",
+      "Build a local Soma bundle from local build artifacts",
       configureBundleCommand,
       async (commandArgs) => {
         await runBundle(commandArgs);

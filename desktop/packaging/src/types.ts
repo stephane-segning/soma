@@ -1,6 +1,6 @@
 export type TargetOs = "linux" | "macos";
 export type TargetArch = "amd64" | "arm64";
-export type AppName = "soma" | "tapia";
+export type AppName = "soma";
 
 export type BundleArgs = {
   os: TargetOs;
@@ -20,7 +20,6 @@ export type BundleArgs = {
   daemonPath?: string;
   agentPath?: string;
   somaApp?: string;
-  tapiaApp?: string;
 };
 
 export type ReleaseBundleArgs = {

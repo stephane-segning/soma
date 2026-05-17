@@ -6,6 +6,14 @@ publish.workspace = true
 license.workspace = true
 authors.workspace = true
 
+[lib]
+name = "soma_daemon"
+path = "src/lib.rs"
+
+[[bin]]
+name = "soma-daemon"
+path = "src/main.rs"
+
 [dependencies]
 soma-core = { workspace = true, features = ["db"] }
 soma-storage = { workspace = true }

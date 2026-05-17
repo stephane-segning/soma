@@ -7,6 +7,7 @@ import { AgentController } from "./controllers/agent-controller";
 import { BlobsController } from "./controllers/blobs-controller";
 import { DbStorageController } from "./controllers/db-storage-controller";
 import { DocumentsController } from "./controllers/documents-controller";
+import { PracticeController } from "./controllers/practice-controller";
 import { SearchController } from "./controllers/search-controller";
 import { SettingsController } from "./controllers/settings-controller";
 import { SpacesController } from "./controllers/spaces-controller";
@@ -90,6 +91,7 @@ export function buildContainer(options: ContainerOptions): Container {
 	container
 		.bind<DbStorageController>(TYPES.DbStorageController)
 		.toDynamicValue((ctx) => new DbStorageController(ctx.get(TYPES.AppDataStore)));
+	container.bind<PracticeController>(TYPES.PracticeController).toDynamicValue(() => new PracticeController());
 	container.bind<WindowController>(TYPES.WindowController).toDynamicValue(() => new WindowController());
 
 	container
@@ -104,6 +106,7 @@ export function buildContainer(options: ContainerOptions): Container {
 					ctx.get(TYPES.SearchController),
 					ctx.get(TYPES.SettingsController),
 					ctx.get(TYPES.DbStorageController),
+					ctx.get(TYPES.PracticeController),
 					ctx.get(TYPES.DomainEvents),
 					ctx.get(TYPES.WindowController),
 					ctx.get(TYPES.DaemonProcessManager),

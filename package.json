@@ -8,14 +8,13 @@
     "contracts:ts": "pnpm --filter @soma/proto run build",
     "contracts:check": "pnpm run contracts:rust && pnpm run contracts:ts",
     "dev:soma": "pnpm --filter soma run dev",
-    "dev:tapia": "pnpm --filter tapia run dev",
     "docs:dev": "pnpm --filter @soma/docs run dev",
     "docs:build": "pnpm --filter @soma/docs run build",
     "docs:preview": "pnpm --filter @soma/docs run preview",
     "bundle:local": "pnpm --filter @soma/packaging run bundle",
-    "typecheck": "pnpm --filter soma run typecheck && pnpm --filter tapia run typecheck",
-    "lint": "pnpm --filter soma run lint && pnpm --filter tapia run lint",
-    "format": "pnpm --filter soma run format && pnpm --filter tapia run format"
+    "typecheck": "pnpm --filter soma run typecheck",
+    "lint": "pnpm --filter soma run lint",
+    "format": "pnpm --filter soma run format"
   },
   "workspaces": [
     "desktop/*",

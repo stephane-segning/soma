@@ -14,6 +14,8 @@ export const baseApi = createApi({
 		"Draft",
 		"Search",
 		"AgentModels",
+		"PracticeExercises",
+		"PracticeLeaderboard",
 	],
 	endpoints: () => ({}),
 });

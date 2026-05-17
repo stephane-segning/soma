@@ -83,13 +83,6 @@ export async function runReleaseBundle(args: ReleaseBundleArgs) {
     args.os,
     resolvedArch
   );
-  const tapiaDesktopAsset = resolveDesktopAsset(
-    desktopSource.assets,
-    "tapia",
-    desktopSource.version,
-    args.os,
-    resolvedArch
-  );
 
   const platformOut = path.join(outDir, `${args.os}-${resolvedArch}`);
   const staging = path.join(platformOut, "staging");
@@ -104,9 +97,7 @@ export async function runReleaseBundle(args: ReleaseBundleArgs) {
   await stageBinary("soma-agentd", agentArchive, staging);
 
   const somaDesktopPath = path.join(staging, somaDesktopAsset.name);
-  const tapiaDesktopPath = path.join(staging, tapiaDesktopAsset.name);
   await downloadReleaseAsset(somaDesktopAsset.url, somaDesktopPath, token);
-  await downloadReleaseAsset(tapiaDesktopAsset.url, tapiaDesktopPath, token);
 
   const pagesUrl = pagesUrlFromRepo(repo);
   const rendered = await renderTemplates(
@@ -149,7 +140,6 @@ export async function runReleaseBundle(args: ReleaseBundleArgs) {
         systemdDaemon: rendered.systemdDaemon,
         systemdAgent: rendered.systemdAgent,
         somaDesktopPath,
-        tapiaDesktopPath,
         bundleVersion,
         arch: resolvedArch,
         docsUrl: pagesUrl,
@@ -163,7 +153,6 @@ export async function runReleaseBundle(args: ReleaseBundleArgs) {
         plistDaemon: rendered.plistDaemon,
         plistAgent: rendered.plistAgent,
         somaDesktopPath,
-        tapiaDesktopPath,
         bundleVersion,
         arch: resolvedArch,
         docsUrl: pagesUrl,

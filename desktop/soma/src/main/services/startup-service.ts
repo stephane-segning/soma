@@ -77,7 +77,7 @@ export class StartupService {
 	}
 
 	private async onReady(): Promise<void> {
-		electronApp.setAppUserModelId("digital.camer.sschool.tapia");
+		electronApp.setAppUserModelId("digital.camer.soma");
 		this.registerDeepLinkProtocol();
 		this.blobProtocol.register();
 		this.commands.register(ipcMain);

@@ -5,7 +5,7 @@ use soma_core::SomaResult;
 use crate::grpc::DaemonState;
 use crate::services::space::SpaceManager;
 
-pub(super) fn spawn_mailbox_sweeper(state: Arc<DaemonState>) {
+pub(crate) fn spawn_mailbox_sweeper(state: Arc<DaemonState>) {
     tokio::spawn(async move {
         loop {
             tokio::time::sleep(Duration::from_secs(5 * 60)).await;
@@ -15,7 +15,7 @@ pub(super) fn spawn_mailbox_sweeper(state: Arc<DaemonState>) {
     });
 }
 
-pub(super) async fn ensure_default_space(manager: &Arc<dyn SpaceManager>) -> SomaResult<()> {
+pub(crate) async fn ensure_default_space(manager: &Arc<dyn SpaceManager>) -> SomaResult<()> {
     const DEFAULT_SPACE_ID: &str = "private";
     const DEFAULT_SPACE_NAME: &str = "Private space";
     manager

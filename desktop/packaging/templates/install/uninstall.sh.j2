@@ -41,7 +41,6 @@ if [ "$OS" = "macos" ]; then
   sudo rm -rf "$MACOS_APP_DIR/soma.app"
   sudo rm -rf "$MACOS_APP_DIR/soma-daemon.app"
   sudo rm -rf "$MACOS_APP_DIR/soma-agentd.app"
-  sudo rm -rf "$MACOS_APP_DIR/tapia.app"
   sudo rmdir "$MACOS_APP_DIR" 2>/dev/null || true
   rm -f "/tmp/soma-$(id -u)/soma/soma-daemon.sock" 2>/dev/null || true
   rm -f "/tmp/soma-$(id -u)/soma/soma-agentd.sock" 2>/dev/null || true
@@ -87,5 +86,5 @@ elif [ "$OS" = "linux" ]; then
   fi
 fi
 
-echo "If you installed a different version manually, remove any remaining Soma/Tapia binaries under $INSTALL_PREFIX/bin and the AppImage or app bundle if present."
+echo "If you installed a different version manually, remove any remaining Soma binaries under $INSTALL_PREFIX/bin and the AppImage or app bundle if present."
 echo "Release page: https://github.com/$REPO/releases/tag/$BUNDLE_TAG"

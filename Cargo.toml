@@ -16,13 +16,10 @@ members = [
     "backend/crates/peer",
     "backend/crates/vdfs",
     "backend/crates/socket",
+    "backend/crates/soma-node",
     "backend/bins/daemon",
-    "backend/bins/botd",
     "backend/bins/agentd",
-    "backend/bins/relayd",
-    "backend/bins/rendezvousd",
-    "backend/bins/bffd",
-    "backend/bins/serverd",
+    "backend/bins/somad",
     "desktop/desktop-icons",
     "xtask"
 ]
@@ -46,6 +43,12 @@ soma-vdfs = { path = "backend/crates/vdfs" }
 soma-socket = { path = "backend/crates/socket" }
 soma-metrics = { path = "backend/crates/metrics" }
 soma-proto-build = { path = "backend/crates/proto-build" }
+soma-daemon = { path = "backend/bins/daemon" }
+soma-agentd = { path = "backend/bins/agentd" }
+
+napi = { version = "3", default-features = false, features = ["napi8", "tokio_rt", "async", "anyhow"] }
+napi-derive = { version = "3" }
+napi-build = { version = "2" }
 
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1"
@@ -122,6 +125,14 @@ panic = "abort"
 
 [profile.dev]
 incremental = true # Compile your binary in smaller steps.
+
+# Release profile for the soma-node napi addon: keep optimizations but allow
+# panic = "unwind" so napi-rs can catch panics at the boundary and surface
+# them as JS errors instead of aborting Electron's main process.
+[profile.addon-release]
+inherits = "release"
+panic = "unwind"
+strip = "debuginfo"
 
 [workspace.package]
 version = "0.1.2"

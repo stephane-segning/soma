@@ -65,12 +65,6 @@ export async function runBundle(args: BundleArgs) {
     appName: "soma",
     explicitPath: args.somaApp,
   });
-  const tapiaAppPath = await resolveDesktopArtifact({
-    repoRoot,
-    os: args.os,
-    appName: "tapia",
-    explicitPath: args.tapiaApp,
-  });
 
   const platformOut = path.join(outDir, `${args.os}-${args.arch}`);
   const staging = path.join(platformOut, "staging");
@@ -114,7 +108,6 @@ export async function runBundle(args: BundleArgs) {
       systemdDaemon: rendered.systemdDaemon,
       systemdAgent: rendered.systemdAgent,
       somaDesktopPath: somaAppPath,
-      tapiaDesktopPath: tapiaAppPath,
       bundleVersion,
       arch: args.arch,
       docsUrl,
@@ -126,7 +119,6 @@ export async function runBundle(args: BundleArgs) {
       plistDaemon: rendered.plistDaemon,
       plistAgent: rendered.plistAgent,
       somaDesktopPath: somaAppPath,
-      tapiaDesktopPath: tapiaAppPath,
       bundleVersion,
       arch: args.arch,
       docsUrl,

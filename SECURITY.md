@@ -23,7 +23,7 @@ Include, when possible:
 
 In scope:
 
-- Desktop apps: `desktop/soma`, `desktop/tapia`
+- Desktop apps: `desktop/soma`
 - Desktop backends: `backend/bins/daemon` (`soma-daemon`), `backend/bins/agentd` (`soma-agentd`)
 - Server backends: `backend/bins/botd`, `backend/bins/relayd`, `backend/bins/rendezvousd`, `backend/bins/bffd`, `backend/bins/serverd`
 - Protocols and storage: `proto/`, `backend/crates/*`

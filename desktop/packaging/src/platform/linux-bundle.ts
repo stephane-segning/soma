@@ -8,7 +8,6 @@ type LinuxBundleArgs = {
   systemdDaemon: string;
   systemdAgent: string;
   somaDesktopPath: string;
-  tapiaDesktopPath: string;
   bundleVersion: string;
   arch: string;
   docsUrl: string;
@@ -44,7 +43,6 @@ export async function buildLinuxBundle(args: LinuxBundleArgs): Promise<string[]>
   );
 
   await stageLinuxAppImage(pkgroot, "soma", args.somaDesktopPath);
-  await stageLinuxAppImage(pkgroot, "tapia", args.tapiaDesktopPath);
 
   const rpmArch = args.arch === "amd64" ? "x86_64" : "aarch64";
   const debOut = path.join(

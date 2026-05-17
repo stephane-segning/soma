@@ -9,7 +9,6 @@ type MacBundleArgs = {
   plistDaemon: string;
   plistAgent: string;
   somaDesktopPath: string;
-  tapiaDesktopPath: string;
   bundleVersion: string;
   arch: string;
   docsUrl: string;
@@ -48,12 +47,6 @@ export async function buildMacosBundle(args: MacBundleArgs): Promise<string[]> {
     args.somaDesktopPath,
     args.adhocSign
   );
-  const tapiaApp = await stageMacosApp(
-    args.staging,
-    "tapia",
-    args.tapiaDesktopPath,
-    args.adhocSign
-  );
   const daemonAppPath = path.join(
     pkgroot,
     "Applications",
@@ -69,7 +62,6 @@ export async function buildMacosBundle(args: MacBundleArgs): Promise<string[]> {
   const iconPath = await findAppIcon(somaApp);
 
   await fse.copy(somaApp, path.join(pkgroot, "Applications", "Soma", "soma.app"));
-  await fse.copy(tapiaApp, path.join(pkgroot, "Applications", "Soma", "tapia.app"));
   await stageServiceApp({
     appPath: daemonAppPath,
     binaryPath: path.join(args.staging, "soma-daemon"),

@@ -1,851 +1,550 @@
 # SOMA
 
-This document describes the repository layout, code structure, and coding conventions for working on Soma and Tapia in this monorepo.
+Local-first workspace platform that ships as **two artifacts**: one Electron desktop app and one server binary. Both are thin shells around the same shared Rust crates — the desktop loads them as a napi-rs `.node` addon, the server runs them as subcommands of a unified binary. Long-running availability is provided by the server binary running in bot mode.
 
-## Terminology: VDF
+## Architecture (target)
 
-In this repo, **VDF** refers to a **cache-only peer role** (sometimes casually written as “VDFS” in chat) that exists to improve availability/latency by **fetching and caching data addressed by content IDs**.
+Two build artifacts. One source tree.
 
-- VDFs **never accept user uploads** and are **not a source of truth** for user-created blobs.
-- VDFs may persist cache in-memory (LRU/TTL), on disk, or via an external cache (e.g. Redis), but **cache writes are allowed only as a side-effect of fetching/verifying content**.
-- VDFs must **verify bytes match the claimed CID** before serving/persisting.
-- Naming note: the Rust crate is currently `soma-vdfs` for historical reasons, but “VDF” is the intended role/term in docs and conversations.
+**Desktop** — `desktop/soma/`: the only Electron app. Includes a `/practice` route (formerly Tapia). Main process loads `soma-node.<os>-<arch>.node` at startup. No separate daemon binaries, no Unix-socket IPC, no spawning of child processes.
+
+**`soma-node` addon** — `backend/crates/soma-node/`: napi-rs cdylib. Embeds the peer + agent runtimes in **one** Tokio runtime, owns **one** SQLite database (managed via CrateStack), exposes async `#[napi]` methods to Electron main. Same shared crates the server binary uses.
+
+**Server** — `somad`: the only server binary. Subcommands select behavior; subcommand options pass mode-specific configuration. Same shared crates the addon uses; mode is purely a runtime concern.
+
+```
+somad bot         [--http-addr ...] [--db-path ...] [--mode bot|admin] [--listen-addr ...]
+somad relay       [--http-addr ...] [--data-dir ...]
+somad rendezvous  [--http-addr ...] [--data-dir ...]
+somad bff         [--http-addr ...] [--provider ...]
+somad all         --config server.toml      # composes multiple modes in one process
+```
+
+Subcommands map to the existing service crates: `bot` uses `crates/peer` + `crates/membership` + `crates/storage`; `relay` uses `crates/relay`; `rendezvous` uses `crates/rendezvous`; `bff` uses `crates/bff`; `all` is the orchestrator (replaces the former `serverd`).
+
+What's gone in the fully-collapsed target:
+
+- `backend/bins/daemon/`, `backend/bins/agentd/` — desktop runtimes move to `crates/desktop-peer/` and `crates/desktop-agent/` (lib-only). The addon consumes them; no binaries.
+- `backend/bins/botd/`, `backend/bins/relayd/`, `backend/bins/rendezvousd/`, `backend/bins/bffd/`, `backend/bins/serverd/` — replaced by `backend/bins/somad/` with subcommands.
+- `desktop/tapia/` — merged into Soma's `/practice` route.
+- `desktop/desktop-proto/` (`@soma/proto`) — gRPC TS codegen unnecessary because Electron main calls the addon directly; libp2p protobuf stays Rust-only.
+- `daemon-process-manager`, splash-blocks-on-daemon-Status gate, socket-path config plumbing in `@soma/desktop-config`.
+- All LaunchAgent / systemd-user-unit infrastructure for the desktop side; the embedded peer lives in-process.
+- All install/uninstall `sudo` (sudoless user-domain install at `~/Applications/Soma`).
+- The macOS `.pkg` path (replaced by a notarized zip).
+- The `__SOMA_*` plist token + post-install perl rewrite.
+- The `xattr -dr com.apple.quarantine` band-aid (replaced by Developer ID signing + notarization).
+- Five per-service Docker images → one `somad` image.
+
+Always-on peer model: the desktop peer is online only while Soma is open. Tray-when-window-closed on macOS keeps the peer live during a user session. Long-term availability for a space is provided by `somad bot` running as a space mirror (see "Bots and always-on availability" below).
+
+## Migration status
+
+Pre-prod refactor. Breaking changes are fine; there is no backwards-compatibility surface to preserve.
+
+- [x] P0 — AGENTS.md rewritten to fully-collapsed target architecture
+- [x] P1 — `soma-daemon` and `soma-agentd` library-ified (binaries keep working through thin shims)
+- [x] P2 — Tapia merged into Soma as `/practice`; `desktop/tapia/` deleted
+- [x] P3a — `backend/crates/soma-node` napi-rs addon scaffolded, embeds both runtimes
+- [x] P3b — Proof-of-pattern: `DaemonHandle` + `SomaHandle.status()` end-to-end through napi
+- [x] P3c — `@napi-rs/cli` build pipeline wired; `@soma/node` consumed by `desktop/soma`
+- [ ] P3d — Extract remaining ~20 daemon + ~5 agent methods into `DaemonHandle` / `AgentHandle`; expose via napi
+- [ ] P4 — Soma main rewritten to call addon directly; daemon-process-manager / splash gate / socket config removed
+- [ ] P5 — **Server-binary collapse**: move `bins/daemon`+`bins/agentd` runtimes to `crates/desktop-peer`+`crates/desktop-agent`; create `bins/somad` with subcommands (`bot`, `relay`, `rendezvous`, `bff`, `all`); delete `bins/{botd,relayd,rendezvousd,bffd,serverd}`; one Dockerfile, one image
+- [ ] P6 — Packaging cleanup: sudoless user-domain install, Developer ID signing + notarization, SHA256SUMS + bootstrap dedup
+- [ ] P7 — CI matrix dedup (single matrix per artifact); leftover cleanups
+
+When this document says "today" or describes current behavior in present tense, treat it as the *intended* behavior in the target architecture — verify against the code if you need to make a load-bearing decision.
 
 ## Repository Layout
 
-- `backend/` – Rust workspace for **all** backends (desktop + server) and supporting crates.
-    - Desktop peer/agent binaries: `soma-daemon` (Unix socket; no Axum), `soma-agentd` (desktop-only companion).
-    - Server peer/infra binaries: `soma-botd`, `soma-relayd`, `soma-rendezvousd`, `soma-bffd`, `soma-serverd`.
-    - Crates: core domain, networking, storage, API, relay, rendezvous, BFF, and shared utilities.
-- `desktop/` – Desktop applications and packaging.
-    - `desktop/soma/` – Soma Electron/Chromium app (primary packaged Soma desktop UI).
-    - `desktop/desktop-proto/` – TypeScript protobuf+gRPC codegen (`@soma/proto`) for Node/Electron consumers.
-    - `desktop/desktop-ui/` – Shared UI components (`@soma/ui`).
-    - `desktop/packaging/` – Local TypeScript CLI for bundle packaging tests.
-    - `desktop/desktop-config/` – Shared StageConfig service (`@soma/desktop-config`) that normalizes stage detection, paths, and sockets for the desktop apps.
-    - `desktop/tapia/` – Tapia Electron/Chromium app (primary packaged Tapia UI).
-- `docs/` – VitePress documentation (`docs/src/` for markdown, `docs/.vitepress` for config/navigation).
-- `proto/` – shared protocol definitions and codegen inputs.
-- `deploy/` – Helm charts and infrastructure manifests.
-- `prd/` – product requirements and high-level product documentation.
-- `.github/packaging/` – release/packaging templates and helpers for CI.
+- `backend/` — Rust workspace.
+  - `crates/soma-node/` — napi-rs addon (cdylib) embedding the desktop peer + agent runtimes; loaded by Electron main.
+  - `crates/desktop-peer/` — desktop peer runtime (former `bins/daemon`'s library). Consumed by `soma-node` and by `somad desktop-peer` (transitional; removed once Soma main no longer spawns a peer process).
+  - `crates/desktop-agent/` — desktop agent runtime (former `bins/agentd`'s library). Consumed by `soma-node` and by `somad desktop-agent` (transitional).
+  - `crates/peer/` — libp2p peer behaviour, event types, request/response protocols.
+  - `crates/agent/` — local LLM/embed/Yjs reconciliation runtime.
+  - `crates/storage/` — repositories + schema; consumes the `.cstack` schema via `cratestack-rusqlite`.
+  - `crates/core/` — domain types, `DbFactory`, telemetry, shared utilities.
+  - `crates/net/` — libp2p swarm builder (typestate transport order: TCP → QUIC → DNS → WS → Behaviour).
+  - `crates/membership/`, `crates/api/`, `crates/cache/`, `crates/common/`, `crates/metrics/`, `crates/vdfs/`, `crates/socket/`, `crates/relay/`, `crates/rendezvous/`, `crates/bff/`, `crates/proto-build/` — unchanged in role.
+  - `bins/somad/` — the **only** server binary. Subcommand-dispatch entry point (`bot`, `relay`, `rendezvous`, `bff`, `all`). Mode-specific argument parsing lives per-subcommand under `bins/somad/src/commands/`.
+- `desktop/` — single Electron app + shared TS packages.
+  - `desktop/soma/` — Soma app. Renderer under `src/renderer`, main under `src/main`. Loads `@soma/node` (the napi addon).
+  - `desktop/soma/src/renderer/src/routes/practice/` — merged-in Tapia.
+  - `desktop/desktop-ui/` — shared React components (`@soma/ui`), subpath-imports only (`@soma/ui/components/*`, `@soma/ui/hooks/*`, etc.; no root export).
+  - `desktop/desktop-config/` — stage detection + path normalization (`@soma/desktop-config`). Socket-path logic deleted in P4.
+  - `desktop/desktop-editor/`, `desktop/desktop-data/`, `desktop/desktop-icons/` — supporting packages.
+  - `desktop/packaging/` — TS CLI for producing notarized macOS zips and Linux tarballs; AppImage on Linux.
+- `proto/` — libp2p wire formats (rust-only after P4 when `desktop-proto` is removed).
+- `docs/` — VitePress docs (`@soma/docs`). Hosts the `install.sh` / `uninstall.sh` bootstrap.
+- `deploy/` — Helm charts and infrastructure manifests for server backends.
+- `prd/` — product requirements.
+- `.github/workflows/` — release pipelines (single desktop matrix, single addon matrix, server-binary matrix).
 
-When in doubt, place:
+Where to put new code:
 
-- shared Rust logic under an appropriate `backend/crates/*`.
-- UI logic under `desktop/soma` (Soma) or `desktop/tapia` (Tapia).
-- long-lived infra logic under `backend/crates/*`.
-- user-facing docs under `docs/src/`.
+- Domain logic → `backend/crates/core` or a focused new crate.
+- Storage queries → `backend/crates/storage` (repository modules per aggregate).
+- Peer wire/event behaviour → `backend/crates/peer`.
+- Things exposed to Electron → `backend/crates/soma-node` (napi surface only; delegate to other crates).
+- Renderer UI → `desktop/soma/src/renderer`.
+- Reusable UI → `desktop/desktop-ui` (and update its subpath exports).
 
-Docs quickstart:
+## Terminology: VDF
 
-- Docs live as the `@soma/docs` workspace package under `docs/`.
-- Local build: `pnpm docs:dev` (VitePress dev server) or `pnpm docs:build` (writes to `./site`).
-- Repo helper: `just build-docs` (runs VitePress build to `./site` and Storybook into `site/storybook`).
+**VDF** is a **cache-only peer role** that improves availability/latency by fetching and caching content-addressed data.
 
-Repo automation (`xtask`):
-
-- `cargo xtask` is the preferred way to run CI-critical Cargo automation from the repo root (wired via `.cargo/config.toml`).
-- Version helpers:
-  - `cargo xtask version workspace --path Cargo.toml`
-
-Bundle packaging (downloads published release assets and produces `.deb/.rpm` or `.pkg`) is handled by the TypeScript CLI:
-
-- `pnpm --filter @soma/packaging run bundle:release -- --os <linux|macos> --arch <amd64|arm64>`
-- Produces per-platform helper scripts `install.sh` and `uninstall.sh` alongside the packaged artifacts under `artifacts/bundle/<os>-<arch>/`.
-- Requires `GITHUB_REPOSITORY` + `GITHUB_TOKEN` (or `--repo/--token`), and platform tools (`fpm` on Linux, `pkgbuild` on macOS).
-- Local packaging (uses local build artifacts):
-  - `pnpm --filter @soma/packaging run bundle -- --os <linux|macos> --arch <amd64|arm64>`
-  - Outputs to `artifacts/bundle-local/<os>-<arch>/` by default.
-- Service ownership policy for bundle templates:
-  - Linux units are **systemd user** services (`systemctl --user ...`), not system-wide root services.
-  - macOS services are **LaunchAgents** (`/Library/LaunchAgents` + `launchctl bootstrap gui/<uid> ...`), not LaunchDaemons.
+- VDFs **never accept user uploads** and are **not a source of truth** for user-created blobs.
+- VDFs may cache in-memory (LRU/TTL), on disk, or via an external cache (Redis); writes are allowed only as a side-effect of *fetching/verifying* content.
+- VDFs must **verify bytes match the claimed CID** before serving/persisting.
+- The crate is `soma-vdfs` for historical reasons; "VDF" is the canonical term in docs and conversations.
 
 ## Tech Stack
 
-- **Package manager**: `pnpm` (workspace at `pnpm-workspace.yaml`).
-- **Desktop apps**: Electron/Chromium (`desktop/soma`, `desktop/tapia`).
-- **Backends**: Rust.
+- **Rust** — embedded runtime (`soma-node` addon) and all server backends. New crates default to **edition 2024**; existing crates migrate opportunistically.
+- **napi-rs** — Rust↔Node-API binding. Produces a `.node` per `(os, arch)` loaded by Electron main via `require()`.
+- **CrateStack (`cratestack-rusqlite`)** — schema-first SQLite layer. One `.cstack` schema is the source of truth for the addon's database; generated via `include_embedded_schema!`. Sync API, bundled SQLite, no tokio on the data path → friendly for FFI/napi bridging. Repo at `~/dev/cratestack`.
+- **Electron + React + TypeScript** — desktop UI. `strict` TS. pnpm workspace.
+- **Cargo workspace**, `resolver = "3"`, all third-party versions under `[workspace.dependencies]` in root `Cargo.toml`.
+- **Tokio** — single runtime per process. The addon owns the runtime; server binaries each own theirs.
+- **libp2p** — peer transport (TCP + QUIC + WebSocket), circuit-relay v2 for NAT traversal, rendezvous for discovery.
+- **Tonic / Prost** — gRPC + protobuf for libp2p wire formats; **no** gRPC over Unix sockets between Electron and the addon (direct napi calls instead).
+- **Server storage** — SQLx AnyPool (Postgres or SQLite via `SOMA_DATABASE_URL`) for `somad bot` until CrateStack migration lands as a separate phase.
+- **`tracing`** for logs; `mimalloc` as the global allocator in all backends.
 
-## CI, Packaging, and Releases
+## The soma-node Addon
 
-This repo uses GitHub Actions workflows that are designed to be triggered manually (`workflow_dispatch`).
+`backend/crates/soma-node/` is the only thing Electron loads. It is the boundary between Rust and Node.
 
-- **Daemon + agent releases**: `.github/workflows/release-daemons.yml`
-  - Builds `soma-daemon` and `soma-agentd` for `linux/macos` × `amd64/arm64` using `cross` (via `.github/actions/cargo-cross-build/action.yml`).
-  - Publishes assets to GitHub Releases (never “latest”) with OS/arch suffixes.
-- **Desktop releases (Electron)**: `.github/workflows/release-desktop.yml`
-  - Builds Soma + Tapia Electron artifacts for `linux/macos` × `amd64/arm64` and publishes to a `desktop-v*` GitHub Release (never “latest”).
-- **Docker images**: `.github/workflows/docker-backend.yml`
-  - Builds/pushes multi-target images from `Dockerfile` (manual-only), gated by a successful `soma-daemon` cross-build matrix.
-- **Bundle releases**: `.github/workflows/release.yml`
-  - Bundles published daemon/agent and desktop versions into OS-specific installers (`.deb/.rpm/.pkg/.zip`) and uploads them to a GitHub Release.
+Crate shape:
 
-SBOM:
-- SBOMs are generated in CI using `anchore/sbom-action` (Syft). There is no `sbom/` scripts folder anymore.
+- `[lib] crate-type = ["cdylib"]`, edition 2024.
+- Depends on the library forms of the peer and agent runtimes (post-P1). Builds them in a single Tokio runtime owned by the addon.
+- One SQLite database shared by both runtimes (no more split `daemon.db` / `agentd.db`). Schema declared in a single `.cstack` file consumed via `include_embedded_schema!`.
 
-Packaging templates:
-- Templates live under `desktop/packaging/templates/` and are rendered by `pnpm --filter @soma/packaging run bundle:release`.
-- See `desktop/packaging/templates/README.md` for the template variables and file list.
-  - Installer/uninstaller templates live under `desktop/packaging/templates/install/` (`install.sh.j2`, `uninstall.sh.j2`).
+API conventions:
+
+- **Async-only** at the napi boundary. Every `#[napi]` method returns a `Promise`; no sync work that could stall the Electron event loop.
+- **`catch_unwind` at every boundary**. A Rust panic must never crash Electron main; convert to a typed error and surface it to JS.
+- **Supervisor pattern**. The addon exposes `start({ config }) -> Handle` and `Handle.shutdown()`. On unrecoverable runtime failure the supervisor logs, signals the JS layer, and exits cleanly so Electron's main process can restart the addon.
+- **TypeScript types are generated** via `napi build --dts` and re-exported from `desktop/soma`'s main process.
+- **Streaming** uses napi's `ThreadsafeFunction` / async iterators. Used for chat-stream, peer events, document subscriptions, blob reads.
+- **No global mutable state** in the addon itself (beyond the supervisor singleton); state lives inside the handle returned to JS.
+
+What lives in the addon vs the runtime crates:
+
+- The addon is glue. Business logic stays in `soma-peer`, `soma-agent`, `soma-storage`, etc.
+- The addon translates between napi types and the Rust API; it does not own domain logic.
+
+## Storage (CrateStack)
+
+One `.cstack` schema describes the embedded database. Lives at `backend/crates/storage/schema.cstack` (or `backend/crates/soma-schema/schema.cstack` — finalized in P3).
+
+- The **addon** consumes the schema via `cratestack::include_embedded_schema!("schema.cstack")`.
+- **`somad bot` stays on SQLx for now.** Migrating botd's Postgres + SQLite paths to CrateStack is its own phase; the one-macro-per-crate constraint (`include_server_schema!` vs `include_embedded_schema!`) needs a deliberate design choice for that.
+- Single database file per install at `~/Library/Application Support/Soma/soma.db` on macOS, `~/.local/share/soma/soma.db` on Linux. Stage-specific (`-dev`, `-staging`) suffixes via `@soma/desktop-config`.
+- Tables (target schema — verify against the `.cstack` file): `spaces`, `space_memberships`, `join_decisions`, `join_requests`, `issuer_capabilities`, `mailbox`, `documents`, `pages`, `blobs`, `blob_refs`, `peer_public_keys`, plus agent-runtime tables (chat sessions, embeddings, etc.) that previously lived in `agentd.db`.
+- `cratestack-rusqlite` provides the sync data API; the addon wraps reads/writes in `spawn_blocking` only where contention is real (it usually isn't — rusqlite is fast).
+- No SQLx migrations directory on the desktop side; CrateStack generates schema from the `.cstack` source. Migration is a separate concern handled at addon start (DDL + version table).
+
+## Desktop App (Soma)
+
+Single Electron app at `desktop/soma/`. Tapia merged in as a `/practice` route in P2.
+
+Process model:
+
+- Main process: loads the addon, owns the supervisor, exposes high-level IPC to the renderer via the preload bridge (`window.api.invoke`).
+- Renderer: React + Redux Toolkit + RTK Query for IPC/data. XState for the typing-practice state machine. No Zustand; do not reintroduce TanStack Query.
+- No daemon spawn, no socket discovery, no splash gate. Cold-start = process start + addon init + first paint.
+
+Conventions:
+
+- Renderer imports use `@app/*` (configured in `desktop/soma/tsconfig.web.json` + `electron.vite.config.ts`).
+- Filenames are **kebab-case** for `.ts`/`.tsx` in both renderer and main.
+- IDs are **CUIDs**, not UUIDs.
+- `@soma/ui` has **no root export** — import via subpaths (`@soma/ui/components/*`, `@soma/ui/hooks/*`, `@soma/ui/utils/*`, `@soma/ui/yoopta`, `@soma/ui/types`).
+- Routing: `react-router` core, memory or hash router (not `react-router-dom`).
+- Frameless window: `frame: false`; macOS hides native buttons via `setWindowButtonVisibility(false)`. Drag with `data-drag-region`, opt out with `data-no-drag`.
+- Deep links: `soma://...` registered by Electron; secondary launches routed through single-instance lock in `startup-service.ts`.
+- Window state persists via `electron-store` in `app-data-store.ts`.
+- Logging: Winston in main, writes to `app.getPath("userData")/logs/main.log`.
+- Tray-when-window-closed on macOS so the peer stays online for the session.
+
+State and IPC:
+
+- Redux Toolkit slices in `desktop/soma/src/renderer/src/store/`.
+- RTK Query (`store/api.ts`) for all IPC/data; use `api.injectEndpoints`, tag for cache invalidation, wrap in `src/queries/*` for ergonomic hooks.
+- Side effects (I/O, addon calls) live in dedicated hooks or services, not in components.
+
+Renderer resilience:
+
+- Suspense-wrapped router + route-level `RouteErrorBoundary` (`routes/router.tsx`, `routes/route-fallbacks.tsx`).
+- Editor crashes contained at the page area via `PageEditorFallback` around `DocumentEditor`; global `AppErrorBoundary` is the outer net.
+- TipTap: `immediatelyRender: false`, gate `ReactRenderer`/event listeners on `editor.options.element`, dispatch only when still mounted.
+
+Blob protocol:
+
+- `soma-blob://daemon/{space_id}/{cid}` handler still registered (the URL scheme is kept for renderer compatibility) but now calls `addon.readBlob(spaceId, cid)` directly — no gRPC roundtrip.
+
+Agent runtime configuration:
+
+- Source of truth: `electron-store` (`settings["agent.config"]`) via main-process settings IPC.
+- Default provider: OpenAI-compatible at `http://127.0.0.1:11434/v1` (Ollama-style).
+- Supported provider kinds: `agentd` (now: the embedded runtime in the addon), `openai-compatible`.
+- Model capabilities (chat/embed/tool/image) are local UI metadata; optional per-workspace overrides under `agent.config.workspaces[space_id]`.
+- Provider/model docs: `docs/src/development/agentd-models.md`.
+
+Practice route (merged Tapia):
+
+- Pure renderer surface; no addon dependency required (typing practice is local-only).
+- Uses XState for the typing state machine, Motion for cursor/feedback animations, a stable grapheme + diff library (`graphemer` / `grapheme-splitter` and `diff-match-patch` / `diff`), `simple-keyboard` for the on-screen keyboard.
+
+## Server: `somad`
+
+One binary, subcommand-dispatched. Each subcommand wraps the relevant service crate and takes its own flags. All subcommands share: `clap` for CLI + env config, `mimalloc` for allocation, `tracing` for logs (via `soma_core::telemetry::init_tracing`).
+
+Top-level UX:
+
+```
+somad <SUBCOMMAND> [OPTIONS]
+somad --help
+somad <SUBCOMMAND> --help
+```
+
+Subcommands are documented with `--help`; flag names within each subcommand are stable contracts. Adding a new mode = adding a new subcommand module under `bins/somad/src/commands/`.
+
+### `somad bot` — peer + bot
+
+The only headless peer. Absorbs the former `soma-daemon` server-side use case.
+
+Two operating sub-modes via `--mode bot|admin`:
+
+- **`bot` (default)** — peer + read-only HTTP (`/info`, `/healthz`, `/metrics`). No `/v1/*` endpoints. Auto-approves joins **only** when it holds a valid issuer capability for the space; otherwise records the request for manual approval elsewhere.
+- **`admin`** — peer + authenticated control plane (`POST /v1/join/request`, `GET /v1/join/requests`, `POST /v1/join/decide`, `POST /v1/space/revoke`, `POST /v1/space/issuer-capability`, etc.). HTTP write endpoints must be authn/authz-gated.
+
+Internals (under `bins/somad/src/commands/bot/`):
+
+- Runtime + dispatcher wiring; peer event handlers (`MetricsHandler` covers all `PeerEventKind`s; `LoggingHandler` is selective); Prometheus metrics; join decider.
+- Add new handlers by implementing `PeerEventHandler` and registering in `build_dispatcher`.
+- Storage: SQLx AnyPool via `soma_core::db::DbFactory`. `--db-path` / `SOMA_DATABASE_URL`; defaults to `./botd.db` SQLite. Migrations under `backend/crates/storage/migrations`, embedded with `sqlx::migrate!`; startup fails if migration fails.
+- Join decider: auto-approves only on valid issuer capability (role/expiry enforced) and signs the membership capability with the bot's libp2p identity key.
+
+### `somad relay`
+
+libp2p circuit relay v2 + Axum HTTP (`/healthz`, `/metrics`). Uses `crates/relay`.
+Metrics prefix `relay_`: `relay_reservations_total`, `relay_circuits_total`, `relay_listen_events_total`.
+Default listen addrs: `/ip4/0.0.0.0/tcp/4001`, `/ip4/0.0.0.0/udp/4001/quic-v1`, `/ip4/0.0.0.0/tcp/4003/ws`.
+Identity persists at `${SOMA_DATA_DIR}/relay/identity.key` (ECDSA).
+
+### `somad rendezvous`
+
+libp2p rendezvous discovery + Axum HTTP (`/healthz`, `/metrics`). Uses `crates/rendezvous`.
+Metrics prefix `rendezvous_`: `rendezvous_discover_total`, `rendezvous_registrations_total`, `rendezvous_listen_events_total`.
+Default listen addrs: `/ip4/0.0.0.0/tcp/4004`, `/ip4/0.0.0.0/udp/4004/quic-v1`, `/ip4/0.0.0.0/tcp/4004/ws`.
+Identity persists at `${SOMA_DATA_DIR}/rendezvous/identity.key` (ECDSA).
+
+### `somad bff`
+
+LLM BFF for provider integrations over HTTP. The only subcommand that does **not** use libp2p (optional diagnostic libp2p peer can be enabled via flag). Uses `crates/bff`.
+
+### `somad all`
+
+Compose multiple subcommands in one process via `--config server.toml`. Replaces the former `serverd`. The config file declares which modes to run and which options each takes; one process binds the union of ports, sharing the Tokio runtime + telemetry.
+
+### `somad desktop-peer` / `somad desktop-agent` (transitional)
+
+Temporary back-compat subcommands that run the desktop runtimes as standalone processes. Exist only while `desktop/soma/`'s main process still spawns child processes for the peer/agent (pre-P4). Once Soma main loads the `.node` addon directly (P4), these subcommands are removed.
+
+These subcommands wrap `crates/desktop-peer::run(config)` and `crates/desktop-agent::run(config)` directly — they exist so the existing daemon-spawn pathway keeps working through P5 without an extra binary in the tree.
+
+### Swarm builder
+
+`soma-net::build_swarm` uses libp2p's typestate `SwarmBuilder`. Order matters: **TCP → QUIC → DNS → WebSocket → Behaviour**. Without QUIC in the stack, `listen_on(/udp/.../quic-v1)` fails with `MultiaddrNotSupported(...)`.
+
+## Bots and always-on availability
+
+The desktop peer is online only while Soma is open. Permanent availability for a space is provided by `somad bot` running as a **space mirror**:
+
+- Maintains a local `blob-cache-dir` (cache-only, populated via fetch).
+- Attempts to keep all referenced CIDs for configured spaces present locally.
+- Learns "what to cache" via:
+  - **Announce-driven** — when a peer stores a blob and writes a Yoopta reference, it publishes a lightweight "blob announce" (`space_id + cid + mime + size`). Mirror bots enqueue a fetch.
+  - **Crawl/reconcile** — periodic scan of space state; extract references; fetch missing; optionally evict unreferenced with TTL.
+- Fetch strategy: try any reachable peer (peerstore/Identify, rendezvous, relay) until one serves the CID; DB-backed retry queue (mailbox-style) for transient failures.
+- Cache policy: prefer retention for referenced blobs; eviction bounded by size/TTL/"unreferenced for N days". Never accepts uploads; the cache is filled only by pulling verified bytes (CID match).
+
+## Blobs (content-addressed, addon-owned)
+
+Binary assets (files, images, attachments, Yoopta-related assets) are **content-addressed objects** stored outside Yjs/Yoopta. Collaborative documents store **references** to blobs, never bytes.
+
+Roles and rules:
+
+- The **embedded peer in the addon** is the source of truth for user-created blobs.
+- `somad bot` is **cache-only** for blobs in both `bot` and `admin` modes (writes allowed only as a side-effect of fetching from the network; never accepts user upload).
+- Blob identity is a CID computed from bytes (e.g. `sha256`); storage is keyed by CID (content-addressed).
+
+Upload (addon-internal):
+
+- Entrypoint: Electron main calls `addon.uploadBlob({ spaceId, bytes, contentType, name, yooptaContext? })`.
+- The addon persists bytes into the configured blob pool (space-scoped layout) and records minimal metadata (size, content type, original name) in SQLite.
+- A peer event is emitted **only** when the blob is associated with Yoopta content (i.e. upload includes Yoopta context like `document_id` / `node_id`). Non-Yoopta blobs are stored but generate no Yoopta-related events.
+
+Read and serve (renderer → main → addon):
+
+- Renderers load bytes via `soma-blob://daemon/{space_id}/{cid}` (kept for URL stability).
+- The Electron protocol handler (`desktop/soma/src/main/services/blob-protocol.ts`) calls `addon.readBlob(spaceId, cid)` — direct, no IPC.
+
+Network distribution (fetch + cache):
+
+- Peers retrieve blobs from each other by CID over libp2p (`/soma/blob/1` request/response).
+- When a Yoopta document starts referencing a blob, the writer publishes a "blob availability hint" so other peers know what to fetch/cache.
+- `somad bot` as a mirror participates in serve + on-demand fetch + LRU/TTL eviction.
+
+Non-goals / guardrails:
+
+- No HTTP upload endpoints in `somad bot` in any mode.
+- No network "push bytes to bot" protocol; blob transfer is pull-based by CID.
+- Do **not** embed multiaddrs in Yoopta content; do **not** assume every user has a bot — references must resolve via any reachable peer.
+
+Yoopta integration:
+
+- References include at least `cid`, `mime`, `size`, optional `name`, plus renderer-specific fields.
+- Dialing happens at runtime: peers fetch by CID using `/soma/blob/1` from any reachable peer that has it.
+
+Security and limits:
+
+- Validate declared sizes/content types and enforce max blob sizes at ingress (addon API) and egress (network transfer).
+- **Always verify bytes match the CID before persisting/serving.**
+- Treat all remote blobs as untrusted; no automatic execution/rendering without UI sandboxing.
+
+## Joins, Memberships, Capabilities
+
+Join MVP has two planes:
+
+- **Transport**: `soma-peer` (libp2p request/response). Protocols `/soma/join/1` and `/soma/join-decision/1`.
+- **Policy + persistence**: `soma-membership` + SQLx (or CrateStack on the addon side) repositories — `join_requests`, `join_decisions`, `space_memberships`, `mailbox`.
+
+Flows:
+
+1. **Single-target join (decider online)**: requester sends `JoinRequest` over `/soma/join/1`; decider records `join_requests` (pending), returns immediate `JoinDecision` (pending or approved). On approval, decider records `join_decisions` + upserts `space_memberships` and sends signed `JoinDecision` over `/soma/join-decision/1`. Requester persists the membership.
+2. **Multi-target retry (owner offline, delegated bot online)** *(not yet implemented)*: requester tries candidate deciders in order (owner first, then delegated bots) until one responds; retry queue in `join_requests` with `is_outgoing=1`.
+3. **Mailbox fallback (requester offline)**: decider's outbound `SendJoinDecision` fails → enqueue in `mailbox` (kind=`join_decision`, status=`queued`) → periodic sweep + on-connect drain retries delivery; ack on receipt; `mailbox.mark_done`.
+
+Open security work (currently provisional):
+
+- [ ] **Verify `MembershipCapability.signed`** on receipt at the daemon using the issuer public key from libp2p Identify. If `issuer != owner`, verify the issuer delegation chain (owner → issuer capability → membership).
+- [ ] **Verify `IssuerCapability.signed`** (owner signature) and enforce expiry/allowed roles consistently before auto-approving.
+- [ ] **Canonical signing format**. Current signing uses CBOR via `ciborium`, but canonical CBOR is not guaranteed. Move to a canonical scheme before relying on cross-version/cross-implementation signatures.
+- [ ] **Space genesis artifact**. Today `spaces.owner_peer_id` is DB-local metadata only; add an owner-signed record other peers can verify.
+- [ ] **Issuer delegation lifecycle** with auditable issuance/rotation from both addon (gRPC/IPC) and admin HTTP.
+- [ ] **Space membership revocation/leave** end-to-end.
+- [ ] **Space roster / discovery** helpers exposed from addon (`listSpaceMembers`, `discoverSpaces`).
+
+## Storage schema (target)
+
+A single SQLite database per install, schema declared in one `.cstack` file. Tables (ER overview):
+
+- `spaces(space_id)` — display_name, created_at.
+- `space_memberships(space_id, subject_peer_id)` — role, issuer_peer_id, issued_at, expires_at, capability blob.
+- `join_decisions(decision_id)` — space_id, subject_peer_id, decision enum, reason, created_at, capability blob (audit).
+- `join_requests(request_id)` — incoming (approver-side, `is_outgoing=0`, `status=pending`) and outgoing (requester-side, `is_outgoing=1`, retry state).
+- `issuer_capabilities(space_id, delegate_peer_id)` — issuer_peer_id, issued_at, expires_at, capability blob.
+- `mailbox(id)` — kind, space_id?, subject_peer_id?, status (queued|leased|done|dead), attempts, available_at, lease_until?, leased_by?, payload blob, created_at.
+- `documents(space_id, document_id)` — Yoopta JSON content (mutable).
+- `pages(space_id, page_id)` — page navigation metadata (title + parents).
+- `blobs(space_id, cid)` — blob metadata (size/mime/name, timestamps).
+- `blob_refs(space_id, cid, document_id)` — document→blob references (for listing + safe GC).
+- `peer_public_keys(peer_id)` — Identify public keys observed for peers.
+- Agent tables (chat sessions, embeddings, etc.) — folded in from the former `agentd.db`.
+
+`somad bot` keeps its current SQLx migrations at `backend/crates/storage/migrations` until that runtime is migrated to CrateStack.
 
 ## Dependency Policy
 
-### Rust (Cargo workspace)
+### Rust
 
-- Third-party dependency versions are declared **only** in the repo root `Cargo.toml` under `[workspace.dependencies]`.
-- All crates and binaries under `backend/crates/*` and `backend/bins/*` must depend on third-party crates using `{ workspace = true }`.
-- If a crate needs optional capabilities, add `features = [...]` on the `{ workspace = true }` dependency in that leaf `Cargo.toml`.
+- Third-party dependency versions are declared **only** in the repo-root `Cargo.toml` under `[workspace.dependencies]`.
+- All workspace crates depend on third-party crates using `{ workspace = true }`. Add optional capabilities with `features = [...]` on the workspace dep in the leaf `Cargo.toml`.
 - Do not add `version = "..."` for third-party crates anywhere except the root `Cargo.toml`.
+- Server backends: `clap` for CLI/env config, `mimalloc` as the global allocator.
+- Embedded addon: same allocator/tracing conventions, no clap; config comes from the napi caller.
 
-### Backends
+### TypeScript / pnpm
 
-All backends:
-
-- use `clap` for CLI parameters and environment variable configuration.
-- use `mimalloc` for allocation.
-
-Peer/daemon backends:
-
-- accept a **blob storage pool** path (a plain folder) via configuration for storing large binary assets.
-- use `yjs-rust` to reconcile collaborative content/state.
-- use SQLite on desktop; server deployments can enable PostgreSQL via Cargo features.
-
-### Blobs (content-addressed, daemon-owned)
-
-Soma treats binary assets (“blobs”: files, images, attachments, Yoopta-related assets, …) as **content-addressed objects** stored outside Yjs/Yoopta. Collaborative documents should only contain **references** to blobs.
-
-#### Roles and rules
-
-- `soma-daemon` is the **source of truth** for user-created blobs (writes allowed).
-- `soma-botd` (both `bot` and `admin` modes) is **cache-only** for blobs (writes allowed only as a side-effect of *fetching* a blob from the network; never accepts user upload).
-- Blob identity is a CID computed from bytes (e.g. `sha256`), and storage is keyed by CID (content-addressed).
-
-#### Upload and persistence (daemon only)
-
-- The only supported “upload” entrypoint is local IPC to `soma-daemon` (Unix socket gRPC / daemon API).
-- `soma-daemon` persists bytes into its configured blob storage pool (space-scoped layout recommended) and records minimal metadata (size, content type, original name) in SQLite.
-- `soma-daemon` emits a peer event **only** when the blob is associated with Yoopta content (i.e. the upload includes Yoopta context like a document ID / node ID). Non-Yoopta blobs are stored but do not generate Yoopta-related peer events.
-- Daemon gRPC blob surfaces live in `proto/daemon/v1/daemon.proto` (`UploadBlob`, `ReadBlob`, `GetBlobMetadata`, `ListBlobs`).
-
-Where to wire this:
-- Peer event definitions: `backend/crates/peer/src/lib.rs`, `backend/crates/peer/src/events.rs`
-- Daemon storage + IPC/controller: `backend/bins/daemon/`
-
-#### Read and serving (desktop → daemon IPC)
-
-- Desktop renderers should load bytes via `soma-blob://daemon/{space_id}/{cid}` (never read blob files directly).
-- The Electron custom protocol handler lives at `desktop/soma/src/main/services/blob-protocol.ts` and reads bytes via `Daemon/ReadBlob` (proto `proto/daemon/v1/daemon.proto`, implemented in `backend/bins/daemon/src/grpc.rs`).
-
-#### Network distribution (fetch + cache)
-
-- Peers retrieve blobs from each other by CID over libp2p (a simple request/response “get by CID” protocol).
-- When a Yoopta document starts referencing a blob, the writer can publish a lightweight “blob availability hint” (metadata only) so other peers know what to fetch/cache.
-- `soma-botd` participates as a peer that can:
-  - serve blobs it already has in cache
-  - fetch blobs on-demand and keep them if they’re frequently used
-  - evict according to policy (LRU/TTL + size cap)
-
-Non-goals / guardrails:
-- No HTTP upload endpoints in `soma-botd` in any mode.
-- No network “push bytes to bot” protocol; blob transfer is pull-based by CID.
-- Do **not** embed multiaddrs in Yoopta content (they are ephemeral) and do **not** assume every user has a bot; references must resolve via any reachable peer.
-
-#### Yoopta integration
-
-- Yoopta content must store blob *references* (structured objects) rather than bytes.
-- A reference should include at least: `cid`, `mime`, `size`, and optional `name` (and any renderer-specific fields).
-- Dialing happens at runtime: peers fetch by CID using `/soma/blob/1` from any reachable peer that has the blob (daemon store or bot cache).
-
-#### Space mirror bots (cache “everything referenced”)
-
-Some deployments want an always-on bot to cache the complete set of blobs referenced by a space (to improve availability/latency for other peers).
-
-- Role: a `soma-botd` instance can run as a **space mirror**:
-  - maintains a local `blob-cache-dir` (cache-only, populated via fetch)
-  - attempts to keep all referenced CIDs for configured spaces present locally
-- How the bot learns “what to cache”:
-  - **Announce-driven**: when a daemon stores a blob and writes a Yoopta reference, it publishes a lightweight “blob announce” (space_id + cid + mime + size). Mirror bots enqueue a fetch for announced CIDs.
-  - **Crawl/reconcile**: periodically scan the space’s collaborative state/docs, extract blob references, and reconcile (fetch missing; optionally evict unreferenced with TTL).
-- Fetch strategy:
-  - try any reachable peers (peerstore/Identify, rendezvous discovery, relays) until one serves the CID
-  - keep a retry queue (DB-backed, mailbox-style) for transient failures and offline sources
-- Cache policy:
-  - “mirror mode” prefers retention for referenced blobs; eviction is bounded by size/TTL and “unreferenced for N days”
-  - bots still never accept user uploads; the cache is filled only by pulling verified bytes (CID match)
-
-#### Security and limits
-
-- Always validate declared sizes/content types and enforce maximum blob sizes at ingress (daemon IPC) and at egress (network transfer).
-- Always verify bytes match the CID before persisting/serving.
-- Treat all remote blobs as untrusted: no automatic execution/rendering without appropriate sandboxing in the UI.
-
-Specific services (all now live under `backend/`):
-
-- **Relay** (`backend/bins/relayd`, `backend/crates/relay`): libp2p circuit-relay node, plus an Axum HTTP server and a small metrics server.
-- **Rendezvous** (`backend/bins/rendezvousd`, `backend/crates/rendezvous`): libp2p rendezvous discovery service, plus an Axum HTTP server and a small metrics server.
-- **Desktop peer/daemon** (`backend/bins/daemon`, `soma-daemon`): the desktop user agent (Unix socket IPC). Desktop backends must not depend on Axum.
-- **Server peer/bot** (`backend/bins/botd`, `soma-botd`): a server-hosted libp2p peer/bot with an Axum control plane + metrics.
-- **LLM BFF** (`backend/bins/bffd`, `backend/crates/bff`): a backend-for-frontend for interacting with LLM providers over HTTP; runs `mimalloc` + Axum + a small metrics server. This is the only backend that does **not** use libp2p.
-  - Note: `soma-bffd` can optionally enable a small libp2p peer for diagnostics/testing, but the core service does not depend on libp2p.
-
-#### `soma-botd` internals (event handling + metrics)
-
-`soma-botd` processes libp2p events through a small dispatcher with per-handler queues:
-
-- Entry point: `backend/bins/botd/src/main.rs`
-- Runtime loop + wiring (peer spawn, HTTP spawn, dispatcher): `backend/bins/botd/src/runtime.rs`
-- Peer event handlers:
-    - Metrics: `backend/bins/botd/src/event_handlers.rs` (`MetricsHandler`, handles **all** `PeerEventKind`s)
-    - Logging: `backend/bins/botd/src/event_handlers.rs` (`LoggingHandler`, selected events only)
-- Prometheus metrics definitions/registration: `backend/bins/botd/src/metrics.rs`
-- Storage: SQLx AnyPool (Postgres or SQLite) via `soma_core::db::DbFactory`. Config via `--db-path` / `SOMA_DATABASE_URL` (defaults to `./botd.db` SQLite). Migrations are shared under `backend/crates/storage/migrations` and embedded at startup (`sqlx::migrate!("../../crates/storage/migrations")` in `runtime.rs`); startup fails if migration fails.
-- Join decider: auto-approves only when the bot holds a valid issuer capability for the space (role/expiry enforced) and signs the membership capability with its libp2p identity key; otherwise the join is recorded for manual approval in storage.
-
-#### Operating modes (bot vs admin)
-
-`soma-botd` is a peer first. Its HTTP surface depends on an operating mode:
-
-- `bot` mode (default): read-only HTTP endpoints only (`/info`, `/healthz`, `/metrics`). No business APIs (`/v1/*`) at all.
-- `admin` mode: exposes a daemon-like control plane over HTTP for admin operations (join decisions, revocation, roster, issuer delegation, mailbox, …). This mode must be authenticated/authorized. Join control surfaces: `POST /v1/join/request` (send join request over libp2p), `GET /v1/join/requests` (list pending), `POST /v1/join/decide` (approve/reject; signs capability on approve).
-
-Rule of thumb: keep business logic in `soma-peer` and treat Axum/gRPC surfaces as controllers that call into peer services/deciders.
-
-Mode responsibilities (high-level):
-
-- `bot` mode:
-    - Runs a peer (`soma-peer`) + event handlers (metrics/logging).
-    - Exposes read-only HTTP only.
-    - Can be configured with an automated join decider, but has no public write surface.
-- `admin` mode:
-    - Runs the same peer + storage, but additionally exposes admin/business HTTP APIs.
-    - Business endpoints must be gated by mode and protected with authn/authz.
-    - Controllers must delegate to `soma-peer` + repositories (no direct business logic in Axum handlers).
-
-When adding new peer events or instrumentation, prefer:
-
-- Updating `soma-peer` event definitions (`backend/crates/peer/src/lib.rs`, `backend/crates/peer/src/events.rs`)
-- Adding a matching metrics/logging branch in `backend/bins/botd/src/event_handlers.rs`
-
-- `soma-daemon`:
-    - Entry point: `backend/bins/daemon/src/main.rs`
-    - Runtime loop + wiring: same pattern as botd but gRPC over Unix socket (`backend/bins/daemon/src/grpc.rs`)
-    - Event dispatcher: `backend/bins/daemon/src/dispatch.rs`
-- Storage: SQLx AnyPool over SQLite via `soma_core::db::DbFactory` (config `--db-path` / `SOMA_DAEMON_DB`, defaults to `./daemon.db`). Migrations are shared under `backend/crates/storage/migrations` and embedded at startup (`sqlx::migrate!("../../crates/storage/migrations")` in `main.rs`); startup fails if migration fails.
-
-### Business Logic & API Checklist for Backends
-
-Use this list to track domain flows and where the API lives. Mark items off as you implement them end-to-end (daemon ↔ bot ↔ peer).
-
-- [x] Space join request & decision
-    - Daemon gRPC: `Daemon/JoinSpace(space_id, display_name, device_name, target_peer_id, target_multiaddrs)` (Unix socket, proto `proto/daemon/v1/daemon.proto`)
-    - Join protocol: handled in `soma-peer` via a pluggable join decider (default: reject-all). Controllers (daemon/bot) supply a decider and/or admin actions. Membership capabilities are signed with the peer’s libp2p identity key when approved.
-    - Bot mode (`soma-botd --mode bot`): auto-approves only when it holds a valid issuer capability for the space; otherwise records a pending join and rejects until manually approved elsewhere. HTTP stays read-only.
-    - Admin mode (`soma-botd --mode admin`): authenticated admin surface for join control (`POST /v1/join/request`, `GET /v1/join/requests`, `POST /v1/join/decide`); controllers delegate to storage + decider (no force-mint).
-    - Daemon gRPC also exposes manual approval surfaces: `Daemon/ListJoinRequests`, `Daemon/DecideJoin` and membership queries via `Daemon/ListMyMemberships`.
-- [x] Blob upload & read (desktop IPC)
-    - Daemon gRPC: `Daemon/UploadBlob`, `Daemon/ReadBlob` (Unix socket, proto `proto/daemon/v1/daemon.proto`)
-    - Desktop: `soma-blob://daemon/{space_id}/{cid}` protocol handler in `desktop/soma/src/main/services/blob-protocol.ts`
-- [ ] Space create & ownership genesis (verifyable)
-    - Add a real “space genesis” artifact (owner-signed record) that other peers can verify; current `spaces.owner_peer_id` is DB-local metadata only.
-- [ ] Issuer capability lifecycle (secure)
-    - Verify `IssuerCapability.signed` (owner signature) and enforce expiry/allowed roles consistently before auto-approving.
-    - Expose issuer delegation issuance/rotation from both daemon gRPC and admin HTTP (and keep it auditable).
-- [ ] Signature verification on join receipt
-    - Verify `MembershipCapability.signed` on the receiver (daemon) using the issuer public key from libp2p Identify.
-    - If issuer != owner, verify issuer delegation chain (owner → issuer capability → membership).
-- [ ] Canonical signing format
-    - Current signing uses CBOR encoding via `ciborium`, but canonical CBOR is not guaranteed; move to a canonical CBOR scheme before relying on signatures across versions/implementations.
-- [x] Async manual join decision delivery (in-band)
-    - Manual approvals complete via an in-network push: `/soma/join-decision/1` (libp2p request/response) sends a `JoinDecision` to the requester; requester persists membership/decision on receipt.
-    - If the requester is offline, the approver enqueues the outgoing decision in `mailbox` and retries later (TTL bounded; retries with backoff).
-- [ ] Multi-target join submission (recommended)
-    - Requesters should try multiple candidate deciders (owner first, then delegated bots) until one responds; this avoids a hard dependency on any single online peer.
-- [ ] Space membership revocation/leave
-    - Server-daemon HTTP (mode-gated): `POST /v1/space/revoke` (botd) to revoke capabilities by `space_id` and `subject_peer_id`; daemon gRPC: `Daemon/RevokeSpace` to request or consume a revocation and drop local capability
-- [ ] Space roster/query
-    - Server-daemon HTTP (mode-gated): `GET /v1/space/members` (botd) to list current members with roles/expiry; daemon gRPC: `Daemon/ListSpaceMembers` to fetch + cache
-- [ ] Issuer delegation management (bots acting on behalf of owners)
-    - Server-daemon HTTP (mode-gated): `POST /v1/space/issuer-capability` (botd) to rotate/issue issuer delegation for a bot; daemon gRPC: `Daemon/IssueIssuerCapability` to accept and persist
-- [ ] Space discovery/onboarding UX helpers
-    - Daemon gRPC: `Daemon/DiscoverSpaces` to surface available spaces via rendezvous/relay metadata for UIs
-
-### Storage schema (SQLx-backed)
-
-Botd (Postgres or SQLite via `SOMA_DATABASE_URL`) and daemon (SQLite file) embed the same migrations (`backend/crates/storage/migrations`). ER diagram (entities → PKs):
-
-- `spaces(space_id)` – optional display_name, created_at
-- `space_memberships(space_id, subject_peer_id)` – role, issuer_peer_id, issued_at, expires_at, capability blob
-- `join_decisions(decision_id)` – space_id, subject_peer_id, decision enum, reason, created_at, capability blob (audit)
-- `join_requests(request_id)` – join request tracking for both incoming manual approvals and outgoing submissions:
-  - Incoming (approver-side): `is_outgoing=0`, `target_peer_id=<this_peer>`, `status=pending` (used by `ListJoinRequests`/`/v1/join/requests`).
-  - Outgoing (requester-side): `is_outgoing=1`, `target_peer_id=<chosen_decider>`, `status/attempts/next_attempt_at/last_error` for local UI status.
-- `issuer_capabilities(space_id, delegate_peer_id)` – issuer_peer_id, issued_at, expires_at, capability blob
-- `mailbox(id)` – kind, space_id?, subject_peer_id?, status (queued|leased|done|dead), attempts, available_at, lease_until?, leased_by?, payload blob, created_at
-- `documents(space_id, document_id)` – Yoopta JSON content (mutable)
-- `pages(space_id, page_id)` – page navigation metadata (title + parents)
-- `blobs(space_id, cid)` – blob metadata for content-addressed bytes (size/mime/name, timestamps)
-- `blob_refs(space_id, cid, document_id)` – document→blob references (for listing + safe GC)
-- `peer_public_keys(peer_id)` – Identify public keys observed for peers
-
-Migrations are centralized in `backend/crates/storage/migrations` and embedded by both `soma-daemon` and `soma-botd` at startup.
-
-### Persistence
-
-- Use `soma_core::db::DbFactory` to build pools and run migrators.
-- Keep SQLx queries out of controllers; add repository modules per aggregate under `backend/crates/storage` (memberships, issuers, mailbox).
-
-### Design patterns in use (and how to apply them here)
-
-- **Facade**: `soma_core::db::DbFactory` wraps SQLx driver registration, URL normalization, and migrations behind a single builder. Reuse this facade instead of constructing pools manually.
-- **Factory Method / Builder**: `DbFactory::any/sqlite` return configured builders; use `.max_connections` and `.build_*` to tailor pools per binary.
-- **Delegation**: Event dispatchers route `PeerEvent` to handlers; add new handlers by implementing `PeerEventHandler` and registering in `build_dispatcher`.
-- **Chain of Responsibility**: The dispatcher plus multiple handlers form a chain; each handler can choose to act or ignore. To extend behavior, add another handler instead of bloating existing ones.
-- **Strategy**: Logging vs metrics handlers represent interchangeable strategies for reacting to events. Follow this pattern when adding new behaviors (e.g., persistence strategy for events).
-- **Composite**: Per-kind handler lists in `PeerEventDispatcher` compose multiple behaviors as a single dispatcher. Group related handlers when you need combined behaviors.
-- **Facade (control planes)**: HTTP/gRPC surfaces are controllers only; business logic lives in `soma-peer` + repositories. In `bot` mode, botd HTTP stays read-only; in `admin` mode, write endpoints must be authenticated.
-- **Singletons (where needed)**: Global allocator (`GLOBAL`), static migrators (`static MIGRATOR` per binary). Avoid new global state unless initialization must happen once.
-- **MVC**: Treat Axum handlers as controllers (`http.rs`), DB + peer/service layers as model (state + persistence), and response serializers/views as the view. Keep controllers thin and push business logic into model/service helpers.
-- **Repository**: Formalize DB access by wrapping SQLx queries per aggregate (memberships, join_decisions, issuer_capabilities) in dedicated modules to keep handlers/controllers thin.
-
-### Frontends (Desktop Apps)
-
-Shared frontend stack (Soma, Tapia):
-
-- `pnpm` workspace under `desktop/`
-- `tailwindcss` v4 + `daisyui` v5
-- `@headlessui/react` for accessible unstyled primitives
-- `class-variance-authority` + `tailwind-merge`
-- `floating-ui`
-- `use-debounce`
-- `composed-offset-position`
-- Motion for React (`motion`, https://github.com/motiondivision/motion)
-- Routing: `react-router` core (prefer memory/hash routers for Electron; not `react-router-dom`)
-- i18n: `react-i18next` + `i18next` with `i18next-chained-backend`, `i18next-http-backend`, `i18next-resources-to-backend`, `i18next-browser-languagedetector`
-- Command palette + hotkeys: `react-hotkeys-hook` and `react-cmdk`
-- Stage configuration service: `desktop/desktop-config` (`@soma/desktop-config`) exposes `StageConfigService`, which rewrites `appData`/`userData`/`logs` and selects `/tmp/<binary>-<stage>.sock` defaults when the stage is not `prod`; packaged apps ignore `SOMA_STAGE`/`SOMA_CHANNEL`, so stage-specific installs should start daemons with matching `--socket-path` values (dev builds may still use the env overrides).
-- `desktop/desktop-ui` packaging: root export is intentionally disabled (`exports["."]=false`) and there is no `src/index.ts`. Import via subpaths (`@soma/ui/components/*`, `@soma/ui/hooks/*`, `@soma/ui/utils/*`, `@soma/ui/yoopta`, `@soma/ui/types`). `tsup` builds multi-entry outputs for those folders and excludes stories.
-
-Soma (`desktop/soma`) (Electron/Chromium):
-
-- Main Soma UI; renderer lives under `desktop/soma/src/renderer`, main process under `desktop/soma/src/main`.
-- Renderer → main uses the preload bridge (`window.api.invoke`).
-- Desktop assumes `soma-daemon` is already running; do not start daemons from the renderer.
-- Documents + page navigation metadata are daemon-owned:
-  - Yoopta JSON drafts/content: `Daemon/UpsertDocument` + `Daemon/GetDocument`
-  - Page list/tree metadata: `Daemon/EnsurePage`, `Daemon/ListPages`, `Daemon/UpdatePageTitle`, `Daemon/SetPageParents`
-- No local blob persistence/caching in the desktop app: uploads go to `soma-daemon`, and renderers should use `soma-blob://daemon/{space_id}/{cid}` (served by the Electron `soma-blob` protocol via `Daemon/ReadBlob`) for blob references.
-- Stage detection / sockets: `desktop/desktop-config` runs before Soma starts and ensures the current build stage (dev/staging/prod) rewrites `appData`/`userData`/`logs` to stage-specific folders and selects `/tmp/soma-daemon-<stage>.sock` + `/tmp/soma-agentd-<stage>.sock` (defaults to `/tmp/...` when stage = `prod`). Non-prod daemons must start with matching `--socket-path` arguments or you can override `SOMA_DAEMON_SOCKET` / `SOMA_AGENTD_SOCKET` while developing.
-- Startup policy: Soma main blocks renderer startup behind a splash screen until `soma-daemon` reports ready (`Daemon/Status`), then subscribes to daemon events at process start.
-- Local LLM chat runs via `soma-agentd` (gRPC over Unix socket); for provider/model configuration, see `docs/src/development/agentd-models.md`.
-- Agent runtime configuration source of truth is `electron-store` (`settings["agent.config"]`) through main-process settings IPC:
-  - default provider is OpenAI-compatible at `http://127.0.0.1:11434/v1` (Ollama-style endpoint)
-  - supported providers in main are `agentd` and `openai-compatible`
-  - model capabilities (chat/embed/tool/image) are local UI metadata in settings (`agent.config`), with optional per-workspace overrides under `agent.config.workspaces[space_id]`
-  - main process publishes agent runtime status/error events to renderers via `agent_event`
-- Space members UI: `/spaces/:spaceId/members` simply lists the roster fetched via the daemon `ListSpaceMembers` RPC exposed as the `spaces_list_members` IPC command (`desktop/soma/src/renderer/src/routes/screens/space-members.tsx` + `@soma/queries/spaces`). Keep it lightweight/read-only; no bespoke member page beyond this list.
-
-Tapia (`desktop/tapia`):
-
-- Electron/Chromium UI living under `desktop/tapia`.
-- Uses `simple-keyboard`.
-- Startup policy mirrors Soma for daemon readiness: Tapia shows a splash and waits for the `soma-daemon` socket before opening the main renderer window.
-- Needs “text segmentation + cursor ranges” and a “diff/comparison engine”; choose stable, mature packages from the JavaScript package registry (common candidates: `graphemer` / `grapheme-splitter`, and `diff-match-patch` / `diff`).
-- Uses Motion for micro-interactions (cursor movement/layout animations, color transitions, correct/incorrect feedback).
-- Uses XState for state machines.
-
-## Binaries and Responsibilities
-
-This repo intentionally has multiple binaries. Each has a distinct goal and deployment context:
-
-### Desktop vs Server (rule of thumb)
-
-- **Desktop**: `soma-daemon`, `soma-agentd`, `soma` (UI), `tapia` (UI) — **no Axum**.
-- **Server**: `soma-botd`, `soma-relayd`, `soma-rendezvousd`, `soma-bffd`, `soma-serverd` — **Axum + metrics**.
-
-### Desktop / Peer Backends (`backend/`)
-
-- `soma-daemon` (`backend/bins/daemon`, run with `cargo run -p soma-daemon`): the desktop **libp2p peer identity** process (Unix socket IPC). It must not include Axum.
-- `soma-botd` (`backend/bins/botd`, run with `cargo run -p soma-botd`): the server-hosted **libp2p peer identity** process for bots/agents (Axum + metrics).
-- `soma-agentd` (`backend/bins/agentd`, run with `cargo run -p soma-agentd`): optional **desktop-only** companion process for long-running CPU-heavy tasks (hashing, OCR, indexing, Yjs reconciliation, local LLM provider proxy). It should be reached via local IPC (UDS) and typically through `soma-daemon`, not directly from the UI. gRPC surface (proto `proto/agent/v1/agent.proto`):
-  - `Status` + `ListModels`: enumerate available models with basic metadata (kind/chat vs embed, path, load state, size).
-  - `Chat`/`ChatStream`, `InlineComplete`, `Embed`: existing inference entrypoints.
-  - `Rerank`: embed query+candidates with the embed model and return cosine-ranked ids/scores (respect `top_n`).
-  - `ResolveDrift`: merge two Yjs updates (bytes) and return a combined update; used when reconciling document drift.
-  - OpenAI-compatible upstream endpoints are configurable via `SOMA_AGENTD_PROVIDER_BASE_URL` and optional `SOMA_AGENTD_PROVIDER_API_KEY` (defaults to `http://127.0.0.1:11434/v1`).
-
-### Infrastructure Backends (also `backend/`)
-
-- `soma-relayd` (`backend/bins/relayd`, run with `cargo run -p soma-relayd`): **relay** service (libp2p circuit relay) + HTTP/Axum + metrics.
-- `soma-rendezvousd` (`backend/bins/rendezvousd`, run with `cargo run -p soma-rendezvousd`): **rendezvous** service (libp2p discovery) + HTTP/Axum + metrics.
-- `soma-bffd` (`backend/bins/bffd`, run with `cargo run -p soma-bffd`): **LLM BFF** service (no libp2p; HTTP provider integrations) + HTTP/Axum + metrics.
-- `soma-serverd` (`backend/bins/serverd`, run with `cargo run -p soma-serverd`): optional “all-in-one” runner that can compose multiple infrastructure services for convenience in dev.
+- pnpm workspace at `pnpm-workspace.yaml`; pnpm 9.
+- Strict TypeScript everywhere.
+- Built-only dependencies (electron, esbuild, protobufjs, the addon native build) pinned in `pnpm.onlyBuiltDependencies`.
 
 ## Code Style
 
 ### Rust
 
-- Use stable Rust and keep code `rustfmt`-formatted.
-- Prefer explicit, self-describing names; avoid single-letter identifiers except for well-understood indices.
-- Keep modules small and cohesive: one primary concern per module.
-- Use `tracing` for logging; avoid `println!` in production code.
-- Surface errors with rich types (thiserror / anyhow patterns) rather than panicking; reserve `panic!` for truly unrecoverable situations.
-- Keep async boundaries explicit and avoid blocking inside async tasks.
-- Favor traits as the primary extension/abstraction mechanism:
-  - Define behavior behind traits (with clear method contracts) rather than free-floating functions.
-  - Prefer trait impls on small structs (or newtypes) over ad-hoc helper functions; use free functions only for pure, stateless utilities.
-  - Add default methods on traits for common runners/wrappers instead of separate “helper” modules.
-  - When extracting shared logic, start by defining the trait in the owning crate (e.g., peer/bootstrap, HTTP services, IPC services) and implement it per binary.
+- Stable Rust; `rustfmt`-formatted. New crates default to edition 2024.
+- Self-describing names; avoid single-letter identifiers except for well-understood indices.
+- Small, cohesive modules.
+- `tracing` for logs; no `println!` in production code.
+- Rich error types (thiserror / anyhow). Reserve `panic!` for truly unrecoverable cases — and remember any panic in the addon would propagate to Electron main if not caught.
+- Explicit async boundaries; never block inside async tasks.
+- Traits-first abstraction: define behavior behind traits, prefer trait impls on small structs/newtypes, default methods on traits over separate helper modules. Free functions only for pure, stateless utilities.
 
-### TypeScript / React (Desktop Apps)
+### TypeScript / React (Soma)
 
-- Use modern TypeScript with `strict` type-checking.
-- Follow the existing component organization in `desktop/*/src` (feature-oriented structure rather than huge generic folders).
-- Use `kebab-case` for new `.ts`/`.tsx` filenames in both renderer and main process code.
-- Use CUIDs for identifiers; do not use UUIDs.
-- Prefer `@renderer/*` imports for renderer code (configured per app tsconfig) over deep relative paths.
-- Prefer function components with hooks over class components.
-- Use existing hooks and state containers before adding new global state mechanisms.
-- Keep side effects (I/O, daemon calls) in dedicated hooks or services, not inside presentational components.
-- Run the formatter/linter (`pnpm run format` / `pnpm run lint`) before committing.
-- **State management (desktop apps)**:
-  - Soma desktop uses Redux Toolkit slices in `desktop/soma/src/renderer/src/store/` (`store.ts` wires reducers/middleware; slices like `tabs.ts`, `ui.ts`, `documents.ts` own local UI state).
-  - Data fetching/caching uses **RTK Query** (`desktop/soma/src/renderer/src/store/api.ts`); prefer `api.injectEndpoints` for new HTTP/IPC calls.
-  - Do **not** add new Zustand stores and do **not** reintroduce TanStack Query in Soma; wrap RTK Query hooks in `src/queries/*` if you need app-specific helpers.
-  - When adding endpoints, tag data for cache invalidation and expose thin wrappers from `src/queries/*` to keep components simple.
-
-### Renderer resilience
-
-- Prefer Suspense-wrapped routers with a shared loading panel and route-specific error UI; see `desktop/soma/src/renderer/src/routes/route-fallbacks.tsx#L1`, `desktop/soma/src/renderer/src/routes/router.tsx#L1`, and the `Suspense` wrapper in `desktop/soma/src/renderer/src/routes/tabbed-app.tsx#L129`. New `RouteErrorBoundary` handles loader failures with a reload action.
-- Contain editor crashes to the page area: wrap `DocumentEditor` inside an `ErrorBoundary` with `PageEditorFallback` and keep `space-page.tsx#L43` aware of loader errors, while the global `AppErrorBoundary` now uses `errorDetails`/`logError` helpers in `desktop/soma/src/renderer/src/components/app-error-boundary.tsx#L4`.
-- TipTap-heavy interactions must guard against pre-mount DOM access and racey dispatches: `document-editor.tsx#L187` now sets `immediatelyRender: false`, `commander.tsx#L33`, `link-mention.tsx#L44`, and `action-menu.tsx#L16` all gate `ReactRenderer`/event listeners on `editor.options.element`, and `blob-file.tsx#L20` plus `blob-image.tsx#L31` dispatch only when the editor is still mounted.
+- Function components with hooks; keep side effects in services/hooks, not components.
+- Use existing hooks/state containers before adding new global state mechanisms.
+- Redux Toolkit + RTK Query for data; XState for finite state (practice typing); do not introduce Zustand or TanStack Query.
+- `pnpm run format` / `pnpm run lint` before committing.
+- Logging: Winston in main; renderer logs through main IPC if you need them on disk.
 
 ### Documentation
 
-- Write docs in Markdown under `docs/src/`.
+- Markdown under `docs/src/`.
 - Reference concrete file paths and binaries when possible.
-- Prefer short, scannable sections with headings and bullets rather than long walls of text.
+- Short, scannable sections with headings and bullets — not walls of text.
+
+## Design patterns in use
+
+- **Facade**: `soma_core::db::DbFactory` for SQLx; the napi `start({...})` returning a `Handle` is the addon's facade.
+- **Factory Method / Builder**: `DbFactory::any/sqlite` for SQLx pools; runtime config builders in soma-node.
+- **Delegation / Chain of Responsibility / Composite**: `PeerEventDispatcher` routes events to a chain of handlers. Add behaviors by implementing `PeerEventHandler` and registering.
+- **Strategy**: logging vs metrics handlers are interchangeable strategies. Follow the pattern when adding persistence/instrumentation behaviors.
+- **Repository**: SQLx queries are wrapped per aggregate (memberships, join_decisions, issuer_capabilities, mailbox) in `backend/crates/storage`. Same pattern when the CrateStack schema lands — repositories sit on top of `cratestack-rusqlite` `ModelDelegate`s.
+- **MVC**: Axum handlers in server backends are controllers; DB + peer services are model; response serializers are view. Keep controllers thin.
+- **Supervisor (new)**: the addon wraps the runtime in a supervisor that catches panics and exposes lifecycle to Electron main.
+
+## Telemetry & Logging
+
+Backends initialize tracing via `soma_core::telemetry::init_tracing(...)` (`backend/crates/core/src/telemetry.rs`).
+
+- `RUST_LOG` — log filter (preferred); falls back to binary-provided default (typically `info`).
+- `SOMA_LOG_FORMAT` — `json` (also accepts `structured`, `true`, `1`) for JSON logs; otherwise plain text.
+- `SOMA_LOGS_DIR` — when set, writes weekly-rotating files under this dir. When unset, logs go to the process's default writer (stdout/stderr).
+- `SOMA_FLAME_ENABLED` — opt-in flame capture (folded stack output) via `tracing-flame`; `.folded` file per binary in a sibling `flame/` directory.
+
+In the addon, tracing init is gated: the supervisor calls `init_tracing` once at first `start()` and routes output to the user's logs dir (`~/Library/Logs/Soma/` on macOS, `~/.local/state/soma/logs/` on Linux). Electron main forwards relevant tracing events to the renderer via its existing logging IPC.
+
+## Packaging, Signing, Releases
+
+Target (post-P5) — sudoless, signed, single-bundle.
+
+### macOS
+
+- One `.app` per install, containing the addon (`.node`) shipped inside the Electron bundle. No separate `soma-daemon.app` / `soma-agentd.app`.
+- Build → **Developer ID Application** code-sign (`codesign --deep --options runtime --timestamp --sign ...`) → notarize via `notarytool` → `xcrun stapler staple`.
+- Distribute as a notarized zip. The installer script (or the user) drags the `.app` into `~/Applications/Soma/`. No `/Applications`, no `/Library/LaunchAgents`, no `pkgbuild`, no `installer` invocation, no sudo, no `xattr -dr` quarantine stripping.
+- macOS Login Item registered via `app.setLoginItemSettings({ openAtLogin: true, openAsHidden: true })` so the peer is online from session start (when the user opts in). The peer is alive only while the process is running — closing the window hides to tray.
+- arm64 only (5e38e7d set the precedent; the Intel path was retired).
+
+### Linux
+
+- Tarball unpacked into `~/.local/share/soma/`; binary symlinked into `~/.local/bin/soma` if it's on PATH (otherwise just the launcher in the tarball). AppImage is an acceptable alternative artifact.
+- Optional autostart via a user-domain `~/.config/systemd/user/soma.service` (opt-in) or `~/.config/autostart/soma.desktop`. No system-wide units.
+- No dpkg/rpm by default. If we ship distro packages later, they remain optional and sudo'd; the default install path is sudoless.
+
+### Installer bootstrap
+
+- `docs/src/public/install.sh` and `docs/src/public/uninstall.sh` are thin wrappers around a shared `bootstrap.sh` (script name as `$1`). Both served from `https://soma.vaam.store/` (gh-pages).
+- Bootstrap fetches the bundle's `SHA256SUMS` (signed manifest if/when we sign manifests), verifies the install/uninstall script and the bundle archive before exec.
+- macOS Apple Silicon check at the top of the bootstrap; reject Intel cleanly.
+
+### CI
+
+- GitHub Actions, all manual-triggered (`workflow_dispatch`).
+- `targets.json` (or a composite action) centralizes the `(os, arch)` matrix; consumed by all release workflows.
+- `release-desktop.yml` builds the Electron app (incl. `@soma/node` addon native build per `(os, arch)`) + signs + notarizes + publishes to a `desktop-v*` Release.
+- `release-server.yml` builds **one** `somad` Docker image (distroless, non-root) per `(os, arch)` and publishes to GHCR.
+- `release-bundle.yml` produces the OS-specific desktop installer bundles + SHA256SUMS.
+- `release-pages.yml` deploys docs (VitePress) + Storybook to GitHub Pages.
+- SBOMs via `anchore/sbom-action` (Syft).
+- Required Apple secrets for notarization: `APPLE_DEVELOPER_ID_P12_BASE64`, `APPLE_DEVELOPER_ID_P12_PASSWORD`, `APPLE_API_KEY_ID`, `APPLE_API_KEY_ISSUER`, `APPLE_API_KEY_P8_BASE64` (App Store Connect API key, preferred over Apple-ID + app-specific password).
+
+### Docker (server)
+
+- One image: `ghcr.io/<owner>/somad`. Built from one `Dockerfile` (no per-service targets).
+- Base: `gcr.io/distroless/static-debian12:nonroot`.
+- Multi-arch (amd64 + arm64) built from prebuilt MUSL binaries copied from `dist/backend/linux-<arch>/somad`. No Rust compile during `docker build`.
+- Mode is selected at runtime via the entrypoint args: `docker run ghcr.io/.../somad bot --http-addr 0.0.0.0:8080 ...`, `... somad relay --http-addr 0.0.0.0:8081 ...`, etc.
+- Default ports per mode (forward when testing locally):
+  - `somad bot`: `8080` (HTTP) + `14005` tcp / `14105` tcp / `14205` udp (libp2p)
+  - `somad relay`: `8081` (HTTP) + `14003` tcp / `14103` tcp / `14203` udp (libp2p)
+  - `somad rendezvous`: `8082` (HTTP) + `14004` tcp / `14104` tcp / `4204` udp (libp2p)
+  - `somad bff`: `8083` (HTTP)
+  - `somad all`: composes multiple; binds the union of the modes declared in `--config`.
+
+## Crash isolation & supervision
+
+- **Addon panics must never crash Electron main.** `catch_unwind` at every `#[napi]` boundary; convert to typed JS errors.
+- **Supervisor pattern**: the addon's top-level runtime is wrapped in a supervisor that monitors task health. On unrecoverable failure it logs, signals the supervisor consumer in JS, and the JS layer decides whether to restart the runtime or surface a fatal error.
+- **No `unwrap`/`expect` in async paths inside the addon** beyond the supervisor itself.
+- **Tokio panic = task aborts**, not process death — but if multiple critical tasks crash in sequence the supervisor escalates.
+- **CPU discipline**: every `#[napi]` fn returns a Promise; no sync work that could starve the Electron event loop. Heavy CPU work (embeddings, hashing, OCR, Yjs merges) runs on `spawn_blocking` or dedicated thread pools.
 
 ## Testing and Validation
 
 ### Rust
 
-- Run tests from the `backend/` workspace root:
-
-  ```bash
-  cd backend
-  cargo test
-  ```
-
-- Run smoke tests that bind local sockets (relay/rendezvous metrics):
-
-  ```bash
-  cd backend
-  cargo test -p soma-relay --test smoke -- --ignored
-  cargo test -p soma-rendezvous --test smoke -- --ignored
-  ```
-
-- Add tests alongside the code they exercise (same crate, nearby module).
-- Keep tests deterministic; avoid relying on external network or timing unless absolutely necessary.
-
-### Desktop Apps
-
-- Use `pnpm` for installs and scripts:
-
-  ```bash
-  cd desktop
-  pnpm install
-  pnpm --filter soma run typecheck
-  pnpm --filter soma run lint
-  ```
-
-  and similarly for `desktop/tapia` (use `--filter tapia`).
-
-- Build desktop apps from the repo root:
-  - Soma (Electron): `pnpm --filter soma run build`
-  - Tapia (Electron): `pnpm --filter tapia run build`
-
-- Keep unit tests small and focused; integration tests should run against local daemons where feasible.
-
-### Manual Flows
-
-- For end-to-end checks:
-    - Run `soma-daemon` from `backend/`.
-    - Start `desktop/soma` or `desktop/tapia` in dev mode.
-    - Exercise join flows, class navigation, and basic messaging.
-
-## Telemetry & Logging (Rust backends)
-
-Backends initialize tracing via `soma_core::telemetry::init_tracing(...)` (`backend/crates/core/src/telemetry.rs`).
-
-- `RUST_LOG`: sets the log filter (preferred); falls back to the binary-provided default (typically `info`).
-- `SOMA_LOG_FORMAT`: set to `json` (also accepts `structured`, `true`, `1`) to enable JSON logs; otherwise uses plain text.
-- `SOMA_LOGS_DIR`: when set, writes logs to a weekly-rotating file under this directory (created if missing). When unset, logs go to the process’ default writer (stdout/stderr depending on runtime).
-- `SOMA_FLAME_ENABLED`: opt-in flame capture (folded stack output) via `tracing-flame`; output is placed in a sibling `flame/` directory next to `SOMA_LOGS_DIR`’s parent (or `./flame` when no log dir is set) with one `.folded` file per binary. Convert to SVG with `inferno-flamegraph`.
-
-## Docker Images (Backend) and Docker Testing
-
-This repo builds **backend Docker images** for server daemons using precompiled binaries. The goals are:
-
-- small runtime images (distroless) that behave like production
-- no Rust compilation during `docker build`
-- multi-arch publish (amd64 + arm64) with consistent tagging
-
-### Where it lives
-
-- Workflow: `/.github/workflows/docker-backend.yml`
-  - builds Linux MUSL binaries per arch
-  - builds/pushes one image per daemon target
-- Composite action: `/.github/actions/docker-build-backend/action.yml`
-  - runs Trivy config scan on the repo/Dockerfile
-  - builds with buildx (+ metadata tags/labels)
-  - optionally pushes to GHCR (+ provenance + SBOM) and runs Trivy vuln scan
-- Dockerfile targets: `Dockerfile` (`botd`, `relayd`, `rendezvousd`, `bffd`, `serverd`)
-
-### Build inputs and expected layout
-
-Docker builds copy **prebuilt** binaries from the build context:
-
-- `dist/backend/linux-amd64/soma-*`
-- `dist/backend/linux-arm64/soma-*`
-
-The `Dockerfile` selects the correct directory using `ARG TARGETARCH` and:
-- `COPY dist/backend/linux-${TARGETARCH}/soma-botd /app/soma-botd` (and similar for other targets)
-
-Mermaid (CI build flow):
-```mermaid
-flowchart TD
-  A[CI: docker-backend.yml] --> B[Build MUSL bins\nx86_64-unknown-linux-musl]
-  A --> C[Build MUSL bins\naarch64-unknown-linux-musl]
-  B --> D[Upload artifact\nbackend-bins-amd64]
-  C --> E[Upload artifact\nbackend-bins-arm64]
-  D --> F[Docker build job\n(per daemon target)]
-  E --> F
-  F --> G[Trivy config scan\n(scan-type=config)]
-  G --> H[buildx build\n(Dockerfile target)]
-  H --> I{push?}
-  I -- no --> J[Build only]
-  I -- yes --> K[Push to GHCR\n+ provenance/SBOM]
-  K --> L[Trivy vuln scan\n(os+deps)]
-```
-
-### Image naming and tags (GHCR)
-
-The workflow publishes images to GHCR using:
-- `REGISTRY=ghcr.io`
-- `IMAGE_NAME=${owner}/soma-backend` (lowercased in-job)
-
-Each daemon is a separate image under that base name with a suffix:
-- `-botd`, `-relayd`, `-rendezvousd`, `-bffd`, `-serverd`
-
-`docker/metadata-action` generates tags such as:
-- `latest` (default branch)
-- branch tag
-- `sha-<long>` and `<branch>-sha-<long>`
-- release tag (`type=ref,event=tag`)
-
-### Runtime conventions (containers)
-
-All backend images are distroless and run as non-root:
-- base image: `gcr.io/distroless/static-debian12:nonroot`
-- entrypoint: `/app/soma-…`
-
-Common env vars used by these images:
-- `RUST_LOG` (defaults to `info` in `Dockerfile`)
-- `HTTP_ADDR` (Axum bind; varies per daemon)
-- `SOMA_DATA_DIR` (identity + persistent node data)
-- `SOMA_BLOB_DIR` (blob pool/cache directory; relevant for peers/bots)
-
-Common HTTP endpoints:
-- `GET /healthz` → `"ok"`
-- `GET /metrics` → Prometheus text format
-
-### Ports (Dockerfile targets)
-
-Ports are documented via `EXPOSE` in `Dockerfile` and should be forwarded when testing locally:
-
-- `soma-botd`: `8080`, `14005/tcp`, `14105/tcp`, `14205/udp`
-- `soma-relayd`: `8081`, `14003/tcp`, `14103/tcp`, `14203/udp`
-- `soma-rendezvousd`: `8082`, `14004/tcp`, `14104/tcp`, `4204/udp`
-- `soma-bffd`: `8083`, `14010/tcp`, `14110/tcp`, `14210/udp`
-- `soma-serverd`: composed runner (exports multiple HTTP/libp2p ports)
-
-### Local Docker testing plan (recommended)
-
-This plan validates that images run, expose health/metrics, and that relay+rendezvous enable discovery/connectivity.
-
-#### 1) Build binaries (host) and stage for Docker
-
-Example (amd64):
 ```bash
 cd backend
-rustup target add x86_64-unknown-linux-musl
-cargo build --locked --target x86_64-unknown-linux-musl \
-  -p soma-botd -p soma-relayd -p soma-rendezvousd -p soma-bffd -p soma-serverd
-mkdir -p ../dist/backend/linux-amd64
-cp target/x86_64-unknown-linux-musl/prod/soma-* ../dist/backend/linux-amd64/
+cargo test
 ```
 
-#### 2) Build images (local, single-arch)
+Smoke tests that bind local sockets (live in the shared service crates, exercised through `somad <subcommand>`):
 
 ```bash
-docker buildx build --target relayd --build-arg TARGETARCH=amd64 -t soma-relayd:local --load .
-docker buildx build --target rendezvousd --build-arg TARGETARCH=amd64 -t soma-rendezvousd:local --load .
-docker buildx build --target botd --build-arg TARGETARCH=amd64 -t soma-botd:local --load .
+cd backend
+cargo test -p soma-relay --test smoke -- --ignored
+cargo test -p soma-rendezvous --test smoke -- --ignored
 ```
 
-#### 3) Run relay + rendezvous + botd
+Tests live alongside the code they exercise (same crate, nearby module). Keep tests deterministic — avoid network/timing dependencies unless absolutely necessary.
 
-Persist identity data by bind-mounting `SOMA_DATA_DIR` (stable Peer IDs across restarts):
+### Addon (after P3)
+
+- Integration tests live in `backend/crates/soma-node/tests/` and exercise the napi surface from Rust via `napi`'s test harness.
+- An end-to-end pnpm test in `desktop/soma/tests/` loads the built `.node` and exercises basic IPC.
+
+### Desktop App
 
 ```bash
-docker network create soma-net || true
-
-docker run -d --name relayd --network soma-net \
-  -p 8081:8081 -p 14003:14003 -p 14103:14103 -p 14203:14203/udp \
-  -e HTTP_ADDR=0.0.0.0:8081 -e SOMA_DATA_DIR=/data \
-  -v "$PWD/.data/relay:/data" soma-relayd:local
-
-docker run -d --name rendezvousd --network soma-net \
-  -p 8082:8082 -p 14004:14004 -p 14104:14104 -p 4204:4204/udp \
-  -e HTTP_ADDR=0.0.0.0:8082 -e SOMA_DATA_DIR=/data \
-  -v "$PWD/.data/rendezvous:/data" soma-rendezvousd:local
-
-docker run -d --name botd --network soma-net \
-  -p 8080:8080 -p 14005:14005 -p 14105:14105 -p 14205:14205/udp \
-  -e HTTP_ADDR=0.0.0.0:8080 -e SOMA_DATA_DIR=/data -e SOMA_BLOB_DIR=/blobs \
-  -e SOMA_DATABASE_URL=sqlite:/data/botd.db \
-  -v "$PWD/.data/botd:/data" -v "$PWD/.data/botd-blobs:/blobs" soma-botd:local
+cd desktop
+pnpm install
+pnpm --filter soma run typecheck
+pnpm --filter soma run lint
+pnpm --filter soma run build
 ```
 
-Sanity checks:
-- `curl -fsS http://localhost:8081/healthz && curl -fsS http://localhost:8081/metrics | head`
-- `curl -fsS http://localhost:8082/healthz && curl -fsS http://localhost:8082/metrics | head`
-- `curl -fsS http://localhost:8080/healthz && curl -fsS http://localhost:8080/info`
+### Manual flows
 
-#### 4) Optional: full end-to-end peer flows (hybrid host + Docker)
-
-For join/blob E2E you typically run a requester peer (`soma-daemon`) on the host and point it at the container-published relay/rendezvous ports.
-
-Mermaid (runtime topology):
-```mermaid
-flowchart LR
-  subgraph Docker[soma-net (Docker network)]
-    R[soma-relayd\n:8081 + libp2p]
-    Z[soma-rendezvousd\n:8082 + libp2p]
-    B[soma-botd\n:8080 + libp2p\n(cache-only blobs)]
-  end
-
-  D1[soma-daemon (host)\n(peer + blob store)] ---|dial| R
-  D1 ---|register/discover| Z
-  D2[soma-daemon (host)\nrequester] ---|discover| Z
-  D2 ---|fetch blob by CID| B
-  B ---|miss fallback fetch| D1
-```
-
-### E2E Join Smoke (current MVP)
-
-- Requester: `soma-daemon` sends join via `Daemon/JoinSpace` (libp2p join protocol).
-- Approver:
-  - `soma-botd --mode bot`: auto-approves only with issuer delegation present; otherwise records `join_requests` and rejects.
-  - `soma-botd --mode admin` or `soma-daemon`: manual approval via `JoinRequests` list + `DecideJoin`.
-- Manual approval is asynchronous but does not require a requester retry: approver pushes `JoinDecision` in-network and falls back to mailbox if requester is offline.
-
-### Join Flows (Mermaid)
-
-The join MVP has two distinct planes:
-- **Transport**: `soma-peer` (libp2p request/response protocols).
-- **Policy + persistence**: `soma-membership` + SQLx repositories (`join_requests`, `join_decisions`, `space_memberships`, `mailbox`).
-
-#### 1) Single-target join (owner online)
-```mermaid
-sequenceDiagram
-  autonumber
-  participant R as Requester (bot/daemon)
-  participant P as soma-peer (Requester)
-  participant O as Owner/Decider (bot/daemon)
-  participant S as Storage (Decider DB)
-
-  R->>P: SendJoinRequest(space_id, requested_role, request_id)
-  P->>O: /soma/join/1 JoinRequest
-  O->>S: upsert join_requests (is_outgoing=0, status=pending)
-  O-->>P: JoinDecision (pending manual approval OR approved)
-  Note over O,P: Placeholder “pending” may be returned immediately
-  O->>O: Manual approve (UI/admin)
-  O->>S: record join_decisions + upsert space_memberships
-  O->>P: /soma/join-decision/1 JoinDecision (approved + signed capability)
-  P->>R: PeerEvent::JoinDecision
-  R->>R: ApplyJoinDecision -> persist membership
-```
-
-#### 2) Multi-target retry (owner offline, delegated bot online)
-```mermaid
-sequenceDiagram
-  autonumber
-  participant R as Requester
-  participant P as soma-peer (Requester)
-  participant O as Owner (offline)
-  participant B as Delegated Bot (online)
-  participant SB as Storage (Bot DB)
-
-  Note over R: Candidate deciders: [Owner, Bot1, Bot2...]
-  R->>P: attempt 1 -> target=Owner
-  P-->>R: outbound failure (dial/timeout)
-  R->>R: update join_requests (is_outgoing=1, attempts++, next_attempt_at)
-  R->>P: attempt 2 -> target=Delegated Bot
-  P->>B: /soma/join/1 JoinRequest
-  B->>B: validate issuer delegation (IssuerCapability) + policy
-  B->>SB: record join_decisions + upsert space_memberships
-  B->>P: /soma/join-decision/1 JoinDecision (approved + signed)
-  P->>R: PeerEvent::JoinDecision
-  R->>R: ApplyJoinDecision -> persist membership
-```
-
-#### 3) Decision delivery with mailbox fallback (requester offline)
-```mermaid
-sequenceDiagram
-  autonumber
-  participant D as Decider (bot/daemon)
-  participant SD as Storage (Decider DB)
-  participant PD as soma-peer (Decider)
-  participant R as Requester (offline)
-
-  D->>SD: record join_decisions + upsert space_memberships
-  D->>PD: SendJoinDecision(target=Requester)
-  PD-->>D: outbound failure / timeout
-  D->>SD: mailbox.enqueue(kind=join_decision, status=queued)
-  Note over D: periodic sweep + on-connect drain retries delivery
-  R-->>D: later comes online (ConnectionEstablished)
-  D->>SD: mailbox.list_due_for_subject(Requester) + lease
-  D->>PD: SendJoinDecision(delivery_id)
-  PD-->>D: ack (request/response)
-  D->>SD: mailbox.mark_done(delivery_id)
-```
-- Signatures exist, but verification on receipt is not yet enforced; treat them as provisional until verification lands.
+- Launch Soma; verify the addon initializes and the splash-less startup is fast.
+- Exercise join flows, page navigation, the practice route, basic messaging, blob upload + read.
 
 ## Networking Services (Relay + Rendezvous)
 
 Soma uses two lightweight libp2p infrastructure services to improve discovery and connectivity:
 
-- **Relay** (`soma-relayd` / `backend/crates/relay`): Circuit Relay v2 service for NAT traversal and relayed connectivity.
-- **Rendezvous** (`soma-rendezvousd` / `backend/crates/rendezvous`): Rendezvous discovery service for peer registration and discovery.
+- **Relay** (`somad relay` / `backend/crates/relay`): Circuit Relay v2 for NAT traversal and relayed connectivity.
+- **Rendezvous** (`somad rendezvous` / `backend/crates/rendezvous`): peer registration and discovery.
 
-### Identity Persistence (Peer ID Stability)
+Identity persistence: both services persist a libp2p ECDSA keypair so Peer IDs stay stable across restarts. Env var `SOMA_DATA_DIR`; default paths `./data/relay/identity.key` and `./data/rendezvous/identity.key`. Deleting these files yields a new Peer ID on next start.
 
-Both services persist a libp2p keypair so that their Peer ID stays stable across restarts.
+Transports (TCP + QUIC + WebSocket) listed above under each service.
 
-- Env var: `SOMA_DATA_DIR`
-- Default paths:
-    - Relay: `./data/relay/identity.key`
-    - Rendezvous: `./data/rendezvous/identity.key`
-- Key algorithm: ECDSA (for all services using libp2p identities)
+Running locally:
 
-Deleting these files will cause a new identity + new Peer ID on next start.
+```bash
+cd backend
+cargo run --bin somad -- relay --http-addr 0.0.0.0:8081
+cargo run --bin somad -- rendezvous --http-addr 0.0.0.0:8082
+```
 
-### Transports and Listen Addresses
+Both expose `GET /healthz` → `"ok"` and `GET /metrics` → Prometheus text format.
 
-Relay and rendezvous listen on multiple transports to maximize reach across networks:
-
-- **TCP**: compatibility baseline
-- **QUIC (UDP)**: faster handshakes / often better NAT behavior, but UDP can be blocked
-- **WebSocket (WS)**: helpful on restrictive networks and for web-like environments
-
-Current default listen addrs (multiaddr form):
-
-- Relay:
-    - `/ip4/0.0.0.0/tcp/4001`
-    - `/ip4/0.0.0.0/udp/4001/quic-v1`
-    - `/ip4/0.0.0.0/tcp/4003/ws`
-- Rendezvous:
-    - `/ip4/0.0.0.0/tcp/4004`
-    - `/ip4/0.0.0.0/udp/4004/quic-v1`
-    - `/ip4/0.0.0.0/tcp/4004/ws`
-
-Note: the Axum HTTP server is used only for health/metrics and is configured separately via CLI (see below).
-
-### Swarm Builder (Typestate Order)
-
-`soma-net` provides a shared `build_swarm` helper (used by relay/rendezvous). libp2p’s `SwarmBuilder` uses a typestate API, meaning the order of calls matters when composing transports.
-
-The supported order is:
-
-`TCP -> QUIC -> DNS -> WebSocket -> Behaviour`
-
-If QUIC is not included in the transport stack, attempting to `listen_on` a `/udp/.../quic-v1` address will fail with `MultiaddrNotSupported(...)`.
-
-### Running Locally
-
-From `backend/`:
-
-- Relay:
-    - `cargo run --bin soma-relayd -- --http-addr 0.0.0.0:8081`
-- Rendezvous:
-    - `cargo run --bin soma-rendezvousd -- --http-addr 0.0.0.0:8082`
-
-### Metrics
-
-Both services expose:
-
-- `GET /healthz` → `"ok"`
-- `GET /metrics` → Prometheus text format
-
-Default HTTP endpoints:
-
-- Relay metrics: `http://127.0.0.1:8081/metrics`
-- Rendezvous metrics: `http://127.0.0.1:8082/metrics`
-
-Service-specific counters:
-
-- Relay (prefix `relay_`):
-    - `relay_reservations_total{result=...,status=...}`
-    - `relay_circuits_total{result=...,status=...}`
-    - `relay_listen_events_total`
-- Rendezvous (prefix `rendezvous_`):
-    - `rendezvous_discover_total{result=...}`
-    - `rendezvous_registrations_total{result=...}`
-    - `rendezvous_listen_events_total`
-
-## Peer Connectivity (Daemon + Bot)
-
-For how peers (`soma-daemon`, `soma-botd`) use mDNS, rendezvous, and relay client behaviour (and the relevant CLI flags), see `docs/src/architecture/peer-connectivity.md`.
-
-## Design and Structure Guidelines
-
-### Backend (Rust)
-
-- Organize crates by responsibility:
-    - `core` – domain logic and core types.
-    - `storage` – persistence and data models.
-    - `net` – libp2p and networking behaviours.
-    - `api` – local IPC/API surface.
-    - `agent` – high-level orchestration of the local agent.
-    - `common` – small utilities and shared types.
-- Keep public APIs narrow; avoid leaking internal types across crate boundaries unless necessary.
-- Prefer composition over inheritance-like patterns; wire behaviours together in the binaries (`bins/*`) rather than deeply coupling crates.
-
-### Desktop (Electron/React) — `desktop/soma`
-
-- Electron/Chromium desktop app (primary Soma UI).
-- Frameless window chrome: `desktop/soma/src/main/index.ts` uses `frame: false` and (on macOS) hides native window buttons via `mainWindow.setWindowButtonVisibility(false)`.
-- Draggable regions: mark non-interactive DOM with `data-drag-region` and opt interactive elements out with `data-no-drag` (CSS in `desktop/soma/src/renderer/src/styles/app.scss` uses `-webkit-app-region`).
-- Renderer code imports local modules via `@app/*` (see `desktop/soma/tsconfig.web.json` + `desktop/soma/electron.vite.config.ts`).
-- Renderer → main uses a preload bridge (`desktop/soma/src/preload/index.ts`) with `window.api.invoke(...)`; main registers handlers in `desktop/soma/src/main/command-registry.ts`.
-- Node/Electron gRPC stubs are generated in `desktop/desktop-proto` (`@soma/proto`) and imported from Electron main-process services.
-- Deep links: `soma://...` are registered by Electron, forwarded via `app:deep-link` to the renderer, and secondary launches are routed through the single-instance lock (`desktop/soma/src/main/services/startup-service.ts`).
-- Window state persistence: `electron-store` keeps `windowState` (bounds + maximized/fullscreen) in `desktop/soma/src/main/services/app-data-store.ts`.
-- Logging: main process uses Winston with file output under `app.getPath("userData")/logs/main.log` (console logs in dev).
-- Agent IPC: `agent_rerank` and `agent_resolve_drift` are supported in the Electron main process and forward to `soma-agentd` via gRPC.
-- Startup flow is centralized in `desktop/soma/src/main/services/startup-service.ts`; `desktop/soma/src/main/index.ts` just builds the container and calls `startup.run()`.
-
-### Server
-
-- Keep server crates focused on infrastructure concerns (relay, rendezvous, hosted bots, APIs).
-- Do not embed client-only logic (UI assumptions, desktop paths) into server code.
-- Prefer configuration via environment variables and config files to hardcoding addresses or credentials.
+For peer connectivity details (mDNS, rendezvous client, relay client behavior, CLI flags), see `docs/src/architecture/peer-connectivity.md`.
 
 ## General Practices
 
 - Favor small, focused pull requests.
-- Maintain existing patterns where they are reasonable; introduce new patterns deliberately and document them.
-- Update documentation (`docs/src/`) when you add or significantly change a feature, especially if it affects onboarding or architecture.
-- If you are unsure where to place new code, bias toward the smallest scope (module or crate) that can own the responsibility and update this document if you establish a new pattern.
+- Maintain existing patterns where reasonable; introduce new patterns deliberately and document them in this file.
+- Update docs (`docs/src/`) when you add or significantly change a feature — especially when it affects onboarding or architecture.
+- When unsure where to place new code, bias toward the smallest scope (module or crate) that can own the responsibility; update this document if you establish a new pattern.
+- Pre-prod: it's fine to break things. Backwards-compatibility shims are usually waste.

@@ -8,4 +8,4 @@ packages:
   - 'desktop/desktop-ui'
   - 'desktop/packaging'
   - 'desktop/soma'
-  - 'desktop/tapia'
+  - 'backend/crates/soma-node'

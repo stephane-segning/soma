@@ -1,6 +1,6 @@
 # @soma/packaging
 
-Local packaging helper for Soma + Tapia desktop bundles. This CLI mirrors the CI bundling logic but uses local build artifacts.
+Local packaging helper for Soma desktop bundles. This CLI mirrors the CI bundling logic but uses local build artifacts.
 
 ## Requirements
 
@@ -40,11 +40,11 @@ Common flags:
 - `--adhoc-sign-macos` / `--no-adhoc-sign-macos` (default: enabled)
 - `--daemon-path <path>` (default: `target/release/soma-daemon`)
 - `--agent-path <path>` (default: `target/release/soma-agentd`)
-- `--soma-app <path>` / `--tapia-app <path>`
+- `--soma-app <path>`
 - `release --daemons-repo <owner/name>` / `release --desktop-repo <owner/name>`
 - `release --daemons-manifest <path-or-url>` / `release --desktop-manifest <path-or-url>`
 
-If `--soma-app` or `--tapia-app` are omitted, the CLI attempts to auto-detect artifacts in `desktop/soma/dist` and `desktop/tapia/dist`.
+If `--soma-app` is omitted, the CLI attempts to auto-detect artifacts in `desktop/soma/dist`.
 
 `release` also writes `bundle-release-manifest.json` alongside `outputs.json` in each platform output directory so downstream automation can reason about bundle inputs without scraping logs.
 
