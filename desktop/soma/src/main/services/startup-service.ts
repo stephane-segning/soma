@@ -3,16 +3,15 @@ import { app, BrowserWindow, ipcMain, protocol } from "electron";
 import { resolve } from "path";
 import icon from "../../../resources/icon.png?asset";
 import type { CommandRegistry } from "../command-registry";
+import type { AddonRuntime } from "./addon-runtime";
 import type { AgentClient } from "./agent-client";
 import type { AgentEventsService } from "./agent-events";
 import type { AppDataStore, WindowState } from "./app-data-store";
 import type { BlobProtocolRegistrar } from "./blob-protocol";
 import type { DaemonClient } from "./daemon-client";
-import type { DaemonProcessManager } from "./daemon-process-manager";
 import type { DomainEventsService } from "./domain-events";
 import type { AppLogger } from "./logger";
 import { DaemonEventStreamBridge } from "./startup-service/daemon-events";
-import { checkDaemonOnce, ensureDaemonInBackground } from "./startup-service/daemon-readiness";
 import { createMainWindow, saveWindowStateOnChanges } from "./startup-service/main-window";
 import { createSplashWindow } from "./startup-service/splash-window";
 
@@ -29,8 +28,8 @@ export class StartupService {
 		private readonly logger: AppLogger,
 		private readonly blobProtocol: BlobProtocolRegistrar,
 		private readonly commands: CommandRegistry,
-		private readonly daemon: DaemonClient,
-		private readonly daemonProcess: DaemonProcessManager,
+		private readonly addonRuntime: AddonRuntime,
+		daemon: DaemonClient,
 		private readonly agent: AgentClient,
 		private readonly agentEvents: AgentEventsService,
 		domainEvents: DomainEventsService,
@@ -56,6 +55,7 @@ export class StartupService {
 		app.on("before-quit", () => {
 			this.daemonEvents.stop();
 			this.stopAgentEventStream();
+			void this.addonRuntime.shutdown();
 		});
 	}
 
@@ -87,8 +87,15 @@ export class StartupService {
 		});
 
 		this.openSplashWindow();
-		void checkDaemonOnce(this.daemon, this.logger);
-		void ensureDaemonInBackground(this.daemonProcess, this.logger);
+
+		try {
+			await this.addonRuntime.start();
+		} catch (error) {
+			this.logger.log("error", "@soma/node addon runtime failed to start at boot", {
+				error: error instanceof Error ? error.message : String(error),
+			});
+		}
+
 		this.daemonEvents.start();
 		this.startAgentEventStream();
 		this.openMainWindow(this.appDataStore.windowState);

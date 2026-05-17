@@ -1,3 +1,9 @@
+export type ReadBlobResponse = {
+	data: Uint8Array;
+	mime: string;
+	size: number;
+};
+
 export type UploadBlobInput = {
 	spaceId: string;
 	docId?: string;
