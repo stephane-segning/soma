@@ -35,7 +35,7 @@ The release command now supports explicit release manifests and split source rep
 Common flags:
 
 - `--os <linux|macos>`
-- `--arch <amd64|arm64>`
+- `--arch <amd64|arm64>` (macOS supports `arm64` only)
 - `--out-dir <path>` (default: `artifacts/bundle-local`)
 - `--adhoc-sign-macos` / `--no-adhoc-sign-macos` (default: enabled)
 - `--daemon-path <path>` (default: `target/release/soma-daemon`)

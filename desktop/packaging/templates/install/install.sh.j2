@@ -18,7 +18,13 @@ case "$os" in
 esac
 
 case "$arch" in
-  x86_64|amd64) ARCH=amd64 ;;
+  x86_64|amd64)
+    if [ "$OS" = "macos" ]; then
+      echo "macOS Intel/amd64 bundles are no longer supported. Use an Apple Silicon (arm64) Mac." >&2
+      exit 1
+    fi
+    ARCH=amd64
+    ;;
   arm64|aarch64) ARCH=arm64 ;;
   *) echo "unsupported arch: $arch" >&2; exit 1 ;;
 esac
@@ -60,6 +66,36 @@ cleanup_legacy_root_install() {
 
 cleanup_legacy_root_install
 
+prepare_macos_runtime_dirs() {
+  local runtime_dir="/tmp/soma-$(id -u)/soma"
+  mkdir -p \
+    "$HOME/Library/Application Support/Soma" \
+    "$HOME/Library/Application Support/Soma/blobs" \
+    "$HOME/Library/Logs/Soma/daemon" \
+    "$HOME/Library/Logs/Soma/agentd" \
+    "$runtime_dir"
+  chmod 700 "$runtime_dir"
+}
+
+configure_macos_launch_agent() {
+  local label="$1"
+  local plist="/Library/LaunchAgents/${label}.plist"
+
+  if [ ! -f "$plist" ]; then
+    echo "Missing $plist after install." >&2
+    return 1
+  fi
+
+  sudo env SOMA_HOME="$HOME" SOMA_UID="$(id -u)" perl -0pi -e \
+    's/__SOMA_HOME__/$ENV{SOMA_HOME}/g; s/__SOMA_UID__/$ENV{SOMA_UID}/g' \
+    "$plist"
+
+  if grep -q "__SOMA_" "$plist"; then
+    echo "Failed to configure $plist." >&2
+    return 1
+  fi
+}
+
 start_macos_launch_agent() {
   local label="$1"
   local plist="/Library/LaunchAgents/${label}.plist"
@@ -92,15 +128,20 @@ if [ "$OS" = "macos" ]; then
   xattr -cr "$MACOS_APP_DIR/soma.app" 2>/dev/null || true
   xattr -dr com.apple.quarantine "$MACOS_APP_DIR/soma-daemon.app" 2>/dev/null || true
   xattr -cr "$MACOS_APP_DIR/soma-daemon.app" 2>/dev/null || true
+  xattr -dr com.apple.quarantine "$MACOS_APP_DIR/soma-agentd.app" 2>/dev/null || true
+  xattr -cr "$MACOS_APP_DIR/soma-agentd.app" 2>/dev/null || true
   xattr -dr com.apple.quarantine "$MACOS_APP_DIR/tapia.app" 2>/dev/null || true
   xattr -cr "$MACOS_APP_DIR/tapia.app" 2>/dev/null || true
 
   services_missing=0
+  prepare_macos_runtime_dirs
+  configure_macos_launch_agent "$SERVICE_LABEL_DAEMON" || services_missing=1
+  configure_macos_launch_agent "$SERVICE_LABEL_AGENT" || services_missing=1
   start_macos_launch_agent "$SERVICE_LABEL_DAEMON" || services_missing=1
   start_macos_launch_agent "$SERVICE_LABEL_AGENT" || services_missing=1
 
   missing=0
-  for app in soma soma-daemon tapia; do
+  for app in soma soma-daemon soma-agentd tapia; do
     if [ ! -d "$MACOS_APP_DIR/$app.app" ]; then
       echo "Missing $MACOS_APP_DIR/$app.app after install." >&2
       missing=1

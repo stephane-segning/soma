@@ -91,8 +91,8 @@ export class DirectDaemonProcess {
 
 	private binaryCandidates(): string[] {
 		return [
-			"/usr/local/bin/soma-daemon",
 			"/Applications/Soma/soma-daemon.app/Contents/MacOS/soma-daemon",
+			"/usr/local/bin/soma-daemon",
 			"/opt/homebrew/bin/soma-daemon",
 			join(process.resourcesPath, "soma-daemon"),
 			join(process.resourcesPath, "bin", "soma-daemon"),

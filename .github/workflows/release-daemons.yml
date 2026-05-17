@@ -95,10 +95,6 @@ jobs:
             runs_on: ubuntu-24.04-arm
             target: aarch64-unknown-linux-gnu
           - os: macos
-            arch: amd64
-            runs_on: macos-15-intel
-            target: x86_64-apple-darwin
-          - os: macos
             arch: arm64
             runs_on: macos-latest
             target: aarch64-apple-darwin
@@ -189,8 +185,9 @@ jobs:
           repo = os.environ["REPO"]
           base = f"https://github.com/{repo}/releases/download/{tag}"
           artifacts = []
+          arch_by_os = {"linux": ("amd64", "arm64"), "macos": ("arm64",)}
           for os_name in ("linux", "macos"):
-              for arch in ("amd64", "arm64"):
+              for arch in arch_by_os[os_name]:
                   for kind in ("soma-daemon", "soma-agentd"):
                       name = f"{kind}-{version}-{os_name}-{arch}.tar.gz"
                       artifacts.append(

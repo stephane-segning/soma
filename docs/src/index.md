@@ -39,17 +39,23 @@ features:
 Soma release bundles combine the published Rust daemons, the Soma desktop app, and Tapia into one OS/arch package. The docs site exposes a small bootstrap installer that finds the newest `bundle-*` release, then runs the generated release installer for your Linux or macOS architecture.
 
 ```bash
-curl -fsSL https://soma.vaam.store/install.sh | sh
+curl -fsSL https://soma.vaam.store/install.sh | bash
 ```
 
 To inspect it first:
 
 ```bash
 curl -fsSL https://soma.vaam.store/install.sh -o install-soma.sh
-sh install-soma.sh
+bash install-soma.sh
 ```
 
 The installer includes `soma-daemon`, `soma-agentd`, Soma, and Tapia. Bundle releases are produced by the `Release bundle` workflow after daemon and desktop releases are available; set `SOMA_BUNDLE_TAG=bundle-...` before running the script to pin a specific release.
+
+To remove the bundle:
+
+```bash
+curl -fsSL https://soma.vaam.store/uninstall.sh | bash
+```
 
 ## Quick Paths
 
