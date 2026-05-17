@@ -169,8 +169,13 @@ impl RuntimeHandle {
 
     /// Wait for the supervisor task to finish on its own (peer exit, gRPC
     /// failure, etc.) without explicitly signalling shutdown.
-    pub async fn wait(self) -> SomaResult<()> {
-        match self.supervisor.await {
+    ///
+    /// Takes `&mut self` so a caller can race it against a SIGINT future in
+    /// `tokio::select!` and still call [`shutdown`] on the SIGINT branch.
+    ///
+    /// [`shutdown`]: RuntimeHandle::shutdown
+    pub async fn wait(&mut self) -> SomaResult<()> {
+        match (&mut self.supervisor).await {
             Ok(res) => res,
             Err(err) if err.is_cancelled() => Ok(()),
             Err(err) => Err(soma_core::Error::Anyhow(err.into())),

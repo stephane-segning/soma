@@ -55,21 +55,24 @@ impl Default for RuntimeConfig {
 }
 
 /// Handle to a running agent. Dropping without calling [`shutdown`] is
-/// allowed but will leave the gRPC server (if any) running until ctrl-c is
-/// observed in the embedder's main loop.
+/// allowed but will leave the supervisor running until the embedder's main
+/// loop teardown drops the underlying Tokio runtime.
 ///
 /// [`shutdown`]: RuntimeHandle::shutdown
 pub struct RuntimeHandle {
-    grpc_shutdown: Option<oneshot::Sender<()>>,
+    /// Always populated. Signalling it lets the supervisor task exit cleanly
+    /// regardless of whether a gRPC listener was started.
+    shutdown: Option<oneshot::Sender<()>>,
     supervisor: JoinHandle<SomaResult<()>>,
     socket_path: Option<PathBuf>,
 }
 
 impl RuntimeHandle {
-    /// Gracefully shut the runtime down: signal the gRPC server (if any) and
-    /// await the supervisor task.
+    /// Gracefully shut the runtime down: signal the supervisor and await its
+    /// exit. Idempotent on the channel side; calling twice is safe because the
+    /// `shutdown` sender is taken on the first call.
     pub async fn shutdown(mut self) -> SomaResult<()> {
-        if let Some(tx) = self.grpc_shutdown.take() {
+        if let Some(tx) = self.shutdown.take() {
             let _ = tx.send(());
         }
         let result = match self.supervisor.await {
@@ -89,8 +92,13 @@ impl RuntimeHandle {
 
     /// Wait for the supervisor task to exit on its own (e.g. gRPC server
     /// failure) without explicitly signalling shutdown.
-    pub async fn wait(self) -> SomaResult<()> {
-        match self.supervisor.await {
+    ///
+    /// Takes `&mut self` so a caller can race it against a SIGINT future in
+    /// `tokio::select!` and still call [`shutdown`] on the SIGINT branch.
+    ///
+    /// [`shutdown`]: RuntimeHandle::shutdown
+    pub async fn wait(&mut self) -> SomaResult<()> {
+        match (&mut self.supervisor).await {
             Ok(res) => res,
             Err(err) if err.is_cancelled() => Ok(()),
             Err(err) => Err(soma_core::Error::Anyhow(err.into())),
@@ -116,36 +124,39 @@ pub async fn run(config: RuntimeConfig) -> SomaResult<RuntimeHandle> {
         "soma-agentd starting"
     );
 
-    let (supervisor, grpc_shutdown, socket_path) = match config.socket_path.clone() {
+    // One shutdown channel regardless of socket mode so embedders can always
+    // cancel the supervisor — otherwise the no-socket path leaves a `pending`
+    // future that `RuntimeHandle::shutdown()` would await forever.
+    let (shutdown_tx, shutdown_rx) = oneshot::channel::<()>();
+    let socket_path = config.socket_path.clone();
+
+    let supervisor: JoinHandle<SomaResult<()>> = match socket_path.clone() {
         Some(path) => {
             let svc = agent::agent_server::AgentServer::new(AgentdService::new(engine, task_store));
-            let (tx, rx) = oneshot::channel::<()>();
             let router = Server::builder().add_service(svc);
-            let path_for_task = path.clone();
-            let supervisor: JoinHandle<SomaResult<()>> = tokio::spawn(async move {
-                serve_grpc_unix(path_for_task, router, async move {
-                    let _ = rx.await;
+            tokio::spawn(async move {
+                serve_grpc_unix(path, router, async move {
+                    let _ = shutdown_rx.await;
                 })
                 .await
-            });
-            (supervisor, Some(tx), Some(path))
+            })
         }
         None => {
-            // No socket path: don't start a gRPC listener. Build the service
-            // anyway so the embedder can reach the underlying engine/store via
-            // a future in-process surface; for now we just keep it alive on a
-            // pending supervisor task.
+            // No socket: keep the service alive in-process until shutdown is
+            // signalled. The embedder reaches the underlying engine/store via
+            // a future in-process surface (not yet wired); shutdown here just
+            // needs to drop the service when asked.
             let service = AgentdService::new(engine, task_store);
-            let supervisor: JoinHandle<SomaResult<()>> = tokio::spawn(async move {
+            tokio::spawn(async move {
                 let _service = service;
-                std::future::pending::<SomaResult<()>>().await
-            });
-            (supervisor, None, None)
+                let _ = shutdown_rx.await;
+                Ok(())
+            })
         }
     };
 
     Ok(RuntimeHandle {
-        grpc_shutdown,
+        shutdown: Some(shutdown_tx),
         supervisor,
         socket_path,
     })

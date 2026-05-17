@@ -63,17 +63,20 @@ impl SomaHandle {
             return Ok(());
         };
 
-        // Shut both down concurrently. Surface the first error; log the rest.
-        let (daemon_res, agentd_res) = tokio::join!(bundle.daemon.shutdown(), bundle.agentd.shutdown());
+        // Shut both down concurrently. Log every failure before returning so
+        // operators see all errors, then surface the first one to JS.
+        let (daemon_res, agentd_res) =
+            tokio::join!(bundle.daemon.shutdown(), bundle.agentd.shutdown());
 
-        if let Err(err) = daemon_res {
+        if let Err(err) = &daemon_res {
             tracing::error!(error = %err, "daemon shutdown failed");
-            return Err(to_napi(err));
         }
-        if let Err(err) = agentd_res {
+        if let Err(err) = &agentd_res {
             tracing::error!(error = %err, "agentd shutdown failed");
-            return Err(to_napi(err));
         }
+
+        daemon_res.map_err(to_napi)?;
+        agentd_res.map_err(to_napi)?;
         Ok(())
     }
 

@@ -8,6 +8,7 @@ use soma_agentd::__bin::Args;
 use soma_agentd::{RuntimeConfig, run};
 use soma_core::SomaResult;
 use tokio::signal;
+use tracing::info;
 
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
@@ -22,7 +23,18 @@ async fn main() -> SomaResult<()> {
         db_path: args.db_path,
     };
 
-    let handle = run(config).await?;
-    let _ = signal::ctrl_c().await;
+    let mut handle = run(config).await?;
+
+    // Race SIGINT against the supervisor so the binary exits when the
+    // runtime fails on its own (and not only when an operator sends SIGINT).
+    tokio::select! {
+        _ = signal::ctrl_c() => {
+            info!("SIGINT received, shutting down agentd");
+        }
+        res = handle.wait() => {
+            return res;
+        }
+    }
+
     handle.shutdown().await
 }

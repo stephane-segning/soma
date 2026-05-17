@@ -44,11 +44,23 @@ async fn main() -> SomaResult<()> {
         enable_mdns: !args.disable_mdns,
     };
 
-    let handle = run(config).await?;
+    let mut handle = run(config).await?;
 
-    // Wait for SIGINT, then drive a graceful shutdown — matches the previous
-    // single-loop behaviour of the binary. (If the supervisor exits on its
-    // own first, `shutdown()` will simply await the already-finished task.)
-    let _ = signal::ctrl_c().await;
+    // Exit on whichever fires first: SIGINT (clean shutdown via
+    // `handle.shutdown()`) or supervisor termination (peer task crash, gRPC
+    // bind failure, etc.). Without this race the daemon process would keep
+    // running after the underlying runtime died — and the operator only
+    // learns about the failure by sending SIGINT.
+    tokio::select! {
+        _ = signal::ctrl_c() => {
+            info!("SIGINT received, shutting down daemon");
+        }
+        res = handle.wait() => {
+            // Supervisor exited on its own. Propagate the result without
+            // a redundant shutdown call.
+            return res;
+        }
+    }
+
     handle.shutdown().await
 }
