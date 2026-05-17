@@ -17,8 +17,9 @@ inputs:
     required: false
     default: "Dockerfile"
   target:
-    description: Dockerfile target to build
-    required: true
+    description: Dockerfile target to build (leave empty when the Dockerfile has a single final stage)
+    required: false
+    default: ""
   platforms:
     description: Docker platforms list (comma-separated)
     required: false

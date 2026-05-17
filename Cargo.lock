@@ -4390,59 +4390,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "soma-bffd"
-version = "0.1.2"
-dependencies = [
- "axum",
- "clap",
- "libp2p",
- "mimalloc",
- "once_cell",
- "soma-bff",
- "soma-core",
- "soma-metrics",
- "soma-net",
- "soma-peer",
- "tokio",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "soma-botd"
-version = "0.1.2"
-dependencies = [
- "async-trait",
- "axum",
- "base64",
- "clap",
- "futures",
- "libp2p",
- "mimalloc",
- "prometheus-client 0.22.3",
- "prometheus-client-derive-encode",
- "prost",
- "prost-types",
- "rand 0.9.2",
- "serde",
- "serde_json",
- "sha2",
- "soma-common",
- "soma-core",
- "soma-membership",
- "soma-metrics",
- "soma-net",
- "soma-peer",
- "soma-proto-build",
- "soma-storage",
- "soma-vdfs",
- "sqlx",
- "tokio",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "soma-cache"
 version = "0.1.2"
 dependencies = [
@@ -4613,21 +4560,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "soma-relayd"
-version = "0.1.2"
-dependencies = [
- "axum",
- "clap",
- "mimalloc",
- "soma-core",
- "soma-net",
- "soma-relay",
- "tokio",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "soma-rendezvous"
 version = "0.1.2"
 dependencies = [
@@ -4642,38 +4574,6 @@ dependencies = [
  "tempfile",
  "tokio",
  "tracing",
-]
-
-[[package]]
-name = "soma-rendezvousd"
-version = "0.1.2"
-dependencies = [
- "axum",
- "clap",
- "mimalloc",
- "soma-core",
- "soma-net",
- "soma-rendezvous",
- "tokio",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "soma-serverd"
-version = "0.1.2"
-dependencies = [
- "axum",
- "clap",
- "mimalloc",
- "soma-bff",
- "soma-core",
- "soma-metrics",
- "soma-relay",
- "soma-rendezvous",
- "tokio",
- "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]

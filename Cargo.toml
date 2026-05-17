@@ -18,12 +18,7 @@ members = [
     "backend/crates/socket",
     "backend/crates/soma-node",
     "backend/bins/daemon",
-    "backend/bins/botd",
     "backend/bins/agentd",
-    "backend/bins/relayd",
-    "backend/bins/rendezvousd",
-    "backend/bins/bffd",
-    "backend/bins/serverd",
     "backend/bins/somad",
     "desktop/desktop-icons",
     "xtask"
