@@ -20,7 +20,16 @@ use napi_derive::napi;
 use tokio::sync::Mutex;
 
 use soma_agentd::{RuntimeConfig as AgentdConfig, RuntimeHandle as AgentdHandle};
-use soma_daemon::{RuntimeConfig as DaemonConfig, RuntimeHandle as DaemonHandle};
+use soma_daemon::{
+    DaemonHandle as DaemonInProcessHandle, RuntimeConfig as DaemonConfig,
+    RuntimeHandle as DaemonHandle,
+};
+
+#[napi(object)]
+pub struct DaemonStatusJs {
+    pub peer_id: String,
+    pub listen_addrs: Vec<String>,
+}
 
 #[napi(object)]
 pub struct StartConfig {
@@ -74,6 +83,30 @@ impl SomaHandle {
     #[napi]
     pub async fn is_running(&self) -> bool {
         self.inner.lock().await.is_some()
+    }
+
+    /// Current daemon peer id + listen addresses. Errors if the runtime has
+    /// already been shut down.
+    #[napi]
+    pub async fn status(&self) -> NapiResult<DaemonStatusJs> {
+        let handle = self.daemon_handle().await?;
+        let status = handle.status().await;
+        Ok(DaemonStatusJs {
+            peer_id: status.peer_id,
+            listen_addrs: status.listen_addrs,
+        })
+    }
+}
+
+impl SomaHandle {
+    /// Get a cloned in-process handle to the daemon, releasing the inner
+    /// lock immediately so concurrent napi calls can proceed.
+    async fn daemon_handle(&self) -> NapiResult<DaemonInProcessHandle> {
+        let guard = self.inner.lock().await;
+        let bundle = guard.as_ref().ok_or_else(|| {
+            NapiError::new(Status::GenericFailure, "soma runtime is not running")
+        })?;
+        Ok(bundle.daemon.handle())
     }
 }
 

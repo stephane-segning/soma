@@ -97,6 +97,31 @@ impl Default for RuntimeConfig {
     }
 }
 
+/// Snapshot of daemon health for in-process callers (the napi addon, tests).
+#[derive(Debug, Clone)]
+pub struct DaemonStatus {
+    pub peer_id: String,
+    pub listen_addrs: Vec<String>,
+}
+
+/// Opaque accessor for in-process callers to invoke daemon operations
+/// without going through the gRPC trampoline. Cloneable — handles share
+/// the same underlying [`DaemonState`].
+#[derive(Clone)]
+pub struct DaemonHandle {
+    state: Arc<DaemonState>,
+}
+
+impl DaemonHandle {
+    /// Current peer id + listen addresses.
+    pub async fn status(&self) -> DaemonStatus {
+        DaemonStatus {
+            peer_id: self.state.peer_id.to_string(),
+            listen_addrs: self.state.listen_addrs.lock().await.clone(),
+        }
+    }
+}
+
 /// Handle to a running daemon. Drop without calling [`shutdown`] is allowed but
 /// will leave the runtime running until its background tasks finish on their
 /// own (e.g. ctrl-c handled by the embedder).
@@ -107,9 +132,19 @@ pub struct RuntimeHandle {
     grpc_shutdown: Option<oneshot::Sender<()>>,
     supervisor: JoinHandle<SomaResult<()>>,
     socket_path: Option<PathBuf>,
+    state: Arc<DaemonState>,
 }
 
 impl RuntimeHandle {
+    /// Cloneable in-process accessor for daemon operations. Lets the napi
+    /// addon (or tests) invoke daemon methods without going through the gRPC
+    /// trampoline.
+    pub fn handle(&self) -> DaemonHandle {
+        DaemonHandle {
+            state: self.state.clone(),
+        }
+    }
+
     /// Gracefully shut the runtime down: tell the peer to stop, cancel the
     /// gRPC server if it was started, then await the supervisor task.
     pub async fn shutdown(mut self) -> SomaResult<()> {
@@ -240,6 +275,7 @@ pub async fn run(config: RuntimeConfig) -> SomaResult<RuntimeHandle> {
     spawn_mailbox_sweeper(state.clone());
 
     let socket_path_for_supervisor = socket_path.clone();
+    let state_for_supervisor = state.clone();
     let supervisor: JoinHandle<SomaResult<()>> = tokio::spawn(async move {
         tokio::pin!(peer_task);
         let mut grpc_task = grpc_task;
@@ -248,7 +284,7 @@ pub async fn run(config: RuntimeConfig) -> SomaResult<RuntimeHandle> {
             tokio::select! {
                 evt = peer_events.recv() => {
                     match evt {
-                        Some(evt) => dispatcher.dispatch(&state, &evt).await,
+                        Some(evt) => dispatcher.dispatch(&state_for_supervisor, &evt).await,
                         None => break Ok(()),
                     }
                 }
@@ -280,5 +316,6 @@ pub async fn run(config: RuntimeConfig) -> SomaResult<RuntimeHandle> {
         grpc_shutdown: grpc_shutdown_tx,
         supervisor,
         socket_path,
+        state,
     })
 }
