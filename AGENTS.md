@@ -1,66 +1,74 @@
 # SOMA
 
-Local-first workspace platform: a single Electron desktop app (note-taking + typing-practice surfaces) backed by an in-process Rust runtime (peer + agent + storage) loaded as a Node-API addon. Always-on availability is provided by separate headless peers (bots) running on a server. This document describes the target architecture, the migration status, and the conventions to write to.
+Local-first workspace platform that ships as **two artifacts**: one Electron desktop app and one server binary. Both are thin shells around the same shared Rust crates — the desktop loads them as a napi-rs `.node` addon, the server runs them as subcommands of a unified binary. Long-running availability is provided by the server binary running in bot mode.
 
 ## Architecture (target)
 
-One Electron app:
+Two build artifacts. One source tree.
 
-- `desktop/soma/` — the only Electron app. Includes a `/practice` route (formerly Tapia). Main process loads a single native addon (`soma-node.<arch>.node`) at startup; no separate daemon binaries, no Unix-socket IPC.
+**Desktop** — `desktop/soma/`: the only Electron app. Includes a `/practice` route (formerly Tapia). Main process loads `soma-node.<os>-<arch>.node` at startup. No separate daemon binaries, no Unix-socket IPC, no spawning of child processes.
 
-One in-process Rust runtime:
+**`soma-node` addon** — `backend/crates/soma-node/`: napi-rs cdylib. Embeds the peer + agent runtimes in **one** Tokio runtime, owns **one** SQLite database (managed via CrateStack), exposes async `#[napi]` methods to Electron main. Same shared crates the server binary uses.
 
-- `backend/crates/soma-node/` — napi-rs addon. Embeds the peer + agent runtimes in **one** Tokio runtime, owns **one** SQLite database (managed via CrateStack), exposes async `#[napi]` methods to Electron main.
+**Server** — `somad`: the only server binary. Subcommands select behavior; subcommand options pass mode-specific configuration. Same shared crates the addon uses; mode is purely a runtime concern.
 
-Server backends (unchanged shape):
+```
+somad bot         [--http-addr ...] [--db-path ...] [--mode bot|admin] [--listen-addr ...]
+somad relay       [--http-addr ...] [--data-dir ...]
+somad rendezvous  [--http-addr ...] [--data-dir ...]
+somad bff         [--http-addr ...] [--provider ...]
+somad all         --config server.toml      # composes multiple modes in one process
+```
 
-- `soma-botd` — the only headless peer. Absorbs the former `soma-daemon` binary's server-side role. Two modes: `bot` (read-only HTTP) and `admin` (authenticated control plane).
-- `soma-relayd` — libp2p circuit relay v2 + HTTP/metrics.
-- `soma-rendezvousd` — libp2p rendezvous discovery + HTTP/metrics.
-- `soma-bffd` — LLM BFF (HTTP only; no libp2p).
-- `soma-serverd` — optional all-in-one runner for dev.
+Subcommands map to the existing service crates: `bot` uses `crates/peer` + `crates/membership` + `crates/storage`; `relay` uses `crates/relay`; `rendezvous` uses `crates/rendezvous`; `bff` uses `crates/bff`; `all` is the orchestrator (replaces the former `serverd`).
 
-What's gone in the target world:
+What's gone in the fully-collapsed target:
 
-- `backend/bins/daemon/` (replaced by addon-embedded runtime + botd for headless)
-- `backend/bins/agentd/` (replaced by addon-embedded runtime)
-- `desktop/tapia/` (merged into Soma)
-- `desktop/desktop-proto/` (`@soma/proto`) — gRPC TS codegen is unnecessary because Electron main calls the addon directly; libp2p protobuf stays Rust-only
-- `daemon-process-manager`, splash-blocks-on-daemon-Status gate, socket-path config plumbing
-- All LaunchAgent / systemd-user-unit infrastructure
-- All install/uninstall `sudo`
-- The macOS `.pkg` path (replaced by a notarized zip dropped into `~/Applications/Soma`)
-- The `__SOMA_*` plist token + post-install perl rewrite
-- The `xattr -dr com.apple.quarantine` band-aid (replaced by Developer ID signing + notarization)
+- `backend/bins/daemon/`, `backend/bins/agentd/` — desktop runtimes move to `crates/desktop-peer/` and `crates/desktop-agent/` (lib-only). The addon consumes them; no binaries.
+- `backend/bins/botd/`, `backend/bins/relayd/`, `backend/bins/rendezvousd/`, `backend/bins/bffd/`, `backend/bins/serverd/` — replaced by `backend/bins/somad/` with subcommands.
+- `desktop/tapia/` — merged into Soma's `/practice` route.
+- `desktop/desktop-proto/` (`@soma/proto`) — gRPC TS codegen unnecessary because Electron main calls the addon directly; libp2p protobuf stays Rust-only.
+- `daemon-process-manager`, splash-blocks-on-daemon-Status gate, socket-path config plumbing in `@soma/desktop-config`.
+- All LaunchAgent / systemd-user-unit infrastructure for the desktop side; the embedded peer lives in-process.
+- All install/uninstall `sudo` (sudoless user-domain install at `~/Applications/Soma`).
+- The macOS `.pkg` path (replaced by a notarized zip).
+- The `__SOMA_*` plist token + post-install perl rewrite.
+- The `xattr -dr com.apple.quarantine` band-aid (replaced by Developer ID signing + notarization).
+- Five per-service Docker images → one `somad` image.
 
-Always-on peer model: the desktop peer is online only while Soma is open. Tray-when-window-closed on macOS keeps the peer live during a user session. Long-term availability for a space is provided by `soma-botd` running as a space mirror (see "Bots and always-on availability" below).
+Always-on peer model: the desktop peer is online only while Soma is open. Tray-when-window-closed on macOS keeps the peer live during a user session. Long-term availability for a space is provided by `somad bot` running as a space mirror (see "Bots and always-on availability" below).
 
 ## Migration status
 
 Pre-prod refactor. Breaking changes are fine; there is no backwards-compatibility surface to preserve.
 
-- [ ] P0 — AGENTS.md rewritten to target architecture (this document)
-- [ ] P1 — `soma-daemon` and `soma-agentd` library-ified (binaries keep working through thin shims)
-- [ ] P2 — Tapia merged into Soma as `/practice`; `desktop/tapia/` deleted
-- [ ] P3 — `backend/crates/soma-node` napi-rs addon scaffolded, embeds both runtimes
-- [ ] P4 — Soma main process rewritten to call addon directly; daemon-process-manager + splash gate + socket config removed
-- [ ] P5 — Packaging cleanup: sudoless user-domain install, Developer ID signing + notarization, SHA256SUMS + bootstrap dedup
-- [ ] P6 — `backend/bins/daemon/` deleted; headless-peer needs folded into `soma-botd` flags
-- [ ] P7 — CI matrix dedup; leftover cleanups
+- [x] P0 — AGENTS.md rewritten to fully-collapsed target architecture
+- [x] P1 — `soma-daemon` and `soma-agentd` library-ified (binaries keep working through thin shims)
+- [x] P2 — Tapia merged into Soma as `/practice`; `desktop/tapia/` deleted
+- [x] P3a — `backend/crates/soma-node` napi-rs addon scaffolded, embeds both runtimes
+- [x] P3b — Proof-of-pattern: `DaemonHandle` + `SomaHandle.status()` end-to-end through napi
+- [x] P3c — `@napi-rs/cli` build pipeline wired; `@soma/node` consumed by `desktop/soma`
+- [ ] P3d — Extract remaining ~20 daemon + ~5 agent methods into `DaemonHandle` / `AgentHandle`; expose via napi
+- [ ] P4 — Soma main rewritten to call addon directly; daemon-process-manager / splash gate / socket config removed
+- [ ] P5 — **Server-binary collapse**: move `bins/daemon`+`bins/agentd` runtimes to `crates/desktop-peer`+`crates/desktop-agent`; create `bins/somad` with subcommands (`bot`, `relay`, `rendezvous`, `bff`, `all`); delete `bins/{botd,relayd,rendezvousd,bffd,serverd}`; one Dockerfile, one image
+- [ ] P6 — Packaging cleanup: sudoless user-domain install, Developer ID signing + notarization, SHA256SUMS + bootstrap dedup
+- [ ] P7 — CI matrix dedup (single matrix per artifact); leftover cleanups
 
 When this document says "today" or describes current behavior in present tense, treat it as the *intended* behavior in the target architecture — verify against the code if you need to make a load-bearing decision.
 
 ## Repository Layout
 
 - `backend/` — Rust workspace.
-  - `crates/soma-node/` — napi-rs addon embedding peer + agent runtimes; loaded by Electron main.
+  - `crates/soma-node/` — napi-rs addon (cdylib) embedding the desktop peer + agent runtimes; loaded by Electron main.
+  - `crates/desktop-peer/` — desktop peer runtime (former `bins/daemon`'s library). Consumed by `soma-node` and by `somad desktop-peer` (transitional; removed once Soma main no longer spawns a peer process).
+  - `crates/desktop-agent/` — desktop agent runtime (former `bins/agentd`'s library). Consumed by `soma-node` and by `somad desktop-agent` (transitional).
   - `crates/peer/` — libp2p peer behaviour, event types, request/response protocols.
   - `crates/agent/` — local LLM/embed/Yjs reconciliation runtime.
   - `crates/storage/` — repositories + schema; consumes the `.cstack` schema via `cratestack-rusqlite`.
   - `crates/core/` — domain types, `DbFactory`, telemetry, shared utilities.
   - `crates/net/` — libp2p swarm builder (typestate transport order: TCP → QUIC → DNS → WS → Behaviour).
   - `crates/membership/`, `crates/api/`, `crates/cache/`, `crates/common/`, `crates/metrics/`, `crates/vdfs/`, `crates/socket/`, `crates/relay/`, `crates/rendezvous/`, `crates/bff/`, `crates/proto-build/` — unchanged in role.
-  - `bins/botd/`, `bins/relayd/`, `bins/rendezvousd/`, `bins/bffd/`, `bins/serverd/` — server binaries.
+  - `bins/somad/` — the **only** server binary. Subcommand-dispatch entry point (`bot`, `relay`, `rendezvous`, `bff`, `all`). Mode-specific argument parsing lives per-subcommand under `bins/somad/src/commands/`.
 - `desktop/` — single Electron app + shared TS packages.
   - `desktop/soma/` — Soma app. Renderer under `src/renderer`, main under `src/main`. Loads `@soma/node` (the napi addon).
   - `desktop/soma/src/renderer/src/routes/practice/` — merged-in Tapia.
@@ -102,7 +110,7 @@ Where to put new code:
 - **Tokio** — single runtime per process. The addon owns the runtime; server binaries each own theirs.
 - **libp2p** — peer transport (TCP + QUIC + WebSocket), circuit-relay v2 for NAT traversal, rendezvous for discovery.
 - **Tonic / Prost** — gRPC + protobuf for libp2p wire formats; **no** gRPC over Unix sockets between Electron and the addon (direct napi calls instead).
-- **Server storage** — SQLx AnyPool (Postgres or SQLite via `SOMA_DATABASE_URL`) for `soma-botd` until CrateStack migration lands as a separate phase.
+- **Server storage** — SQLx AnyPool (Postgres or SQLite via `SOMA_DATABASE_URL`) for `somad bot` until CrateStack migration lands as a separate phase.
 - **`tracing`** for logs; `mimalloc` as the global allocator in all backends.
 
 ## The soma-node Addon
@@ -134,7 +142,7 @@ What lives in the addon vs the runtime crates:
 One `.cstack` schema describes the embedded database. Lives at `backend/crates/storage/schema.cstack` (or `backend/crates/soma-schema/schema.cstack` — finalized in P3).
 
 - The **addon** consumes the schema via `cratestack::include_embedded_schema!("schema.cstack")`.
-- **`soma-botd` stays on SQLx for now.** Migrating botd's Postgres + SQLite paths to CrateStack is its own phase; the one-macro-per-crate constraint (`include_server_schema!` vs `include_embedded_schema!`) needs a deliberate design choice for that.
+- **`somad bot` stays on SQLx for now.** Migrating botd's Postgres + SQLite paths to CrateStack is its own phase; the one-macro-per-crate constraint (`include_server_schema!` vs `include_embedded_schema!`) needs a deliberate design choice for that.
 - Single database file per install at `~/Library/Application Support/Soma/soma.db` on macOS, `~/.local/share/soma/soma.db` on Linux. Stage-specific (`-dev`, `-staging`) suffixes via `@soma/desktop-config`.
 - Tables (target schema — verify against the `.cstack` file): `spaces`, `space_memberships`, `join_decisions`, `join_requests`, `issuer_capabilities`, `mailbox`, `documents`, `pages`, `blobs`, `blob_refs`, `peer_public_keys`, plus agent-runtime tables (chat sessions, embeddings, etc.) that previously lived in `agentd.db`.
 - `cratestack-rusqlite` provides the sync data API; the addon wraps reads/writes in `spawn_blocking` only where contention is real (it usually isn't — rusqlite is fast).
@@ -192,54 +200,71 @@ Practice route (merged Tapia):
 - Pure renderer surface; no addon dependency required (typing practice is local-only).
 - Uses XState for the typing state machine, Motion for cursor/feedback animations, a stable grapheme + diff library (`graphemer` / `grapheme-splitter` and `diff-match-patch` / `diff`), `simple-keyboard` for the on-screen keyboard.
 
-## Server Backends
+## Server: `somad`
 
-All server binaries continue to use `clap` for CLI + env config, `mimalloc` for allocation, and `tracing` for logs (via `soma_core::telemetry::init_tracing`).
+One binary, subcommand-dispatched. Each subcommand wraps the relevant service crate and takes its own flags. All subcommands share: `clap` for CLI + env config, `mimalloc` for allocation, `tracing` for logs (via `soma_core::telemetry::init_tracing`).
 
-### soma-botd (peer + bot)
+Top-level UX:
 
-`backend/bins/botd/` — the only headless peer binary. Absorbs the former `soma-daemon` server-side use case.
+```
+somad <SUBCOMMAND> [OPTIONS]
+somad --help
+somad <SUBCOMMAND> --help
+```
 
-Two operating modes:
+Subcommands are documented with `--help`; flag names within each subcommand are stable contracts. Adding a new mode = adding a new subcommand module under `bins/somad/src/commands/`.
 
-- **`bot` mode (default)** — peer + read-only HTTP (`/info`, `/healthz`, `/metrics`). No `/v1/*` endpoints. Auto-approves joins **only** when it holds a valid issuer capability for the space; otherwise records the request for manual approval elsewhere.
-- **`admin` mode** — peer + authenticated control plane (`POST /v1/join/request`, `GET /v1/join/requests`, `POST /v1/join/decide`, `POST /v1/space/revoke`, `POST /v1/space/issuer-capability`, etc.). HTTP write endpoints must be authn/authz-gated.
+### `somad bot` — peer + bot
 
-Internals:
+The only headless peer. Absorbs the former `soma-daemon` server-side use case.
 
-- Entry: `backend/bins/botd/src/main.rs`. Runtime + dispatcher: `runtime.rs`.
-- Peer event handlers: `event_handlers.rs` (`MetricsHandler` covers all `PeerEventKind`s; `LoggingHandler` is selective). Add new handlers by implementing `PeerEventHandler` and registering in `build_dispatcher`.
-- Prometheus metrics: `metrics.rs`.
+Two operating sub-modes via `--mode bot|admin`:
+
+- **`bot` (default)** — peer + read-only HTTP (`/info`, `/healthz`, `/metrics`). No `/v1/*` endpoints. Auto-approves joins **only** when it holds a valid issuer capability for the space; otherwise records the request for manual approval elsewhere.
+- **`admin`** — peer + authenticated control plane (`POST /v1/join/request`, `GET /v1/join/requests`, `POST /v1/join/decide`, `POST /v1/space/revoke`, `POST /v1/space/issuer-capability`, etc.). HTTP write endpoints must be authn/authz-gated.
+
+Internals (under `bins/somad/src/commands/bot/`):
+
+- Runtime + dispatcher wiring; peer event handlers (`MetricsHandler` covers all `PeerEventKind`s; `LoggingHandler` is selective); Prometheus metrics; join decider.
+- Add new handlers by implementing `PeerEventHandler` and registering in `build_dispatcher`.
 - Storage: SQLx AnyPool via `soma_core::db::DbFactory`. `--db-path` / `SOMA_DATABASE_URL`; defaults to `./botd.db` SQLite. Migrations under `backend/crates/storage/migrations`, embedded with `sqlx::migrate!`; startup fails if migration fails.
 - Join decider: auto-approves only on valid issuer capability (role/expiry enforced) and signs the membership capability with the bot's libp2p identity key.
 
-### soma-relayd
+### `somad relay`
 
-`backend/bins/relayd/` — libp2p circuit relay v2 + Axum HTTP (`/healthz`, `/metrics`).
+libp2p circuit relay v2 + Axum HTTP (`/healthz`, `/metrics`). Uses `crates/relay`.
 Metrics prefix `relay_`: `relay_reservations_total`, `relay_circuits_total`, `relay_listen_events_total`.
 Default listen addrs: `/ip4/0.0.0.0/tcp/4001`, `/ip4/0.0.0.0/udp/4001/quic-v1`, `/ip4/0.0.0.0/tcp/4003/ws`.
 Identity persists at `${SOMA_DATA_DIR}/relay/identity.key` (ECDSA).
 
-### soma-rendezvousd
+### `somad rendezvous`
 
-`backend/bins/rendezvousd/` — libp2p rendezvous discovery + Axum HTTP (`/healthz`, `/metrics`).
+libp2p rendezvous discovery + Axum HTTP (`/healthz`, `/metrics`). Uses `crates/rendezvous`.
 Metrics prefix `rendezvous_`: `rendezvous_discover_total`, `rendezvous_registrations_total`, `rendezvous_listen_events_total`.
 Default listen addrs: `/ip4/0.0.0.0/tcp/4004`, `/ip4/0.0.0.0/udp/4004/quic-v1`, `/ip4/0.0.0.0/tcp/4004/ws`.
 Identity persists at `${SOMA_DATA_DIR}/rendezvous/identity.key` (ECDSA).
 
-### soma-bffd
+### `somad bff`
 
-`backend/bins/bffd/` — LLM BFF for provider integrations over HTTP. The only backend that does **not** use libp2p (optional diagnostic libp2p peer can be enabled).
+LLM BFF for provider integrations over HTTP. The only subcommand that does **not** use libp2p (optional diagnostic libp2p peer can be enabled via flag). Uses `crates/bff`.
 
-### soma-serverd
+### `somad all`
 
-`backend/bins/serverd/` — convenience all-in-one runner that composes multiple infrastructure services. Dev/test only.
+Compose multiple subcommands in one process via `--config server.toml`. Replaces the former `serverd`. The config file declares which modes to run and which options each takes; one process binds the union of ports, sharing the Tokio runtime + telemetry.
 
-Swarm builder: `soma-net::build_swarm` uses libp2p's typestate `SwarmBuilder`. Order matters: **TCP → QUIC → DNS → WebSocket → Behaviour**. Without QUIC in the stack, `listen_on(/udp/.../quic-v1)` fails with `MultiaddrNotSupported(...)`.
+### `somad desktop-peer` / `somad desktop-agent` (transitional)
+
+Temporary back-compat subcommands that run the desktop runtimes as standalone processes. Exist only while `desktop/soma/`'s main process still spawns child processes for the peer/agent (pre-P4). Once Soma main loads the `.node` addon directly (P4), these subcommands are removed.
+
+These subcommands wrap `crates/desktop-peer::run(config)` and `crates/desktop-agent::run(config)` directly — they exist so the existing daemon-spawn pathway keeps working through P5 without an extra binary in the tree.
+
+### Swarm builder
+
+`soma-net::build_swarm` uses libp2p's typestate `SwarmBuilder`. Order matters: **TCP → QUIC → DNS → WebSocket → Behaviour**. Without QUIC in the stack, `listen_on(/udp/.../quic-v1)` fails with `MultiaddrNotSupported(...)`.
 
 ## Bots and always-on availability
 
-The desktop peer is online only while Soma is open. Permanent availability for a space is provided by `soma-botd` running as a **space mirror**:
+The desktop peer is online only while Soma is open. Permanent availability for a space is provided by `somad bot` running as a **space mirror**:
 
 - Maintains a local `blob-cache-dir` (cache-only, populated via fetch).
 - Attempts to keep all referenced CIDs for configured spaces present locally.
@@ -256,7 +281,7 @@ Binary assets (files, images, attachments, Yoopta-related assets) are **content-
 Roles and rules:
 
 - The **embedded peer in the addon** is the source of truth for user-created blobs.
-- `soma-botd` is **cache-only** for blobs in both `bot` and `admin` modes (writes allowed only as a side-effect of fetching from the network; never accepts user upload).
+- `somad bot` is **cache-only** for blobs in both `bot` and `admin` modes (writes allowed only as a side-effect of fetching from the network; never accepts user upload).
 - Blob identity is a CID computed from bytes (e.g. `sha256`); storage is keyed by CID (content-addressed).
 
 Upload (addon-internal):
@@ -274,11 +299,11 @@ Network distribution (fetch + cache):
 
 - Peers retrieve blobs from each other by CID over libp2p (`/soma/blob/1` request/response).
 - When a Yoopta document starts referencing a blob, the writer publishes a "blob availability hint" so other peers know what to fetch/cache.
-- `soma-botd` as a mirror participates in serve + on-demand fetch + LRU/TTL eviction.
+- `somad bot` as a mirror participates in serve + on-demand fetch + LRU/TTL eviction.
 
 Non-goals / guardrails:
 
-- No HTTP upload endpoints in `soma-botd` in any mode.
+- No HTTP upload endpoints in `somad bot` in any mode.
 - No network "push bytes to bot" protocol; blob transfer is pull-based by CID.
 - Do **not** embed multiaddrs in Yoopta content; do **not** assume every user has a bot — references must resolve via any reachable peer.
 
@@ -333,7 +358,7 @@ A single SQLite database per install, schema declared in one `.cstack` file. Tab
 - `peer_public_keys(peer_id)` — Identify public keys observed for peers.
 - Agent tables (chat sessions, embeddings, etc.) — folded in from the former `agentd.db`.
 
-`soma-botd` keeps its current SQLx migrations at `backend/crates/storage/migrations` until that runtime is migrated to CrateStack.
+`somad bot` keeps its current SQLx migrations at `backend/crates/storage/migrations` until that runtime is migrated to CrateStack.
 
 ## Dependency Policy
 
@@ -426,19 +451,25 @@ Target (post-P5) — sudoless, signed, single-bundle.
 
 - GitHub Actions, all manual-triggered (`workflow_dispatch`).
 - `targets.json` (or a composite action) centralizes the `(os, arch)` matrix; consumed by all release workflows.
-- `release-desktop.yml` builds the Electron app (incl. addon native build per target) + signs + notarizes + publishes to a `desktop-v*` Release.
-- `release-server.yml` builds server-binary Docker images (distroless, non-root) for botd/relayd/rendezvousd/bffd/serverd.
-- `release-bundle.yml` produces the OS-specific installer bundles + SHA256SUMS.
+- `release-desktop.yml` builds the Electron app (incl. `@soma/node` addon native build per `(os, arch)`) + signs + notarizes + publishes to a `desktop-v*` Release.
+- `release-server.yml` builds **one** `somad` Docker image (distroless, non-root) per `(os, arch)` and publishes to GHCR.
+- `release-bundle.yml` produces the OS-specific desktop installer bundles + SHA256SUMS.
 - `release-pages.yml` deploys docs (VitePress) + Storybook to GitHub Pages.
 - SBOMs via `anchore/sbom-action` (Syft).
 - Required Apple secrets for notarization: `APPLE_DEVELOPER_ID_P12_BASE64`, `APPLE_DEVELOPER_ID_P12_PASSWORD`, `APPLE_API_KEY_ID`, `APPLE_API_KEY_ISSUER`, `APPLE_API_KEY_P8_BASE64` (App Store Connect API key, preferred over Apple-ID + app-specific password).
 
-### Docker (server only)
+### Docker (server)
 
-- `Dockerfile` targets: `botd`, `relayd`, `rendezvousd`, `bffd`, `serverd`.
+- One image: `ghcr.io/<owner>/somad`. Built from one `Dockerfile` (no per-service targets).
 - Base: `gcr.io/distroless/static-debian12:nonroot`.
-- Multi-arch (amd64 + arm64) builds from prebuilt MUSL binaries copied from `dist/backend/linux-<arch>/`. No Rust compile during `docker build`.
-- Ports per binary (forward when testing locally): botd `8080`/`14005`tcp/`14105`tcp/`14205`udp; relayd `8081`/`14003`tcp/`14103`tcp/`14203`udp; rendezvousd `8082`/`14004`tcp/`14104`tcp/`4204`udp; bffd `8083`/`14010`tcp/`14110`tcp/`14210`udp; serverd composes multiple.
+- Multi-arch (amd64 + arm64) built from prebuilt MUSL binaries copied from `dist/backend/linux-<arch>/somad`. No Rust compile during `docker build`.
+- Mode is selected at runtime via the entrypoint args: `docker run ghcr.io/.../somad bot --http-addr 0.0.0.0:8080 ...`, `... somad relay --http-addr 0.0.0.0:8081 ...`, etc.
+- Default ports per mode (forward when testing locally):
+  - `somad bot`: `8080` (HTTP) + `14005` tcp / `14105` tcp / `14205` udp (libp2p)
+  - `somad relay`: `8081` (HTTP) + `14003` tcp / `14103` tcp / `14203` udp (libp2p)
+  - `somad rendezvous`: `8082` (HTTP) + `14004` tcp / `14104` tcp / `4204` udp (libp2p)
+  - `somad bff`: `8083` (HTTP)
+  - `somad all`: composes multiple; binds the union of the modes declared in `--config`.
 
 ## Crash isolation & supervision
 
@@ -457,7 +488,7 @@ cd backend
 cargo test
 ```
 
-Smoke tests that bind local sockets:
+Smoke tests that bind local sockets (live in the shared service crates, exercised through `somad <subcommand>`):
 
 ```bash
 cd backend
@@ -491,8 +522,8 @@ pnpm --filter soma run build
 
 Soma uses two lightweight libp2p infrastructure services to improve discovery and connectivity:
 
-- **Relay** (`soma-relayd` / `backend/crates/relay`): Circuit Relay v2 for NAT traversal and relayed connectivity.
-- **Rendezvous** (`soma-rendezvousd` / `backend/crates/rendezvous`): peer registration and discovery.
+- **Relay** (`somad relay` / `backend/crates/relay`): Circuit Relay v2 for NAT traversal and relayed connectivity.
+- **Rendezvous** (`somad rendezvous` / `backend/crates/rendezvous`): peer registration and discovery.
 
 Identity persistence: both services persist a libp2p ECDSA keypair so Peer IDs stay stable across restarts. Env var `SOMA_DATA_DIR`; default paths `./data/relay/identity.key` and `./data/rendezvous/identity.key`. Deleting these files yields a new Peer ID on next start.
 
@@ -502,8 +533,8 @@ Running locally:
 
 ```bash
 cd backend
-cargo run --bin soma-relayd -- --http-addr 0.0.0.0:8081
-cargo run --bin soma-rendezvousd -- --http-addr 0.0.0.0:8082
+cargo run --bin somad -- relay --http-addr 0.0.0.0:8081
+cargo run --bin somad -- rendezvous --http-addr 0.0.0.0:8082
 ```
 
 Both expose `GET /healthz` → `"ok"` and `GET /metrics` → Prometheus text format.
