@@ -4711,6 +4711,46 @@ dependencies = [
 ]
 
 [[package]]
+name = "somad"
+version = "0.1.2"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "axum",
+ "base64",
+ "clap",
+ "futures",
+ "libp2p",
+ "mimalloc",
+ "once_cell",
+ "prometheus-client 0.22.3",
+ "prometheus-client-derive-encode",
+ "prost",
+ "prost-types",
+ "rand 0.9.2",
+ "serde",
+ "serde_json",
+ "sha2",
+ "soma-bff",
+ "soma-common",
+ "soma-core",
+ "soma-membership",
+ "soma-metrics",
+ "soma-net",
+ "soma-peer",
+ "soma-proto-build",
+ "soma-relay",
+ "soma-rendezvous",
+ "soma-storage",
+ "soma-vdfs",
+ "sqlx",
+ "tokio",
+ "toml",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "spin"
 version = "0.9.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
