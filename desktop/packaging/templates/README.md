@@ -35,7 +35,7 @@ How they are used:
 - The bundle output directory includes standalone `install.sh` and `uninstall.sh` helper scripts next to the packaged artifacts.
 - `install.sh` performs a best-effort migration by stopping/removing legacy root/system services and stale root-owned `/tmp/soma-daemon.sock`/`/tmp/soma-agentd.sock` before installing and starting user-level services.
 - Linux package contents include: binaries, README, systemd user units.
-- macOS package contents include: binaries, README, launchd LaunchAgents, desktop app.
+- macOS package contents include: agent binary, daemon app bundle, README, launchd LaunchAgents, and desktop apps.
 - Zip artifacts (when published) should include both services (daemon+agent) plus README, `install.sh`, and `uninstall.sh`.
 
 Conventions:

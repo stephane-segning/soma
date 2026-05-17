@@ -90,6 +90,8 @@ if [ "$OS" = "macos" ]; then
   # Clear quarantine on the installed unsigned apps (dev distribution).
   xattr -dr com.apple.quarantine "$MACOS_APP_DIR/soma.app" 2>/dev/null || true
   xattr -cr "$MACOS_APP_DIR/soma.app" 2>/dev/null || true
+  xattr -dr com.apple.quarantine "$MACOS_APP_DIR/soma-daemon.app" 2>/dev/null || true
+  xattr -cr "$MACOS_APP_DIR/soma-daemon.app" 2>/dev/null || true
   xattr -dr com.apple.quarantine "$MACOS_APP_DIR/tapia.app" 2>/dev/null || true
   xattr -cr "$MACOS_APP_DIR/tapia.app" 2>/dev/null || true
 
@@ -98,7 +100,7 @@ if [ "$OS" = "macos" ]; then
   start_macos_launch_agent "$SERVICE_LABEL_AGENT" || services_missing=1
 
   missing=0
-  for app in soma tapia; do
+  for app in soma soma-daemon tapia; do
     if [ ! -d "$MACOS_APP_DIR/$app.app" ]; then
       echo "Missing $MACOS_APP_DIR/$app.app after install." >&2
       missing=1
