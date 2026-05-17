@@ -8,7 +8,7 @@
   <array>
     <string>/bin/sh</string>
     <string>-lc</string>
-    <string>socket_root="${TMPDIR:-/tmp/soma-$(id -u)}"; socket_dir="${socket_root%/}/soma"; mkdir -p "$HOME/Library/Logs/Soma/agentd" "$socket_dir" &amp;&amp; chmod 700 "$socket_dir" &amp;&amp; exec "{{install_prefix}}/bin/soma-agentd" --socket-path "$socket_dir/soma-agentd.sock"</string>
+    <string>socket_dir="/tmp/soma-$(id -u)/soma"; mkdir -p "$HOME/Library/Logs/Soma/agentd" "$socket_dir" &amp;&amp; chmod 700 "$socket_dir" &amp;&amp; exec "{{install_prefix}}/bin/soma-agentd" --socket-path "$socket_dir/soma-agentd.sock"</string>
   </array>
   <key>EnvironmentVariables</key>
   <dict>

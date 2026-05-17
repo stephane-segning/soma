@@ -3,8 +3,12 @@ import { redirect } from "react-router";
 import { resolveSpacesEntryPath } from "./spaces-entry";
 
 async function loader(): Promise<Response> {
-	const data = await spacesService.listSpaces();
-	return redirect(resolveSpacesEntryPath(data?.spaces ?? []));
+	try {
+		const data = await spacesService.listSpaces();
+		return redirect(resolveSpacesEntryPath(data?.spaces ?? []));
+	} catch {
+		return redirect("/settings");
+	}
 }
 
 function Component() {
