@@ -8,7 +8,7 @@
   <array>
     <string>/bin/sh</string>
     <string>-lc</string>
-    <string>socket_root="${TMPDIR:-/tmp/soma-$(id -u)}"; socket_dir="${socket_root%/}/soma"; mkdir -p "$HOME/Library/Application Support/Soma" "$HOME/Library/Application Support/Soma/blobs" "$HOME/Library/Logs/Soma/daemon" "$socket_dir" &amp;&amp; chmod 700 "$socket_dir" &amp;&amp; exec "{{install_prefix}}/bin/soma-daemon" --listen-addrs /ip4/0.0.0.0/tcp/0,/ip4/0.0.0.0/udp/0/quic-v1,/ip4/0.0.0.0/tcp/0/ws --db-path "$HOME/Library/Application Support/Soma/daemon.db" --blob-dir "$HOME/Library/Application Support/Soma/blobs" --socket-path "$socket_dir/soma-daemon.sock"</string>
+    <string>socket_dir="/tmp/soma-$(id -u)/soma"; mkdir -p "$HOME/Library/Application Support/Soma" "$HOME/Library/Application Support/Soma/blobs" "$HOME/Library/Logs/Soma/daemon" "$socket_dir" &amp;&amp; chmod 700 "$socket_dir" &amp;&amp; exec "{{install_prefix}}/bin/soma-daemon" --listen-addrs /ip4/0.0.0.0/tcp/0,/ip4/0.0.0.0/udp/0/quic-v1,/ip4/0.0.0.0/tcp/0/ws --db-path "$HOME/Library/Application Support/Soma/daemon.db" --blob-dir "$HOME/Library/Application Support/Soma/blobs" --socket-path "$socket_dir/soma-daemon.sock"</string>
   </array>
   <key>EnvironmentVariables</key>
   <dict>

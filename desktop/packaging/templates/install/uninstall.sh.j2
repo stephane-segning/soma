@@ -7,6 +7,7 @@ REPO="{{repo}}"
 INSTALL_PREFIX="{{install_prefix}}"
 SERVICE_LABEL_DAEMON="{{service_label_daemon}}"
 SERVICE_LABEL_AGENT="{{service_label_agent}}"
+MACOS_APP_DIR="/Applications/Soma"
 
 os="$(uname -s | tr '[:upper:]' '[:lower:]')"
 arch="$(uname -m)"
@@ -35,8 +36,9 @@ if [ "$OS" = "macos" ]; then
   sudo rm -f "$INSTALL_PREFIX/bin/soma-agentd"
   sudo rm -f "$INSTALL_PREFIX/share/soma/README.md"
   sudo rmdir "$INSTALL_PREFIX/share/soma" 2>/dev/null || true
-  sudo rm -rf "/Applications/soma.app"
-  sudo rm -rf "/Applications/tapia.app"
+  sudo rm -rf "$MACOS_APP_DIR/soma.app"
+  sudo rm -rf "$MACOS_APP_DIR/tapia.app"
+  sudo rmdir "$MACOS_APP_DIR" 2>/dev/null || true
 
   # Drop the pkg receipt if present.
   sudo pkgutil --forget "digital.camer.soma.bundle" >/dev/null 2>&1 || true

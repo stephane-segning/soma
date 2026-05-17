@@ -33,4 +33,13 @@ describe("spaces loader", () => {
 		expect(response.status).toBe(302);
 		expect(response.headers.get("Location")).toBe("/spaces/space_123/pages");
 	});
+
+	it("redirects to settings when spaces cannot load", async () => {
+		listSpaces.mockRejectedValue(new Error("daemon unavailable"));
+		const { loader } = await import("./spaces");
+
+		const response = await loader();
+		expect(response.status).toBe(302);
+		expect(response.headers.get("Location")).toBe("/settings");
+	});
 });

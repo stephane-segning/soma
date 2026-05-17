@@ -142,11 +142,7 @@ export class StageConfigService {
 		}
 
 		if (process.platform === "darwin") {
-			const userTmpDir = process.env.TMPDIR?.trim();
-			if (userTmpDir) {
-				return userTmpDir;
-			}
-			return join(tmpdir(), `${appPrefix}-${this.currentUid()}`);
+			return join("/tmp", `${appPrefix}-${this.currentUid()}`);
 		}
 
 		return tmpdir();

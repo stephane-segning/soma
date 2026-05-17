@@ -33,12 +33,12 @@ How they are used:
 - `pnpm --filter @soma/packaging run bundle:release` does the same for CI release bundles (after downloading assets).
 - Release bundles can pull daemons and desktop artifacts from different repos via `--daemons-repo` / `--desktop-repo`, and can consume explicit JSON manifests via `--daemons-manifest` / `--desktop-manifest`.
 - The bundle output directory includes standalone `install.sh` and `uninstall.sh` helper scripts next to the packaged artifacts.
-- `install.sh` performs a best-effort migration by stopping/removing legacy root/system services and stale root-owned `/tmp/soma-daemon.sock`/`/tmp/soma-agentd.sock` before installing user-level services.
+- `install.sh` performs a best-effort migration by stopping/removing legacy root/system services and stale root-owned `/tmp/soma-daemon.sock`/`/tmp/soma-agentd.sock` before installing and starting user-level services.
 - Linux package contents include: binaries, README, systemd user units.
 - macOS package contents include: binaries, README, launchd LaunchAgents, desktop app.
 - Zip artifacts (when published) should include both services (daemon+agent) plus README, `install.sh`, and `uninstall.sh`.
 
 Conventions:
 - Binaries are expected at `{{install_prefix}}/bin/soma-daemon` and `{{install_prefix}}/bin/soma-agentd`.
-- Production services bind sockets under the current user's runtime temp area, not directly under global `/tmp`: Linux uses `%t/soma/*.sock` (`$XDG_RUNTIME_DIR/soma`), and macOS uses `${TMPDIR}/soma/*.sock` with a uid-scoped `/tmp` fallback.
-- Services are not auto-enabled; operators should `systemctl --user enable --now soma-daemon` (and `soma-agentd`) or load the LaunchAgents via `launchctl bootstrap gui/$(id -u)`.
+- Production services bind sockets under the current user's runtime temp area, not directly under global `/tmp`: Linux uses `%t/soma/*.sock` (`$XDG_RUNTIME_DIR/soma`), and macOS uses `/tmp/soma-$(id -u)/soma/*.sock`.
+- The installer starts the packaged user services. Operators installing package contents manually should `systemctl --user enable --now soma-daemon` (and `soma-agentd`) or load the LaunchAgents via `launchctl bootstrap gui/$(id -u)`.

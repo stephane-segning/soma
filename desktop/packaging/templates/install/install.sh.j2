@@ -6,6 +6,7 @@ BUNDLE_TAG="bundle-{{bundle_version}}"
 REPO="{{repo}}"
 SERVICE_LABEL_DAEMON="{{service_label_daemon}}"
 SERVICE_LABEL_AGENT="{{service_label_agent}}"
+MACOS_APP_DIR="/Applications/Soma"
 
 os="$(uname -s | tr '[:upper:]' '[:lower:]')"
 arch="$(uname -m)"
@@ -59,6 +60,27 @@ cleanup_legacy_root_install() {
 
 cleanup_legacy_root_install
 
+start_macos_launch_agent() {
+  local label="$1"
+  local plist="/Library/LaunchAgents/${label}.plist"
+  local domain="gui/$(id -u)"
+
+  if [ ! -f "$plist" ]; then
+    echo "Missing $plist after install." >&2
+    return 1
+  fi
+
+  launchctl bootout "$domain" "$plist" 2>/dev/null || true
+  if ! launchctl bootstrap "$domain" "$plist" 2>/dev/null; then
+    if ! launchctl print "$domain/$label" >/dev/null 2>&1; then
+      echo "Unable to load $plist. Try: launchctl bootstrap $domain $plist" >&2
+      return 1
+    fi
+  fi
+
+  launchctl kickstart -k "$domain/$label" 2>/dev/null || true
+}
+
 if [ "$OS" = "macos" ]; then
   PKG="soma-bundle-$BUNDLE_VERSION-macos-$ARCH.pkg"
   URL="$base/$BUNDLE_TAG/$PKG"
@@ -66,18 +88,23 @@ if [ "$OS" = "macos" ]; then
   echo "Downloaded $PKG"
   sudo installer -pkg "$tmp/$PKG" -target /
   # Clear quarantine on the installed unsigned apps (dev distribution).
-  xattr -dr com.apple.quarantine "/Applications/soma.app" 2>/dev/null || true
-  xattr -cr "/Applications/soma.app" 2>/dev/null || true
-  xattr -dr com.apple.quarantine "/Applications/tapia.app" 2>/dev/null || true
-  xattr -cr "/Applications/tapia.app" 2>/dev/null || true
+  xattr -dr com.apple.quarantine "$MACOS_APP_DIR/soma.app" 2>/dev/null || true
+  xattr -cr "$MACOS_APP_DIR/soma.app" 2>/dev/null || true
+  xattr -dr com.apple.quarantine "$MACOS_APP_DIR/tapia.app" 2>/dev/null || true
+  xattr -cr "$MACOS_APP_DIR/tapia.app" 2>/dev/null || true
+
+  services_missing=0
+  start_macos_launch_agent "$SERVICE_LABEL_DAEMON" || services_missing=1
+  start_macos_launch_agent "$SERVICE_LABEL_AGENT" || services_missing=1
+
   missing=0
   for app in soma tapia; do
-    if [ ! -d "/Applications/$app.app" ]; then
-      echo "Missing /Applications/$app.app after install." >&2
+    if [ ! -d "$MACOS_APP_DIR/$app.app" ]; then
+      echo "Missing $MACOS_APP_DIR/$app.app after install." >&2
       missing=1
     fi
   done
-  if [ "$missing" -ne 0 ]; then
+  if [ "$missing" -ne 0 ] || [ "$services_missing" -ne 0 ]; then
     echo "Install appears incomplete. Check /var/log/install.log and pkgutil --files digital.camer.soma.bundle" >&2
     exit 1
   fi
