@@ -44,6 +44,7 @@
 		"@soma/desktop-config": "workspace:*",
 		"@soma/desktop-db": "workspace:*",
 		"@soma/editor": "workspace:*",
+		"@soma/node": "workspace:*",
 		"@soma/proto": "workspace:*",
 		"@soma/ui": "workspace:*",
 		"@tanstack/react-table": "^8.21.3",

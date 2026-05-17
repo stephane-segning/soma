@@ -14,7 +14,6 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use napi::Error as NapiError;
-use napi::Result as NapiResult;
 use napi::Status;
 use napi_derive::napi;
 use tokio::sync::Mutex;
@@ -59,7 +58,7 @@ impl SomaHandle {
     /// Gracefully shut down both embedded runtimes. Idempotent: calling
     /// `shutdown` twice is safe; the second call is a no-op.
     #[napi]
-    pub async fn shutdown(&self) -> NapiResult<()> {
+    pub async fn shutdown(&self) -> napi::Result<()> {
         let Some(bundle) = self.inner.lock().await.take() else {
             return Ok(());
         };
@@ -88,7 +87,7 @@ impl SomaHandle {
     /// Current daemon peer id + listen addresses. Errors if the runtime has
     /// already been shut down.
     #[napi]
-    pub async fn status(&self) -> NapiResult<DaemonStatusJs> {
+    pub async fn status(&self) -> napi::Result<DaemonStatusJs> {
         let handle = self.daemon_handle().await?;
         let status = handle.status().await;
         Ok(DaemonStatusJs {
@@ -101,7 +100,7 @@ impl SomaHandle {
 impl SomaHandle {
     /// Get a cloned in-process handle to the daemon, releasing the inner
     /// lock immediately so concurrent napi calls can proceed.
-    async fn daemon_handle(&self) -> NapiResult<DaemonInProcessHandle> {
+    async fn daemon_handle(&self) -> napi::Result<DaemonInProcessHandle> {
         let guard = self.inner.lock().await;
         let bundle = guard.as_ref().ok_or_else(|| {
             NapiError::new(Status::GenericFailure, "soma runtime is not running")
@@ -114,7 +113,7 @@ impl SomaHandle {
 /// keeps them alive. Both run in the napi-rs tokio runtime owned by this
 /// addon; the caller does not provide one.
 #[napi]
-pub async fn start(config: StartConfig) -> NapiResult<SomaHandle> {
+pub async fn start(config: StartConfig) -> napi::Result<SomaHandle> {
     let daemon_config = build_daemon_config(&config)?;
     let agentd_config = build_agentd_config(&config);
 
@@ -136,7 +135,7 @@ pub async fn start(config: StartConfig) -> NapiResult<SomaHandle> {
     })
 }
 
-fn build_daemon_config(config: &StartConfig) -> NapiResult<DaemonConfig> {
+fn build_daemon_config(config: &StartConfig) -> napi::Result<DaemonConfig> {
     let mut daemon_config = DaemonConfig::default();
     daemon_config.socket_path = None;
     daemon_config.db_path = PathBuf::from(&config.daemon_db_path);
@@ -169,7 +168,7 @@ fn build_agentd_config(config: &StartConfig) -> AgentdConfig {
     }
 }
 
-fn parse_multiaddrs(addrs: &[String], field: &str) -> NapiResult<Vec<libp2p::Multiaddr>> {
+fn parse_multiaddrs(addrs: &[String], field: &str) -> napi::Result<Vec<libp2p::Multiaddr>> {
     addrs
         .iter()
         .enumerate()
