@@ -1,6 +1,6 @@
 use tracing::info;
 
-use crate::config::AgentdConfig;
+use crate::RuntimeConfig;
 
 use super::types::EngineStatus;
 
@@ -8,7 +8,7 @@ use super::types::EngineStatus;
 pub struct EngineHandle;
 
 impl EngineHandle {
-    pub fn spawn(_config: AgentdConfig) -> Self {
+    pub fn spawn(_config: &RuntimeConfig) -> Self {
         info!("soma-agentd local helper engine ready; model provider RPCs are disabled");
         Self
     }

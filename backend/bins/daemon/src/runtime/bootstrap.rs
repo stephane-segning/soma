@@ -10,15 +10,15 @@ use soma_peer::{PeerConfig, SpaceAuthorizer, bootstrap::PeerBootstrapper, join::
 use soma_storage::RepositoryProvider;
 use soma_vdfs::BlobProvider;
 
-pub(super) struct DaemonPeerBootstrap {
-    pub(super) identity_path: PathBuf,
-    pub(super) listen_addrs: Vec<libp2p::Multiaddr>,
-    pub(super) bootstrap_addrs: Vec<libp2p::Multiaddr>,
-    pub(super) rendezvous_addrs: Vec<libp2p::Multiaddr>,
-    pub(super) relay_addrs: Vec<libp2p::Multiaddr>,
-    pub(super) enable_mdns: bool,
-    pub(super) blob_provider: Arc<dyn BlobProvider>,
-    pub(super) repos: Arc<dyn RepositoryProvider>,
+pub(crate) struct DaemonPeerBootstrap {
+    pub(crate) identity_path: PathBuf,
+    pub(crate) listen_addrs: Vec<libp2p::Multiaddr>,
+    pub(crate) bootstrap_addrs: Vec<libp2p::Multiaddr>,
+    pub(crate) rendezvous_addrs: Vec<libp2p::Multiaddr>,
+    pub(crate) relay_addrs: Vec<libp2p::Multiaddr>,
+    pub(crate) enable_mdns: bool,
+    pub(crate) blob_provider: Arc<dyn BlobProvider>,
+    pub(crate) repos: Arc<dyn RepositoryProvider>,
 }
 
 #[derive(Clone)]

@@ -6,6 +6,14 @@ publish.workspace = true
 license.workspace = true
 authors.workspace = true
 
+[lib]
+name = "soma_agentd"
+path = "src/lib.rs"
+
+[[bin]]
+name = "soma-agentd"
+path = "src/main.rs"
+
 [dependencies]
 soma-agent = { workspace = true }
 soma-common = { workspace = true }
