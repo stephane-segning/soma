@@ -88,8 +88,11 @@ export function MentionPicker({
 	const [activeIndex, setActiveIndex] = useState(0);
 	useEffect(() => {
 		// Reset when results change so the highlight stays in-bounds.
+		// Without `flat` in the dep array the index would persist across
+		// filter changes and could land out of bounds — Enter would then
+		// dispatch nothing.
 		setActiveIndex(0);
-	}, []);
+	}, [flat]);
 
 	useEffect(() => {
 		const onKeyDown = (event: KeyboardEvent) => {

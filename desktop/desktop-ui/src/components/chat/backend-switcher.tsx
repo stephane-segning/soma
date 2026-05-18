@@ -22,10 +22,11 @@ import {
 	useDismiss,
 	useFloating,
 	useInteractions,
+	useListNavigation,
 	useRole,
 } from "@floating-ui/react";
 import { ChevronDown, Plus } from "react-feather";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useT } from "../../i18n/use-t";
 import { cn } from "../../utils/cn";
 import { Pill } from "../primitives/pill";
@@ -62,6 +63,7 @@ export function BackendSwitcher({
 }: BackendSwitcherProps) {
 	const t = useT();
 	const [open, setOpen] = useState(false);
+	const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
 	const { refs, floatingStyles, context } = useFloating({
 		open,
@@ -71,13 +73,24 @@ export function BackendSwitcher({
 		whileElementsMounted: autoUpdate,
 	});
 
+	// One ref per row (backends + optional "Add backend…" footer).
+	const listRef = useRef<Array<HTMLElement | null>>([]);
+
 	const click = useClick(context, { enabled: !disabled });
 	const dismiss = useDismiss(context);
 	const role = useRole(context, { role: "listbox" });
-	const { getReferenceProps, getFloatingProps } = useInteractions([
+	const listNav = useListNavigation(context, {
+		listRef,
+		activeIndex,
+		onNavigate: setActiveIndex,
+		// Loop the cursor; Enter selects via per-row onClick.
+		loop: true,
+	});
+	const { getReferenceProps, getFloatingProps, getItemProps } = useInteractions([
 		click,
 		dismiss,
 		role,
+		listNav,
 	]);
 
 	const active = backends.find((b) => b.id === activeId);
@@ -127,8 +140,9 @@ export function BackendSwitcher({
 					{...getFloatingProps()}
 				>
 					<ul className="flex flex-col gap-0.5">
-						{backends.map((backend) => {
+						{backends.map((backend, index) => {
 							const isActive = backend.id === activeId;
+							const isFocused = activeIndex === index;
 							return (
 								<li key={backend.id}>
 									<button
@@ -137,14 +151,22 @@ export function BackendSwitcher({
 											"flex w-full items-start gap-2 rounded-md px-2 py-1.5 text-left text-ui-sm transition-colors",
 											isActive
 												? "bg-primary/10 text-base-content"
-												: "hover:bg-base-200",
+												: isFocused
+													? "bg-base-200 text-base-content"
+													: "hover:bg-base-200",
 										)}
-										onClick={() => {
-											onChange(backend.id);
-											setOpen(false);
+										ref={(node) => {
+											listRef.current[index] = node;
 										}}
 										role="option"
+										tabIndex={isFocused ? 0 : -1}
 										type="button"
+										{...getItemProps({
+											onClick: () => {
+												onChange(backend.id);
+												setOpen(false);
+											},
+										})}
 									>
 										{backend.mark ? (
 											<span
@@ -186,12 +208,23 @@ export function BackendSwitcher({
 								className="my-1 border-base-300 border-t"
 							/>
 							<button
-								className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-base-content/80 text-ui-sm transition-colors hover:bg-base-200 hover:text-base-content"
-								onClick={() => {
-									onAddBackend();
-									setOpen(false);
+								className={cn(
+									"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-ui-sm transition-colors hover:bg-base-200 hover:text-base-content",
+									activeIndex === backends.length
+										? "bg-base-200 text-base-content"
+										: "text-base-content/80",
+								)}
+								ref={(node) => {
+									listRef.current[backends.length] = node;
 								}}
+								tabIndex={activeIndex === backends.length ? 0 : -1}
 								type="button"
+								{...getItemProps({
+									onClick: () => {
+										onAddBackend();
+										setOpen(false);
+									},
+								})}
 							>
 								<Plus aria-hidden className="size-3.5" />
 								{t({

@@ -9,7 +9,7 @@
  * the tab body. Callers control auto-save semantics, error rendering,
  * etc. on the panel beneath.
  */
-import type { ReactNode } from "react";
+import { type KeyboardEvent, type ReactNode, useRef } from "react";
 import { cn } from "../../utils/cn";
 
 export type SettingsTab = {
@@ -40,6 +40,22 @@ export function SettingsTabs({
 	className,
 	"aria-label": ariaLabel,
 }: SettingsTabsProps) {
+	const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
+
+	function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
+		if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+		event.preventDefault();
+		const delta = event.key === "ArrowRight" ? 1 : -1;
+		const nextIndex = (index + delta + tabs.length) % tabs.length;
+		const nextTab = tabs[nextIndex];
+		if (!nextTab) return;
+		// Move focus AND switch the active tab — WAI-ARIA "automatic
+		// activation" pattern, which suits per-screen settings tabs
+		// (each tab is cheap; users expect content to follow focus).
+		onChange(nextTab.id);
+		tabRefs.current[nextIndex]?.focus();
+	}
+
 	return (
 		<div
 			aria-label={ariaLabel}
@@ -49,7 +65,7 @@ export function SettingsTabs({
 			)}
 			role="tablist"
 		>
-			{tabs.map((tab) => {
+			{tabs.map((tab, index) => {
 				const active = tab.id === activeId;
 				return (
 					<button
@@ -64,6 +80,10 @@ export function SettingsTabs({
 						)}
 						key={tab.id}
 						onClick={() => onChange(tab.id)}
+						onKeyDown={(event) => handleKeyDown(event, index)}
+						ref={(node) => {
+							tabRefs.current[index] = node;
+						}}
 						role="tab"
 						tabIndex={active ? 0 : -1}
 						type="button"
