@@ -187,6 +187,10 @@ New / extended components, all built once for both `soma` and `practice` consume
 | `CommandPalette` | ⌘K modal: Recent docs (any space) → Spaces → Documents → Commands | new |
 | `TreePopover` | Document-tree picker anchored under the last breadcrumb segment in the document column header | new |
 | `PopupShell` | Reusable popup-window chrome (drag strip + glyph cluster: pin / restart / return-to-main / close). Hosts `CharDisplay` in v0; exams/surveys later | new |
+| `SelectionAIBar` | Inline AI popover above selection — prompt input + categorized action list (Rewrite / Modify / Tone / Transform / Translate / Custom). Trailing chip on `SelectionBubble` opens it | new |
+| `InlineAIAcceptBar` | `Accept · Try again · Refine… · Discard · Open in chat` bar anchored under inserted region after AI streams | new |
+| `NodeAIRegistry` | Per-block-type AI action registry consumed by `SlashMenu`, `SelectionAIBar`, and the right-click block menu's `AI ▸` cluster | new |
+| `InlineAIStream` | Streaming display primitive at the caret: accent underline + `Thinking…` pill + Stop chip. Region is `contenteditable=false` while streaming | new |
 
 Detailed component specifications live in the locked patterns of the six refs docs ([overview](ui-revamp-v0-refs.md), [space lifecycle](ui-revamp-v0-refs-space-lifecycle.md), [assistant + bots](ui-revamp-v0-refs-assistant-bots.md), [editor](ui-revamp-v0-refs-editor.md), [files + density](ui-revamp-v0-refs-files-density.md), [popup window](ui-revamp-v0-refs-popup-window.md)).
 

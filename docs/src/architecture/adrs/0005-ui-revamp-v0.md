@@ -96,11 +96,25 @@ Completion of a focus task closes the popup, refocuses main, and emits a single 
 - **SelectionBubble.** Single dark pill above selection. Order: `<block-style ▾>` · B · i · U · S · `</>` · link · highlight · comment · `⋯`. Dividers between block / inline / action clusters. The link icon swaps the row into a single-input link mode in place.
 - **Block hover affordances.** Left gutter (~24px) holds a `⋮⋮` drag handle and a `+` insert-below button, hover-only. Right-click anywhere in the row opens the per-block menu.
 
+Inline AI is a third editor surface alongside SlashMenu and SelectionBubble — see §13. SlashMenu still has no AI tile (the lock above holds); instead, the SlashMenu's leading input row doubles as the AI prompt entry when the typed text does not match a block name. SelectionBubble grows a trailing "Ask AI" chip that opens the SelectionAIBar; the bubble itself remains a formatting surface. Block menus (right-click) gain an `AI ▸` cluster fed by the per-node-type AI registry.
+
 ### 12. Document tree lives in a popover, not a third pane
 
 The page tree is **not** a third docked pane. It opens as a popover anchored under the last breadcrumb segment in the document column header, with sections Search / Recent / Starred / All pages and a footer chip-strip teaching keyboard shortcuts. Scope defaults to the current space; Tab widens to all spaces.
 
 A separate ⌘K **CommandPalette** covers cross-cutting navigation: Recent docs (any space) → Spaces → Documents → Commands.
+
+### 13. Inline AI as a content-transformation surface
+
+Inline AI is a transformation surface bound to a *selection*, *caret position*, or *node* — distinct from the conversational chat panel (§4 / PRD §4.5) and from the block-inserting SlashMenu (§11). It is invoked by `⌘J`, by the trailing chip on the SelectionBubble, by the SlashMenu input row when not matching a block name, or by the `AI ▸` cluster in a node's right-click menu.
+
+Results stream into the document at the invocation site. A single accept bar — `Accept` · `Try again` · `Refine…` · `Discard` — closes the interaction. While streaming, the affected region is non-editable and renders in the accent color with a dashed accent underline; a `Thinking…` pill (same component as the chat panel) covers the pre-first-token window.
+
+Every inline AI invocation appends a collapsed turn to the chat panel as audit log, and the inline accept bar exposes `Open in chat` for escalation into a full conversation when a one-shot rewrite needs to become a discussion. This keeps the chat panel as the single conversation/audit surface (§4 / PRD §4.5) without forcing a panel context switch for one-shot edits.
+
+No diff view in v0 (prose-first; diffs become opt-in later for code-block nodes). No per-paragraph hover AI button. No separate `/ai` slash command. One surface, multiple invocation paths, one accept bar.
+
+Detailed visual specification and the reference pass that produced this decision live in [prd/ui-revamp-v0-refs-editor-ai.md](../prd/ui-revamp-v0-refs-editor-ai.md).
 
 ## Consequences
 
@@ -135,6 +149,7 @@ Negative / follow-ups:
 - Refs (space lifecycle, §4.1 / §4.2 / §4.8): [prd/ui-revamp-v0-refs-space-lifecycle.md](../prd/ui-revamp-v0-refs-space-lifecycle.md)
 - Refs (assistant + bots, §4.3 / §4.4 status / §4.6 / streaming): [prd/ui-revamp-v0-refs-assistant-bots.md](../prd/ui-revamp-v0-refs-assistant-bots.md)
 - Refs (editor, §6 SlashMenu / SelectionBubble / block menus): [prd/ui-revamp-v0-refs-editor.md](../prd/ui-revamp-v0-refs-editor.md)
+- Refs (inline editor AI, §13): [prd/ui-revamp-v0-refs-editor-ai.md](../prd/ui-revamp-v0-refs-editor-ai.md)
 - Refs (files + density tokens + DenseRow + Empty): [prd/ui-revamp-v0-refs-files-density.md](../prd/ui-revamp-v0-refs-files-density.md)
 - Refs (popup window, §4.7 chrome): [prd/ui-revamp-v0-refs-popup-window.md](../prd/ui-revamp-v0-refs-popup-window.md)
 - Capability model context: [space-authorization-model.md](../../space-authorization-model.md)
