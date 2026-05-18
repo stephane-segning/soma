@@ -79,8 +79,12 @@ trap 'rm -rf "$tmp"' EXIT INT HUP TERM
 
 if [ -z "$tag" ]; then
   api_url="https://api.github.com/repos/${repo}/releases?per_page=100"
-  curl -fsSL -H "Accept: application/vnd.github+json" "$api_url" -o "$tmp/releases.json"
-  tag="$(awk -F'"' '/"tag_name": "desktop-v/ { print $4; exit }' "$tmp/releases.json" || true)"
+  curl -fsSL -H "Accept: application/vnd.github+json" "$api_url" -o "$tmp/releases.json" \
+    || { echo "Failed to query releases from $api_url" >&2; exit 1; }
+  # Field-based scan: split on `"`, look for the `tag_name` key (field i),
+  # take the value 2 fields over, accept it if it starts with `desktop-v`.
+  # Resilient to whitespace/minification.
+  tag="$(awk -F'"' '{for(i=1;i<=NF;i++) if($i=="tag_name" && $(i+2) ~ /^desktop-v/) {print $(i+2); exit}}' "$tmp/releases.json" || true)"
 fi
 
 if [ -z "$tag" ]; then
@@ -89,7 +93,14 @@ if [ -z "$tag" ]; then
 fi
 
 version="${tag#desktop-v}"
-asset_name="soma-desktop-${version}-${os}-${arch}.${asset_ext}"
+# `uname -s` returns `Darwin` on macOS; the release workflow uses `macos` in
+# asset names (matches the workflow's `matrix.os`). Map darwin → macos here so
+# `https://.../soma-desktop-X.Y.Z-macos-arm64.zip` resolves correctly.
+asset_os="$os"
+if [ "$os" = "darwin" ]; then
+  asset_os="macos"
+fi
+asset_name="soma-desktop-${version}-${asset_os}-${arch}.${asset_ext}"
 base_url="https://github.com/${repo}/releases/download/${tag}"
 
 echo "Installing Soma ${version} (${os}/${arch})..."
@@ -131,7 +142,8 @@ if [ "$os" = "darwin" ]; then
   unzip -o -q "$tmp/${asset_name}" -d "$install_root"
   if [ ! -d "$target" ]; then
     # Some packagers may nest the .app one level deep; recover by locating it.
-    found="$(find "$install_root" -maxdepth 3 -name 'Soma.app' -type d -print -quit || true)"
+    # `head -n 1` is portable; BSD find on macOS doesn't support `-quit`.
+    found="$(find "$install_root" -maxdepth 3 -name 'Soma.app' -type d 2>/dev/null | head -n 1 || true)"
     if [ -n "$found" ] && [ "$found" != "$target" ]; then
       mv "$found" "$target"
     fi

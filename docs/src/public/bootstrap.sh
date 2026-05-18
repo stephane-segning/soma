@@ -82,7 +82,11 @@ if [ -z "$tag" ]; then
   # list is returned newest-first.
   curl -fsSL -H "Accept: application/vnd.github+json" "$api_url" -o "$tmp/releases.json" \
     || { echo "Failed to query $api_url" >&2; exit 1; }
-  tag="$(awk -F'"' '/"tag_name": "desktop-v/ { print $4; exit }' "$tmp/releases.json" || true)"
+  # Field-based scan: split on `"`, look for the `tag_name` key (field i),
+  # take the value 2 fields over, accept it if it starts with `desktop-v`.
+  # Resilient to whitespace/minification — the previous regex assumed exactly
+  # one space after the colon.
+  tag="$(awk -F'"' '{for(i=1;i<=NF;i++) if($i=="tag_name" && $(i+2) ~ /^desktop-v/) {print $(i+2); exit}}' "$tmp/releases.json" || true)"
 fi
 
 if [ -z "$tag" ]; then
