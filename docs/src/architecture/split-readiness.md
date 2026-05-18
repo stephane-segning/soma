@@ -12,7 +12,7 @@ Pre-collapse, the split was blocked by:
 
 | Blocker (pre-collapse) | Status now |
 |---|---|
-| Shared `proto/` source consumed by both Rust and TypeScript | Resolved. `proto/` is libp2p-only wire formats, Rust-only. `desktop/desktop-proto` (`@soma/proto`) was deleted in P4; the desktop renderer talks to Rust via direct napi calls. |
+| Shared `proto/` source consumed by both Rust and TypeScript | Mostly resolved. `proto/` is now used only for libp2p wire formats (Rust-only). The Electron main process no longer consumes generated TS types — it calls the addon directly. `desktop/desktop-proto` (`@soma/proto`) still exists in `pnpm-workspace.yaml` and is built by `pnpm run contracts:ts`, but no Soma code depends on it; it is slated for removal per the target architecture (AGENTS.md). |
 | Daemon/agent IPC contracts consumed by desktop | Resolved. The Electron main process loads the `@soma/node` napi addon and calls Rust functions directly. No gRPC, no Unix sockets, no shared TS types beyond `napi build --dts` output that ships *with* the addon. |
 | `desktop/packaging` CLI assuming one repo namespace | Resolved. `desktop/packaging` was deleted in P6a. Packaging is now per-artifact: `electron-builder` for the desktop app, the multi-arch `Dockerfile` for `somad`. No cross-product bundler. |
 | Release manifest schema for cross-repo discovery | No longer needed. Desktop assets are published to `desktop-v*` Releases (with `SHA256SUMS`); the server image is published to `ghcr.io/<owner>/somad`. Each release stands alone. |

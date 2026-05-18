@@ -19,12 +19,14 @@ The embedded peer is online only while Soma is open. Long-term availability for 
 One binary, subcommand-dispatched. Modes are selected at runtime; behavior shared across all of them (clap CLI + env, `mimalloc`, `tracing`) is unified.
 
 ```
-somad bot         [--http-addr ...] [--db-path ...] [--mode bot|admin] [--listen-addr ...]
-somad relay       [--http-addr ...] [--data-dir ...]
-somad rendezvous  [--http-addr ...] [--data-dir ...]
-somad bff         [--http-addr ...] [--provider ...]
+somad bot         [--http-addr ...] [--db-url ...] [--listen-addrs ...] [--mode bot|admin]
+somad relay       [--http-addr ...]
+somad rendezvous  [--http-addr ...]
+somad bff         [--http-addr ...] [--p2p-enable]
 somad all         --config server.toml      # composes multiple modes in one process
 ```
+
+Each subcommand also accepts a `generate-identity` action where applicable (`somad relay generate-identity`, `somad rendezvous generate-identity`, `somad bot generate-identity`) for one-shot keypair creation. `SOMA_DATA_DIR` (env) anchors the persisted libp2p identity files; see `somad <subcommand> --help` for the authoritative flag list.
 
 Packaging:
 
@@ -37,7 +39,7 @@ Mode is selected at runtime via the entrypoint args, e.g. `docker run ghcr.io/..
 
 ## Supporting Infrastructure
 
-Two lightweight libp2p services run in Kubernetes to help peers discover and connect to each other. Both are subcommands of the same `somad` image.
+The same `somad` image provides every server-side role; each subcommand is its own Helm release.
 
 ### Rendezvous Server
 
@@ -53,9 +55,15 @@ Two lightweight libp2p services run in Kubernetes to help peers discover and con
 - Peers discover relays via static config or rendezvous announcements and attempt hole punching (DCUtR) to upgrade connections whenever possible.
 - Exposes `GET /healthz` and `GET /metrics`; metrics are prefixed `relay_`.
 
+### LLM BFF (`somad bff`)
+
+- HTTP-only provider integration for LLMs (no libp2p by default). Listens on `0.0.0.0:8083` and exposes `/metrics`; the BFF API itself is served on the same port.
+- `--p2p-enable` turns on an optional diagnostic libp2p peer for testing — off in production.
+- Deployed via Helm like the other services; horizontally scalable behind a normal Service/Ingress since it holds no peer state.
+
 ### Optional Hosted Bots
 
-- `somad bot` (`--mode bot|admin`) provides always-on availability for a space — see "Bots and always-on availability" in AGENTS.md. The same image runs as a space mirror, configured via flags/env for `SOMA_DATABASE_URL`, libp2p listen addrs, and (in `admin` mode) the authenticated control-plane endpoints under `/v1/*`.
+- `somad bot` (`--mode bot|admin`) provides always-on availability for a space (a "space mirror"). The same image runs as a headless peer + cache, configured via flags/env for `SOMA_DATABASE_URL`, libp2p listen addrs, and (in `admin` mode) the authenticated control-plane endpoints under `/v1/*`. The cache/announce semantics are described in [AGENTS.md § "Bots and always-on availability"](https://github.com/stephane-segning/soma/blob/main/AGENTS.md#bots-and-always-on-availability).
 
 ## Release and Operations Workflow
 
