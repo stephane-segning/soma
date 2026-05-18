@@ -6,6 +6,5 @@ packages:
   - 'desktop/desktop-data'
   - 'desktop/desktop-editor'
   - 'desktop/desktop-ui'
-  - 'desktop/packaging'
   - 'desktop/soma'
   - 'backend/crates/soma-node'

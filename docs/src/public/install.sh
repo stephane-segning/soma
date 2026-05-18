@@ -1,49 +1,31 @@
 #!/bin/sh
+# Soma installer entry point.
+#
+# Tiny wrapper around bootstrap.sh — fetches and executes the install.sh
+# shipped with the latest (or pinned) desktop-v* GitHub Release.
+#
+# Usage:
+#   curl -fsSL https://soma.camer.digital/install.sh | sh
+#   SOMA_DESKTOP_TAG=desktop-v1.2.3 curl -fsSL https://soma.camer.digital/install.sh | sh
+
 set -eu
 
-main() {
-  repo="${SOMA_REPO:-stephane-segning/soma}"
-  bundle_tag="${SOMA_BUNDLE_TAG:-}"
-  api_url="https://api.github.com/repos/${repo}/releases?per_page=100"
-  os="$(uname -s | tr '[:upper:]' '[:lower:]')"
-  arch="$(uname -m)"
+# shellcheck disable=SC1007  # CDPATH= is intentional (env var for the cd subcommand).
+self_dir="$(CDPATH= cd -- "$(dirname -- "$0")" 2>/dev/null && pwd || true)"
+bootstrap_local="${self_dir:+${self_dir}/bootstrap.sh}"
+bootstrap_url="https://soma.camer.digital/bootstrap.sh"
 
-  if [ "$os" = "darwin" ]; then
-    case "$arch" in
-      arm64|aarch64) ;;
-      *)
-        echo "Soma macOS bundles are Apple Silicon (arm64) only." >&2
-        exit 1
-        ;;
-    esac
-  fi
+if [ -n "${bootstrap_local:-}" ] && [ -f "$bootstrap_local" ]; then
+  exec sh "$bootstrap_local" install
+fi
 
-  tmp="$(mktemp -d)"
-  trap 'rm -rf "$tmp"' EXIT
+if ! command -v curl >/dev/null 2>&1; then
+  echo "curl is required." >&2
+  exit 1
+fi
 
-  if [ -z "$bundle_tag" ]; then
-    curl -fsSL \
-      -H "Accept: application/vnd.github+json" \
-      "$api_url" \
-      -o "$tmp/releases.json"
-    bundle_tag="$(awk -F'"' '/"tag_name": "bundle-/ { print $4; exit }' "$tmp/releases.json")"
-  fi
+tmp="$(mktemp -d 2>/dev/null || mktemp -d -t soma-install)"
+trap 'rm -rf "$tmp"' EXIT INT HUP TERM
 
-  if [ -z "$bundle_tag" ]; then
-    echo "Could not find a bundle-* release for ${repo}." >&2
-    echo "Set SOMA_BUNDLE_TAG=bundle-... to install a specific bundle." >&2
-    exit 1
-  fi
-
-  if ! command -v bash >/dev/null 2>&1; then
-    echo "bash is required to run the Soma release installer." >&2
-    exit 1
-  fi
-
-  installer_url="https://github.com/${repo}/releases/download/${bundle_tag}/install.sh"
-  echo "Installing Soma from ${bundle_tag}"
-  curl -fsSL "$installer_url" -o "$tmp/install.sh"
-  bash "$tmp/install.sh"
-}
-
-main "$@"
+curl -fsSL "$bootstrap_url" -o "$tmp/bootstrap.sh"
+exec sh "$tmp/bootstrap.sh" install

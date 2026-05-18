@@ -11,7 +11,6 @@
     "docs:dev": "pnpm --filter @soma/docs run dev",
     "docs:build": "pnpm --filter @soma/docs run build",
     "docs:preview": "pnpm --filter @soma/docs run preview",
-    "bundle:local": "pnpm --filter @soma/packaging run bundle",
     "typecheck": "pnpm --filter soma run typecheck",
     "lint": "pnpm --filter soma run lint",
     "format": "pnpm --filter soma run format"
