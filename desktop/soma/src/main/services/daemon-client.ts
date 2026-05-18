@@ -331,14 +331,23 @@ export class DaemonClient {
 	async issueIssuerCapability(input: IssueIssuerCapabilityInput): Promise<boolean> {
 		if (!input.spaceId?.trim()) throw new Error("spaceId is required");
 		if (!input.targetPeerId?.trim()) throw new Error("targetPeerId is required");
-		if (!Number.isFinite(input.expiresAt) || input.expiresAt <= 0) {
-			throw new Error("expiresAt must be a positive epoch-ms value");
+		if (!Number.isFinite(input.expiresAt) || input.expiresAt < 0) {
+			throw new Error(
+				"expiresAt must be non-negative epoch-ms (0 = no expiry)",
+			);
 		}
+		// The Rust daemon treats `expires_at` as epoch *seconds* (see
+		// `daemon::handle::issuer::issue_issuer_capability` — it builds
+		// `SystemTime::now().as_secs()` and compares against the value).
+		// JS callers stay in native epoch-ms; we convert here. `0` keeps
+		// the daemon's "no expiry" path.
+		const expiresAtSecs =
+			input.expiresAt === 0 ? 0 : Math.floor(input.expiresAt / 1000);
 		const handle = await this.handle();
 		return !!(await handle.issueIssuerCapability({
 			spaceId: input.spaceId.trim(),
 			targetPeerId: input.targetPeerId.trim(),
-			expiresAt: input.expiresAt,
+			expiresAt: expiresAtSecs,
 		}));
 	}
 

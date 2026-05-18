@@ -38,11 +38,6 @@ export type UseSpaceBotsResult = {
 	clearAddError: () => void;
 };
 
-// Two years out — comfortably larger than any realistic v0 session
-// without being indefinite. Daemon-side enforcement will tighten this
-// once a default expiry policy lands.
-const DEFAULT_EXPIRY_MS = 1000 * 60 * 60 * 24 * 365 * 2;
-
 export function useSpaceBots(spaceId: string | undefined): UseSpaceBotsResult {
 	const issue = useIssueIssuerCapabilityMutation();
 	const [addError, setAddError] = useState<string | null>(null);
@@ -55,14 +50,19 @@ export function useSpaceBots(spaceId: string | undefined): UseSpaceBotsResult {
 				throw new Error(message);
 			}
 			setAddError(null);
-			const expiresAt = input.expiryDate
-				? Date.parse(input.expiryDate)
-				: Date.now() + DEFAULT_EXPIRY_MS;
-			if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
-				const message =
-					"Expiry date must be a valid date in the future.";
-				setAddError(message);
-				throw new Error(message);
+			// `expiresAt = 0` is the daemon's "no expiry" sentinel. The
+			// CapabilityForm leaves `expiryDate === null` when the user picks
+			// the "Never" toggle — pass `0` straight through.
+			let expiresAt: number;
+			if (input.expiryDate === null) {
+				expiresAt = 0;
+			} else {
+				expiresAt = Date.parse(input.expiryDate);
+				if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+					const message = "Expiry date must be a valid date in the future.";
+					setAddError(message);
+					throw new Error(message);
+				}
 			}
 			try {
 				await issue.mutateAsync({
