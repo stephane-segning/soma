@@ -9,7 +9,7 @@
  * (typically on blur) and passes the result via `preview`. The
  * component renders the success preview or error inline. No toast.
  */
-import type { ChangeEvent, ReactNode } from "react";
+import { type ChangeEvent, type ReactNode, useId } from "react";
 import { AlertCircle, CheckCircle } from "react-feather";
 import { useT } from "../../i18n/use-t";
 import { cn } from "../../utils/cn";
@@ -54,7 +54,7 @@ export function PeerAddressInput({
 	const handleChange = (event: ChangeEvent<HTMLInputElement>) =>
 		onChange(event.target.value);
 
-	const inputId = "peer-address-input";
+	const inputId = useId();
 
 	return (
 		<div className={cn("flex flex-col gap-2", className)}>
@@ -97,16 +97,16 @@ function PreviewLine({ preview }: { preview: PeerAddressValidation }) {
 	const t = useT();
 	if (preview.kind === "valid") {
 		return (
-			<div className="flex items-start gap-2 text-ui-sm text-success-content">
+			<div className="flex items-start gap-2 text-ui-sm">
 				<CheckCircle aria-hidden className="mt-0.5 size-4 shrink-0 text-success" />
-				<div className="flex flex-col">
+				<div className="flex min-w-0 flex-col">
 					<span className="text-base-content/80">
 						{t({
 							id: "peer-address-input.preview.valid",
 							defaultMessage: "Peer recognized",
 						})}
 					</span>
-					<span className="font-mono text-ui-xs text-base-content/60">
+					<span className="break-all font-mono text-ui-xs text-base-content/60">
 						{preview.peerId}
 						{preview.alias ? ` · ${preview.alias}` : ""}
 					</span>

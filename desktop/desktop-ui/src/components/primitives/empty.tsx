@@ -18,32 +18,37 @@ import { X } from "react-feather";
 import { useT } from "../../i18n/use-t";
 import { cn } from "../../utils/cn";
 
-export type EmptyProps = {
-	/** Defaults to `full`. */
-	variant?: "full" | "compact" | "filter";
-	/** Only rendered in `full` variant. */
+export type EmptyFullProps = {
+	variant?: "full";
 	icon?: ReactNode;
-	/**
-	 * The primary line. Required. In `compact` and `filter` it is the
-	 * only text; in `full` it is the headline.
-	 */
 	headline: ReactNode;
-	/** Only rendered in `full` variant. */
 	subtext?: ReactNode;
-	/** Only rendered in `full` variant. */
 	cta?: ReactNode;
-	/**
-	 * Required for `filter` variant — wires the `Clear filter ×` action.
-	 * Ignored for `full` and `compact`.
-	 */
-	onClear?: () => void;
 	className?: string;
 };
 
+export type EmptyCompactProps = {
+	variant: "compact";
+	headline: ReactNode;
+	className?: string;
+};
+
+export type EmptyFilterProps = {
+	variant: "filter";
+	headline: ReactNode;
+	/** Required for the filter variant — wires the `Clear filter ×` action. */
+	onClear: () => void;
+	className?: string;
+};
+
+export type EmptyProps =
+	| EmptyFullProps
+	| EmptyCompactProps
+	| EmptyFilterProps;
+
 export function Empty(props: EmptyProps) {
-	const variant = props.variant ?? "full";
-	if (variant === "compact") return <CompactEmpty {...props} />;
-	if (variant === "filter") return <FilterEmpty {...props} />;
+	if (props.variant === "compact") return <CompactEmpty {...props} />;
+	if (props.variant === "filter") return <FilterEmpty {...props} />;
 	return <FullEmpty {...props} />;
 }
 
@@ -53,7 +58,7 @@ function FullEmpty({
 	subtext,
 	cta,
 	className,
-}: EmptyProps) {
+}: EmptyFullProps) {
 	return (
 		<div
 			className={cn(
@@ -75,7 +80,7 @@ function FullEmpty({
 	);
 }
 
-function CompactEmpty({ headline, className }: EmptyProps) {
+function CompactEmpty({ headline, className }: EmptyCompactProps) {
 	return (
 		<div
 			className={cn(
@@ -88,7 +93,7 @@ function CompactEmpty({ headline, className }: EmptyProps) {
 	);
 }
 
-function FilterEmpty({ headline, onClear, className }: EmptyProps) {
+function FilterEmpty({ headline, onClear, className }: EmptyFilterProps) {
 	const t = useT();
 	return (
 		<div
@@ -97,20 +102,18 @@ function FilterEmpty({ headline, onClear, className }: EmptyProps) {
 				className,
 			)}
 		>
-			<span className="text-base-content/60">{headline}</span>
-			{onClear ? (
-				<button
-					className="inline-flex items-center gap-1 text-base-content/70 transition-colors hover:text-base-content"
-					onClick={onClear}
-					type="button"
-				>
-					{t({
-						id: "empty.filter.clear",
-						defaultMessage: "Clear filter",
-					})}
-					<X aria-hidden className="size-3.5" />
-				</button>
-			) : null}
+			<div className="min-w-0 flex-1 text-base-content/60">{headline}</div>
+			<button
+				className="inline-flex items-center gap-1 text-base-content/70 transition-colors hover:text-base-content"
+				onClick={onClear}
+				type="button"
+			>
+				{t({
+					id: "empty.filter.clear",
+					defaultMessage: "Clear filter",
+				})}
+				<X aria-hidden className="size-3.5" />
+			</button>
 		</div>
 	);
 }
