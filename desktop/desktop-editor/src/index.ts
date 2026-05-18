@@ -23,3 +23,13 @@ export { AccordionNode } from "./extensions/accordion";
 
 export type { MentionItem, MentionProvider } from "./extensions/link-mention";
 export { createLinkMentionExtension } from "./extensions/link-mention";
+
+export type {
+	NodeAIRegistryExtensionOptions,
+	NodeAIRegistryStorage,
+} from "./extensions/node-ai-registry";
+export {
+	getNodeAIStorage,
+	NodeAIRegistryExtension,
+	normalizeNodeName,
+} from "./extensions/node-ai-registry";
