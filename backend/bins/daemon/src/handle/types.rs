@@ -194,3 +194,37 @@ pub struct IssueIssuerCapabilityInput {
     /// Unix-seconds expiration. `0` means no explicit expiration.
     pub expires_at: i64,
 }
+
+/// Plain-typed snapshot of one entry on the daemon's broadcast event stream.
+/// Variants mirror the published `daemon::daemon_event::Event` cases that
+/// downstream consumers (Soma renderer, future bot mirroring) care about.
+#[derive(Debug, Clone)]
+pub enum DaemonEventRecord {
+    /// A blob was uploaded with a Yoopta document association.
+    DocumentBlobAdded {
+        space_id: String,
+        doc_id: String,
+        cid: String,
+        mime: String,
+        size: i64,
+        name: String,
+    },
+    /// A `JoinRequest` was sent to a target peer.
+    JoinSubmitted {
+        request_id: String,
+        target_peer_id: String,
+    },
+    /// A `JoinDecision` was received from a remote decider.
+    JoinDecision {
+        from_peer_id: String,
+        space_id: String,
+        /// Numeric proto enum value of `JoinDecisionType`.
+        decision: i32,
+        reason: String,
+    },
+    /// The libp2p send of a `JoinRequest` failed.
+    JoinFailed {
+        target_peer_id: String,
+        error: String,
+    },
+}

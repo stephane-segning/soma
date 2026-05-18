@@ -1,6 +1,9 @@
+import type { DaemonEventJs } from "@soma/node";
+
 import type { AddonRuntime } from "./addon-runtime";
 import type {
 	DaemonStatus,
+	DaemonStreamEvent,
 	DaemonStreamHandlers,
 	DecideJoinInput,
 	DecideJoinResult,
@@ -44,13 +47,49 @@ export class DaemonClient {
 	}
 
 	/**
-	 * TODO(phase-5): wire to addon `streamEvents` once napi exposes the daemon
-	 * peer-event subscription. Until then the renderer simply won't receive
-	 * live daemon events.
+	 * Subscribe to the daemon event firehose via the napi addon's
+	 * `subscribeEvents`. Translates the flat `DaemonEventJs` records napi
+	 * emits into the discriminated `DaemonStreamEvent` shape callers expect.
+	 * The returned function unsubscribes (aborts the Rust-side translator
+	 * task; safe to call multiple times).
+	 *
+	 * Errors raised by the napi callback are surfaced through
+	 * `handlers.onError`; the subscription itself never throws.
 	 */
-	streamEvents(_handlers: DaemonStreamHandlers): () => void {
-		this.logger?.log("warn", "daemon stream events not yet wired to addon");
-		return () => {};
+	streamEvents(handlers: DaemonStreamHandlers): () => void {
+		let subscription: { unsubscribe(): Promise<void> } | null = null;
+		let cancelled = false;
+
+		const cancel = () => {
+			cancelled = true;
+			void subscription?.unsubscribe();
+			subscription = null;
+		};
+
+		void (async () => {
+			try {
+				const handle = await this.handle();
+				if (cancelled) return;
+				subscription = await handle.subscribeEvents((event) => {
+					try {
+						const mapped = mapDaemonEvent(event);
+						if (mapped) handlers.onEvent(mapped);
+					} catch (error) {
+						handlers.onError?.(error instanceof Error ? error : new Error(String(error)));
+					}
+				});
+				if (cancelled) {
+					void subscription.unsubscribe();
+					subscription = null;
+				}
+			} catch (error) {
+				if (!cancelled) {
+					handlers.onError?.(error instanceof Error ? error : new Error(String(error)));
+				}
+			}
+		})();
+
+		return cancel;
 	}
 
 	async uploadBlob(input: UploadBlobInput): Promise<UploadBlobResult> {
@@ -348,4 +387,45 @@ function isNotFound(error: unknown): boolean {
 	const message = error instanceof Error ? error.message : String(error);
 	// Anchored matches for the actual daemon-layer error strings.
 	return /\b(?:space|page|document|blob|membership)\s+not\s+found\b/i.test(message);
+}
+
+/**
+ * Translate the flat `DaemonEventJs` napi emits into the discriminated
+ * `DaemonStreamEvent` union the rest of the codebase consumes. Unknown
+ * kinds are silently dropped — addon and TS can roll out a new event in
+ * either order.
+ */
+function mapDaemonEvent(event: DaemonEventJs): DaemonStreamEvent | null {
+	switch (event.kind) {
+		case "document-blob-added":
+			return {
+				kind: "document-blob-added",
+				spaceId: event.spaceId,
+				docId: event.docId,
+				cid: event.cid,
+				mime: event.mime,
+				size: Number(event.size),
+				name: event.name,
+			};
+		case "join-submitted":
+			return {
+				kind: "join-submitted",
+				requestId: event.requestId,
+				targetPeerId: event.targetPeerId,
+			};
+		case "join-decision":
+			return {
+				kind: "join-decision",
+				fromPeerId: event.fromPeerId,
+				spaceId: event.spaceId || undefined,
+			};
+		case "join-failed":
+			return {
+				kind: "join-failed",
+				targetPeerId: event.targetPeerId,
+				error: event.error,
+			};
+		default:
+			return null;
+	}
 }

@@ -19,6 +19,7 @@ pub mod types;
 mod blobs;
 mod discover;
 mod documents;
+mod events;
 mod issuer;
 mod joins;
 mod members;

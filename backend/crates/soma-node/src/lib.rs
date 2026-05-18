@@ -16,6 +16,8 @@ use std::str::FromStr;
 use napi::Error as NapiError;
 use napi::Status;
 use napi::bindgen_prelude::Buffer;
+use napi::bindgen_prelude::Unknown;
+use napi::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use napi_derive::napi;
 use tokio::sync::Mutex;
 
@@ -255,6 +257,124 @@ pub struct RerankResultJs {
     pub hits: Vec<RerankHitJs>,
 }
 
+// --- Daemon event stream ----------------------------------------------------
+
+/// Flat-shape mirror of `daemon_types::DaemonEventRecord` for the napi
+/// boundary. JS callers switch on `kind` ("document-blob-added",
+/// "join-submitted", "join-decision", "join-failed") and read the fields
+/// relevant to that kind. Irrelevant fields are populated with empty strings
+/// (or `0` for `size`) since napi `#[napi(object)]` can't express
+/// discriminated unions cleanly.
+#[napi(object)]
+pub struct DaemonEventJs {
+    pub kind: String,
+    // DocumentBlobAdded
+    pub space_id: String,
+    pub doc_id: String,
+    pub cid: String,
+    pub mime: String,
+    pub size: i64,
+    pub name: String,
+    // JoinSubmitted / JoinFailed
+    pub request_id: String,
+    pub target_peer_id: String,
+    // JoinDecision
+    pub from_peer_id: String,
+    pub decision: i32,
+    pub reason: String,
+    // JoinFailed
+    pub error: String,
+}
+
+impl DaemonEventJs {
+    fn from_record(record: daemon_types::DaemonEventRecord) -> Self {
+        let mut js = Self::empty();
+        match record {
+            daemon_types::DaemonEventRecord::DocumentBlobAdded {
+                space_id,
+                doc_id,
+                cid,
+                mime,
+                size,
+                name,
+            } => {
+                js.kind = "document-blob-added".into();
+                js.space_id = space_id;
+                js.doc_id = doc_id;
+                js.cid = cid;
+                js.mime = mime;
+                js.size = size;
+                js.name = name;
+            }
+            daemon_types::DaemonEventRecord::JoinSubmitted {
+                request_id,
+                target_peer_id,
+            } => {
+                js.kind = "join-submitted".into();
+                js.request_id = request_id;
+                js.target_peer_id = target_peer_id;
+            }
+            daemon_types::DaemonEventRecord::JoinDecision {
+                from_peer_id,
+                space_id,
+                decision,
+                reason,
+            } => {
+                js.kind = "join-decision".into();
+                js.from_peer_id = from_peer_id;
+                js.space_id = space_id;
+                js.decision = decision;
+                js.reason = reason;
+            }
+            daemon_types::DaemonEventRecord::JoinFailed {
+                target_peer_id,
+                error,
+            } => {
+                js.kind = "join-failed".into();
+                js.target_peer_id = target_peer_id;
+                js.error = error;
+            }
+        }
+        js
+    }
+
+    fn empty() -> Self {
+        Self {
+            kind: String::new(),
+            space_id: String::new(),
+            doc_id: String::new(),
+            cid: String::new(),
+            mime: String::new(),
+            size: 0,
+            name: String::new(),
+            request_id: String::new(),
+            target_peer_id: String::new(),
+            from_peer_id: String::new(),
+            decision: 0,
+            reason: String::new(),
+            error: String::new(),
+        }
+    }
+}
+
+/// Returned by `SomaHandle.subscribeEvents`; calling `unsubscribe()` aborts
+/// the translator task so the broadcast receiver is dropped and no more
+/// events are delivered to the JS callback.
+#[napi]
+pub struct EventSubscription {
+    abort: Mutex<Option<tokio::task::AbortHandle>>,
+}
+
+#[napi]
+impl EventSubscription {
+    #[napi]
+    pub async fn unsubscribe(&self) {
+        if let Some(handle) = self.abort.lock().await.take() {
+            handle.abort();
+        }
+    }
+}
+
 // ---------------------------------------------------------------------------
 
 struct RuntimeBundle {
@@ -305,6 +425,45 @@ impl SomaHandle {
         Ok(DaemonStatusJs {
             peer_id: status.peer_id,
             listen_addrs: status.listen_addrs,
+        })
+    }
+
+    // --- Daemon event stream --------------------------------------------
+
+    /// Subscribe to the daemon event firehose. `on_event` is called for every
+    /// translated event; call `unsubscribe()` on the returned `Subscription`
+    /// to stop. Backpressure: a 256-slot mpsc buffers between the broadcast
+    /// translator and the JS callback; lagged events are dropped silently.
+    ///
+    /// Disables `CalleeHandled` (the napi-rs default) by setting the const
+    /// generic to `false`, so the JS callback signature stays
+    /// `(event) => void` rather than `(err, event) => void`. The translator
+    /// task self-terminates if `call` returns `Status::Closing` (the napi env
+    /// is being torn down, typically during `shutdown`).
+    #[napi(ts_args_type = "onEvent: (event: DaemonEventJs) => void")]
+    pub async fn subscribe_events(
+        &self,
+        on_event: ThreadsafeFunction<
+            DaemonEventJs,
+            Unknown<'static>,
+            DaemonEventJs,
+            Status,
+            false,
+        >,
+    ) -> napi::Result<EventSubscription> {
+        let handle = self.daemon_handle().await?;
+        let mut rx = handle.subscribe_events(256);
+        let task = tokio::spawn(async move {
+            while let Some(record) = rx.recv().await {
+                let event = DaemonEventJs::from_record(record);
+                if on_event.call(event, ThreadsafeFunctionCallMode::NonBlocking) == Status::Closing
+                {
+                    break;
+                }
+            }
+        });
+        Ok(EventSubscription {
+            abort: Mutex::new(Some(task.abort_handle())),
         })
     }
 

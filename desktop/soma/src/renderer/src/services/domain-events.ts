@@ -9,7 +9,16 @@ type DomainEventHandler = (event: DomainEventPayload) => void;
 function handleDomainEvent(event: DomainEventPayload): void {
 	switch (event.kind) {
 		case "spaces-changed":
-			store.dispatch(api.util.invalidateTags([{ type: "Spaces", id: "LIST" }]));
+			// `spaces-changed` means "the set of spaces visible to this peer
+			// has changed" — that covers both the global list AND this peer's
+			// memberships (e.g. a remote join-decision granted access). Both
+			// caches invalidate together so settings/access UI stays fresh.
+			store.dispatch(
+				api.util.invalidateTags([
+					{ type: "Spaces", id: "LIST" },
+					{ type: "Memberships", id: "LIST" },
+				]),
+			);
 			return;
 		case "space-changed":
 			store.dispatch(
