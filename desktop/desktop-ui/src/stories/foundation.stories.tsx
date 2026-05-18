@@ -78,6 +78,7 @@ export const RowTiers: Story = {
 
 // -----------------------------------------------------------------
 // Surface utilities — visual regression smoke test for the token sweep.
+// Shadows are off by default; floating overlays opt into `shadow-elevated`.
 
 export const Surfaces: Story = {
 	render: () => (
@@ -91,8 +92,16 @@ export const Surfaces: Story = {
 			<div className="glass-panel p-4">
 				<div className="font-semibold text-ui-sm">glass-panel</div>
 				<p className="text-base-content/70 text-ui-sm">
-					Floating surface. Single allowed shadow token (
-					<code>--shadow-elevated</code>).
+					Translucent + blur. No shadow by default.
+				</p>
+			</div>
+			<div className="glass-panel shadow-elevated p-4">
+				<div className="font-semibold text-ui-sm">
+					glass-panel + shadow-elevated
+				</div>
+				<p className="text-base-content/70 text-ui-sm">
+					Floating-overlay opt-in. Use only on modal / popover /
+					context-menu / toast.
 				</p>
 			</div>
 			<div className="surface-card-legacy p-4">

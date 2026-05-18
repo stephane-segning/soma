@@ -92,7 +92,7 @@ export function CommandPalette({
 					>
 						<motion.div
 							animate={{ opacity: 1, y: 0, scale: 1 }}
-							className="glass-panel w-full max-w-2xl p-3"
+							className="glass-panel shadow-elevated w-full max-w-2xl p-3"
 							exit={{ opacity: 0, y: 8, scale: 0.99 }}
 							initial={{ opacity: 0, y: 10, scale: 0.99 }}
 							onClick={(event) => event.stopPropagation()}

@@ -42,7 +42,7 @@ PRD §6 lists 20 components for v0. Many already exist in `desktop/desktop-ui/sr
 | `Empty` | _none_ | New. `primitives/empty.tsx` with `variant` prop (`full` / `compact` / `filter`). |
 | `DenseRow` | partial in `lists/roster-item.tsx` | **Refactor.** Generalize roster-item's slot model into `lists/dense-row.tsx`. |
 | `CommandPalette` | [`overlays/command-palette.tsx`](../../../../desktop/desktop-ui/src/components/overlays/command-palette.tsx) (166 lines) | **Refactor.** Re-section per [refs space-lifecycle §4.8](./ui-revamp-v0-refs-space-lifecycle.md): Recent docs → Spaces → Documents → Commands. |
-| `TreePopover` | _none_ | New. `nav/tree-popover.tsx`. |
+| `TreePopover` | _none_ | New. `nav/tree-popover.tsx`. Built on [`react-complex-tree`](https://www.npmjs.com/package/react-complex-tree) — installed in Wave 2 alongside this component. |
 | `PopupShell` | precedent: `layout/window-chrome.tsx` | **Refactor.** Extract to `popup/popup-shell.tsx`; expose the 4-glyph cluster from [refs popup-window §6](./ui-revamp-v0-refs-popup-window.md). |
 | `SelectionAIBar` | _none_ | New. `editor/selection-ai-bar.tsx`. |
 | `InlineAIAcceptBar` | _none_ | New. `editor/inline-ai-accept-bar.tsx`. |

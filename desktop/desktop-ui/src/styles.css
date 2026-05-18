@@ -68,15 +68,20 @@
 }
 
 /* -----------------------------------------------------------------
- * Revamped surface utilities. Border-first; the single shadow token
- * applies only to floating / modal-class surfaces (glass-panel).
+ * Revamped surface utilities. **Shadows are off by default everywhere.**
  *
  * `surface-card` is the resting-surface utility used by sections and
- * cards inside a page. No shadow.
+ * cards inside a page. Border + bg only.
  *
- * `glass-panel` is the floating-surface utility used by modal,
- * popover, dropdown, command palette, etc. Carries `--shadow-elevated`
- * — the only place shadow is allowed per ADR-0005 §7.
+ * `glass-panel` is the translucent-surface utility used by overlays
+ * that need backdrop blur (modal, popover, dropdown, taskbar,
+ * window-chrome). Border + bg + blur, **no shadow**.
+ *
+ * Floating overlays that genuinely need depth (modal, popover,
+ * command palette, bubble toolbar, context menu) add the
+ * `shadow-elevated` class explicitly — the ADR-0005 §7 single-shadow
+ * exception is opt-in, not utility-inherited. The `--shadow-elevated`
+ * token defined in `@theme` above is auto-exposed as `.shadow-elevated`.
  * ----------------------------------------------------------------- */
 
 @utility surface-card {
@@ -85,7 +90,6 @@
 
 @utility glass-panel {
 	@apply border border-base-300/70 bg-base-100/85 backdrop-blur-xl rounded-md;
-	box-shadow: var(--shadow-elevated);
 }
 
 /* -----------------------------------------------------------------

@@ -12,8 +12,8 @@ Defined in [`@soma/ui` styles.css](../../../desktop/desktop-ui/src/styles.css):
 
 - **Font sizes**: `text-body` (0.875rem / 14px), `text-ui-sm` (0.8125rem / 13px), `text-ui-xs` (0.6875rem / 11px). Line-heights paired with each size: `1.5` for body, `1.2` for UI chrome.
 - **Row height tiers**: `row-text` (2rem / 32px — text-only / icon-leading), `row-avatar` (2.5rem / 40px — avatar-leading rows), `row-card` (3.25rem / 52px — two-line content). `row-text` does **not** fit a 40px avatar — use `row-avatar` in that case.
-- **Single shadow token**: `--shadow-elevated` is the only allowed box-shadow, reserved for modal + popup window surfaces.
-- **Surface utilities**: `surface-card` (border-only resting surface), `glass-panel` (floating surface using `--shadow-elevated`). The `*-legacy` variants preserve pre-revamp depth and are deleted after cutover completes — see the scaffold doc §5.
+- **Single shadow token**: `--shadow-elevated` is the only allowed box-shadow, reserved for modal + popup window surfaces. **Shadows are off by default everywhere** — surfaces opt in via the `shadow-elevated` class.
+- **Surface utilities**: `surface-card` (border-only resting surface), `glass-panel` (translucent + backdrop blur, **no shadow**). Floating overlays that genuinely need depth (modal, command-palette, bubble-toolbar, context-menu, toast) add `shadow-elevated` explicitly. The `*-legacy` variants preserve pre-revamp depth and are deleted after cutover completes — see the scaffold doc §5.
 
 #### `DensityProvider` ([primitives/density-provider.tsx](../../../desktop/desktop-ui/src/components/primitives/density-provider.tsx))
 

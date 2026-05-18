@@ -94,7 +94,7 @@ Three switching surfaces, each scoped to a clear job:
    - Search input at top.
    - **Recent** section (5 docs in this space).
    - **Starred** section (if any in this space).
-   - **All pages** as a collapsible tree.
+   - **All pages** as a collapsible tree, rendered via [`react-complex-tree`](https://www.npmjs.com/package/react-complex-tree). That library gives us keyboard navigation, drag-and-drop reordering, and virtualization for large trees out of the box — we avoid reinventing those for a popover that needs all three.
    - Footer keyboard-hint chips: `↑↓ Navigate`, `↵ Open`, `⌘↵ Open in new tab`, `Esc Close`.
    - Default scope is current space; one keystroke (e.g. `Tab`) widens to all spaces, surfacing the spaces rail's icons as section headers in the popover.
 3. **Command palette (⌘K, modal).** Cross-cutting: jump to any space, any doc, any space-setting tab, run any slash command. Sections in priority order: **Recent docs (any space)** → **Spaces** → **Documents** → **Commands**. Keyboard-driven; closes on Esc. Same chip-strip footer as the popover.
