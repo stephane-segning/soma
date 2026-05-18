@@ -75,11 +75,14 @@ export function saveWindowStateOnChanges(window: BrowserWindow, saveWindowState:
 }
 
 function loadRenderer(window: BrowserWindow): void {
+	const onLoadError = (error: unknown) => {
+		console.error("Failed to load renderer:", error);
+	};
 	if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
-		window.loadURL(process.env["ELECTRON_RENDERER_URL"]);
+		window.loadURL(process.env["ELECTRON_RENDERER_URL"]).catch(onLoadError);
 		return;
 	}
-	window.loadFile(join(__dirname, "../../renderer/index.html"));
+	window.loadFile(join(__dirname, "../renderer/index.html")).catch(onLoadError);
 }
 
 function restoreWindowState(window: BrowserWindow, windowState: WindowState | null): void {
