@@ -9,21 +9,23 @@
  *  - resolves the surface (`selection` / `caret` / `node`) from the
  *    current editor selection
  *  - extracts the selected text or the current block's text content
- *  - identifies the active node type (paragraph, code-block, image, …)
+ *  - normalizes TipTap's camelCase node names (`codeBlock`,
+ *    `bulletList`) to the kebab-case spelling registries use
+ *    (`code-block`, `bullet-list`)
  *
- * Three editor commands are added:
+ * One editor command:
  *
- *  - `editor.commands.dispatchAIAction(id)` — fires an action against
- *    the auto-resolved surface.
- *  - `editor.commands.resolveAIActions(surface?)` — returns the actions
- *    visible at the caret/selection (used by SlashMenu, SelectionAIBar,
- *    and the right-click block menu).
- *  - `editor.commands.previewAIContext()` — for debugging; returns the
- *    {@link NodeAIContext} that would be passed to `action.run`.
+ *  - `editor.commands.dispatchAIAction(id)` — resolves the current
+ *    {@link NodeAIContext} and fires `action.run(ctx)` for the
+ *    matching action. Returns `false` if no action is registered.
  *
- * The extension is **storage-backed** so consumers can read the
- * resolved actions in render callbacks (`useEditor` re-renders on
- * selection change; storage stays stable across renders).
+ * Storage helpers (read in React render code on selection change):
+ *
+ *  - `editor.storage.nodeAIRegistry.resolveContext()` — the current
+ *    {@link NodeAIContext} or `null`.
+ *  - `editor.storage.nodeAIRegistry.resolveActions(surface?)` — the
+ *    actions visible for the current node type + surface (defaults
+ *    to the auto-resolved surface).
  *
  * Locked by [ADR-0005 §13](../../../../../docs/src/architecture/adrs/0005-ui-revamp-v0.md)
  * and [refs editor-ai §3](../../../../../docs/src/architecture/prd/ui-revamp-v0-refs-editor-ai.md).
@@ -38,8 +40,20 @@ import type {
 } from "@soma/ui/components/editor/node-ai-registry.types";
 
 export type NodeAIRegistryExtensionOptions = {
-	/** The registry the extension dispatches against. */
-	registry: NodeAIRegistry;
+	/**
+	 * The registry the extension dispatches against. The extension
+	 * tolerates `null` (no-op dispatch + empty resolve) so it can be
+	 * mounted before the renderer wires the production registry —
+	 * useful for SSR/Storybook bootstrap.
+	 */
+	registry: NodeAIRegistry | null;
+	/**
+	 * Reports rejections from async `NodeAIAction.run` returns. Without
+	 * a handler we log to the console — preferable to letting the
+	 * unhandled promise propagate. Set this to wire into the host's
+	 * error surface (toast, status bar, logger).
+	 */
+	onActionError?: (error: unknown, action: NodeAIAction) => void;
 };
 
 export type NodeAIRegistryStorage = {
@@ -53,8 +67,8 @@ declare module "@tiptap/core" {
 			/**
 			 * Resolve the current {@link NodeAIContext} from the editor
 			 * selection and dispatch the named action's `run` against it.
-			 * Returns `false` if the action is not registered for the
-			 * current surface + node type.
+			 * Returns `false` if no registry is configured or no matching
+			 * action is registered for the current surface + node type.
 			 */
 			dispatchAIAction: (actionId: string) => ReturnType;
 		};
@@ -70,10 +84,14 @@ export const NodeAIRegistryExtension =
 		name: "nodeAIRegistry",
 
 		addOptions() {
-			// `addOptions` runs before the extension is configured;
-			// the real registry is provided by the caller via `.configure({ registry })`.
-			// We cannot return a working default here, so consumers MUST configure.
-			return undefined as unknown as NodeAIRegistryExtensionOptions;
+			// Default to a no-op shape so consumers who mount the extension
+			// before configuring it (e.g. SSR bootstrap, test scaffolding)
+			// don't crash. Production callers wire the real registry via
+			// `.configure({ registry })`.
+			return {
+				registry: null,
+				onActionError: undefined,
+			};
 		},
 
 		addStorage() {
@@ -86,14 +104,17 @@ export const NodeAIRegistryExtension =
 		},
 
 		onCreate() {
-			// Wire the storage helpers once the editor exists. Storage holds
-			// stable function references; the closures read `this.editor` and
-			// `this.options.registry` at call time, so they see live state.
-			const editor = this.editor;
-			const registry = this.options.registry;
-			this.storage.resolveContext = () => resolveContext(editor);
+			// Storage holds stable function references; the closures
+			// re-read `this.options.registry` on each call so that if the
+			// host swaps the registry (rare but legal) via `editor
+			// .extensionManager.extensions[N].options.registry = …`, the
+			// next call sees the new value.
+			const extension = this;
+			this.storage.resolveContext = () => resolveContext(extension.editor);
 			this.storage.resolveActions = (surface?: NodeAIActionSurface) => {
-				const ctx = resolveContext(editor);
+				const registry = extension.options.registry;
+				if (!registry) return [];
+				const ctx = resolveContext(extension.editor);
 				if (!ctx) return [];
 				return registry.resolve(ctx.nodeType, surface ?? ctx.surface);
 			};
@@ -104,19 +125,22 @@ export const NodeAIRegistryExtension =
 				dispatchAIAction:
 					(actionId: string) =>
 					({ editor }) => {
+						const registry = this.options.registry;
+						if (!registry) return false;
 						const ctx = resolveContext(editor);
 						if (!ctx) return false;
-						const actions = this.options.registry.resolve(
-							ctx.nodeType,
-							ctx.surface,
-						);
+						const actions = registry.resolve(ctx.nodeType, ctx.surface);
 						const action = actions.find((a) => a.id === actionId);
 						if (!action) return false;
-						const result = action.run(ctx);
-						// Treat `run` as fire-and-forget; if it returned a
-						// promise, the consumer can await it via the registry
-						// directly. TipTap commands return synchronously.
-						void result;
+						runActionSafely(
+							action,
+							ctx,
+							this.options.onActionError,
+						);
+						// TipTap commands return synchronously. Async errors
+						// route through `onActionError`; the command itself
+						// reports success-as-dispatched, not success-as-
+						// completed.
 						return true;
 					},
 			};
@@ -133,9 +157,15 @@ export const NodeAIRegistryExtension =
  *    a whole block via the gutter handle or right-click).
  *  - **`caret`** — the selection is empty (just a caret position).
  *
- * `nodeType` is the closest ancestor block / node-selection type, NOT
- * the inline mark. For inline-only formats (bold, italic) the
- * `nodeType` falls back to the parent paragraph / heading.
+ * `nodeType` is the closest ancestor block / node-selection type,
+ * normalized via {@link normalizeNodeName} to match the kebab-case
+ * spelling registries use (`codeBlock` → `code-block`).
+ *
+ * For range selections that cross multiple block types (e.g. from a
+ * paragraph into a code block), `nodeType` reflects the first block
+ * (`$from.parent`) and the metadata flag `mixedBlocks: true` indicates
+ * the selection spans heterogeneous blocks — consumers can filter
+ * actions that don't make sense for mixed content.
  */
 function resolveContext(
 	editor: import("@tiptap/core").Editor,
@@ -143,7 +173,7 @@ function resolveContext(
 	if (!editor) return null;
 	const { state } = editor;
 	const { selection } = state;
-	const { $from } = selection;
+	const { $from, $to } = selection;
 
 	const isEmpty = selection.empty;
 	// A NodeSelection (block selection) has a `node` property; range
@@ -155,34 +185,50 @@ function resolveContext(
 	).node;
 
 	let surface: NodeAIActionSurface;
-	let nodeType: string;
+	let rawNodeType: string;
 	let text: string;
+	let mixedBlocks = false;
 
 	if (selectedNode) {
 		surface = "node";
-		nodeType = selectedNode.type.name;
+		rawNodeType = selectedNode.type.name;
 		text = selectedNode.textContent;
 	} else if (isEmpty) {
 		surface = "caret";
 		const block = $from.parent;
-		nodeType = block.type.name;
+		rawNodeType = block.type.name;
 		text = block.textContent;
 	} else {
 		surface = "selection";
 		const block = $from.parent;
-		nodeType = block.type.name;
+		rawNodeType = block.type.name;
 		text = state.doc.textBetween(selection.from, selection.to, " ");
+		mixedBlocks = $from.parent.type.name !== $to.parent.type.name;
 	}
 
 	return {
-		nodeType,
+		nodeType: normalizeNodeName(rawNodeType),
 		text,
 		surface,
 		metadata: {
 			from: selection.from,
 			to: selection.to,
+			rawNodeType,
+			mixedBlocks,
 		},
 	};
+}
+
+/**
+ * TipTap exposes node names in camelCase (`codeBlock`, `bulletList`,
+ * `taskList`, `horizontalRule`), but the {@link NodeAIRegistry}
+ * contract — and the existing stories in `@soma/ui` — register actions
+ * under kebab-case (`code-block`, `bullet-list`, `task-list`,
+ * `horizontal-rule`). Normalize here so the same registry entry resolves
+ * from both story mocks and the real editor.
+ */
+export function normalizeNodeName(name: string): string {
+	return name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
 }
 
 /**
@@ -194,4 +240,27 @@ export function getNodeAIStorage(
 	editor: import("@tiptap/core").Editor,
 ): NodeAIRegistryStorage | null {
 	return editor.storage.nodeAIRegistry ?? null;
+}
+
+function runActionSafely(
+	action: NodeAIAction,
+	ctx: NodeAIContext,
+	onError?: NodeAIRegistryExtensionOptions["onActionError"],
+): void {
+	try {
+		const result = action.run(ctx);
+		// `NodeAIAction.run` is typed as `void | Promise<void>` — async
+		// rejections would otherwise become unhandled promise warnings.
+		// Catch them and route to the consumer's error handler so the
+		// host (toast / status bar / logger) can surface the failure.
+		if (result && typeof (result as Promise<unknown>).then === "function") {
+			(result as Promise<void>).catch((error: unknown) => {
+				if (onError) onError(error, action);
+				else console.error("[nodeAIRegistry] action failed", action.id, error);
+			});
+		}
+	} catch (error) {
+		if (onError) onError(error, action);
+		else console.error("[nodeAIRegistry] action threw", action.id, error);
+	}
 }
