@@ -1,157 +1,113 @@
+/**
+ * CommandPaletteShell — Cutover 4 of the UI revamp.
+ *
+ * Replaces the `react-cmdk` wrapper with `@soma/ui`'s revamped
+ * `CommandPalette` per [ADR-0005 §12](../../../../../../docs/src/architecture/adrs/0005-ui-revamp-v0.md).
+ * The new palette owns its own ⌘K hotkey + ESC + arrow navigation;
+ * we just feed it `items` and wire `open` to the existing
+ * `isCommandPaletteOpen` redux slice.
+ *
+ * Sections in fixed priority order: Recent docs · Spaces · Documents
+ * · Commands. Search results map to Documents. Recent is empty until
+ * a recent-pages slice lands.
+ */
 import { useSearchQuery } from "@app/queries/search";
+import { useSpacesQuery } from "@app/queries/spaces";
 import { useAppDispatch, useAppSelector } from "@app/store/hooks";
-import { store } from "@app/store/store";
 import { uiActions, uiSelectors } from "@app/store/ui";
-import { useEffect, useMemo, useState } from "react";
-import CommandPalette, {
-	filterItems,
-	type JsonStructure,
-	renderJsonStructure,
-	useHandleOpenCommandPalette,
-} from "react-cmdk";
+import {
+	CommandPalette,
+	type CommandPaletteItem,
+} from "@soma/ui/components/overlays/command-palette";
+import { useMemo, useState } from "react";
+import { Compass, FileText, Globe, Settings as SettingsIcon } from "react-feather";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 
 function CommandPaletteShell(): React.JSX.Element {
+	const { t } = useTranslation("common");
 	const dispatch = useAppDispatch();
-	const [selected, setSelected] = useState<number>(0);
-	const [search, setSearch] = useState<string>("");
-	const isCommandPaletteOpen = useAppSelector(uiSelectors.selectIsCommandPaletteOpen);
+	const isOpen = useAppSelector(uiSelectors.selectIsCommandPaletteOpen);
 	const navigate = useNavigate();
-	const searchResults = useSearchQuery(search);
+	const [query, setQuery] = useState("");
+	const spacesQuery = useSpacesQuery();
+	const searchResults = useSearchQuery(query);
 
-	const handleOpenChange = (next: boolean | ((open: boolean) => boolean)): void => {
-		const currentOpen = uiSelectors.selectIsCommandPaletteOpen(store.getState());
-		const resolved = typeof next === "function" ? next(currentOpen) : next;
-		dispatch(uiActions.toggleCommandPalette(resolved));
-	};
+	const close = () => dispatch(uiActions.toggleCommandPalette(false));
+	const open = () => dispatch(uiActions.toggleCommandPalette(true));
 
-	useHandleOpenCommandPalette(handleOpenChange);
+	const items = useMemo<CommandPaletteItem[]>(() => {
+		const spaceItems: CommandPaletteItem[] = (spacesQuery.data?.spaces ?? []).map(
+			(space) => ({
+				id: `space:${space.spaceId}`,
+				title: space.displayName?.trim() || space.spaceId,
+				section: "spaces",
+				icon: <Compass className="size-3.5" />,
+				onSelect: () => navigate(`/spaces/${space.spaceId}/pages`),
+			}),
+		);
 
-	useEffect(() => {
-		if (!isCommandPaletteOpen) {
-			setSearch("");
-			setSelected(0);
-		}
-	}, [isCommandPaletteOpen]);
+		const documentItems: CommandPaletteItem[] = (searchResults.data ?? []).map(
+			(result) => ({
+				id: `doc:${result.id}`,
+				title: result.title,
+				subtitle: result.subtitle,
+				section: "documents",
+				icon: <FileText className="size-3.5" />,
+				onSelect: () => {
+					// Search results are opaque ids — the palette just closes
+					// when picked. Page-link resolution is a follow-up once
+					// the search service exposes navigation targets.
+				},
+			}),
+		);
 
-	const items: JsonStructure = useMemo(
-		() => [
+		const commandItems: CommandPaletteItem[] = [
 			{
-				id: "welcome",
-				items: [
-					{
-						id: "welcome-card",
-						children: (
-							<div className="w-full border-indigo-500 border-indigo-500 border-t border-b bg-gradient-to-br from-primary via-warning to-success p-4">
-								<h2 className="font-semibold text-lg text-white leading-tight">Welcome 👋</h2>
-								<p className="mt-1 max-w-xs font-medium text-sm text-white/80">
-									Quickly jump to actions or pages in Soma.
-								</p>
-							</div>
-						),
-						showType: false,
-						keywords: ["welcome"],
-						onClick: () => dispatch(uiActions.toggleCommandPalette(false)),
-					},
-				],
+				id: "cmd:spaces-landing",
+				title: t("command-palette.spaces-landing", "Create or join space"),
+				section: "commands",
+				icon: <Compass className="size-3.5" />,
+				onSelect: () => navigate("/spaces/landing"),
 			},
 			{
-				heading: "Navigate",
-				id: "navigate",
-				items: [
-					{
-						children: "Spaces",
-						id: "route:spaces",
-						keywords: ["route", "spaces", "home"],
-						onClick: () => {
-							navigate("/spaces");
-							dispatch(uiActions.toggleCommandPalette(false));
-						},
-					},
-					{
-						children: "Create or join space",
-						id: "route:join-space",
-						keywords: ["route", "spaces", "join", "create"],
-						onClick: () => {
-							navigate("/spaces/landing");
-							dispatch(uiActions.toggleCommandPalette(false));
-						},
-					},
-					{
-						children: "Settings",
-						id: "route:settings",
-						keywords: ["route", "settings", "preferences"],
-						onClick: () => {
-							navigate("/settings");
-							dispatch(uiActions.toggleCommandPalette(false));
-						},
-					},
-				],
+				id: "cmd:settings",
+				title: t("command-palette.settings", "Settings"),
+				section: "commands",
+				icon: <SettingsIcon className="size-3.5" />,
+				onSelect: () => navigate("/settings"),
 			},
 			{
-				heading: "External",
-				id: "external",
-				items: [
-					{
-						href: "https://soma.camer.digital",
-						children: "Project site",
-						icon: "GlobeAltIcon",
-						id: "project-site",
-						target: "_blank",
-						rel: "noopener noreferrer",
-					},
-				],
+				id: "cmd:project-site",
+				title: t("command-palette.project-site", "Project site"),
+				subtitle: "soma.camer.digital",
+				section: "commands",
+				icon: <Globe className="size-3.5" />,
+				onSelect: () => {
+					window.open(
+						"https://soma.camer.digital",
+						"_blank",
+						"noopener,noreferrer",
+					);
+				},
 			},
-			...(search.trim().length >= 2
-				? [
-						{
-							heading: "Search",
-							id: "search",
-							items: (searchResults.data ?? []).map((result) => ({
-								children: (
-									<div className="flex flex-col">
-										<div className="truncate">{result.title}</div>
-										{result.subtitle ? (
-											<div className="truncate text-base-content/60 text-xs">{result.subtitle}</div>
-										) : null}
-									</div>
-								),
-								id: `search:${result.id}`,
-								keywords: [result.title, result.subtitle].filter((v): v is string => typeof v === "string"),
-								onClick: () => dispatch(uiActions.toggleCommandPalette(false)),
-							})),
-						},
-					]
-				: []),
-		],
-		[dispatch, navigate, search, searchResults.data],
-	);
+		];
 
-	const rootItems = useMemo(() => filterItems(items, search), [items, search]);
+		return [...spaceItems, ...documentItems, ...commandItems];
+	}, [navigate, searchResults.data, spacesQuery.data, t]);
 
 	return (
 		<CommandPalette
-			footer={
-				<div className="px-4 py-3 text-neutral-500 text-sm">
-					Press <kbd className="border border-neutral-400 px-1 py-0.5">⌘K</kbd> to toggle
-				</div>
-			}
-			isOpen={isCommandPaletteOpen}
-			onChangeOpen={handleOpenChange}
-			onChangeSearch={setSearch}
-			onChangeSelected={setSelected}
-			page="root"
-			search={search}
-			selected={selected}
-		>
-			<CommandPalette.Page id="root" searchPrefix={["General"]}>
-				{rootItems.length ? (
-					renderJsonStructure(rootItems)
-				) : (
-					<div className="px-4 py-6 text-base-content/60 text-sm">No matching command or page.</div>
-				)}
-			</CommandPalette.Page>
-		</CommandPalette>
+			items={items}
+			onClose={close}
+			onOpen={open}
+			onQueryChange={setQuery}
+			open={isOpen}
+			placeholder={t(
+				"command-palette.placeholder",
+				"Search docs, spaces, commands…",
+			)}
+		/>
 	);
 }
 
