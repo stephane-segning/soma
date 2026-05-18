@@ -36,14 +36,33 @@ features:
 
 ## Install
 
-Soma ships as a single signed desktop app — Tapia is built in as the `/practice` route. Grab the right artifact for your platform from the [latest `desktop-v*` release](https://github.com/stephane-segning/soma/releases?q=desktop-v):
+Soma ships as a single signed desktop app — Tapia is built in as the `/practice` route. Every artifact is published to the [latest `desktop-v*` release](https://github.com/stephane-segning/soma/releases?q=desktop-v). Pick the one that fits your workflow:
 
-- **macOS (Apple Silicon)** — download `soma-desktop-<version>-macos-arm64.zip`, unzip, drag `Soma.app` into `~/Applications` (no `sudo`). The build is signed with a Developer ID and notarized, so Gatekeeper accepts it on first launch.
-- **Linux (amd64 / arm64)** — download `soma-desktop-<version>-linux-<arch>.AppImage`, `chmod +x` it, and run it directly. Move it under `~/Applications/` if you want a stable path.
+### macOS (Apple Silicon)
 
-Every asset has a matching entry in the `SHA256SUMS.txt` asset on the release; verify with `sha256sum -c` or `shasum -a 256 -c` before launch if you want a paper-trail check.
+| Asset | When to pick it |
+| --- | --- |
+| `soma-desktop-<version>-macos-arm64.dmg` | **Standard.** Open the disk image and drag Soma into Applications. Signed with a Developer ID and notarized, so Gatekeeper accepts it on first launch. |
+| `soma-desktop-<version>-macos-arm64.zip` | **Manual / no-Finder.** Unzip and drop `Soma.app` wherever you want it — `~/Applications/`, `/Applications/`, anywhere on disk. Same signed + notarized binary as the `.dmg`. |
 
-To remove, just delete `Soma.app` (macOS) or the AppImage (Linux). User data lives at `~/Library/Application Support/Soma/` on macOS and `~/.local/share/soma/` on Linux — delete those too if you want a clean wipe.
+### Linux (amd64 or arm64)
+
+| Asset | When to pick it |
+| --- | --- |
+| `soma-desktop-<version>-linux-<arch>.deb` | **Debian / Ubuntu / Pop!\_OS / Mint / any apt-based distro.** Install with `sudo apt install ./soma-desktop-<version>-linux-<arch>.deb`. Soma shows up in your application menu and updates through apt when you replace the file. |
+| `soma-desktop-<version>-linux-<arch>.AppImage` | **No-install / portable.** `chmod +x` it and run it directly — no root, no package manager touched. Move it under `~/Applications/` if you want a stable path. |
+
+### Verifying the download
+
+Every asset is listed in the `SHA256SUMS.txt` asset on the release. Verify with `sha256sum -c` (Linux) or `shasum -a 256 -c` (macOS) before launch if you want a paper-trail check.
+
+### Uninstalling
+
+- **macOS** — drag `Soma.app` to the Trash.
+- **Linux (deb)** — `sudo apt remove soma`.
+- **Linux (AppImage)** — delete the file.
+
+User data lives at `~/Library/Application Support/Soma/` on macOS and `~/.local/share/soma/` on Linux — delete those too if you want a clean wipe.
 
 ## Quick Paths
 

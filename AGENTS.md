@@ -30,8 +30,8 @@ What's gone in the fully-collapsed target:
 - `desktop/desktop-proto/` (`@soma/proto`) — gRPC TS codegen unnecessary because Electron main calls the addon directly; libp2p protobuf stays Rust-only.
 - `daemon-process-manager`, splash-blocks-on-daemon-Status gate, socket-path config plumbing in `@soma/desktop-config`.
 - All LaunchAgent / systemd-user-unit infrastructure for the desktop side; the embedded peer lives in-process.
-- All install/uninstall `sudo` (sudoless user-domain install at `~/Applications/Soma`).
-- The macOS `.pkg` path (replaced by a notarized zip).
+- All install/uninstall `sudo` *for the default sudoless install path*. We do publish `.deb` + `.dmg` for users who prefer a conventional installer (apt is sudo'd, drag-from-`.dmg` is not), but `.AppImage` / `.zip` remain the sudoless defaults.
+- The macOS `.pkg` path (replaced by a notarized `.dmg` + `.zip` pair).
 - The `__SOMA_*` plist token + post-install perl rewrite.
 - The `xattr -dr com.apple.quarantine` band-aid (replaced by Developer ID signing + notarization).
 - Five per-service Docker images → one `somad` image.
@@ -52,7 +52,7 @@ Pre-prod refactor. Breaking changes are fine; there is no backwards-compatibilit
 - [x] P4 — Soma main rewritten to call addon directly; daemon-process-manager / splash gate / socket config removed
 - [x] **Server-binary collapse** (was P5) — `bins/{botd,relayd,rendezvousd,bffd,serverd}` deleted; one `somad` binary with subcommands (`bot`, `relay`, `rendezvous`, `bff`, `all`); one Dockerfile, one image
 - [x] P5 — Streaming: daemon `stream_events` wired through napi `ThreadsafeFunction`; renderer reacts via `DomainEventsService`. `chat_stream` deferred (no consumer — Soma uses OpenAI HTTP)
-- [x] P6a — Packaging cleanup: sudoless user-domain install at `~/Applications`, SHA256SUMS published with `desktop-v*` releases, obsolete `desktop/packaging/` + `release.yml` (bundle workflow) deleted. (The install/uninstall bootstrap scripts originally introduced here were retired once notarized macOS zips + Linux AppImages made `curl | bash` unnecessary; users download directly from the release.)
+- [x] P6a — Packaging cleanup: sudoless user-domain install at `~/Applications`, SHA256SUMS published with `desktop-v*` releases, obsolete `desktop/packaging/` + `release.yml` (bundle workflow) deleted. (The install/uninstall bootstrap scripts originally introduced here were retired once notarized macOS `.dmg`/`.zip` + Linux `.deb`/`.AppImage` made `curl | bash` unnecessary; users download directly from the release.)
 - [x] P6b — Developer ID code signing + notarization: `electron-builder.yml` has `notarize: true`; `release-desktop.yml` reads `CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_API_KEY` (content, materialized to `$RUNNER_TEMP/AuthKey.p8`), `APPLE_API_KEY_ID`, `APPLE_API_ISSUER`, `APPLE_TEAM_ID` from repo secrets; ad-hoc `codesign --sign -` + `ditto` rezip step removed
 - [x] P7 — CI matrix dedup: `.github/targets.json` is the single `(os, arch)` source, consumed via a `targets` job + `fromJSON` in both `release-desktop.yml` and `release-server.yml`. Dead `release-daemons.yml` + its sole-consumer `cargo-cross-build` composite action removed. `docker-backend.yml` renamed to `release-server.yml` to match the doc.
 
@@ -432,14 +432,14 @@ Target (post-P5) — sudoless, signed, single-bundle.
 
 - One `.app` per install, containing the addon (`.node`) shipped inside the Electron bundle. No separate `soma-daemon.app` / `soma-agentd.app`.
 - Build → **Developer ID Application** code-sign (`codesign --deep --options runtime --timestamp --sign ...`) → notarize via `notarytool` → `xcrun stapler staple`.
-- Distribute as a notarized zip via the GitHub Release. The user downloads the zip, unzips, and drags `Soma.app` into `~/Applications/`. No `/Applications`, no `/Library/LaunchAgents`, no `pkgbuild`, no `installer` invocation, no sudo, no `xattr -dr` quarantine stripping, no install/uninstall scripts.
+- Distribute as a notarized `.dmg` (standard) **and** a notarized `.zip` (manual) via the GitHub Release. Both come from the same signed `.app`. Users pick either: open the `.dmg` and drag Soma into Applications, or unzip and drop `Soma.app` wherever they want. No `/Library/LaunchAgents`, no `pkgbuild`, no `installer` invocation, no sudo, no `xattr -dr` quarantine stripping, no install/uninstall scripts.
 - macOS Login Item registered via `app.setLoginItemSettings({ openAtLogin: true, openAsHidden: true })` so the peer is online from session start (when the user opts in). The peer is alive only while the process is running — closing the window hides to tray.
 - arm64 only (5e38e7d set the precedent; the Intel path was retired).
 
 ### Linux
 
-- Distribute as an `.AppImage` per arch (amd64 + arm64) via the GitHub Release. The user `chmod +x`'s it and runs it; moving it under `~/Applications/` is encouraged but not required. No tarball, no install script, no systemd unit shipped — autostart is the user's problem (a `.desktop` file under `~/.config/autostart/` is the conventional way).
-- No dpkg/rpm by default. If we ship distro packages later, they remain optional and sudo'd; the default install path is sudoless.
+- Distribute as a `.deb` (standard) **and** an `.AppImage` (no-install) per arch (amd64 + arm64) via the GitHub Release. The `.deb` installs via `sudo apt install ./soma-...deb` and surfaces in the application menu; the AppImage is `chmod +x`-and-run for users who'd rather not touch a package manager. No tarball, no install script, no systemd unit shipped — autostart is the user's problem (a `.desktop` file under `~/.config/autostart/` is the conventional way).
+- No rpm by default. If we ship a Fedora/openSUSE package later, it follows the same dual-track principle (one sudo'd standard install, one portable AppImage).
 
 ### CI
 

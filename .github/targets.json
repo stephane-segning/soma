@@ -1,26 +1,26 @@
 {
-  "$comment": "Single source of (os, arch) truth for all release workflows. Read at job start via jq and consumed as a matrix include via fromJSON. Adding a new target = adding one entry here; both release-desktop.yml and release-server.yml pick it up automatically (server matrix is linux-only by definition).",
+  "$comment": "Single source of (os, arch) truth for all release workflows. Read at job start via jq and consumed as a matrix include via fromJSON. Adding a new target = adding one entry here; both release-desktop.yml and release-server.yml pick it up automatically (server matrix is linux-only by definition). `artifact_exts` lists every artifact extension electron-builder produces for that target — the build step collects each, the manifest job enumerates them.",
   "desktop": [
     {
       "os": "linux",
       "arch": "amd64",
       "runs_on": "ubuntu-latest",
       "electron_arch_flag": "--x64",
-      "artifact_ext": "AppImage"
+      "artifact_exts": ["AppImage", "deb"]
     },
     {
       "os": "linux",
       "arch": "arm64",
       "runs_on": "ubuntu-24.04-arm",
       "electron_arch_flag": "--arm64",
-      "artifact_ext": "AppImage"
+      "artifact_exts": ["AppImage", "deb"]
     },
     {
       "os": "macos",
       "arch": "arm64",
       "runs_on": "macos-latest",
       "electron_arch_flag": "--arm64",
-      "artifact_ext": "zip"
+      "artifact_exts": ["zip", "dmg"]
     }
   ],
   "server": [
