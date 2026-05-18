@@ -49,7 +49,7 @@ export function ContextMenu({
 						>
 							<div
 								className={cn(
-									"glass-panel min-w-48 rounded-xl p-2 backdrop-blur-xl",
+									"glass-panel shadow-elevated min-w-48 p-2",
 									className,
 								)}
 							>

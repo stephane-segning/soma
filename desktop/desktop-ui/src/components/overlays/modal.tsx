@@ -44,7 +44,7 @@ export function Modal({
 					>
 						<motion.div
 							animate={{ opacity: 1, y: 0 }}
-							className="glass-panel max-w-xl rounded-2xl p-6 shadow-2xl"
+							className="glass-panel shadow-elevated max-w-xl p-6"
 							exit={{ opacity: 0, y: 8 }}
 							initial={{ opacity: 0, y: 12 }}
 							onClick={(event) => event.stopPropagation()}

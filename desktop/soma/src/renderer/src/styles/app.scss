@@ -1,9 +1,11 @@
 @use "tailwindcss/index.css";
 @use "./practice.scss";
 @import "highlight.js/styles/github.css";
+/* Shared design tokens + surface utilities — single source of truth. */
+@import "../../../../../desktop-ui/src/tokens.css";
 
-@source "../../../../../desktp-ui/src";
-@source "../../../../../desktp-editor/src";
+@source "../../../../../desktop-ui/src";
+@source "../../../../../desktop-editor/src";
 
 @plugin "tailwind-scrollbar";
 @plugin "@tailwindcss/typography";
@@ -19,23 +21,6 @@
 
 @utility h-content {
   @apply min-h-[calc(100vh-3em)]
-}
-
-@utility glass-panel {
-  @apply border border-base-300/70 bg-base-100/70 backdrop-blur-xl shadow-2xl;
-}
-
-@utility surface-card {
-  @apply bg-base-100/80 border border-base-300/60 shadow-xl rounded-2xl;
-}
-
-@utility wallpaper-grid {
-  background-image: radial-gradient(
-    circle at 1px 1px,
-    rgba(255, 255, 255, 0.08) 1px,
-    transparent 0
-  );
-  background-size: 32px 32px;
 }
 
 html, body, #root {

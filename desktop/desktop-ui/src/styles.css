@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./tokens.css";
 
 @plugin "tailwind-scrollbar";
 @plugin "@tailwindcss/typography";
@@ -9,44 +10,11 @@
 		luxury;
 }
 
-@theme {
-	--animate-caret: blink 1s steps(11) infinite 2s;
-
-	@keyframes blink {
-		0% {
-			opacity: 1;
-		}
-		0.1% {
-			opacity: 1;
-		}
-		50% {
-			opacity: 1;
-		}
-		50.1% {
-			opacity: 0;
-		}
-		100% {
-			opacity: 0;
-		}
-	}
-}
-
-@utility glass-panel {
-	@apply border border-base-300/70 bg-base-100/70 backdrop-blur-xl shadow-2xl;
-}
-
-@utility surface-card {
-	@apply bg-base-100/80 border border-base-300/60 shadow-xl rounded-2xl;
-}
-
-@utility wallpaper-grid {
-	background-image: radial-gradient(
-		circle at 1px 1px,
-		rgba(255, 255, 255, 0.08) 1px,
-		transparent 0
-	);
-	background-size: 32px 32px;
-}
+/* -----------------------------------------------------------------
+ * Soma UI–specific styling that isn't part of the shared token set.
+ * Toasts use the DaisyUI semantic colors directly; do not move these
+ * to tokens.css.
+ * ----------------------------------------------------------------- */
 
 .react-hot-toast {
 	@apply text-sm;

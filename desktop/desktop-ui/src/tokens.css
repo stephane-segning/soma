@@ -1,0 +1,115 @@
+/* -----------------------------------------------------------------
+ * Shared design tokens + utilities for the Soma UI revamp.
+ *
+ * Imported by both `@soma/ui/styles.css` (Storybook + canonical
+ * build) and `desktop/soma/src/renderer/src/styles/app.scss` (the
+ * Electron renderer). Single source of truth — do not duplicate the
+ * @theme or @utility blocks elsewhere.
+ *
+ * Locked by ADR-0005 §7 and detailed in
+ * docs/src/architecture/prd/ui-revamp-v0-refs-files-density.md §3.
+ * ----------------------------------------------------------------- */
+
+@theme {
+	/* Cursor blink keyframe (used by CharDisplay). */
+	--animate-caret: blink 1s steps(11) infinite 2s;
+
+	@keyframes blink {
+		0% {
+			opacity: 1;
+		}
+		0.1% {
+			opacity: 1;
+		}
+		50% {
+			opacity: 1;
+		}
+		50.1% {
+			opacity: 0;
+		}
+		100% {
+			opacity: 0;
+		}
+	}
+
+	/* Font sizes (rem-based for accessibility; px equivalents in comments). */
+	--text-body: 0.875rem; /* 14px @ 16px root */
+	--text-body--line-height: 1.5;
+	--text-ui-sm: 0.8125rem; /* 13px */
+	--text-ui-sm--line-height: 1.2;
+	--text-ui-xs: 0.6875rem; /* 11px */
+	--text-ui-xs--line-height: 1.2;
+
+	/* Single allowed shadow token. Reserved for modal + popup surfaces. */
+	--shadow-elevated:
+		0 6px 24px -8px rgba(0, 0, 0, 0.18), 0 2px 6px -2px rgba(0, 0, 0, 0.08);
+}
+
+/* -----------------------------------------------------------------
+ * Row-height tiers — named by content, not by bare px.
+ * `row-text` does NOT fit a 40px avatar; use `row-avatar` for that.
+ * ----------------------------------------------------------------- */
+
+@utility row-text {
+	@apply h-8; /* 2rem / 32px — text-only or icon-leading rows */
+}
+
+@utility row-avatar {
+	@apply h-10; /* 2.5rem / 40px — rows with avatars / file-type glyphs */
+}
+
+@utility row-card {
+	height: 3.25rem; /* 3.25rem / 52px — two-line content (primary + sub) */
+}
+
+/* -----------------------------------------------------------------
+ * Revamped surface utilities. **Shadows are off by default everywhere.**
+ *
+ * `surface-card` — resting-surface utility used by sections and cards
+ * inside a page. Border + bg only.
+ *
+ * `glass-panel` — translucent-surface utility used by overlays that
+ * need backdrop blur (modal, popover, dropdown, taskbar, window-chrome).
+ * Border + bg + blur, no shadow.
+ *
+ * Floating overlays that genuinely need depth (modal, popover, command
+ * palette, bubble toolbar, context menu) add the `shadow-elevated`
+ * class explicitly — the ADR-0005 §7 single-shadow exception is opt-in,
+ * not utility-inherited.
+ * ----------------------------------------------------------------- */
+
+@utility surface-card {
+	@apply bg-base-100 border border-base-300 rounded-md;
+}
+
+@utility glass-panel {
+	@apply border border-base-300/70 bg-base-100/85 backdrop-blur-xl rounded-md;
+}
+
+/* -----------------------------------------------------------------
+ * Legacy variants preserved for non-revamped screens during the
+ * incremental cutover. Deleted after
+ * docs/src/architecture/prd/ui-revamp-v0-scaffold.md §5 completes.
+ * ----------------------------------------------------------------- */
+
+@utility surface-card-legacy {
+	@apply bg-base-100/80 border border-base-300/60 shadow-xl rounded-2xl;
+}
+
+@utility glass-panel-legacy {
+	@apply border border-base-300/70 bg-base-100/70 backdrop-blur-xl shadow-2xl;
+}
+
+/* -----------------------------------------------------------------
+ * Wallpaper grid utility (used by the Soma renderer's wallpaper layer
+ * and any Storybook story that wants the same dotted backdrop).
+ * ----------------------------------------------------------------- */
+
+@utility wallpaper-grid {
+	background-image: radial-gradient(
+		circle at 1px 1px,
+		rgba(255, 255, 255, 0.08) 1px,
+		transparent 0
+	);
+	background-size: 32px 32px;
+}

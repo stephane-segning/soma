@@ -185,7 +185,7 @@ New / extended components, all built once for both `soma` and `practice` consume
 | `Empty` | Empty-state primitive with three variants: **full** (icon + headline + optional CTA), **compact** (dashed-border single line, for narrow panels), **filter** (CTA is `Clear filter ×`) | new |
 | `DenseRow` | Shared list-row slot model: `leading · primary(+sub) · status pill · meta · always-visible ⋯`. Used by members, bots, attachments, recent docs | new |
 | `CommandPalette` | ⌘K modal: Recent docs (any space) → Spaces → Documents → Commands | new |
-| `TreePopover` | Document-tree picker anchored under the last breadcrumb segment in the document column header | new |
+| `TreePopover` | Document-tree picker anchored under the last breadcrumb segment in the document column header. Built on [`react-complex-tree`](https://www.npmjs.com/package/react-complex-tree) for keyboard nav, drag-and-drop reordering, and large-tree virtualization | new |
 | `PopupShell` | Reusable popup-window chrome (drag strip + glyph cluster: pin / restart / return-to-main / close). Hosts `CharDisplay` in v0; exams/surveys later | new |
 | `SelectionAIBar` | Inline AI popover above selection — prompt input + categorized action list (Rewrite / Modify / Tone / Transform / Translate / Custom). Trailing chip on `SelectionBubble` opens it | new |
 | `InlineAIAcceptBar` | `Accept · Try again · Refine… · Discard · Open in chat` bar anchored under inserted region after AI streams | new |

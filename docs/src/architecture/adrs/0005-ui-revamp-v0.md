@@ -102,6 +102,8 @@ Inline AI is a third editor surface alongside SlashMenu and SelectionBubble — 
 
 The page tree is **not** a third docked pane. It opens as a popover anchored under the last breadcrumb segment in the document column header, with sections Search / Recent / Starred / All pages and a footer chip-strip teaching keyboard shortcuts. Scope defaults to the current space; Tab widens to all spaces.
 
+The tree itself is built on [`react-complex-tree`](https://www.npmjs.com/package/react-complex-tree), which gives us keyboard nav, drag-and-drop reordering, and virtualization for large trees without reimplementing them. Any other tree UI in the renderer (e.g. the legacy page-tree in `desktop/soma`) migrates to the same library so we don't carry two tree implementations.
+
 A separate ⌘K **CommandPalette** covers cross-cutting navigation: Recent docs (any space) → Spaces → Documents → Commands.
 
 ### 13. Inline AI as a content-transformation surface

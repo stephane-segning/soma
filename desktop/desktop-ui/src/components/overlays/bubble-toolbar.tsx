@@ -38,7 +38,7 @@ export function BubbleToolbar({
 					>
 						<div
 							className={cn(
-								"glass-panel flex items-center gap-1 rounded-xl p-1 shadow-2xl",
+								"glass-panel shadow-elevated flex items-center gap-1 p-1",
 								className,
 							)}
 						>

@@ -51,7 +51,7 @@ const shapeStyles: Record<Shape, string> = {
 export function PolymorphButton({
 	variant = "primary",
 	size = "md",
-	shape = "circle",
+	shape = "default",
 	iconOnly,
 	leadingIcon,
 	trailingIcon,
