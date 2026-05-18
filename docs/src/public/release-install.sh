@@ -152,8 +152,9 @@ if [ "$os" = "darwin" ]; then
     echo "Install failed: Soma.app not found after unzip." >&2
     exit 1
   fi
-  # Ad-hoc-signed apps trip Gatekeeper without this. Notarization replaces
-  # this band-aid (see AGENTS.md, P6).
+  # Notarized builds resolve their own Gatekeeper ticket on first launch, so
+  # stripping the quarantine xattr is unnecessary — but harmless, and useful
+  # as a safety net if a release ever ships unsigned (e.g. secrets missing).
   if command -v xattr >/dev/null 2>&1; then
     xattr -dr com.apple.quarantine "$target" 2>/dev/null || true
   fi
