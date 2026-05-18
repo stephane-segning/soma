@@ -82,7 +82,10 @@ export function PopupShell({
 				className="flex h-7 shrink-0 items-center justify-between gap-2 border-base-300 border-b bg-base-100 px-2"
 				data-drag-region
 			>
-				<div className="min-w-0 flex-1 truncate text-base-content/80 text-ui-xs">
+				<div
+					className="min-w-0 flex-1 truncate text-base-content/80 text-ui-xs"
+					title={title}
+				>
 					{title}
 				</div>
 				<div className="flex shrink-0 items-center gap-0.5" data-no-drag>
@@ -138,21 +141,35 @@ export function PopupShell({
 			</header>
 			{progress !== undefined ? (
 				<div
+					aria-label={t({
+						id: "popup-shell.progress",
+						defaultMessage: "Task progress",
+					})}
 					aria-valuemax={100}
 					aria-valuemin={0}
-					aria-valuenow={Math.max(0, Math.min(100, progress))}
+					aria-valuenow={clampProgress(progress)}
 					className="h-px bg-base-200"
 					role="progressbar"
 				>
 					<div
 						className="h-px bg-primary transition-[width] duration-150"
-						style={{ width: `${Math.max(0, Math.min(100, progress))}%` }}
+						style={{ width: `${clampProgress(progress)}%` }}
 					/>
 				</div>
 			) : null}
 			<main className="min-h-0 flex-1 overflow-auto">{children}</main>
 		</div>
 	);
+}
+
+/**
+ * Coerces an arbitrary numeric progress value into the [0, 100] range,
+ * defaulting NaN / non-finite inputs (e.g. division by zero in the
+ * parent) to 0 so the rendered `width: …%` stays valid CSS.
+ */
+function clampProgress(value: number): number {
+	if (!Number.isFinite(value)) return 0;
+	return Math.max(0, Math.min(100, value));
 }
 
 function GlyphButton({
@@ -206,7 +223,13 @@ function PinIcon({
 	return (
 		<svg
 			aria-hidden
-			className={cn(className, pinned && "-rotate-12 transition-transform")}
+			// `transition-transform` applies unconditionally so the rotate
+			// animates in BOTH directions (snap-back on unpin was the bug).
+			className={cn(
+				className,
+				"transition-transform duration-150",
+				pinned && "-rotate-12",
+			)}
 			fill="none"
 			stroke="currentColor"
 			strokeLinecap="round"
