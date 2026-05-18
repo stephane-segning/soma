@@ -40,7 +40,7 @@ export type MentionItem = {
 	isBot?: boolean;
 };
 
-export type MentionSectionKind = "bots" | "documents" | "members";
+export type MentionSectionKind = "bots" | "documents" | "members" | "spaces";
 
 export type MentionSection = {
 	kind: MentionSectionKind;
@@ -57,16 +57,30 @@ export type MentionPickerProps = {
 	query: string;
 	onSelect: (item: MentionItem, section: MentionSectionKind) => void;
 	onClose: () => void;
+	/**
+	 * Where the keyboard handler scopes itself. `"container"` (default)
+	 * only fires on events with `target` inside the picker — useful when
+	 * the picker owns focus (e.g. chat composer). `"window"` listens on
+	 * every key, useful when focus stays in a host editor (e.g. TipTap's
+	 * contenteditable while the picker is open).
+	 */
+	captureScope?: "container" | "window";
 	className?: string;
 };
 
-const SECTION_ORDER: MentionSectionKind[] = ["bots", "documents", "members"];
+const SECTION_ORDER: MentionSectionKind[] = [
+	"bots",
+	"documents",
+	"members",
+	"spaces",
+];
 
 export function MentionPicker({
 	sections,
 	query,
 	onSelect,
 	onClose,
+	captureScope = "container",
 	className,
 }: MentionPickerProps) {
 	const t = useT();
@@ -103,11 +117,13 @@ export function MentionPicker({
 
 	useEffect(() => {
 		const onKeyDown = (event: KeyboardEvent) => {
-			// Only respond when the event originated inside this instance —
-			// otherwise multiple mention pickers on the page would all react.
-			const target = event.target;
-			if (!(target instanceof Node)) return;
-			if (!containerRef.current?.contains(target)) return;
+			if (captureScope === "container") {
+				// Only respond when the event originated inside this instance —
+				// otherwise multiple mention pickers on the page would all react.
+				const target = event.target;
+				if (!(target instanceof Node)) return;
+				if (!containerRef.current?.contains(target)) return;
+			}
 			if (event.key === "ArrowDown") {
 				event.preventDefault();
 				setActiveIndex((idx) => (flat.length === 0 ? 0 : (idx + 1) % flat.length));
@@ -127,7 +143,7 @@ export function MentionPicker({
 		};
 		window.addEventListener("keydown", onKeyDown);
 		return () => window.removeEventListener("keydown", onKeyDown);
-	}, [flat, activeIndex, onSelect, onClose]);
+	}, [flat, activeIndex, onSelect, onClose, captureScope]);
 
 	const sectionLabel: Record<MentionSectionKind, string> = {
 		bots: t({
@@ -141,6 +157,10 @@ export function MentionPicker({
 		members: t({
 			id: "mention-picker.section.members",
 			defaultMessage: "Members",
+		}),
+		spaces: t({
+			id: "mention-picker.section.spaces",
+			defaultMessage: "Spaces",
 		}),
 	};
 

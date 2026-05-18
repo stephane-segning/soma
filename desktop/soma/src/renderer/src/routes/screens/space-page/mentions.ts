@@ -10,6 +10,7 @@ export function usePageMentionProviders(spaceId: string): MentionProvider[] {
 			name: "peerMention",
 			char: "@",
 			placeholder: "Mention a peer",
+			section: "members",
 			items: async (query) => {
 				const members = await spacesService.listSpaceMembers(spaceId);
 				const trimmed = query.trim().toLowerCase();
@@ -28,6 +29,7 @@ export function usePageMentionProviders(spaceId: string): MentionProvider[] {
 			name: "spaceMention",
 			char: "%",
 			placeholder: "Mention a space",
+			section: "spaces",
 			items: async (query) => {
 				const result = await spacesService.listSpaces({ query });
 				return result.spaces.map((space) => ({
@@ -43,6 +45,7 @@ export function usePageMentionProviders(spaceId: string): MentionProvider[] {
 			name: "pageMention",
 			char: "#",
 			placeholder: "Mention a page",
+			section: "documents",
 			items: async (query) => {
 				const pages = await documentsService.listPages({ spaceId });
 				const trimmed = query.trim().toLowerCase();

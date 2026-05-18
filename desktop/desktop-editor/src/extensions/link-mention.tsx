@@ -21,7 +21,7 @@ export function createLinkMentionExtension(provider: MentionProvider) {
 					command: ({ editor, range, props }: { editor: Editor; range: Range; props: MentionItem }) => {
 						insertMentionLink(editor, range, provider.char, props);
 					},
-					render: renderMentionItems(provider.placeholder),
+					render: renderMentionItems(provider.placeholder, provider.section),
 				}),
 			];
 		},
