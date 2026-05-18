@@ -107,13 +107,19 @@ export function CommandPalette({
 	);
 
 	// Reset the filter when the palette opens so consecutive opens
-	// don't surface stale query state.
+	// don't surface stale query state. `onQueryChange` is read via a
+	// ref so a caller passing an inline arrow function doesn't cause
+	// this effect to re-fire mid-typing and wipe the user's input.
+	const onQueryChangeRef = useRef(onQueryChange);
+	useEffect(() => {
+		onQueryChangeRef.current = onQueryChange;
+	}, [onQueryChange]);
 	useEffect(() => {
 		if (open) {
 			setQuery("");
-			onQueryChange?.("");
+			onQueryChangeRef.current?.("");
 		}
-	}, [open, onQueryChange]);
+	}, [open]);
 
 	const sectionLabel = useMemo<Record<CommandPaletteSectionKind, string>>(
 		() => ({
