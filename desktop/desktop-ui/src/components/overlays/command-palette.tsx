@@ -1,49 +1,90 @@
+/**
+ * CommandPalette — cross-cutting ⌘K modal for jumping anywhere in the
+ * app and running commands.
+ *
+ * Locked by [ADR-0005 §12](../../../../../docs/src/architecture/adrs/0005-ui-revamp-v0.md)
+ * and [refs space-lifecycle §3](../../../../../docs/src/architecture/prd/ui-revamp-v0-refs-space-lifecycle.md).
+ *
+ * Sections in fixed priority order:
+ *   1. Recent docs (any space)
+ *   2. Spaces
+ *   3. Documents
+ *   4. Commands
+ *
+ * Same chip-strip footer as TreePopover so the two surfaces feel
+ * sibling, not separate.
+ */
 import { AnimatePresence, motion } from "motion/react";
-import { useMemo, useState } from "react";
+import {
+	type ReactNode,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { Search } from "react-feather";
 import { useHotkeys } from "react-hotkeys-hook";
+import { useT } from "../../i18n/use-t";
+import { cn } from "../../utils/cn";
 import { OverlayPortal } from "./overlay-portal";
+
+export type CommandPaletteSectionKind =
+	| "recent-docs"
+	| "spaces"
+	| "documents"
+	| "commands";
 
 export type CommandPaletteItem = {
 	id: string;
 	title: string;
+	/** Single-line secondary text (e.g. space name, doc path, command group). */
 	subtitle?: string;
+	/** Keyboard shortcut hint shown right-aligned (display only). */
 	shortcut?: string;
-	icon?: React.ReactNode;
-	group?: string;
-	onSelect?: () => void;
+	icon?: ReactNode;
+	section: CommandPaletteSectionKind;
+	onSelect: () => void;
 };
 
 export type CommandPaletteProps = {
 	open: boolean;
 	items: CommandPaletteItem[];
-	onClose?: () => void;
+	onClose: () => void;
 	onOpen?: () => void;
 	placeholder?: string;
 	hotkey?: string;
 };
+
+const SECTION_ORDER: CommandPaletteSectionKind[] = [
+	"recent-docs",
+	"spaces",
+	"documents",
+	"commands",
+];
 
 export function CommandPalette({
 	open,
 	items,
 	onClose,
 	onOpen,
-	placeholder = "Search commands…",
+	placeholder,
 	hotkey = "mod+k",
 }: CommandPaletteProps) {
+	const t = useT();
 	const [query, setQuery] = useState("");
+	const containerRef = useRef<HTMLDivElement | null>(null);
 
 	useHotkeys(
 		hotkey,
 		(event) => {
 			event.preventDefault();
 			if (open) {
-				onClose?.();
+				onClose();
 			} else {
 				onOpen?.();
 			}
 		},
-		{ enabled: true },
+		{ enabled: true, enableOnFormTags: true },
 		[open, onClose, onOpen, hotkey],
 	);
 
@@ -51,34 +92,92 @@ export function CommandPalette({
 		"esc",
 		(event) => {
 			event.preventDefault();
-			onClose?.();
+			onClose();
 		},
-		{ enabled: open },
+		{ enabled: open, enableOnFormTags: true },
 		[open, onClose],
 	);
 
-	const filtered = useMemo(() => {
-		if (!query) return items;
-		const lower = query.toLowerCase();
-		return items.filter(
-			(item) =>
-				item.title.toLowerCase().includes(lower) ||
-				item.subtitle?.toLowerCase().includes(lower) ||
-				item.group?.toLowerCase().includes(lower),
-		);
-	}, [items, query]);
+	// Reset the filter when the palette opens so consecutive opens
+	// don't surface stale query state.
+	useEffect(() => {
+		if (open) setQuery("");
+	}, [open]);
+
+	const sectionLabel: Record<CommandPaletteSectionKind, string> = {
+		"recent-docs": t({
+			id: "command-palette.section.recent-docs",
+			defaultMessage: "Recent",
+		}),
+		spaces: t({
+			id: "command-palette.section.spaces",
+			defaultMessage: "Spaces",
+		}),
+		documents: t({
+			id: "command-palette.section.documents",
+			defaultMessage: "Documents",
+		}),
+		commands: t({
+			id: "command-palette.section.commands",
+			defaultMessage: "Commands",
+		}),
+	};
 
 	const grouped = useMemo(() => {
-		const groups = new Map<string, CommandPaletteItem[]>();
-		for (const item of filtered) {
-			const key = item.group ?? "Commands";
-			const list = groups.get(key) ?? [];
-			list.push(item);
-			groups.set(key, list);
-		}
-		return Array.from(groups.entries());
-	}, [filtered]);
+		const lower = query.toLowerCase();
+		const matches = items.filter((item) => {
+			if (lower.length === 0) return true;
+			return (
+				item.title.toLowerCase().includes(lower) ||
+				item.subtitle?.toLowerCase().includes(lower)
+			);
+		});
+		const buckets = new Map<CommandPaletteSectionKind, CommandPaletteItem[]>();
+		for (const section of SECTION_ORDER) buckets.set(section, []);
+		for (const item of matches) buckets.get(item.section)?.push(item);
+		return SECTION_ORDER.map((section) => ({
+			section,
+			items: buckets.get(section) ?? [],
+		})).filter((g) => g.items.length > 0);
+	}, [items, query]);
 
+	const flat = useMemo(() => grouped.flatMap((g) => g.items), [grouped]);
+
+	const [activeIndex, setActiveIndex] = useState(0);
+	useEffect(() => {
+		setActiveIndex(0);
+	}, [flat]);
+
+	useEffect(() => {
+		if (!open) return;
+		const onKeyDown = (event: KeyboardEvent) => {
+			// Only respond when the focus is within this palette instance.
+			const target = event.target;
+			if (!(target instanceof Node)) return;
+			if (!containerRef.current?.contains(target)) return;
+			if (event.key === "ArrowDown") {
+				event.preventDefault();
+				setActiveIndex((idx) =>
+					flat.length === 0 ? 0 : (idx + 1) % flat.length,
+				);
+			} else if (event.key === "ArrowUp") {
+				event.preventDefault();
+				setActiveIndex((idx) =>
+					flat.length === 0 ? 0 : (idx - 1 + flat.length) % flat.length,
+				);
+			} else if (event.key === "Enter") {
+				event.preventDefault();
+				if (flat.length > 0) {
+					flat[activeIndex]?.onSelect();
+					onClose();
+				}
+			}
+		};
+		window.addEventListener("keydown", onKeyDown);
+		return () => window.removeEventListener("keydown", onKeyDown);
+	}, [open, flat, activeIndex, onClose]);
+
+	let runningIndex = 0;
 	return (
 		<OverlayPortal>
 			<AnimatePresence>
@@ -92,75 +191,145 @@ export function CommandPalette({
 					>
 						<motion.div
 							animate={{ opacity: 1, y: 0, scale: 1 }}
-							className="glass-panel shadow-elevated w-full max-w-2xl p-3"
+							aria-label={t({
+								id: "command-palette.aria-label",
+								defaultMessage: "Command palette",
+							})}
+							aria-modal="true"
+							className="glass-panel shadow-elevated w-full max-w-2xl p-2"
 							exit={{ opacity: 0, y: 8, scale: 0.99 }}
 							initial={{ opacity: 0, y: 10, scale: 0.99 }}
 							onClick={(event) => event.stopPropagation()}
+							ref={containerRef}
+							role="dialog"
 							transition={{ duration: 0.15, ease: "easeOut" }}
 						>
-							<div className="flex items-center gap-2 rounded-xl bg-base-200 px-3 py-2">
-								<Search className="text-base-content/60" size={16} />
+							<div className="flex items-center gap-2 rounded-md bg-base-200 px-2 py-1.5">
+								<Search
+									aria-hidden
+									className="size-4 shrink-0 text-base-content/60"
+								/>
 								<input
-									className="h-9 flex-1 bg-transparent text-sm outline-none"
+									autoFocus
+									className="min-w-0 flex-1 bg-transparent text-body outline-none placeholder:text-base-content/40"
 									onChange={(event) => setQuery(event.target.value)}
-									placeholder={placeholder}
+									placeholder={
+										placeholder ??
+										t({
+											id: "command-palette.placeholder",
+											defaultMessage: "Search docs, spaces, commands…",
+										})
+									}
+									type="text"
 									value={query}
 								/>
-								<span className="text-[10px] text-base-content/50 uppercase">
-									Esc
-								</span>
 							</div>
 
-							<div className="mt-3 max-h-80 overflow-auto pr-1">
-								{grouped.map(([group, list]) => (
-									<div className="mb-3 last:mb-0" key={group}>
-										<div className="px-2 pb-1 font-semibold text-[11px] text-base-content/50 uppercase">
-											{group}
+							<div className="mt-2 flex max-h-96 flex-col gap-1 overflow-y-auto">
+								{grouped.map((group) => (
+									<div className="flex flex-col gap-0.5" key={group.section}>
+										<div className="px-2 pt-1 text-base-content/50 text-ui-xs uppercase tracking-wide">
+											{sectionLabel[group.section]}
 										</div>
-										<div className="flex flex-col gap-1">
-											{list.map((item) => (
+										{group.items.map((item) => {
+											const isActive = runningIndex === activeIndex;
+											const ownIndex = runningIndex;
+											runningIndex += 1;
+											return (
 												<button
-													className="flex items-center gap-3 rounded-xl px-3 py-2 text-left transition hover:bg-base-200"
+													aria-selected={isActive}
+													className={cn(
+														"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-ui-sm transition-colors",
+														isActive
+															? "bg-base-200 text-base-content"
+															: "hover:bg-base-200",
+													)}
 													key={item.id}
 													onClick={() => {
-														item.onSelect?.();
-														onClose?.();
+														item.onSelect();
+														onClose();
 													}}
+													onMouseEnter={() => setActiveIndex(ownIndex)}
+													role="option"
 													type="button"
 												>
-													<span className="grid h-9 w-9 place-items-center rounded-lg bg-base-300/60 text-base-content/80">
-														{item.icon ?? <Search size={14} />}
+													<span
+														aria-hidden
+														className="shrink-0 text-base-content/60"
+													>
+														{item.icon ?? <Search className="size-3.5" />}
 													</span>
-													<div className="flex-1">
-														<div className="font-semibold text-sm">
-															{item.title}
-														</div>
+													<span className="flex min-w-0 flex-1 flex-col">
+														<span className="truncate">{item.title}</span>
 														{item.subtitle ? (
-															<div className="text-base-content/60 text-xs">
+															<span className="truncate text-base-content/60 text-ui-xs">
 																{item.subtitle}
-															</div>
+															</span>
 														) : null}
-													</div>
+													</span>
 													{item.shortcut ? (
-														<span className="text-[11px] text-base-content/60">
+														<span className="shrink-0 font-mono text-base-content/40 text-ui-xs">
 															{item.shortcut}
 														</span>
 													) : null}
 												</button>
-											))}
-										</div>
+											);
+										})}
 									</div>
 								))}
-								{filtered.length === 0 ? (
-									<div className="flex h-24 items-center justify-center text-base-content/60 text-sm">
-										No commands found
+								{flat.length === 0 ? (
+									<div className="px-2 py-4 text-center text-base-content/60 text-ui-sm">
+										{t({
+											id: "command-palette.empty",
+											defaultMessage: "No matches",
+										})}
 									</div>
 								) : null}
 							</div>
+
+							<KeyboardHintsFooter />
 						</motion.div>
 					</motion.div>
 				) : null}
 			</AnimatePresence>
 		</OverlayPortal>
+	);
+}
+
+function KeyboardHintsFooter() {
+	const t = useT();
+	return (
+		<div className="mt-2 flex flex-wrap items-center gap-1 border-base-300 border-t pt-2 text-base-content/50 text-ui-xs">
+			<HintChip
+				keys="↑↓"
+				label={t({
+					id: "command-palette.hint.nav",
+					defaultMessage: "Navigate",
+				})}
+			/>
+			<HintChip
+				keys="↵"
+				label={t({
+					id: "command-palette.hint.open",
+					defaultMessage: "Open",
+				})}
+			/>
+			<HintChip
+				keys="Esc"
+				label={t({
+					id: "command-palette.hint.close",
+					defaultMessage: "Close",
+				})}
+			/>
+		</div>
+	);
+}
+
+function HintChip({ keys, label }: { keys: string; label: string }) {
+	return (
+		<span className="inline-flex items-center gap-1 rounded-sm bg-base-200 px-1.5 py-0.5">
+			<kbd className="font-mono text-ui-xs">{keys}</kbd>
+			<span>{label}</span>
+		</span>
 	);
 }

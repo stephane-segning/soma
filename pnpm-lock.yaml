@@ -262,6 +262,9 @@ importers:
       re-resizable:
         specifier: ^6.11.2
         version: 6.11.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      react-complex-tree:
+        specifier: ^2.4.6
+        version: 2.6.1(react@19.2.4)
       react-feather:
         specifier: ^2.0.10
         version: 2.0.10(react@19.2.4)
@@ -7668,6 +7671,11 @@ packages:
     peerDependencies:
       react: ^16.x || ^17.x || ^18.x
       react-dom: ^16.x || ^17.x || ^18.x
+
+  react-complex-tree@2.6.1:
+    resolution: {integrity: sha512-RZubW4lh086/R38bbNKpkRpLWG+PdEMBIvYvSUelYNJfv/xaAboRKguWN8hfBvoV9O4NSi6jcMv/AcCm2PbJRg==}
+    peerDependencies:
+      react: '>=16.0.0'
 
   react-docgen-typescript@2.4.0:
     resolution: {integrity: sha512-ZtAp5XTO5HRzQctjPU0ybY0RRCQO19X/8fxn3w7y2VVTUbGHDKULPTL4ky3vB05euSgG5NpALhEhDPvQ56wvXg==}
@@ -16632,6 +16640,10 @@ snapshots:
     transitivePeerDependencies:
       - '@rspack/core'
       - webpack
+
+  react-complex-tree@2.6.1(react@19.2.4):
+    dependencies:
+      react: 19.2.4
 
   react-docgen-typescript@2.4.0(typescript@5.9.3):
     dependencies:
