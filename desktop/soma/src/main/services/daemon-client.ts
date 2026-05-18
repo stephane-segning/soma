@@ -66,6 +66,15 @@ export class DaemonClient {
 			subscription = null;
 		};
 
+		const surface = (error: unknown, where: string) => {
+			if (cancelled) return;
+			const err = error instanceof Error ? error : new Error(String(error));
+			// Always trace — so errors are visible even when no onError handler
+			// is provided — then forward to the caller's handler if present.
+			this.logger?.log("warn", `daemon stream events ${where}`, { error: err.message });
+			handlers.onError?.(err);
+		};
+
 		void (async () => {
 			try {
 				const handle = await this.handle();
@@ -75,7 +84,7 @@ export class DaemonClient {
 						const mapped = mapDaemonEvent(event);
 						if (mapped) handlers.onEvent(mapped);
 					} catch (error) {
-						handlers.onError?.(error instanceof Error ? error : new Error(String(error)));
+						surface(error, "callback failed");
 					}
 				});
 				if (cancelled) {
@@ -83,9 +92,7 @@ export class DaemonClient {
 					subscription = null;
 				}
 			} catch (error) {
-				if (!cancelled) {
-					handlers.onError?.(error instanceof Error ? error : new Error(String(error)));
-				}
+				surface(error, "subscribe failed");
 			}
 		})();
 

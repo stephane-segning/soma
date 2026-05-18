@@ -43,6 +43,16 @@ mac:
     - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
+  # Notarization stays disabled in the checked-in config so unsigned dev
+  # builds work out of the box. To enable for a real release, set these env
+  # vars in CI and flip this to `notarize: { teamId: <your-team> }`:
+  #   CSC_LINK             — base64-encoded Developer ID Application .p12
+  #   CSC_KEY_PASSWORD     — password for the .p12
+  #   APPLE_API_KEY        — path to the App Store Connect .p8 key file
+  #   APPLE_API_KEY_ID     — the key id (e.g. ABCD12EFGH)
+  #   APPLE_API_ISSUER     — issuer UUID from App Store Connect
+  # release-desktop.yml currently does an ad-hoc codesign + ditto rezip; keep
+  # that fallback in place until the proper Developer ID flow lands (P6b).
   notarize: false
 linux:
   target:

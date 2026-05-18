@@ -189,12 +189,59 @@ jobs:
           SOMA_OUT="$OUT_DIR/soma-desktop-${VERSION}-${{ matrix.os }}-${{ matrix.arch }}.${EXT}"
           cp "$SOMA_FILE" "$SOMA_OUT"
 
+      - name: Add per-platform SHA256SUMS and install scripts to release dir
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT_DIR="$GITHUB_WORKSPACE/artifacts/desktop/${{ matrix.os }}-${{ matrix.arch }}"
+          PARTIAL="SHA256SUMS-${{ matrix.os }}-${{ matrix.arch }}.txt"
+
+          # Copy the reviewed-in-repo install/uninstall scripts so the
+          # release ships them as `install.sh` / `uninstall.sh` assets. The
+          # contents are identical across matrix legs, so the upload-overwrite
+          # at the release level is intentional/harmless.
+          cp docs/src/public/release-install.sh   "$OUT_DIR/install.sh"
+          cp docs/src/public/release-uninstall.sh "$OUT_DIR/uninstall.sh"
+          chmod +x "$OUT_DIR/install.sh" "$OUT_DIR/uninstall.sh"
+
+          # Compute the per-platform partial SHA256SUMS. publish-manifest job
+          # downloads every partial and concatenates them into the consumer-
+          # facing `SHA256SUMS.txt`, so this asset name has to be unique per
+          # matrix leg (otherwise softprops/action-gh-release would overwrite
+          # previous legs' manifests).
+          sha_one() {
+            if command -v sha256sum >/dev/null 2>&1; then
+              sha256sum "$1"
+            else
+              shasum -a 256 "$1"
+            fi
+          }
+          (
+            cd "$OUT_DIR"
+            : > "$PARTIAL.tmp"
+            for f in *; do
+              [ -f "$f" ] || continue
+              case "$f" in
+                SHA256SUMS*.txt|*.tmp) continue ;;
+              esac
+              sha_one "$f" >> "$PARTIAL.tmp"
+            done
+            sort -k2 "$PARTIAL.tmp" > "$PARTIAL"
+            rm -f "$PARTIAL.tmp"
+          )
+
+          echo "Release dir contents:"
+          ls -la "$OUT_DIR"
+
       - name: Upload release assets
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.prepare.outputs.tag }}
           files: |
             artifacts/desktop/${{ matrix.os }}-${{ matrix.arch }}/soma-desktop-${{ needs.prepare.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}.*
+            artifacts/desktop/${{ matrix.os }}-${{ matrix.arch }}/SHA256SUMS-${{ matrix.os }}-${{ matrix.arch }}.txt
+            artifacts/desktop/${{ matrix.os }}-${{ matrix.arch }}/install.sh
+            artifacts/desktop/${{ matrix.os }}-${{ matrix.arch }}/uninstall.sh
 
   publish-manifest:
     name: Publish release manifest
@@ -254,8 +301,36 @@ jobs:
               fh.write("\n")
           PY
 
-      - name: Upload manifest asset
+      - name: Aggregate per-platform SHA256SUMS into a single manifest
+        shell: bash
+        env:
+          TAG: ${{ needs.prepare.outputs.tag }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/desktop/manifest
+          cd artifacts/desktop/manifest
+
+          # Pull every per-platform SHA256SUMS-*.txt that the matrix legs
+          # uploaded to this tag; each matrix leg's filename is disjoint
+          # (suffixed by os-arch), so all of them coexist on the release.
+          # Concatenate + sort to produce one consumer-facing SHA256SUMS.txt
+          # that lists every artifact on the tag.
+          gh release download "$TAG" --pattern 'SHA256SUMS-*.txt' --dir .
+          : > SHA256SUMS.txt.tmp
+          for f in SHA256SUMS-*.txt; do
+            [ -f "$f" ] || continue
+            cat "$f" >> SHA256SUMS.txt.tmp
+          done
+          sort -u -k2 SHA256SUMS.txt.tmp > SHA256SUMS.txt
+          rm -f SHA256SUMS.txt.tmp
+          echo "Aggregated SHA256SUMS.txt:"
+          cat SHA256SUMS.txt
+
+      - name: Upload manifest + aggregated SHA256SUMS
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.prepare.outputs.tag }}
-          files: artifacts/desktop/manifest/desktop-release-manifest.json
+          files: |
+            artifacts/desktop/manifest/desktop-release-manifest.json
+            artifacts/desktop/manifest/SHA256SUMS.txt

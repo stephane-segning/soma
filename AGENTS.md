@@ -48,10 +48,12 @@ Pre-prod refactor. Breaking changes are fine; there is no backwards-compatibilit
 - [x] P3a — `backend/crates/soma-node` napi-rs addon scaffolded, embeds both runtimes
 - [x] P3b — Proof-of-pattern: `DaemonHandle` + `SomaHandle.status()` end-to-end through napi
 - [x] P3c — `@napi-rs/cli` build pipeline wired; `@soma/node` consumed by `desktop/soma`
-- [ ] P3d — Extract remaining ~20 daemon + ~5 agent methods into `DaemonHandle` / `AgentHandle`; expose via napi
-- [ ] P4 — Soma main rewritten to call addon directly; daemon-process-manager / splash gate / socket config removed
-- [ ] P5 — **Server-binary collapse**: move `bins/daemon`+`bins/agentd` runtimes to `crates/desktop-peer`+`crates/desktop-agent`; create `bins/somad` with subcommands (`bot`, `relay`, `rendezvous`, `bff`, `all`); delete `bins/{botd,relayd,rendezvousd,bffd,serverd}`; one Dockerfile, one image
-- [ ] P6 — Packaging cleanup: sudoless user-domain install, Developer ID signing + notarization, SHA256SUMS + bootstrap dedup
+- [x] P3d — Every daemon + agent method extracted into `DaemonHandle` / `AgentHandle`; exposed via napi
+- [x] P4 — Soma main rewritten to call addon directly; daemon-process-manager / splash gate / socket config removed
+- [x] **Server-binary collapse** (was P5) — `bins/{botd,relayd,rendezvousd,bffd,serverd}` deleted; one `somad` binary with subcommands (`bot`, `relay`, `rendezvous`, `bff`, `all`); one Dockerfile, one image
+- [x] P5 — Streaming: daemon `stream_events` wired through napi `ThreadsafeFunction`; renderer reacts via `DomainEventsService`. `chat_stream` deferred (no consumer — Soma uses OpenAI HTTP)
+- [ ] P6a — Packaging cleanup (in flight): sudoless user-domain install at `~/Applications`, SHA256SUMS published with `desktop-v*` releases, install/uninstall bootstrap dedup, obsolete `desktop/packaging/` + `release.yml` (bundle workflow) deleted
+- [ ] P6b — Developer ID code signing + notarization: scaffolded in `electron-builder.yml` + `release-desktop.yml` but inert until Apple secrets are set in repo settings (`CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_API_KEY_ID`, `APPLE_API_ISSUER`, `APPLE_API_KEY` content)
 - [ ] P7 — CI matrix dedup (single matrix per artifact); leftover cleanups
 
 When this document says "today" or describes current behavior in present tense, treat it as the *intended* behavior in the target architecture — verify against the code if you need to make a load-bearing decision.
