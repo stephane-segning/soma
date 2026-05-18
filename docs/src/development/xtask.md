@@ -67,15 +67,6 @@ Optional flags:
 - `--bundle-version <label>` (otherwise uses a timestamp)
 - `--out-dir <path>` (default `artifacts/bundle`)
 
-## Packaging templates (`install.sh` / `uninstall.sh`)
-
-The bundle build renders templates from `desktop/packaging/templates/` into the per-platform staging directory, including `install.sh` and `uninstall.sh`.
-
-Notes:
-
-- Templates use **Nunjucks** syntax (`{{var}}`) and are rendered in strict mode (missing vars fail the build).
-- `install.sh` / `uninstall.sh` are intentionally shipped as artifacts; they are generated during the bundle build and placed next to the packaged artifacts under `artifacts/bundle/<os>-<arch>/`.
-
 ## CI integration
 
 GitHub Actions workflows use `cargo xtask` for Cargo workspace version resolution and `@soma/packaging` for bundle packaging:

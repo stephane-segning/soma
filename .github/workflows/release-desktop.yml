@@ -186,14 +186,6 @@ jobs:
           OUT_DIR="$GITHUB_WORKSPACE/artifacts/desktop/${{ matrix.os }}-${{ matrix.arch }}"
           PARTIAL="SHA256SUMS-${{ matrix.os }}-${{ matrix.arch }}.txt"
 
-          # Copy the reviewed-in-repo install/uninstall scripts so the
-          # release ships them as `install.sh` / `uninstall.sh` assets. The
-          # contents are identical across matrix legs, so the upload-overwrite
-          # at the release level is intentional/harmless.
-          cp docs/src/public/release-install.sh   "$OUT_DIR/install.sh"
-          cp docs/src/public/release-uninstall.sh "$OUT_DIR/uninstall.sh"
-          chmod +x "$OUT_DIR/install.sh" "$OUT_DIR/uninstall.sh"
-
           # Compute the per-platform partial SHA256SUMS. publish-manifest job
           # downloads every partial and concatenates them into the consumer-
           # facing `SHA256SUMS.txt`, so this asset name has to be unique per
@@ -230,8 +222,6 @@ jobs:
           files: |
             artifacts/desktop/${{ matrix.os }}-${{ matrix.arch }}/soma-desktop-${{ needs.prepare.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}.*
             artifacts/desktop/${{ matrix.os }}-${{ matrix.arch }}/SHA256SUMS-${{ matrix.os }}-${{ matrix.arch }}.txt
-            artifacts/desktop/${{ matrix.os }}-${{ matrix.arch }}/install.sh
-            artifacts/desktop/${{ matrix.os }}-${{ matrix.arch }}/uninstall.sh
 
   publish-manifest:
     name: Publish release manifest

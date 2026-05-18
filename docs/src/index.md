@@ -36,26 +36,14 @@ features:
 
 ## Install
 
-Soma release bundles combine the published Rust daemons, the Soma desktop app, and Tapia into one OS/arch package. The docs site exposes a small bootstrap installer that finds the newest `bundle-*` release, then runs the generated release installer for your Linux or macOS architecture.
+Soma ships as a single signed desktop app — Tapia is built in as the `/practice` route. Grab the right artifact for your platform from the [latest `desktop-v*` release](https://github.com/stephane-segning/soma/releases?q=desktop-v):
 
-```bash
-curl -fsSL https://soma.vaam.store/install.sh | bash
-```
+- **macOS (Apple Silicon)** — download `soma-desktop-<version>-macos-arm64.zip`, unzip, drag `Soma.app` into `~/Applications` (no `sudo`). The build is signed with a Developer ID and notarized, so Gatekeeper accepts it on first launch.
+- **Linux (amd64 / arm64)** — download `soma-desktop-<version>-linux-<arch>.AppImage`, `chmod +x` it, and run it directly. Move it under `~/Applications/` if you want a stable path.
 
-To inspect it first:
+Every asset has a matching entry in the `SHA256SUMS.txt` asset on the release; verify with `sha256sum -c` or `shasum -a 256 -c` before launch if you want a paper-trail check.
 
-```bash
-curl -fsSL https://soma.vaam.store/install.sh -o install-soma.sh
-bash install-soma.sh
-```
-
-The installer includes `soma-daemon`, `soma-agentd`, Soma, and Tapia. Bundle releases are produced by the `Release bundle` workflow after daemon and desktop releases are available; set `SOMA_BUNDLE_TAG=bundle-...` before running the script to pin a specific release.
-
-To remove the bundle:
-
-```bash
-curl -fsSL https://soma.vaam.store/uninstall.sh | bash
-```
+To remove, just delete `Soma.app` (macOS) or the AppImage (Linux). User data lives at `~/Library/Application Support/Soma/` on macOS and `~/.local/share/soma/` on Linux — delete those too if you want a clean wipe.
 
 ## Quick Paths
 
