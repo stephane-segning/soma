@@ -115,6 +115,18 @@ export function MentionPicker({
 		setActiveIndex(0);
 	}, [flat]);
 
+	// Hold callbacks behind refs so callers passing inline arrows don't
+	// thrash the keydown listener on every parent render. The keydown
+	// effect only re-binds when the results set or the scope changes.
+	const onSelectRef = useRef(onSelect);
+	const onCloseRef = useRef(onClose);
+	useEffect(() => {
+		onSelectRef.current = onSelect;
+	}, [onSelect]);
+	useEffect(() => {
+		onCloseRef.current = onClose;
+	}, [onClose]);
+
 	useEffect(() => {
 		const onKeyDown = (event: KeyboardEvent) => {
 			if (captureScope === "container") {
@@ -135,15 +147,15 @@ export function MentionPicker({
 			} else if (event.key === "Enter") {
 				event.preventDefault();
 				const current = flat[activeIndex];
-				if (current) onSelect(current.item, current.section);
+				if (current) onSelectRef.current(current.item, current.section);
 			} else if (event.key === "Escape") {
 				event.preventDefault();
-				onClose();
+				onCloseRef.current();
 			}
 		};
 		window.addEventListener("keydown", onKeyDown);
 		return () => window.removeEventListener("keydown", onKeyDown);
-	}, [flat, activeIndex, onSelect, onClose, captureScope]);
+	}, [flat, activeIndex, captureScope]);
 
 	const sectionLabel: Record<MentionSectionKind, string> = {
 		bots: t({

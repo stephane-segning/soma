@@ -45,11 +45,10 @@ export function MentionList({ items, command, range, props, section, onDismiss }
 		update();
 	}, [props.clientRect, props.editor, refs, update]);
 
-	const itemsById = useMemo(() => {
-		const map = new Map<string, MentionItem>();
-		for (const item of items) map.set(item.id, item);
-		return map;
-	}, [items]);
+	const itemsById = useMemo(
+		() => new Map(items.map((item) => [item.id, item])),
+		[items],
+	);
 
 	const pickerItems = useMemo<PickerItem[]>(
 		() =>
@@ -77,7 +76,10 @@ export function MentionList({ items, command, range, props, section, onDismiss }
 						const item = itemsById.get(picked.id);
 						if (item) command(item, range);
 					}}
-					query={props.query}
+					// Providers already pre-filter (and intentionally match IDs,
+					// not just labels). Pass an empty query so MentionPicker
+					// doesn't drop ID-only matches with its label-only filter.
+					query=""
 					sections={sections}
 				/>
 			</div>
