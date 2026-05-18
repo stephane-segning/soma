@@ -1,19 +1,26 @@
 import { SelectionBubble, type BlockStyleOption } from "@soma/ui/components/editor/selection-bubble";
+import { useT } from "@soma/ui/i18n";
 import type { Editor } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { AnimatePresence } from "motion/react";
-import { useCallback, useState } from "react";
-import { applyBlockKind, BLOCK_KIND_ORDER, BLOCK_LABEL, readCurrentBlockKind, type BlockKind } from "./block-rotation";
+import { useCallback, useMemo, useState } from "react";
+import { applyBlockKind, BLOCK_KIND_ORDER, readCurrentBlockKind, type BlockKind } from "./block-rotation";
 import { QuickActionPanel } from "./contextual-menu/quick-action-panel";
 import { readSelection, type SelectionSnapshot } from "./contextual-menu/selection";
 import type { QuickActionRequest, QuickActionResponse, QuickActionType } from "./contextual-menu/types";
 
 export type { QuickActionRequest, QuickActionResponse, QuickActionType };
 
-const BLOCK_STYLE_OPTIONS: BlockStyleOption[] = BLOCK_KIND_ORDER.map((kind) => ({
-	id: kind,
-	label: BLOCK_LABEL[kind],
-}));
+const BLOCK_LABEL_KEYS: Record<BlockKind, { id: string; defaultMessage: string }> = {
+	paragraph: { id: "editor.block.paragraph", defaultMessage: "Paragraph" },
+	"heading-2": { id: "editor.block.heading-2", defaultMessage: "Heading 2" },
+	"heading-3": { id: "editor.block.heading-3", defaultMessage: "Heading 3" },
+	"bullet-list": { id: "editor.block.bullet-list", defaultMessage: "Bullet List" },
+	"ordered-list": { id: "editor.block.ordered-list", defaultMessage: "Numbered List" },
+	"task-list": { id: "editor.block.task-list", defaultMessage: "Task List" },
+	blockquote: { id: "editor.block.blockquote", defaultMessage: "Quote" },
+	"code-block": { id: "editor.block.code-block", defaultMessage: "Code Block" },
+};
 
 export function ContextualMenu({
 	editor,
@@ -22,6 +29,18 @@ export function ContextualMenu({
 	editor: Editor;
 	onQuickAction?: (input: QuickActionRequest) => Promise<QuickActionResponse>;
 }) {
+	const t = useT();
+	const blockLabel = useMemo<Record<BlockKind, string>>(() => {
+		const map = {} as Record<BlockKind, string>;
+		for (const kind of BLOCK_KIND_ORDER) {
+			map[kind] = t(BLOCK_LABEL_KEYS[kind]);
+		}
+		return map;
+	}, [t]);
+	const blockStyleOptions = useMemo<BlockStyleOption[]>(
+		() => BLOCK_KIND_ORDER.map((kind) => ({ id: kind, label: blockLabel[kind] })),
+		[blockLabel],
+	);
 	const [panelOpen, setPanelOpen] = useState(false);
 	const [selection, setSelection] = useState<SelectionSnapshot | null>(null);
 	const [runningAction, setRunningAction] = useState<QuickActionType | null>(null);
@@ -66,8 +85,8 @@ export function ContextualMenu({
 		<>
 			<BubbleMenu className="bubble-menu" editor={editor}>
 				<SelectionBubble
-					blockStyle={{ id: blockKind, label: BLOCK_LABEL[blockKind] }}
-					blockStyleOptions={BLOCK_STYLE_OPTIONS}
+					blockStyle={{ id: blockKind, label: blockLabel[blockKind] }}
+					blockStyleOptions={blockStyleOptions}
 					bold={editor.isActive("bold")}
 					code={editor.isActive("code")}
 					italic={editor.isActive("italic")}
