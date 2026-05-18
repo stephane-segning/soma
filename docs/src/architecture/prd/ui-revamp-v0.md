@@ -111,7 +111,7 @@ No floating modals. No multi-step wizard. Two visible steps, one save.
 - Enforce delegated bot-add authority based on the inviter's own capability (RBAC).
 - Stream bot status updates over the existing event channel so the bots list stays live without polling.
 
-It is not yet confirmed whether the daemon already persists registered bots per-space or exposes a handshake entry point — this is a v0 backend item to verify and complete in parallel with the UI work. The API additions live in [backend/crates/daemon/src/handle/](../../../backend/crates/daemon/src/handle/) and surface through [backend/crates/soma-node](../../../backend/crates/soma-node).
+It is not yet confirmed whether the daemon already persists registered bots per-space or exposes a handshake entry point — this is a v0 backend item to verify and complete in parallel with the UI work. The API additions live in [backend/crates/daemon/src/handle/](../../../../backend/crates/daemon/src/handle/) and surface through [backend/crates/soma-node](../../../../backend/crates/soma-node).
 
 ### 4.5 Chat with the assistant
 _Draft._ Right-area chat panel. Input at bottom, messages scroll up. Slash menu for actions on current document. `@` opens mention picker — first section is bots in this space, second is documents, third is users.
@@ -122,7 +122,7 @@ _Draft._ Right-area chat panel. Input at bottom, messages scroll up. Slash menu 
 _Draft._ In chat (or document, in v0.1): `@bot:foo do X`. Renders as a distinct chip in the message. On send, message is dispatched to bot's runtime, not the LLM. Response comes back as a bot-attributed message in the same chat panel.
 
 ### 4.7 Open a focused popup task (10-finger typing)
-_Draft._ From `/practice` exercise detail, "Open in window" → spawns a `BrowserWindow` with route `#/popup/typing/<exercise-id>`. Popup renders only [`CharDisplay`](../../../desktop/desktop-ui/src/components/tapia/char-display.tsx) + input + minimal stats. Main window stays usable. Same mechanism will host future exam/survey popups.
+_Draft._ From `/practice` exercise detail, "Open in window" → spawns a `BrowserWindow` with route `#/popup/typing/<exercise-id>`. Popup renders only [`CharDisplay`](../../../../desktop/desktop-ui/src/components/tapia/char-display.tsx) + input + minimal stats. Main window stays usable. Same mechanism will host future exam/survey popups.
 
 ### 4.8 Switch spaces / documents
 _Draft._ Spaces rail = icons only (52px wide). Document tree lives _inside_ the document column header as a breadcrumb + tree popover, not as a third pane. Saves horizontal space.
