@@ -17,7 +17,7 @@ hero:
       link: /getting-started/
     - theme: alt
       text: Read the Architecture
-      link: /architecture/soma-tapia
+      link: /architecture/arc42/05-building-block-view
 
 features:
   - title: Desktop-first, offline-capable
@@ -28,8 +28,8 @@ features:
     details: Peers discover and fetch data over libp2p, with relay and rendezvous infrastructure helping connectivity rather than owning the content.
   - title: Content-addressed attachments
     details: Blobs live outside collaborative document state and are fetched by verified CIDs, so cache peers can improve availability without becoming upload endpoints.
-  - title: Soma plus Tapia
-    details: The monorepo ships the main Soma desktop app, the focused Tapia companion, shared UI packages, Rust daemons, and packaging automation.
+  - title: One app, focused modes
+    details: A single signed Soma desktop app hosts the workspace and the typing companion (under `/practice`), backed by an in-process Rust runtime and shared UI packages.
   - title: Developer-ready docs
     details: Start from setup, architecture, contracts, backend flows, desktop UI conventions, packaging, security, and deployment references.
 ---
