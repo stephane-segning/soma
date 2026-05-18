@@ -8,13 +8,16 @@ PRD §7 step 5 is the deliverable; this is the spec for how step 5 runs.
 
 Before any component work, the design token system from [ADR-0005 §7](../adrs/0005-ui-revamp-v0.md) and [refs §3](./ui-revamp-v0-refs-files-density.md) lands in [desktop/desktop-ui/src/styles.css](../../../../desktop/desktop-ui/src/styles.css). Concretely:
 
-- **Font sizes.** Add `--text-body: 14px`, `--text-ui-sm: 13px`, `--text-ui-xs: 11px` (or via Tailwind's `@theme`); set DaisyUI / Tailwind base to `--text-body`.
+- **Font sizes (rem-based for accessibility).** Add `--text-body: 0.875rem` (14px @ 16px root), `--text-ui-sm: 0.8125rem` (13px), `--text-ui-xs: 0.6875rem` (11px) via Tailwind's `@theme`; set DaisyUI / Tailwind base to `--text-body`. Rem-based units honor user font scaling — important for accessibility and for a future web build, even though Electron itself rarely surfaces the OS font-size preference. Px equivalents are the design target; rem is the implementation unit.
 - **Line-heights.** `--leading-body: 1.5`, `--leading-ui: 1.2`. (Bumped from PRD's original 1.45.)
-- **Row heights.** Utility classes for 32 / 40 / 52px row tiers.
-- **Border + shadow.** Establish exactly one shadow token (`--shadow-elevated`), used by modal + popup only. **Kill the existing `surface-card` and `glass-panel` utilities in styles.css** — both currently use `shadow-xl` / `shadow-2xl`, which directly contradict ADR-0005 §7. Replace with border-only `surface-card`.
+- **Row heights.** Utility classes for three tiers, sized by content:
+  - `row-text` — **2rem (32px)**, for text-only or icon-leading rows. **Does not fit a 40px avatar** — use `row-avatar` instead.
+  - `row-avatar` — **2.5rem (40px)**, for rows with avatars / file-type glyphs (mention rows, attachments, members, bots). Matches `DenseRow`'s existing `h-10` leading slot.
+  - `row-card` — **3.25rem (52px)**, for rows with two-line content (primary + sub).
+- **Border + shadow.** Establish exactly one shadow token (`--shadow-elevated`), used by modal + popup only. The existing `surface-card` / `glass-panel` utilities stay reachable as `surface-card-legacy` / `glass-panel-legacy` so non-revamped screens keep their depth during the incremental cutover. New revamped surfaces use the simple names (`surface-card`, `glass-panel`) backed by border-only / single-shadow-token rules. Once every screen is on revamped components ([cutover §5](#5-cutover-order-into-desktopsoma) complete), the `-legacy` utilities get deleted in a sweep PR.
 - **DaisyUI theme.** Audit `cmyk` (default) and `luxury` for shadow + radius. The default theme should ship with shadow disabled at the component level.
 
-Token sweep is the only PR that needs zero new components — it cleans the foundation so every wave that follows compiles into a consistent visual system.
+Token sweep is the only PR that needs zero new components — it cleans the foundation so every wave that follows compiles into a consistent visual system without breaking non-revamped screens mid-cutover.
 
 ## 2. Mapping PRD §6 to current `@soma/ui` reality
 
@@ -63,9 +66,11 @@ The waves below are dependency-ordered. Within a wave, components are independen
 
 | Item | Description |
 |---|---|
-| Token sweep (§1) | Tokens land in `styles.css`; existing shadow utilities removed. |
+| Token sweep (§1) | rem-based density tokens land in `styles.css`; revamped utilities use the simple names, legacy utilities (`surface-card-legacy`, `glass-panel-legacy`) preserve depth on non-revamped screens during cutover. |
+| Storybook decorator fix | Drop the hardcoded `#0f172a` background; add `parameters.theme` knob for `cmyk` / `luxury` explicit testing; add a Storybook test-runner contrast assertion so dark-on-dark can't regress. |
 | `DensityProvider` | React context exposing `density: 'dense' \| 'cozy'`. v0 ships dense only; the provider exists so post-v0 cozy is a config flip. |
-| Storybook conventions doc | Update [docs/src/development/ui-components.md](../../development/ui-components.md) with the story shape every component must follow (states matrix, hover/focus/disabled/empty/error, dark theme variant). |
+| **i18n harness** | Pick + wire one of `react-intl` / `i18next` (decision happens in this PR). Ships an English-only catalog; every new component in waves 1–3 routes user-facing strings through the harness (acceptance criterion §4.7). Cost-cheap insurance against a future locale retrofit. |
+| Storybook conventions doc | Update [docs/src/development/ui-components.md](../../development/ui-components.md) with the story shape every component must follow (states matrix, hover/focus/disabled/empty/error, dark theme variant, i18n string usage). |
 
 ### Wave 1 — Primitives (depend only on Wave 0)
 
@@ -77,6 +82,7 @@ The waves below are dependency-ordered. Within a wave, components are independen
 | `PeerAddressInput` | [refs main §4](./ui-revamp-v0-refs.md) step 1 |
 | `CharDisplay` (extract inline styles) | already locked in [`tapia/char-display.tsx`](../../../../desktop/desktop-ui/src/components/tapia/char-display.tsx) |
 | `SpacesRail` | [refs space-lifecycle §3](./ui-revamp-v0-refs-space-lifecycle.md) |
+| `NodeAIRegistry` (types + in-memory impl) | [refs editor-ai §3](./ui-revamp-v0-refs-editor-ai.md). Interface only — `editor/node-ai-registry.types.ts` + a trivial `createNodeAIRegistry()` Wave 2 can target. TipTap wiring lands in Wave 4. |
 
 ### Wave 2 — Popovers and dropdowns (depend on Wave 1)
 
@@ -107,7 +113,12 @@ The waves below are dependency-ordered. Within a wave, components are independen
 
 | Component | Refs anchor |
 |---|---|
-| `NodeAIRegistry` | [refs editor-ai §3](./ui-revamp-v0-refs-editor-ai.md). Pure logic + TS types; TipTap extension that lets each block type register AI actions, consumed by `SlashMenu`, `SelectionAIBar`, and the right-click block menu. No UI. |
+| `NodeAIRegistry` (TipTap integration) | [refs editor-ai §3](./ui-revamp-v0-refs-editor-ai.md). The TipTap extension half of the registry — wires per-node-type AI action declarations into editor commands, owns context resolution (which node, which selection, which document). No UI. The **interface** for this lives in Wave 1 (see below) so Wave 2 components don't block on Wave 4. |
+
+> **Note on the dependency inversion.** Wave 2's `SlashMenu` and `SelectionAIBar` consume the registry. To avoid blocking those, the registry is split:
+>
+> - **Wave 1 ships the interface** — `editor/node-ai-registry.types.ts` declaring `NodeAIAction`, `NodeAIRegistry` (the type), and a trivial in-memory `createNodeAIRegistry()` implementation Wave 2 components can target and Storybook stories can mock.
+> - **Wave 4 ships the TipTap integration** — wires the registry into editor commands and node introspection. Wave 2 components don't change when this lands; they just receive a real registry instead of the in-memory one.
 
 ## 4. Acceptance criteria — when is a component done?
 
@@ -118,8 +129,9 @@ Before a `desktop/soma` screen wires a new (or refactored) component, the compon
 3. **`DensityProvider` aware.** Reads density (even if v0 only emits `dense`) so post-v0 cozy is a switch, not a rewrite.
 4. **Inline failure surfaces.** Any primary action inside the component (form submit, dispatch, copy, etc.) renders failures inline. No `toast(...)` calls for these paths. (Cross-cutting ADR-0005 §6.)
 5. **Keyboard-traversable** if the component is a list, menu, or has multiple targets. Arrow keys + Enter; Esc closes.
-6. **Color contrast ≥ AA at 14px.** Run [`pnpm --filter @soma/ui lint`](../../../../desktop/desktop-ui/package.json) and the existing visual-regression story snapshots.
-7. **Refs anchor cited in the component file's JSDoc header**, so a future reader can find the lock pattern in one hop.
+6. **Color contrast ≥ AA at body size (`0.875rem` / 14px @ 16px root).** Run [`pnpm --filter @soma/ui lint`](../../../../desktop/desktop-ui/package.json) and the existing visual-regression story snapshots; the Wave 0 Storybook contrast test-runner check is the regression gate.
+7. **User-facing strings route through the i18n harness** — no hardcoded English in JSX text or `aria-label`. Use the translation-key pattern established in Wave 0.
+8. **Refs anchor cited in the component file's JSDoc header**, so a future reader can find the lock pattern in one hop.
 
 Wave 4's `NodeAIRegistry` substitutes "Storybook story" with "TipTap extension test exercising registration + action resolution for at least three node types".
 
@@ -158,7 +170,7 @@ These are tracked separately. The scaffold plan assumes the daemon team confirms
 
 - Cozy / oversized density variants. `DensityProvider` ships, but only emits dense.
 - Theme switcher UI. `cmyk` stays the default; `luxury` is exercised in Storybook for contrast testing only.
-- Component-level i18n. Strings hardcoded English in v0.
+- **Localized strings beyond English.** Only English is shipped in v0 — but the *pattern* is established now. Wave 0 lands a thin i18n harness (translation keys + a single English catalog; `react-intl` or `i18next`'s minimal config — decision deferred to the Wave 0 PR, just pick one and commit). Every new component in waves 1–3 routes user-facing strings through the harness. The cost is small per component and avoids a costly retrofit when the second locale lands.
 - Visual regression infrastructure beyond what already exists in Storybook.
 - Migration of every existing `desktop/soma` screen — only the screens listed in §5 are in v0.
 
