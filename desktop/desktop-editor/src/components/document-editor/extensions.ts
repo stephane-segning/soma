@@ -26,6 +26,7 @@ import { CarouselNode } from "../../extensions/carousel";
 import { CodeBlockExtensionFn } from "../../extensions/code-block";
 import { CommanderExtension, type EditorCommand } from "../../extensions/commander";
 import { createLinkMentionExtension, type MentionProvider } from "../../extensions/link-mention";
+import { NodeAIRegistryExtension } from "../../extensions/node-ai-registry";
 import { PageLinkNode } from "../../extensions/page-link";
 import { TextRotateNode } from "../../extensions/text-rotate";
 
@@ -76,6 +77,10 @@ export function createDocumentExtensions(input: CreateDocumentExtensionsInput) {
 		Dropcursor.configure({ color: "#3b82f6", width: 2 }),
 		Placeholder.configure({ placeholder: input.placeholder }),
 		CommanderExtension.configure({ commands: input.commands }),
+		// Registry mounts with `registry: null` and the host (DocumentEditor)
+		// swaps in the real registry once the editor instance is available
+		// — the action `run` callbacks close over that editor.
+		NodeAIRegistryExtension,
 	];
 
 	if (input.mentionProviders?.length) {

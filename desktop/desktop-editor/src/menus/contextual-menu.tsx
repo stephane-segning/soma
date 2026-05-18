@@ -1,11 +1,13 @@
+import { SelectionAIBar } from "@soma/ui/components/editor/selection-ai-bar";
 import { SelectionBubble, type BlockStyleOption } from "@soma/ui/components/editor/selection-bubble";
 import { useT } from "@soma/ui/i18n";
+import type { NodeAIRegistry } from "@soma/ui/components/editor/node-ai-registry.types";
 import type { Editor } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { AnimatePresence } from "motion/react";
 import { useCallback, useMemo, useState } from "react";
 import { applyBlockKind, BLOCK_KIND_ORDER, readCurrentBlockKind, type BlockKind } from "./block-rotation";
-import { QuickActionPanel } from "./contextual-menu/quick-action-panel";
+import { normalizeNodeName } from "../extensions/node-ai-registry";
 import { readSelection, type SelectionSnapshot } from "./contextual-menu/selection";
 import type { QuickActionRequest, QuickActionResponse, QuickActionType } from "./contextual-menu/types";
 
@@ -24,10 +26,10 @@ const BLOCK_LABEL_KEYS: Record<BlockKind, { id: string; defaultMessage: string }
 
 export function ContextualMenu({
 	editor,
-	onQuickAction,
+	registry,
 }: {
 	editor: Editor;
-	onQuickAction?: (input: QuickActionRequest) => Promise<QuickActionResponse>;
+	registry: NodeAIRegistry | null;
 }) {
 	const t = useT();
 	const blockLabel = useMemo<Record<BlockKind, string>>(() => {
@@ -41,45 +43,21 @@ export function ContextualMenu({
 		() => BLOCK_KIND_ORDER.map((kind) => ({ id: kind, label: blockLabel[kind] })),
 		[blockLabel],
 	);
-	const [panelOpen, setPanelOpen] = useState(false);
-	const [selection, setSelection] = useState<SelectionSnapshot | null>(null);
-	const [runningAction, setRunningAction] = useState<QuickActionType | null>(null);
-	const [resultText, setResultText] = useState("");
-	const [resultTone, setResultTone] = useState<"default" | "error">("default");
 
-	const openQuickActions = useCallback(() => {
+	const [aiOpen, setAiOpen] = useState(false);
+	const [selection, setSelection] = useState<SelectionSnapshot | null>(null);
+
+	const openAI = useCallback(() => {
 		const snapshot = readSelection(editor);
 		if (!snapshot) return;
 		setSelection(snapshot);
-		setResultText("");
-		setResultTone("default");
-		setPanelOpen(true);
+		setAiOpen(true);
 	}, [editor]);
-
-	const runQuickAction = useCallback(
-		async (action: QuickActionType) => {
-			if (!onQuickAction || !selection || runningAction) return;
-			setRunningAction(action);
-			setResultText("");
-			setResultTone("default");
-			try {
-				const response = await onQuickAction({ action, selectionText: selection.text });
-				if (action === "expand" && response.status === "done" && response.content?.trim()) {
-					editor.chain().focus().insertContentAt(selection.range, response.content.trim()).run();
-				}
-				setResultText(resultMessage(action, response));
-			} catch (error) {
-				setResultTone("error");
-				setResultText(error instanceof Error ? error.message : String(error));
-			} finally {
-				setRunningAction(null);
-			}
-		},
-		[editor, onQuickAction, runningAction, selection],
-	);
 
 	const blockKind: BlockKind = readCurrentBlockKind(editor);
 	const linkUrl = (editor.getAttributes("link")?.href as string | undefined) ?? null;
+	const rawNodeType = editor.state.selection.$from.parent.type.name;
+	const aiNodeType = useMemo(() => normalizeNodeName(rawNodeType), [rawNodeType]);
 
 	return (
 		<>
@@ -91,7 +69,7 @@ export function ContextualMenu({
 					code={editor.isActive("code")}
 					italic={editor.isActive("italic")}
 					linkUrl={linkUrl}
-					onAskAI={onQuickAction ? openQuickActions : undefined}
+					onAskAI={registry ? openAI : undefined}
 					onChangeBlockStyle={(id) => applyBlockKind(editor, id as BlockKind)}
 					onSetLink={(url) => {
 						const chain = editor.chain().focus().extendMarkRange("link");
@@ -111,21 +89,24 @@ export function ContextualMenu({
 				/>
 			</BubbleMenu>
 			<AnimatePresence>
-				{panelOpen && selection ? (
-					<QuickActionPanel
-						resultText={resultText}
-						resultTone={resultTone}
-						runningAction={runningAction}
-						selection={selection}
-						onRun={runQuickAction}
-					/>
+				{aiOpen && selection && registry ? (
+					<div
+						className="fixed z-50"
+						style={{
+							left: selection.anchor.x,
+							top: selection.anchor.y,
+							transform: "translateX(-50%)",
+						}}
+					>
+						<SelectionAIBar
+							nodeType={aiNodeType}
+							onClose={() => setAiOpen(false)}
+							registry={registry}
+							selectedText={selection.text}
+						/>
+					</div>
 				) : null}
 			</AnimatePresence>
 		</>
 	);
-}
-
-function resultMessage(action: QuickActionType, response: QuickActionResponse): string {
-	if (action === "research") return response.message ?? "Research queued. Result will appear in chat.";
-	return response.content?.trim() || response.message || "No result.";
 }
