@@ -65,23 +65,31 @@ jobs:
 
             Assets are suffixed with OS/arch.
 
+  targets:
+    name: Load build matrix
+    runs-on: ubuntu-latest
+    outputs:
+      desktop: ${{ steps.load.outputs.desktop }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - id: load
+        shell: bash
+        run: |
+          set -euo pipefail
+          DESKTOP="$(jq -c '.desktop' .github/targets.json)"
+          echo "desktop=$DESKTOP" >> "$GITHUB_OUTPUT"
+
   build:
     name: Build + publish (${{ matrix.os }} / ${{ matrix.arch }})
-    needs: prepare
+    needs: [prepare, targets]
     runs-on: ${{ matrix.runs_on }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: linux
-            arch: amd64
-            runs_on: ubuntu-latest
-          - os: linux
-            arch: arm64
-            runs_on: ubuntu-24.04-arm
-          - os: macos
-            arch: arm64
-            runs_on: macos-latest
+        include: ${{ fromJSON(needs.targets.outputs.desktop) }}
 
     permissions:
       contents: write
@@ -143,39 +151,26 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           set -euo pipefail
-          ARCH_FLAG="--x64"
-          if [ "${{ matrix.arch }}" = "arm64" ]; then
-            ARCH_FLAG="--arm64"
-          fi
-          pnpm --filter soma run build:mac -- "$ARCH_FLAG"
+          pnpm --filter soma run build:mac -- "${{ matrix.electron_arch_flag }}"
 
       - name: Build Electron apps (linux)
         if: matrix.os == 'linux'
         shell: bash
         run: |
           set -euo pipefail
-          ARCH_FLAG="--x64"
-          if [ "${{ matrix.arch }}" = "arm64" ]; then
-            ARCH_FLAG="--arm64"
-          fi
-          pnpm --filter soma run build:linux -- "$ARCH_FLAG"
+          pnpm --filter soma run build:linux -- "${{ matrix.electron_arch_flag }}"
 
       - name: Collect artifacts
         shell: bash
+        env:
+          EXT: ${{ matrix.artifact_ext }}
         run: |
           set -euo pipefail
           VERSION="${{ needs.prepare.outputs.version }}"
           OUT_DIR="$GITHUB_WORKSPACE/artifacts/desktop/${{ matrix.os }}-${{ matrix.arch }}"
           mkdir -p "$OUT_DIR"
 
-          if [ "${{ matrix.os }}" = "linux" ]; then
-            EXT="AppImage"
-            SOMA_FILE="$(find desktop/soma/dist -maxdepth 1 -name '*.AppImage' -print | head -n 1)"
-          else
-            EXT="zip"
-            SOMA_FILE="$(find desktop/soma/dist -maxdepth 1 -name '*.zip' -print | head -n 1)"
-          fi
-
+          SOMA_FILE="$(find desktop/soma/dist -maxdepth 1 -name "*.${EXT}" -print | head -n 1)"
           if [ -z "$SOMA_FILE" ]; then
             echo "Missing artifacts. soma=$SOMA_FILE" >&2
             exit 1
@@ -240,7 +235,7 @@ jobs:
 
   publish-manifest:
     name: Publish release manifest
-    needs: [prepare, build]
+    needs: [prepare, targets, build]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -256,6 +251,7 @@ jobs:
           VERSION: ${{ needs.prepare.outputs.version }}
           TAG: ${{ needs.prepare.outputs.tag }}
           REPO: ${{ github.repository }}
+          TARGETS_JSON: ${{ needs.targets.outputs.desktop }}
         run: |
           set -euo pipefail
           mkdir -p artifacts/desktop/manifest
@@ -267,22 +263,25 @@ jobs:
           tag = os.environ["TAG"]
           repo = os.environ["REPO"]
           base = f"https://github.com/{repo}/releases/download/{tag}"
-          extension_by_os = {"linux": "AppImage", "macos": "zip"}
+          # The matrix (os/arch/ext per entry) is the single source of truth
+          # — propagated from .github/targets.json by the `targets` job.
+          targets = json.loads(os.environ["TARGETS_JSON"])
           artifacts = []
-          arch_by_os = {"linux": ("amd64", "arm64"), "macos": ("arm64",)}
-          for os_name, ext in extension_by_os.items():
-              for arch in arch_by_os[os_name]:
-                  for app in ("soma",):
-                      name = f"{app}-desktop-{version}-{os_name}-{arch}.{ext}"
-                      artifacts.append(
-                          {
-                              "name": name,
-                              "app": app,
-                              "os": os_name,
-                              "arch": arch,
-                              "url": f"{base}/{name}",
-                          }
-                      )
+          for entry in targets:
+              os_name = entry["os"]
+              arch = entry["arch"]
+              ext = entry["artifact_ext"]
+              for app in ("soma",):
+                  name = f"{app}-desktop-{version}-{os_name}-{arch}.{ext}"
+                  artifacts.append(
+                      {
+                          "name": name,
+                          "app": app,
+                          "os": os_name,
+                          "arch": arch,
+                          "url": f"{base}/{name}",
+                      }
+                  )
           manifest = {
               "schema_version": "soma.release-manifest.v1",
               "release_type": "desktop",

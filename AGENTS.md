@@ -54,7 +54,7 @@ Pre-prod refactor. Breaking changes are fine; there is no backwards-compatibilit
 - [x] P5 — Streaming: daemon `stream_events` wired through napi `ThreadsafeFunction`; renderer reacts via `DomainEventsService`. `chat_stream` deferred (no consumer — Soma uses OpenAI HTTP)
 - [x] P6a — Packaging cleanup: sudoless user-domain install at `~/Applications`, SHA256SUMS published with `desktop-v*` releases, install/uninstall bootstrap dedup, obsolete `desktop/packaging/` + `release.yml` (bundle workflow) deleted
 - [x] P6b — Developer ID code signing + notarization: `electron-builder.yml` has `notarize: true`; `release-desktop.yml` reads `CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_API_KEY` (content, materialized to `$RUNNER_TEMP/AuthKey.p8`), `APPLE_API_KEY_ID`, `APPLE_API_ISSUER`, `APPLE_TEAM_ID` from repo secrets; ad-hoc `codesign --sign -` + `ditto` rezip step removed
-- [ ] P7 — CI matrix dedup (single matrix per artifact); leftover cleanups
+- [x] P7 — CI matrix dedup: `.github/targets.json` is the single `(os, arch)` source, consumed via a `targets` job + `fromJSON` in both `release-desktop.yml` and `release-server.yml`. Dead `release-daemons.yml` + its sole-consumer `cargo-cross-build` composite action removed. `docker-backend.yml` renamed to `release-server.yml` to match the doc.
 
 When this document says "today" or describes current behavior in present tense, treat it as the *intended* behavior in the target architecture — verify against the code if you need to make a load-bearing decision.
 
@@ -451,10 +451,9 @@ Target (post-P5) — sudoless, signed, single-bundle.
 ### CI
 
 - GitHub Actions, all manual-triggered (`workflow_dispatch`).
-- `targets.json` (or a composite action) centralizes the `(os, arch)` matrix; consumed by all release workflows.
+- `.github/targets.json` is the single source of `(os, arch)` truth; both `release-desktop.yml` and `release-server.yml` open with a tiny `targets` job that `jq`s the relevant slice and emits it as a job output, then `build.strategy.matrix.include` consumes it via `fromJSON(needs.targets.outputs.<slice>)`. Adding a target = one entry in `targets.json`. `publish-manifest` in `release-desktop.yml` also reads the same slice so the release manifest can never drift from the build matrix.
 - `release-desktop.yml` builds the Electron app (incl. `@soma/node` addon native build per `(os, arch)`) + signs + notarizes + publishes to a `desktop-v*` Release.
 - `release-server.yml` builds **one** `somad` Docker image (distroless, non-root) per `(os, arch)` and publishes to GHCR.
-- `release-bundle.yml` produces the OS-specific desktop installer bundles + SHA256SUMS.
 - `release-pages.yml` deploys docs (VitePress) + Storybook to GitHub Pages.
 - SBOMs via `anchore/sbom-action` (Syft).
 - Required Apple secrets for notarization (already wired in `release-desktop.yml`):
