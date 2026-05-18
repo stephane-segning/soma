@@ -118,6 +118,12 @@ export default withPwa(withMermaid({
     outDir: '../site',
     cleanUrls: true,
     lastUpdated: true,
+    // Doc pages sometimes link out to source code in the repo with paths
+    // like `../../../backend/crates/...`. Vitepress only resolves links to
+    // markdown files inside `srcDir`, so any path that escapes `srcDir` is
+    // treated as a dead link. Ignore those — they are intentional source
+    // pointers, not in-docs cross-references.
+    ignoreDeadLinks: [/(^|\/)\.\.\/\.\.\/\.\.\//],
     markdown: {
         lineNumbers: true,
     },
