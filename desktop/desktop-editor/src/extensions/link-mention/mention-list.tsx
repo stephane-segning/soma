@@ -1,21 +1,29 @@
 import { autoUpdate, FloatingPortal, flip, offset, shift, useFloating, type VirtualElement } from "@floating-ui/react";
+import { MentionPicker, type MentionItem as PickerItem, type MentionSectionKind } from "@soma/ui/components/editor/mention-picker";
 import type { Range } from "@tiptap/core";
 import type { SuggestionProps } from "@tiptap/suggestion";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { getEditorDom, navigationKeys } from "./dom";
+import { useLayoutEffect, useMemo } from "react";
+import { getEditorDom } from "./dom";
 import type { MentionItem } from "./types";
 
+/**
+ * Bridges TipTap's suggestion plugin to `@soma/ui`'s `MentionPicker`.
+ * Each provider is one extension with its own trigger char, so each
+ * popover renders a single section (members / documents / spaces /
+ * bots) — the picker hides empty sections so the visual layout still
+ * matches the locked PRD.
+ */
 type MentionListProps = {
 	items: MentionItem[];
 	command: (item: MentionItem, range: Range) => void;
 	range: Range;
 	props: SuggestionProps;
 	placeholder?: string;
+	section: MentionSectionKind;
+	onDismiss: () => void;
 };
 
-export function MentionList({ items, command, range, props, placeholder }: MentionListProps): React.JSX.Element {
-	const [selectedIndex, setSelectedIndex] = useState(0);
-	const listRef = useRef<HTMLDivElement | null>(null);
+export function MentionList({ items, command, range, props, section, onDismiss }: MentionListProps): React.JSX.Element {
 	const { refs, floatingStyles, update } = useFloating({
 		placement: "bottom-start",
 		middleware: [offset(6), flip(), shift()],
@@ -37,52 +45,44 @@ export function MentionList({ items, command, range, props, placeholder }: Menti
 		update();
 	}, [props.clientRect, props.editor, refs, update]);
 
-	const selectItem = useCallback((index: number) => {
-		const item = items[index];
-		if (item) command(item, range);
-	}, [command, items, range]);
+	const itemsById = useMemo(
+		() => new Map(items.map((item) => [item.id, item])),
+		[items],
+	);
 
-	useEffect(() => {
-		const onKeyDown = (event: KeyboardEvent) => {
-			if (!navigationKeys.includes(event.key)) return;
-			event.preventDefault();
-			if (event.key === "ArrowUp") setSelectedIndex((prev) => (prev + items.length - 1) % items.length);
-			if (event.key === "ArrowDown") setSelectedIndex((prev) => (prev + 1) % items.length);
-			if (event.key === "Enter") selectItem(selectedIndex);
-		};
-		document.addEventListener("keydown", onKeyDown);
-		return () => document.removeEventListener("keydown", onKeyDown);
-	}, [items.length, selectItem, selectedIndex]);
+	const pickerItems = useMemo<PickerItem[]>(
+		() =>
+			items.map((item) => ({
+				id: item.id,
+				label: item.label,
+				meta: item.detail,
+				isBot: section === "bots",
+			})),
+		[items, section],
+	);
 
-	useEffect(() => setSelectedIndex(0), [items]);
-	useLayoutEffect(() => {
-		const selected = listRef.current?.children[selectedIndex] as HTMLElement | undefined;
-		selected?.scrollIntoView({ block: "nearest" });
-	}, [selectedIndex]);
+	const sections = useMemo(
+		() => [{ kind: section, items: pickerItems }],
+		[section, pickerItems],
+	);
 
 	return (
 		<FloatingPortal>
-			<div ref={refs.setFloating} style={floatingStyles} className="z-50 w-[320px] overflow-hidden rounded-xl border border-base-300 bg-base-100 shadow-xl">
-				<div className="border-b border-base-200 px-3 py-2 text-xs text-base-content/60">{placeholder ?? "Select a mention"}</div>
-				<div ref={listRef} className="max-h-72 overflow-auto p-1">
-					{items.length === 0 ? <div className="px-3 py-2 text-xs text-base-content/60">No matches.</div> : items.map((item, index) => (
-						<MentionListItem active={index === selectedIndex} item={item} key={item.id} onHover={() => setSelectedIndex(index)} onSelect={() => selectItem(index)} />
-					))}
-				</div>
+			<div ref={refs.setFloating} style={floatingStyles} className="z-50">
+				<MentionPicker
+					captureScope="window"
+					onClose={onDismiss}
+					onSelect={(picked) => {
+						const item = itemsById.get(picked.id);
+						if (item) command(item, range);
+					}}
+					// Providers already pre-filter (and intentionally match IDs,
+					// not just labels). Pass an empty query so MentionPicker
+					// doesn't drop ID-only matches with its label-only filter.
+					query=""
+					sections={sections}
+				/>
 			</div>
 		</FloatingPortal>
-	);
-}
-
-function MentionListItem({ active, item, onHover, onSelect }: { active: boolean; item: MentionItem; onHover: () => void; onSelect: () => void }) {
-	return (
-		<div role="menu" className={["cursor-default select-none rounded-lg px-3 py-2", active ? "bg-base-200" : "hover:bg-base-200/60"].join(" ")} onMouseEnter={onHover} onPointerDownCapture={(event) => {
-			event.preventDefault();
-			event.stopPropagation();
-			onSelect();
-		}}>
-			<div className="text-sm font-medium">{item.label}</div>
-			{item.detail ? <div className="text-xs text-base-content/60">{item.detail}</div> : null}
-		</div>
 	);
 }
