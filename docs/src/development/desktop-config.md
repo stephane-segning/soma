@@ -1,7 +1,7 @@
 # Desktop Configuration Service
 
-`@soma/desktop-config` is the shared Electron runtime config layer for Soma
-and Tapia.
+`@soma/desktop-config` is the shared Electron runtime config layer for the
+Soma desktop app (which now also houses the `/practice` Tapia surface).
 
 It centralizes:
 

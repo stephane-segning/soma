@@ -5,8 +5,8 @@ orient yourself when changing UI, daemon, or peer code.
 
 ## 1) Desktop renderer ↔ Electron main (with in-process daemon)
 
-- Desktop apps live under `desktop/` (Soma: `desktop/soma`, Tapia:
-  `desktop/tapia`).
+- The desktop app lives under `desktop/soma`. Tapia is the `/practice` route
+  inside it, not a separate Electron app.
 - The peer / daemon runtime is `soma-daemon` (`backend/crates/daemon`,
   library only), linked into the `@soma/node` napi addon
   (`backend/crates/soma-node`) and loaded directly by the Electron main

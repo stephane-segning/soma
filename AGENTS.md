@@ -253,12 +253,6 @@ LLM BFF for provider integrations over HTTP. The only subcommand that does **not
 
 Compose multiple subcommands in one process via `--config server.toml`. Replaces the former `serverd`. The config file declares which modes to run and which options each takes; one process binds the union of ports, sharing the Tokio runtime + telemetry.
 
-### `somad desktop-peer` / `somad desktop-agent` (transitional)
-
-Temporary back-compat subcommands that run the desktop runtimes as standalone processes. Exist only while `desktop/soma/`'s main process still spawns child processes for the peer/agent (pre-P4). Once Soma main loads the `.node` addon directly (P4), these subcommands are removed.
-
-These subcommands wrap `crates/desktop-peer::run(config)` and `crates/desktop-agent::run(config)` directly — they exist so the existing daemon-spawn pathway keeps working through P5 without an extra binary in the tree.
-
 ### Swarm builder
 
 `soma-net::build_swarm` uses libp2p's typestate `SwarmBuilder`. Order matters: **TCP → QUIC → DNS → WebSocket → Behaviour**. Without QUIC in the stack, `listen_on(/udp/.../quic-v1)` fails with `MultiaddrNotSupported(...)`.
@@ -338,7 +332,7 @@ Open security work (currently provisional):
 - [ ] **Verify `IssuerCapability.signed`** (owner signature) and enforce expiry/allowed roles consistently before auto-approving.
 - [ ] **Canonical signing format**. Current signing uses CBOR via `ciborium`, but canonical CBOR is not guaranteed. Move to a canonical scheme before relying on cross-version/cross-implementation signatures.
 - [ ] **Space genesis artifact**. Today `spaces.owner_peer_id` is DB-local metadata only; add an owner-signed record other peers can verify.
-- [ ] **Issuer delegation lifecycle** with auditable issuance/rotation from both addon (gRPC/IPC) and admin HTTP.
+- [ ] **Issuer delegation lifecycle** with auditable issuance/rotation from both the in-process addon surface and admin HTTP.
 - [ ] **Space membership revocation/leave** end-to-end.
 - [ ] **Space roster / discovery** helpers exposed from addon (`listSpaceMembers`, `discoverSpaces`).
 

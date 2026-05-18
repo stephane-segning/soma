@@ -17,7 +17,7 @@ hero:
       link: /getting-started/
     - theme: alt
       text: Read the Architecture
-      link: /architecture/soma-tapia
+      link: /architecture/arc42/03-context
 
 features:
   - title: Desktop-first, offline-capable
@@ -28,8 +28,8 @@ features:
     details: Peers discover and fetch data over libp2p, with relay and rendezvous infrastructure helping connectivity rather than owning the content.
   - title: Content-addressed attachments
     details: Blobs live outside collaborative document state and are fetched by verified CIDs, so cache peers can improve availability without becoming upload endpoints.
-  - title: Soma plus Tapia
-    details: The monorepo ships the main Soma desktop app, the focused Tapia companion, shared UI packages, Rust daemons, and packaging automation.
+  - title: Soma with built-in Tapia practice
+    details: One Electron desktop app (Soma) with Tapia delivered as the `/practice` route. Shared UI packages, Rust runtime crates linked via the `@soma/node` napi addon, and packaging automation all live in the same monorepo.
   - title: Developer-ready docs
     details: Start from setup, architecture, contracts, backend flows, desktop UI conventions, packaging, security, and deployment references.
 ---
@@ -69,8 +69,8 @@ User data lives at `~/Library/Application Support/Soma/` on macOS and `~/.local/
 ## Quick Paths
 
 - [Overview](00-overview.md) explains the product shape and core ideas.
-- [Getting Started](getting-started/index.md) gets the daemon, desktop app, and optional server peers running.
-- [Packaging and Deployment](architecture/deployment.md) explains how daemon, desktop, and bundle releases fit together.
+- [Getting Started](getting-started/index.md) gets the desktop app and optional server peers running.
+- [Packaging and Deployment](architecture/deployment.md) explains how desktop and server releases fit together.
 - [End-to-End Flows](architecture/e2e-flows.md) traces join, blob, and local AI paths through the stack.
 - [Blobs and VDFs](architecture/blobs-vdfs.md) describes verified CID fetch and cache-only peers.
 - [UI Components](development/ui-components.md) documents the shared desktop UI package and Storybook workflow.

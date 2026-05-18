@@ -1,6 +1,6 @@
 # UI Framework Candidates
 
-Soma and Tapia currently use React 19, Tailwind CSS v4, DaisyUI, Floating UI, Motion, and a shared @soma/ui package. That works, but DaisyUI is carrying too much visual opinion into an app that wants a dense, native-feeling desktop surface.
+Soma (including its built-in `/practice` Tapia surface) currently uses React 19, Tailwind CSS v4, DaisyUI, Floating UI, Motion, and a shared @soma/ui package. That works, but DaisyUI is carrying too much visual opinion into an app that wants a dense, native-feeling desktop surface.
 
 ## What We Need
 
@@ -8,7 +8,7 @@ Soma and Tapia currently use React 19, Tailwind CSS v4, DaisyUI, Floating UI, Mo
 - Strong accessibility defaults for menus, dialogs, comboboxes, tabs, toolbars, trees, and keyboard navigation.
 - Tailwind-compatible styling with no mandatory CSS-in-JS runtime.
 - React 19 compatibility and good behavior inside Electron/Chromium.
-- Composable APIs that can support Soma's workspace shell and Tapia's focused interaction states without fighting Motion.
+- Composable APIs that can support Soma's workspace shell and the `/practice` route's focused interaction states without fighting Motion.
 
 ## Leading Candidate: Base UI
 
@@ -33,7 +33,7 @@ Recommended experiment:
 | Candidate | Fit | Concern |
 | --- | --- | --- |
 | [React Aria Components](https://react-spectrum.adobe.com/react-aria/components.html) | Best accessibility depth and broad component coverage. | API and styling model may feel heavier than we need for a custom desktop shell. |
-| [Ark UI](https://ark-ui.com/react/docs/overview/introduction) | Headless, accessible, broad component set, and a state-machine flavor that could pair well with Tapia. | Multi-framework abstraction may add concepts we do not need in a React-only Electron app. |
+| [Ark UI](https://ark-ui.com/react/docs/overview/introduction) | Headless, accessible, broad component set, and a state-machine flavor that could pair well with the typing-practice surface. | Multi-framework abstraction may add concepts we do not need in a React-only Electron app. |
 | [Radix Primitives](https://www.radix-ui.com/primitives/docs/overview/introduction) | Mature low-level primitives, familiar ecosystem, good fit for shadcn-style wrappers. | Base UI looks like the fresher direction for this exact unstyled React primitive layer. |
 | [Mantine](https://mantine.dev/) | Very productive full component library with many hooks and ready-made controls. | More of a replacement design system than a primitive layer; likely too opinionated for `@soma/ui`. |
 | [Chakra UI](https://chakra-ui.com/docs/components/concepts/overview) | Complete component inventory and strong composability story. | Its styling/runtime model is a larger departure from Tailwind-first desktop UI. |

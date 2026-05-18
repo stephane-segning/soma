@@ -15,7 +15,7 @@ It combines:
 - peer-to-peer data resolution and caching
 - capability-based permissions for humans and bots
 - optional local AI assistance
-- a focused companion app (Tapia)
+- a built-in typing-practice surface (Tapia, the `/practice` route)
 
 Human roles inside a space stay intentionally simple:
 
@@ -119,13 +119,13 @@ Capabilities are intended to cover permissions for both humans and bots, such as
 
 ---
 
-## Companion app: Tapia
-Tapia is the focused companion app shipped alongside Soma.
+## Tapia: typing practice inside Soma
+Tapia is the focused typing-practice surface built into the Soma desktop app.
 
-- launched via deep link or adjacent workflows from Soma
-- focused on typing practice with short passages, generated drills, and per-session feedback
-- shares runtime conventions and can integrate with the same local backend
-- intentionally narrower in scope than Soma
+- accessed at `/practice` inside Soma — no separate Electron app to install or launch
+- short passages, generated drills, and per-session feedback
+- pure-renderer (no daemon dependency); shares the same shell, theming, and shared UI packages as the rest of Soma
+- intentionally narrower in scope than Soma's main workspace surfaces
 
 ---
 

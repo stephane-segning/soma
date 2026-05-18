@@ -69,7 +69,7 @@ A discovery service helping peers find each other.
 A bot-backed queue for delivering approvals asynchronously.
 
 **Tapia**  
-Focused training companion app for typing practice, short passages, generated drills, and session feedback.
+Typing-practice surface (short passages, generated drills, and session feedback) delivered as the `/practice` route inside the Soma desktop app. No longer a separate Electron app.
 
 **Soma**  
 The main structured note-taking and workspace application in the platform.

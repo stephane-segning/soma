@@ -7,7 +7,7 @@ const nav: DefaultTheme.NavItem[] = [
     {text: 'Overview', link: '/00-overview'},
     {text: 'V2 Clarity', link: '/02-v2'},
     {text: 'Getting Started', link: '/getting-started/'},
-    {text: 'Architecture', link: '/architecture/soma-tapia'},
+    {text: 'Architecture', link: '/architecture/arc42/03-context'},
     {text: 'Development', link: '/development/dependencies'},
     {text: 'Security', link: '/security/threat-model'},
 ];
@@ -30,7 +30,6 @@ const sidebar: DefaultTheme.Sidebar = {
         {
             text: 'Architecture',
             items: [
-                {text: 'Platform Components', link: '/architecture/soma-tapia'},
                 {text: 'End-to-End Flows', link: '/architecture/e2e-flows'},
                 {text: 'libp2p Primer', link: '/architecture/libp2p-primer'},
                 {text: 'Peer Connectivity', link: '/architecture/peer-connectivity'},
