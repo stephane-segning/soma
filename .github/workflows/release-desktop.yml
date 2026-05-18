@@ -51,19 +51,24 @@ jobs:
             echo "tag=${TAG}"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Create/update GitHub Release (never latest)
+      - name: Create/update GitHub Release
         uses: ncipollo/release-action@v1
         with:
           tag: ${{ steps.meta.outputs.tag }}
           name: Desktop ${{ steps.meta.outputs.version }}
           prerelease: ${{ inputs.prerelease }}
           allowUpdates: true
-          makeLatest: false
+          # Marked as the repo's "latest" release so the magic
+          # `https://github.com/<owner>/<repo>/releases/latest/download/<name>`
+          # URLs used by the docs landing page resolve to this release.
+          # Asset filenames are versionless on purpose (version is in the
+          # tag) so the same URLs keep working across versions.
+          makeLatest: true
           draft: false
           body: |
             Soma desktop builds for Linux and macOS.
 
-            Assets are suffixed with OS/arch.
+            Assets are named `soma-desktop-<os>-<arch>.<ext>`; the version is in the release tag.
 
   targets:
     name: Load build matrix
@@ -166,15 +171,16 @@ jobs:
           EXTS_JSON: ${{ toJSON(matrix.artifact_exts) }}
         run: |
           set -euo pipefail
-          VERSION="${{ needs.prepare.outputs.version }}"
           OUT_DIR="$GITHUB_WORKSPACE/artifacts/desktop/${{ matrix.os }}-${{ matrix.arch }}"
           mkdir -p "$OUT_DIR"
 
           # electron-builder emits one file per target in the `mac`/`linux`
-          # config; we copy them all with a uniform `soma-desktop-<v>-<os>-<arch>.<ext>`
-          # name so users can find the right asset regardless of how
-          # electron-builder spells the source filename (`soma-X.Y.Z.dmg`,
-          # `soma-X.Y.Z-mac.zip`, `soma_X.Y.Z_arm64.deb`, ...).
+          # config; we copy them all with a uniform versionless
+          # `soma-desktop-<os>-<arch>.<ext>` name. The version lives in the
+          # release tag (`desktop-vX.Y.Z`), which keeps the docs landing
+          # page's `releases/latest/download/...` URLs stable across
+          # versions and lets users see the version in the URL they're
+          # redirected to.
           while IFS= read -r ext; do
             [ -n "$ext" ] || continue
             SRC="$(find desktop/soma/dist -maxdepth 1 -name "*.${ext}" ! -name '*.blockmap' -print | head -n 1)"
@@ -182,7 +188,7 @@ jobs:
               echo "Missing *.${ext} in desktop/soma/dist (matrix: ${{ matrix.os }}/${{ matrix.arch }})" >&2
               exit 1
             fi
-            DEST="$OUT_DIR/soma-desktop-${VERSION}-${{ matrix.os }}-${{ matrix.arch }}.${ext}"
+            DEST="$OUT_DIR/soma-desktop-${{ matrix.os }}-${{ matrix.arch }}.${ext}"
             cp "$SRC" "$DEST"
             echo "Collected ${SRC} -> ${DEST}"
           done < <(printf '%s' "$EXTS_JSON" | jq -r '.[]')
@@ -228,7 +234,7 @@ jobs:
         with:
           tag_name: ${{ needs.prepare.outputs.tag }}
           files: |
-            artifacts/desktop/${{ matrix.os }}-${{ matrix.arch }}/soma-desktop-${{ needs.prepare.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}.*
+            artifacts/desktop/${{ matrix.os }}-${{ matrix.arch }}/soma-desktop-${{ matrix.os }}-${{ matrix.arch }}.*
             artifacts/desktop/${{ matrix.os }}-${{ matrix.arch }}/SHA256SUMS-${{ matrix.os }}-${{ matrix.arch }}.txt
 
   publish-manifest:
@@ -260,7 +266,8 @@ jobs:
           version = os.environ["VERSION"]
           tag = os.environ["TAG"]
           repo = os.environ["REPO"]
-          base = f"https://github.com/{repo}/releases/download/{tag}"
+          tagged_base = f"https://github.com/{repo}/releases/download/{tag}"
+          latest_base = f"https://github.com/{repo}/releases/latest/download"
           # The matrix (os/arch/ext per entry) is the single source of truth
           # — propagated from .github/targets.json by the `targets` job.
           targets = json.loads(os.environ["TARGETS_JSON"])
@@ -270,7 +277,11 @@ jobs:
               arch = entry["arch"]
               for ext in entry["artifact_exts"]:
                   for app in ("soma",):
-                      name = f"{app}-desktop-{version}-{os_name}-{arch}.{ext}"
+                      # Asset names are versionless on purpose — the version
+                      # is encoded in the release tag. That lets the docs
+                      # site point at `releases/latest/download/<name>` and
+                      # never go stale.
+                      name = f"{app}-desktop-{os_name}-{arch}.{ext}"
                       artifacts.append(
                           {
                               "name": name,
@@ -278,7 +289,8 @@ jobs:
                               "os": os_name,
                               "arch": arch,
                               "ext": ext,
-                              "url": f"{base}/{name}",
+                              "url": f"{tagged_base}/{name}",
+                              "latest_url": f"{latest_base}/{name}",
                           }
                       )
           manifest = {

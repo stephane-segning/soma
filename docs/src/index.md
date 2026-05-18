@@ -36,25 +36,27 @@ features:
 
 ## Install
 
-Soma ships as a single signed desktop app — Tapia is built in as the `/practice` route. Every artifact is published to the [latest `desktop-v*` release](https://github.com/stephane-segning/soma/releases?q=desktop-v). Pick the one that fits your workflow:
+Soma ships as a single signed desktop app — Tapia is built in as the `/practice` route. Pick the download that fits your workflow; every link below resolves to the **latest release** automatically.
 
 ### macOS (Apple Silicon)
 
-| Asset | When to pick it |
+| Download | When to pick it |
 | --- | --- |
-| `soma-desktop-<version>-macos-arm64.dmg` | **Standard.** Open the disk image and drag Soma into Applications. Signed with a Developer ID and notarized, so Gatekeeper accepts it on first launch. |
-| `soma-desktop-<version>-macos-arm64.zip` | **Manual / no-Finder.** Unzip and drop `Soma.app` wherever you want it — `~/Applications/`, `/Applications/`, anywhere on disk. Same signed + notarized binary as the `.dmg`. |
+| [**Soma — `.dmg`**](https://github.com/stephane-segning/soma/releases/latest/download/soma-desktop-macos-arm64.dmg) | **Standard.** Open the disk image and drag Soma into Applications. Signed with a Developer ID and notarized, so Gatekeeper accepts it on first launch. |
+| [Soma — `.zip`](https://github.com/stephane-segning/soma/releases/latest/download/soma-desktop-macos-arm64.zip) | **Manual / no-Finder.** Unzip and drop `Soma.app` wherever you want it — `~/Applications/`, `/Applications/`, anywhere on disk. Same signed + notarized binary as the `.dmg`. |
 
-### Linux (amd64 or arm64)
+### Linux
 
-| Asset | When to pick it |
+| Download | When to pick it |
 | --- | --- |
-| `soma-desktop-<version>-linux-<arch>.deb` | **Debian / Ubuntu / Pop!\_OS / Mint / any apt-based distro.** Install with `sudo apt install ./soma-desktop-<version>-linux-<arch>.deb`. Soma shows up in your application menu and updates through apt when you replace the file. |
-| `soma-desktop-<version>-linux-<arch>.AppImage` | **No-install / portable.** `chmod +x` it and run it directly — no root, no package manager touched. Move it under `~/Applications/` if you want a stable path. |
+| [**Soma — `.deb` (amd64)**](https://github.com/stephane-segning/soma/releases/latest/download/soma-desktop-linux-amd64.deb) · [**`.deb` (arm64)**](https://github.com/stephane-segning/soma/releases/latest/download/soma-desktop-linux-arm64.deb) | **Debian / Ubuntu / Pop!\_OS / Mint / any apt-based distro.** Install with `sudo apt install ./soma-desktop-linux-<arch>.deb`. Soma shows up in your application menu. |
+| [Soma — `.AppImage` (amd64)](https://github.com/stephane-segning/soma/releases/latest/download/soma-desktop-linux-amd64.AppImage) · [`.AppImage` (arm64)](https://github.com/stephane-segning/soma/releases/latest/download/soma-desktop-linux-arm64.AppImage) | **No-install / portable.** `chmod +x` the file and run it directly — no root, no package manager touched. |
+
+Looking for an older version or release notes? Browse the [full list of desktop releases](https://github.com/stephane-segning/soma/releases?q=desktop-v) — every previous version is still downloadable from its own tag.
 
 ### Verifying the download
 
-Every asset is listed in the `SHA256SUMS.txt` asset on the release. Verify with `sha256sum -c` (Linux) or `shasum -a 256 -c` (macOS) before launch if you want a paper-trail check.
+Every asset is listed in [`SHA256SUMS.txt`](https://github.com/stephane-segning/soma/releases/latest/download/SHA256SUMS.txt) on the release. Verify with `sha256sum -c` (Linux) or `shasum -a 256 -c` (macOS) before launch if you want a paper-trail check.
 
 ### Uninstalling
 

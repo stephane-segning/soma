@@ -445,7 +445,7 @@ Target (post-P5) — sudoless, signed, single-bundle.
 
 - GitHub Actions, all manual-triggered (`workflow_dispatch`).
 - `.github/targets.json` is the single source of `(os, arch)` truth; both `release-desktop.yml` and `release-server.yml` open with a tiny `targets` job that `jq`s the relevant slice and emits it as a job output, then `build.strategy.matrix.include` consumes it via `fromJSON(needs.targets.outputs.<slice>)`. Adding a target = one entry in `targets.json`. `publish-manifest` in `release-desktop.yml` also reads the same slice so the release manifest can never drift from the build matrix.
-- `release-desktop.yml` builds the Electron app (incl. `@soma/node` addon native build per `(os, arch)`) + signs + notarizes + publishes to a `desktop-v*` Release.
+- `release-desktop.yml` builds the Electron app (incl. `@soma/node` addon native build per `(os, arch)`) + signs + notarizes + publishes to a `desktop-v*` Release marked as the repo's `latest`. Asset filenames are **versionless** (`soma-desktop-<os>-<arch>.<ext>`) — the version lives in the tag — so the docs landing page can link to `https://github.com/<owner>/<repo>/releases/latest/download/<name>` and never need re-deploying per release. Each release's `desktop-release-manifest.json` carries both `url` (tag-pinned) and `latest_url` (latest-pinned) entries so machine consumers can pick either.
 - `release-server.yml` builds **one** `somad` Docker image (distroless, non-root) per `(os, arch)` and publishes to GHCR.
 - `release-pages.yml` deploys docs (VitePress) + Storybook to GitHub Pages.
 - SBOMs via `anchore/sbom-action` (Syft).
