@@ -52,8 +52,8 @@ Pre-prod refactor. Breaking changes are fine; there is no backwards-compatibilit
 - [x] P4 — Soma main rewritten to call addon directly; daemon-process-manager / splash gate / socket config removed
 - [x] **Server-binary collapse** (was P5) — `bins/{botd,relayd,rendezvousd,bffd,serverd}` deleted; one `somad` binary with subcommands (`bot`, `relay`, `rendezvous`, `bff`, `all`); one Dockerfile, one image
 - [x] P5 — Streaming: daemon `stream_events` wired through napi `ThreadsafeFunction`; renderer reacts via `DomainEventsService`. `chat_stream` deferred (no consumer — Soma uses OpenAI HTTP)
-- [ ] P6a — Packaging cleanup (in flight): sudoless user-domain install at `~/Applications`, SHA256SUMS published with `desktop-v*` releases, install/uninstall bootstrap dedup, obsolete `desktop/packaging/` + `release.yml` (bundle workflow) deleted
-- [ ] P6b — Developer ID code signing + notarization: scaffolded in `electron-builder.yml` + `release-desktop.yml` but inert until Apple secrets are set in repo settings (`CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_API_KEY_ID`, `APPLE_API_ISSUER`, `APPLE_API_KEY` content)
+- [x] P6a — Packaging cleanup: sudoless user-domain install at `~/Applications`, SHA256SUMS published with `desktop-v*` releases, install/uninstall bootstrap dedup, obsolete `desktop/packaging/` + `release.yml` (bundle workflow) deleted
+- [x] P6b — Developer ID code signing + notarization: `electron-builder.yml` has `notarize: true`; `release-desktop.yml` reads `CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_API_KEY` (content, materialized to `$RUNNER_TEMP/AuthKey.p8`), `APPLE_API_KEY_ID`, `APPLE_API_ISSUER`, `APPLE_TEAM_ID` from repo secrets; ad-hoc `codesign --sign -` + `ditto` rezip step removed
 - [ ] P7 — CI matrix dedup (single matrix per artifact); leftover cleanups
 
 When this document says "today" or describes current behavior in present tense, treat it as the *intended* behavior in the target architecture — verify against the code if you need to make a load-bearing decision.
@@ -77,7 +77,6 @@ When this document says "today" or describes current behavior in present tense, 
   - `desktop/desktop-ui/` — shared React components (`@soma/ui`), subpath-imports only (`@soma/ui/components/*`, `@soma/ui/hooks/*`, etc.; no root export).
   - `desktop/desktop-config/` — stage detection + path normalization (`@soma/desktop-config`). Socket-path logic deleted in P4.
   - `desktop/desktop-editor/`, `desktop/desktop-data/`, `desktop/desktop-icons/` — supporting packages.
-  - `desktop/packaging/` — TS CLI for producing notarized macOS zips and Linux tarballs; AppImage on Linux.
 - `proto/` — libp2p wire formats (rust-only after P4 when `desktop-proto` is removed).
 - `docs/` — VitePress docs (`@soma/docs`). Hosts the `install.sh` / `uninstall.sh` bootstrap.
 - `deploy/` — Helm charts and infrastructure manifests for server backends.
@@ -458,7 +457,13 @@ Target (post-P5) — sudoless, signed, single-bundle.
 - `release-bundle.yml` produces the OS-specific desktop installer bundles + SHA256SUMS.
 - `release-pages.yml` deploys docs (VitePress) + Storybook to GitHub Pages.
 - SBOMs via `anchore/sbom-action` (Syft).
-- Required Apple secrets for notarization: `APPLE_DEVELOPER_ID_P12_BASE64`, `APPLE_DEVELOPER_ID_P12_PASSWORD`, `APPLE_API_KEY_ID`, `APPLE_API_KEY_ISSUER`, `APPLE_API_KEY_P8_BASE64` (App Store Connect API key, preferred over Apple-ID + app-specific password).
+- Required Apple secrets for notarization (already wired in `release-desktop.yml`):
+  - `CSC_LINK` — base64-encoded **Developer ID Application** `.p12`
+  - `CSC_KEY_PASSWORD` — `.p12` export password
+  - `APPLE_API_KEY` — raw `.p8` contents of the App Store Connect API key (the workflow writes it to `$RUNNER_TEMP/AuthKey.p8` and re-exports `APPLE_API_KEY` as the path)
+  - `APPLE_API_KEY_ID` — 10-char key ID
+  - `APPLE_API_ISSUER` — issuer UUID
+  - `APPLE_TEAM_ID` — 10-char team ID (electron-builder needs it explicit when using API-key notarization)
 
 ### Docker (server)
 

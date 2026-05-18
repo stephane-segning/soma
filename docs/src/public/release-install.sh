@@ -152,11 +152,9 @@ if [ "$os" = "darwin" ]; then
     echo "Install failed: Soma.app not found after unzip." >&2
     exit 1
   fi
-  # Ad-hoc-signed apps trip Gatekeeper without this. Notarization replaces
-  # this band-aid (see AGENTS.md, P6).
-  if command -v xattr >/dev/null 2>&1; then
-    xattr -dr com.apple.quarantine "$target" 2>/dev/null || true
-  fi
+  # No xattr strip needed: curl doesn't tag downloads with
+  # com.apple.quarantine, and notarized binaries pass Gatekeeper on first
+  # launch on their own.
   echo "Installed Soma at ${target}"
   echo "Launch from Finder, Spotlight, or: open '${target}'"
 else
