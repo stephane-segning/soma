@@ -1,55 +1,67 @@
-import { cn } from "@app/lib/cn.ts";
+/**
+ * SpacesRail — renderer-side wrapper around `@soma/ui`'s
+ * `SpacesRail`. Wave-2 cutover replaces the old 64px avatar column with
+ * the locked 52px icon rail from [ADR-0005 §2](../../../../../../docs/src/architecture/adrs/0005-ui-revamp-v0.md).
+ *
+ * Maps `useSpacesQuery` rows onto `SpaceRailItem` (2-letter monogram
+ * icon, displayName as tooltip) and wires navigation through React
+ * Router. The trailing `+` button routes to the spaces landing screen
+ * — joining vs. creating happens there.
+ */
 import { useSpacesQuery } from "@app/queries/spaces";
-import Avatar from "react-avatar";
-import { Plus } from "react-feather";
-import { Link, useParams } from "react-router";
+import { SpacesRail as SomaSpacesRail } from "@soma/ui/components/nav/spaces-rail";
+import { useMemo } from "react";
+import { useNavigate, useParams } from "react-router";
 
 function SpacesRail(): React.JSX.Element {
 	const spacesQuery = useSpacesQuery();
-	const { spaceId } = useParams<{
-		spaceId: string;
-	}>();
-	const spaces = spacesQuery.data?.spaces ?? [];
+	const { spaceId: activeId } = useParams<{ spaceId: string }>();
+	const navigate = useNavigate();
+
+	const items = useMemo(
+		() =>
+			(spacesQuery.data?.spaces ?? []).map((space) => ({
+				id: space.spaceId,
+				icon: (
+					<span className="font-semibold text-xs leading-none">
+						{monogram(space.displayName, space.spaceId)}
+					</span>
+				),
+				name: space.displayName?.trim() || space.spaceId,
+			})),
+		[spacesQuery.data],
+	);
+
+	if (spacesQuery.isLoading && items.length === 0) {
+		return (
+			<nav
+				aria-busy
+				aria-label="Spaces"
+				className="flex h-full w-[52px] shrink-0 flex-col items-center gap-1 border-base-300 border-r bg-base-100 py-2"
+			>
+				<div className="skeleton size-9 rounded-md" />
+				<div className="skeleton size-9 rounded-md" />
+			</nav>
+		);
+	}
 
 	return (
-		<div className="flex h-full w-16 flex-col items-center gap-3 overflow-y-auto px-2 py-3">
-			{spacesQuery.isLoading && (
-				<>
-					<div className="avatar">
-						<div className="skeleton size-12 rounded-2xl bg-base-300 outline outline-2 outline-base-100" />
-					</div>
-					<div className="avatar">
-						<div className="skeleton size-12 rounded-2xl bg-base-300 outline outline-2 outline-base-100" />
-					</div>
-				</>
-			)}
-
-			{spaces.map((space) => {
-				const isActive = space.spaceId === spaceId;
-
-				return (
-					<Link className="avatar" key={space.spaceId} to={`/spaces/${space.spaceId}/pages`}>
-						<div
-							className={cn(
-								"flex w-12 items-center justify-center rounded-2xl ring-2 ring-dashed ring-offset-2 ring-offset-base-100",
-								isActive && "ring-primary",
-								!isActive && "ring-transparent hover:ring-base-300",
-							)}
-						>
-							<Avatar name={space.displayName || space.spaceId} />
-						</div>
-					</Link>
-				);
-			})}
-
-			{/* TODO implement a logic using `useCreateSpaceMutation` to create a new space or redirect to `/spaces/join` to join a new space*/}
-			<Link aria-label="Open spaces landing" className="avatar" to="/spaces/landing">
-				<div className="flex w-12 items-center justify-center rounded-2xl bg-base-100 outline-dotted outline-2 outline-base-300">
-					<Plus className="size-4" />
-				</div>
-			</Link>
-		</div>
+		<SomaSpacesRail
+			activeId={activeId}
+			items={items}
+			onCreate={() => navigate("/spaces/landing")}
+			onSelect={(id) => navigate(`/spaces/${id}/pages`)}
+		/>
 	);
+}
+
+function monogram(displayName: string | undefined, fallback: string): string {
+	const source = displayName?.trim() || fallback;
+	const words = source.split(/\s+/).filter(Boolean);
+	if (words.length >= 2) {
+		return (words[0][0] + words[1][0]).toUpperCase();
+	}
+	return source.slice(0, 2).toUpperCase();
 }
 
 export { SpacesRail };
