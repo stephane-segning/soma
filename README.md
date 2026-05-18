@@ -2,9 +2,7 @@
 
 [![Release Docs and Desktop Packages](https://github.com/stephane-segning/soma/actions/workflows/release-pages.yml/badge.svg)](https://github.com/stephane-segning/soma/actions/workflows/release-pages.yml)
 [![Release desktop (Electron)](https://github.com/stephane-segning/soma/actions/workflows/release-desktop.yml/badge.svg)](https://github.com/stephane-segning/soma/actions/workflows/release-desktop.yml)
-[![Release daemons (soma-daemon + soma-agentd)](https://github.com/stephane-segning/soma/actions/workflows/release-daemons.yml/badge.svg)](https://github.com/stephane-segning/soma/actions/workflows/release-daemons.yml)
-[![Release bundle](https://github.com/stephane-segning/soma/actions/workflows/release.yml/badge.svg)](https://github.com/stephane-segning/soma/actions/workflows/release.yml)
-[![Build backend Docker images](https://github.com/stephane-segning/soma/actions/workflows/docker-backend.yml/badge.svg)](https://github.com/stephane-segning/soma/actions/workflows/docker-backend.yml)
+[![Release server (somad)](https://github.com/stephane-segning/soma/actions/workflows/release-server.yml/badge.svg)](https://github.com/stephane-segning/soma/actions/workflows/release-server.yml)
 
 Soma is a local-first workspace platform built around a structured note-taking app, a focused training companion app, and optional peer/network infrastructure.
 
@@ -22,28 +20,26 @@ The repo is still a monorepo, but the day-to-day tooling is being separated more
 
 ## What Is Here
 
-- `backend/`: Rust workspace for `soma-daemon`, `soma-botd`, `soma-agentd`, relay/rendezvous services, shared peer/storage crates, and server utilities
-- `desktop/soma`: the Electron desktop app (workspace + typing practice)
-- `desktop/desktop-*`: shared desktop packages for proto bindings, config, editor, data, UI, and packaging
-- `proto/`: shared daemon/agent/membership contracts
+- `backend/`: Rust workspace. Library crates `soma-daemon` and `soma-agentd` are linked into the `@soma/node` napi addon (`backend/crates/soma-node`) and run in-process inside Electron main. The only standalone backend binary is `somad`, which dispatches to `bot` / `relay` / `rendezvous` / `bff` / `all` subcommands.
+- `desktop/soma`: the only Electron desktop app — Soma workspace UI plus the merged-in typing practice surface under `/practice` (formerly Tapia)
+- `desktop/desktop-*`: shared desktop packages for config, editor, data, UI, and (legacy) proto bindings
+- `proto/`: record-shape definitions reused as type sources (no live gRPC server on the desktop side)
 - `docs/`: current documentation
 - `planning/`: active plans and migration notes
 
 ## Shared Contract Boundary
 
-- `proto/` is the current source-of-truth for cross-runtime contracts
-- Rust consumes those contracts through `backend/crates/proto-build`
-- TypeScript/Electron consumes them through `desktop/desktop-proto` (`@soma/proto`)
-- both generators now support `SOMA_PROTO_ROOT=/absolute/path/to/proto` as split-readiness groundwork
+- `proto/` defines shared record types; the desktop side no longer uses these as live gRPC services — Electron main calls the napi addon directly
+- Rust consumes the proto definitions through `backend/crates/proto-build`
+- The TS proto package (`desktop/desktop-proto`, `@soma/proto`) is legacy; the napi addon ships its own `napi build --dts` types
 
 Contract details live in `docs/src/architecture/shared-contracts.md`.
 
 ## Current Runtime Shape
 
-- `soma-daemon` is the main local backend for the desktop app: spaces, memberships, pages, documents, blobs, and peer networking
-- `soma-agentd` is a local helper for chat, embeddings, rerank, and Yjs merge/drift work
-- `desktop/soma` talks to both over local IPC from the Electron main process
-- `soma-botd`, `soma-relayd`, and `soma-rendezvousd` are optional network/infrastructure pieces for more realistic peer flows
+- The desktop app loads the `@soma/node` napi addon at startup. The addon embeds the `soma-daemon` library (spaces, memberships, pages, documents, blobs, peer networking) and the `soma-agentd` library (Yjs drift resolution + agent helpers) inside the Electron main process. There is no separate daemon binary and no Unix-socket IPC; Electron main calls the addon directly via `SomaHandle` / `DaemonHandle` / `AgentHandle`.
+- Chat, embeddings, and rerank go directly from Electron main to an OpenAI-compatible HTTP endpoint (Ollama or remote provider) — the agent library no longer proxies model RPCs.
+- The optional server peers (`somad bot`, `somad relay`, `somad rendezvous`, `somad bff`, `somad all`) are subcommands of the single `somad` binary.
 
 ## Fast Start
 
@@ -56,16 +52,16 @@ just desktop-install
 Then use the root `justfile` delegators:
 
 ```bash
-just backend-run-daemon
-just backend-run-agentd
 just desktop-run-soma
 ```
 
+The desktop app starts the embedded daemon + agent runtimes in-process; there is nothing else to launch for a single-machine setup.
+
 Useful additional commands:
 
-- `just backend-run-botd`
-- `just backend-run-relayd`
-- `just backend-run-rendezvousd`
+- `just backend-run-bot`
+- `just backend-run-relay`
+- `just backend-run-rendezvous`
 - `just backend-test`
 - `just desktop-test-all`
 - `just docs-build`
@@ -83,7 +79,7 @@ For a fuller walkthrough, see `docs/src/getting-started/index.md`.
 
 - `planning/` contains active plans and cutover notes; it is not the canonical documentation surface
 - `docs/` is being narrowed to current, implemented, or finished behavior only
-- the shared desktop config package normalizes stage-specific socket paths such as `/tmp/soma-daemon-dev.sock` and `/tmp/soma-agentd-dev.sock`
+- the shared desktop config package (`@soma/desktop-config`) normalizes stage-specific data directories (e.g. `Soma-dev` vs `Soma`) — there are no socket paths anymore; the daemon runs in-process inside Electron main
 - root task names without the `backend-` or `desktop-` prefix are transitional aliases kept for compatibility while tooling boundaries are clarified
 
 ## Docker Compose

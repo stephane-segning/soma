@@ -13,7 +13,7 @@ daemons (for connectivity, onboarding, and availability).
   operations are plain Rust calls inside the Electron main process. The only
   inter-process boundary on the desktop side is the renderer ↔ main Electron
   IPC bridge.
-- Tapia is shipped as a separate Electron app (`desktop/tapia`).
+- Tapia is shipped inside the Soma desktop app as the `/practice` route — there is no separate Tapia Electron app.
 
 ## Server deployment (typical)
 

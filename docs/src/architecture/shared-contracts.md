@@ -20,8 +20,8 @@ All proto files live in `proto/` at the repository root:
 
 ```
 proto/
-├── daemon/v1/daemon.proto    # Desktop ↔ Daemon IPC (Unix socket)
-├── agent/v1/agent.proto      # Desktop ↔ Agent IPC (Unix socket)
+├── daemon/v1/daemon.proto    # Record-shape reference for the in-process napi surface
+├── agent/v1/agent.proto      # Record-shape reference for the in-process napi surface
 └── space/v1/membership.proto  # Shared membership/capability types
 ```
 
@@ -29,8 +29,8 @@ proto/
 
 | Package | Purpose | Consumer |
 |---------|---------|----------|
-| `daemon.v1` | Daemon IPC API | Desktop (Electron main process) |
-| `agent.v1` | Agent IPC API | Desktop (via daemon or direct) |
+| `daemon.v1` | Record-shape reference for the in-process daemon napi surface | Desktop (Electron main process) |
+| `agent.v1` | Record-shape reference for the in-process agent napi surface | Desktop (Electron main process) |
 | `space.v1` | Membership/capability types | Backend + Desktop (shared) |
 
 ### Generated Artifacts
@@ -178,8 +178,9 @@ Arch values: `amd64`, `arm64`
 
 ```
 soma-desktop-{version}-{os}-{arch}.{ext}
-tapia-desktop-{version}-{os}-{arch}.{ext}
 ```
+
+The Tapia surface ships inside the Soma desktop artifact (as the `/practice` route); there is no separate `tapia-desktop-*` build.
 
 Extensions:
 
@@ -247,7 +248,7 @@ Field expectations:
 - `repo`: canonical source repo in `owner/name` form
 - `artifacts[]`: explicit artifact records with stable `name`, `url`, `os`, and `arch`
 - `artifacts[].kind`: recommended for server/bundle artifacts (`somad`, `deb`, `rpm`, `pkg`, ...)
-- `artifacts[].app`: recommended for desktop artifacts (`soma` or `tapia`)
+- `artifacts[].app`: recommended for desktop artifacts (`soma`; Tapia ships inside the Soma artifact and is not a separate `app` value)
 
 #### Bundle output manifest
 
@@ -281,17 +282,16 @@ The packaging CLI also writes a bundle-local manifest next to each platform outp
 
 The backend must maintain:
 
-1. **Proto stability**: No breaking changes to existing RPC signatures within `v1`
-2. **Socket convention**: Daemon/agent must accept configured socket path via CLI/env
-3. **Event compatibility**: New event types must be backward-compatible (unknown types ignored by old clients)
+1. **Napi ABI stability**: No breaking changes to existing `SomaHandle` / `DaemonHandle` / `AgentHandle` method signatures within `v1`
+2. **Event compatibility**: New event types must be backward-compatible (unknown types ignored by old clients)
 
 ### Desktop → Backend
 
 The desktop must:
 
-1. **Discover sockets**: Use `StageConfigService` to resolve socket paths
-2. **Handle unknown events**: Ignore unknown `DaemonEvent` variants without crashing
-3. **Support multiple versions**: Be resilient to missing RPCs (check `UNIMPLEMENTED` status)
+1. **Load the addon**: Resolve and load the platform-specific `@soma/node` `.node` binary at Electron main startup
+2. **Handle unknown events**: Ignore unknown daemon-event variants without crashing
+3. **Support multiple versions**: Be resilient to missing methods on the addon surface
 
 ### Version Negotiation
 
@@ -309,9 +309,9 @@ Before splitting the monorepo, ensure:
 
 - [ ] `proto/` extracted to `soma-contracts` repo
 - [ ] Generated Rust SDK published to crates.io or private registry
-- [ ] Generated TypeScript SDK published to npm or private registry
+- [ ] Generated TypeScript SDK published to npm or private registry (relevant only while `desktop/desktop-proto` exists)
 - [x] Release manifest schema documented and versioned
-- [ ] Socket/runtime conventions documented in a standalone spec
+- [ ] Napi ABI / addon surface documented in a standalone spec
 - [x] Packaging can consume artifacts from separate GitHub releases
 - [ ] CI can validate contracts independently in each repo
 

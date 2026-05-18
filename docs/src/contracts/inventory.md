@@ -1,6 +1,6 @@
 # Backend/Desktop Contract Inventory
 
-This document tracks the shared contract surface between backend (Rust gRPC) and desktop (Electron main-process wrappers).
+This document tracks the shared contract surface between the desktop runtime crates (`soma-daemon`, `soma-agentd`) and Electron main, which loads them in-process via the `@soma/node` napi addon. The proto files under `proto/` are kept as record-shape references; the desktop side calls the addon's `SomaHandle` / `DaemonHandle` / `AgentHandle` methods directly — there is no gRPC service and no Unix socket.
 
 **Last Updated:** 2026-05-16
 
@@ -16,7 +16,7 @@ This document tracks the shared contract surface between backend (Rust gRPC) and
 
 ---
 
-## daemon.v1.Daemon (Unix socket IPC)
+## daemon.v1.Daemon (in-process napi surface on `SomaHandle` / `DaemonHandle`)
 
 | RPC | Proto | Backend | Desktop | Docs | Status | Notes |
 |-----|-------|---------|---------|------|--------|-------|
@@ -58,7 +58,7 @@ This document tracks the shared contract surface between backend (Rust gRPC) and
 
 ---
 
-## agent.v1.Agent (Unix socket IPC)
+## agent.v1.Agent (in-process napi surface on `SomaHandle` / `AgentHandle`)
 
 | RPC | Proto | Backend | Desktop | Docs | Status | Notes |
 |-----|-------|---------|---------|------|--------|-------|

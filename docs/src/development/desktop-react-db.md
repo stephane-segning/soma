@@ -1,6 +1,6 @@
 # Desktop React DB vs `soma-daemon`: What Lives Where
 
-This doc is a mental model for Soma/Tapia desktop persistence when using `@tanstack/react-db` backed by `electron-store`, and how (and when) data flows to `soma-daemon`.
+This doc is a mental model for Soma desktop persistence when using `@tanstack/react-db` backed by `electron-store`, and how (and when) data flows to `soma-daemon` (the in-process library loaded via the `@soma/node` napi addon).
 
 > Note on processes: `soma-daemon` is no longer a separate process. It is a
 > library crate linked into the `@soma/node` napi addon and loaded directly by
@@ -18,7 +18,7 @@ think about:
    - This is UX continuity and workflow state.
 2. Electron main persistence
    - `electron-store` (filesystem-backed) owned by the Electron main process
-   - In Soma/Tapia we expose a small IPC storage bridge (`db_storage_*`) so renderer collections can persist.
+   - In Soma we expose a small IPC storage bridge (`db_storage_*`) so renderer collections can persist.
    - The in-process `soma-daemon` runtime also lives here: it owns its own
      SQLite + blob pool under Electron's `userData/daemon/`. Canonical domain
      state that can participate in peer sync (libp2p) lives in the daemon DB.

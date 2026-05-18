@@ -7,7 +7,7 @@ const nav: DefaultTheme.NavItem[] = [
     {text: 'Overview', link: '/00-overview'},
     {text: 'V2 Clarity', link: '/02-v2'},
     {text: 'Getting Started', link: '/getting-started/'},
-    {text: 'Architecture', link: '/architecture/arc42/05-building-block-view'},
+    {text: 'Architecture', link: '/architecture/arc42/03-context'},
     {text: 'Development', link: '/development/dependencies'},
     {text: 'Security', link: '/security/threat-model'},
 ];

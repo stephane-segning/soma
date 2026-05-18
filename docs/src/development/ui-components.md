@@ -5,7 +5,7 @@
 - `AiThinking` renders a collapsible “Thinking…” section; pass `status="thinking" | "complete"`, `durationLabel`, and `content` (markdown rendered via `AiMarkdown`).
 - Keep chat wrappers thin: `AiChat` provides a scroll container; inputs are kept separate.
 
-### Grapheme-Aware Typing (Tapia)
+### Grapheme-Aware Typing (Tapia / `/practice` route)
 - `useGraphemes(value: string)` splits text into grapheme clusters using `Intl.Segmenter` (fallback to `Array.from`).
 - `CharDisplay` is a dumb renderer that expects `shouldGraphemes` and `isGraphemes`. It aligns glyphs (including emojis) and shows mismatches with an elevated correct glyph.
 

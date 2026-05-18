@@ -40,16 +40,11 @@ involved. Local data lives under Electron's `userData` directory.
   addon, which embeds the libp2p peer / blob store / agent runtime; the
   renderer talks to main over Electron IPC.
 
-## Optional: Run Tapia
+## Tapia (Typing Practice)
 
-Tapia is currently a lighter desktop app than Soma.
-
-Today it is best treated as a focused typing-practice companion: short
-passages, generated drills, and local session feedback.
-
-```bash
-pnpm --filter tapia run dev
-```
+Tapia is built into Soma as the `/practice` route — there is no separate
+Electron app to launch. Open Soma and navigate to `/practice` for the
+short-passage, generated-drill, local-session-feedback flows.
 
 ## Optional: Run Peer/Infra Services
 

@@ -4,9 +4,9 @@ This section lists the major building blocks in the repo and how they relate.
 
 ## Level 1: System decomposition
 
-- **Desktop apps** (`desktop/`)
-  - `desktop/soma`: main UI (Electron).
-  - `desktop/tapia`: typing companion UI (Electron).
+- **Desktop app** (`desktop/`)
+  - `desktop/soma`: the only Electron app. The typing companion (Tapia) is
+    delivered as the `/practice` route inside this app.
 - **Backend workspace** (`backend/`)
   - `backend/bins/somad`: the only standalone backend binary (subcommands for
     bot / relay / rendezvous / bff / all-composed mode).
