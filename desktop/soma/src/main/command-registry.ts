@@ -17,7 +17,7 @@ import type { SearchController } from "./controllers/search-controller";
 import type { SettingsController } from "./controllers/settings-controller";
 import type { SpacesController } from "./controllers/spaces-controller";
 import type { WindowController } from "./controllers/window-controller";
-import type { DaemonProcessManager } from "./services/daemon-process-manager";
+import type { DaemonClient } from "./services/daemon-client";
 import type { DomainEventsService } from "./services/domain-events";
 import type { AppLogger } from "./services/logger";
 
@@ -35,7 +35,7 @@ export class CommandRegistry {
 		practice: PracticeController,
 		domainEvents: DomainEventsService,
 		windows: WindowController,
-		daemonProcess: DaemonProcessManager,
+		daemon: DaemonClient,
 		logger: AppLogger,
 	) {
 		this.context = {
@@ -49,7 +49,7 @@ export class CommandRegistry {
 			practice,
 			domainEvents,
 			windows,
-			daemonProcess,
+			daemon,
 			logger,
 		};
 	}

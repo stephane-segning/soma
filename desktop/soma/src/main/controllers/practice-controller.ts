@@ -164,8 +164,6 @@ function canonicalJson(value: unknown): string {
 	const keys = Object.keys(value as Record<string, unknown>)
 		.filter((k) => (value as Record<string, unknown>)[k] !== undefined)
 		.sort();
-	const entries = keys.map(
-		(k) => `${JSON.stringify(k)}:${canonicalJson((value as Record<string, unknown>)[k])}`,
-	);
+	const entries = keys.map((k) => `${JSON.stringify(k)}:${canonicalJson((value as Record<string, unknown>)[k])}`);
 	return `{${entries.join(",")}}`;
 }

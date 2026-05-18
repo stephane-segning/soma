@@ -12,13 +12,13 @@ import { SearchController } from "./controllers/search-controller";
 import { SettingsController } from "./controllers/settings-controller";
 import { SpacesController } from "./controllers/spaces-controller";
 import { WindowController } from "./controllers/window-controller";
+import { AddonRuntime } from "./services/addon-runtime";
 import { AgentClient } from "./services/agent-client";
 import { AGENT_CONFIG_SETTINGS_KEY } from "./services/agent-config";
 import { AgentEventsService } from "./services/agent-events";
 import { AppDataStore } from "./services/app-data-store";
 import { BlobProtocolRegistrar } from "./services/blob-protocol";
 import { DaemonClient } from "./services/daemon-client";
-import { DaemonProcessManager } from "./services/daemon-process-manager";
 import { DomainEventsService } from "./services/domain-events";
 import { AppLogger } from "./services/logger";
 import { StartupService } from "./services/startup-service";
@@ -37,29 +37,30 @@ export function buildContainer(options: ContainerOptions): Container {
 	});
 
 	container.bind<AppDataStore>(TYPES.AppDataStore).toConstantValue(new AppDataStore());
+	container.bind<AppLogger>(TYPES.Logger).toConstantValue(new AppLogger(options));
+
+	container.bind<AddonRuntime>(TYPES.AddonRuntime).toDynamicValue(
+		(ctx) =>
+			new AddonRuntime(
+				{
+					userDataDir: app.getPath("userData"),
+					logsDir: app.getPath("logs"),
+					stage: options.runtimeConfig,
+				},
+				ctx.get(TYPES.Logger),
+			),
+	);
 	container
 		.bind<DaemonClient>(TYPES.DaemonClient)
-		.toDynamicValue(() => new DaemonClient(options.runtimeConfig.daemonSocketPath));
-	container
-		.bind<DaemonProcessManager>(TYPES.DaemonProcessManager)
-		.toDynamicValue(
-			(ctx) =>
-				new DaemonProcessManager(
-					options.runtimeConfig,
-					ctx.get(TYPES.DaemonClient),
-					ctx.get(TYPES.Logger),
-					options.isDev,
-				),
-		);
+		.toDynamicValue((ctx) => new DaemonClient(ctx.get(TYPES.AddonRuntime), ctx.get(TYPES.Logger)));
 	container.bind<AgentClient>(TYPES.AgentClient).toDynamicValue(
 		(ctx) =>
-			new AgentClient(options.runtimeConfig.agentSocketPath, () => {
+			new AgentClient(ctx.get(TYPES.AddonRuntime), () => {
 				const store = ctx.get<AppDataStore>(TYPES.AppDataStore);
 				return store.settings[AGENT_CONFIG_SETTINGS_KEY];
 			}),
 	);
 
-	container.bind<AppLogger>(TYPES.Logger).toConstantValue(new AppLogger(options));
 	container.bind<AgentEventsService>(TYPES.AgentEvents).toConstantValue(new AgentEventsService());
 	container.bind<DomainEventsService>(TYPES.DomainEvents).toConstantValue(new DomainEventsService());
 
@@ -109,7 +110,7 @@ export function buildContainer(options: ContainerOptions): Container {
 					ctx.get(TYPES.PracticeController),
 					ctx.get(TYPES.DomainEvents),
 					ctx.get(TYPES.WindowController),
-					ctx.get(TYPES.DaemonProcessManager),
+					ctx.get(TYPES.DaemonClient),
 					ctx.get(TYPES.Logger),
 				),
 		);
@@ -123,8 +124,8 @@ export function buildContainer(options: ContainerOptions): Container {
 					ctx.get(TYPES.Logger),
 					ctx.get(TYPES.BlobProtocol),
 					ctx.get(TYPES.CommandRegistry),
+					ctx.get(TYPES.AddonRuntime),
 					ctx.get(TYPES.DaemonClient),
-					ctx.get(TYPES.DaemonProcessManager),
 					ctx.get(TYPES.AgentClient),
 					ctx.get(TYPES.AgentEvents),
 					ctx.get(TYPES.DomainEvents),

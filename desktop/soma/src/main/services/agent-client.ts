@@ -1,4 +1,4 @@
-import { resolveDriftViaAgentd } from "./agent-client/agentd";
+import type { AddonRuntime } from "./addon-runtime";
 import {
 	type BackgroundTaskStore,
 	backgroundTaskMessages,
@@ -6,7 +6,6 @@ import {
 	listBackgroundTasks,
 	updateBackgroundTask,
 } from "./agent-client/background-tasks";
-import { type AgentGrpcClient, createAgentGrpcClient } from "./agent-client/connection";
 import { chatStreamViaOpenAi, listModelsViaOpenAi, rerankViaOpenAi } from "./agent-client/openai";
 import { startAgentRuntimeEventStream } from "./agent-client/runtime-events";
 import type {
@@ -27,13 +26,19 @@ import { normalizeAgentRuntimeConfig, resolveWorkspaceAgentConfig } from "./agen
 
 export * from "./agent-client/types";
 
+/**
+ * Agent-facing facade. Chat / list-models / rerank still go through the
+ * configured OpenAI-compatible HTTP endpoint (Ollama or remote). Drift
+ * resolution moves to the in-process addon, which embeds the yrs merger.
+ */
 export class AgentClient {
-	private client: AgentGrpcClient;
 	private readonly readConfig: () => ReturnType<typeof normalizeAgentRuntimeConfig>;
 	private readonly backgroundTasks: BackgroundTaskStore = new Map();
 
-	constructor(socketPath: string, readConfig?: () => unknown) {
-		this.client = createAgentGrpcClient(socketPath);
+	constructor(
+		private readonly runtime: AddonRuntime,
+		readConfig?: () => unknown,
+	) {
 		this.readConfig = () => normalizeAgentRuntimeConfig(readConfig?.());
 	}
 
@@ -56,7 +61,17 @@ export class AgentClient {
 	}
 
 	async resolveDrift(params: ResolveDriftParams): Promise<ResolveDriftResult> {
-		return resolveDriftViaAgentd(this.client, params);
+		if (!params.leftUpdateBase64?.trim()) throw new Error("leftUpdateBase64 is required");
+		if (!params.rightUpdateBase64?.trim()) throw new Error("rightUpdateBase64 is required");
+
+		const handle = await this.handle();
+		const merged = await handle.resolveDrift(
+			Buffer.from(params.leftUpdateBase64, "base64"),
+			Buffer.from(params.rightUpdateBase64, "base64"),
+		);
+		return {
+			mergedUpdateBase64: Buffer.from(merged).toString("base64"),
+		};
 	}
 
 	enqueueBackgroundTask(params: EnqueueBackgroundTaskParams): Promise<BackgroundTask> {
@@ -113,5 +128,10 @@ export class AgentClient {
 	private validateRerank(params: RerankParams): void {
 		if (!params.query?.trim()) throw new Error("query is required");
 		if (!params.candidates?.length) throw new Error("at least one candidate is required");
+	}
+
+	private async handle() {
+		// `AddonRuntime.start()` is idempotent.
+		return this.runtime.start();
 	}
 }

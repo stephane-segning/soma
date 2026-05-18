@@ -19,6 +19,11 @@ files:
   - '!node_modules/@soma/desktop-db/tsconfig.json'
 asarUnpack:
   - resources/**
+  # The napi-rs addon must live outside the asar so Node can `dlopen()` it.
+  - node_modules/@soma/node/**/*.node
+  - node_modules/@soma/node/index.js
+  - node_modules/@soma/node/index.d.ts
+  - node_modules/@soma/node/package.json
 win:
   executableName: soma
 nsis:

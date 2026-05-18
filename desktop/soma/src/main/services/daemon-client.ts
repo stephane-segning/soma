@@ -1,21 +1,4 @@
-import type { ReadBlobResponse } from "@soma/proto/daemon/v1/daemon";
-
-import { readBlob, uploadBlob } from "./daemon-client/blobs";
-import { createDaemonGrpcClient, type DaemonGrpcClient } from "./daemon-client/connection";
-import { getDocument, upsertDocument } from "./daemon-client/documents";
-import { streamEvents } from "./daemon-client/events";
-import { decideJoin, joinSpace, listJoinRequests, revokeSpaceMembership } from "./daemon-client/joins";
-import { ensurePage, listPages, setPageParents, updatePageTitle } from "./daemon-client/pages";
-import {
-	createSpace,
-	deleteSpace,
-	getSpace,
-	listMyMemberships,
-	listSpaceMembers,
-	listSpaces,
-	updateSpace,
-} from "./daemon-client/spaces";
-import { status } from "./daemon-client/status";
+import type { AddonRuntime } from "./addon-runtime";
 import type {
 	DaemonStatus,
 	DaemonStreamHandlers,
@@ -24,6 +7,7 @@ import type {
 	JoinSpaceInput,
 	JoinSpaceResult,
 	ListSpacesResult,
+	ReadBlobResponse,
 	RevokeMembershipInput,
 	StoredDocument,
 	StoredJoinRequest,
@@ -33,97 +17,335 @@ import type {
 	UploadBlobInput,
 	UploadBlobResult,
 } from "./daemon-client/types";
+import type { AppLogger } from "./logger";
 
 export * from "./daemon-client/types";
 
+/**
+ * Facade over the `@soma/node` napi handle. Keeps the historical
+ * `DaemonClient` public interface so controllers don't need to change.
+ *
+ * The handle is lazily resolved per-call so the renderer can issue commands
+ * before the `AddonRuntime` has finished starting (callers `await` it anyway).
+ */
 export class DaemonClient {
-	private client: DaemonGrpcClient;
+	constructor(
+		private readonly runtime: AddonRuntime,
+		private readonly logger?: AppLogger,
+	) {}
 
-	constructor(socketPath: string) {
-		this.client = createDaemonGrpcClient(socketPath);
+	async status(): Promise<DaemonStatus> {
+		const handle = await this.handle();
+		const res = await handle.status();
+		return {
+			peerId: res.peerId ?? "",
+			listenAddrs: res.listenAddrs ?? [],
+		};
 	}
 
-	status(): Promise<DaemonStatus> {
-		return status(this.client);
+	/**
+	 * TODO(phase-5): wire to addon `streamEvents` once napi exposes the daemon
+	 * peer-event subscription. Until then the renderer simply won't receive
+	 * live daemon events.
+	 */
+	streamEvents(_handlers: DaemonStreamHandlers): () => void {
+		this.logger?.log("warn", "daemon stream events not yet wired to addon");
+		return () => {};
 	}
 
-	streamEvents(handlers: DaemonStreamHandlers): () => void {
-		return streamEvents(this.client, handlers);
+	async uploadBlob(input: UploadBlobInput): Promise<UploadBlobResult> {
+		const handle = await this.handle();
+		const res = await handle.uploadBlob({
+			spaceId: input.spaceId,
+			data: Buffer.from(input.bytes),
+			mime: input.mime,
+			name: input.name,
+			docId: input.docId ?? "",
+		});
+		return {
+			cid: res.cid,
+			size: Number(res.size ?? input.bytes.length),
+			mime: res.mime ?? input.mime,
+			name: res.name ?? input.name,
+		};
 	}
 
-	uploadBlob(input: UploadBlobInput): Promise<UploadBlobResult> {
-		return uploadBlob(this.client, input);
+	async readBlob(spaceId: string, cid: string): Promise<ReadBlobResponse | null> {
+		const handle = await this.handle();
+		const res = await handle.readBlob(spaceId, cid);
+		if (!res?.data || !res.data.length) return null;
+		// Addon returns { data: Buffer, size, mime } — historical `ReadBlobResponse`
+		// matches this shape (data + mime are the only fields touched by callers).
+		return {
+			data: res.data,
+			mime: res.mime ?? "",
+			size: Number(res.size ?? res.data.length),
+		};
 	}
 
-	readBlob(spaceId: string, cid: string): Promise<ReadBlobResponse | null> {
-		return readBlob(this.client, spaceId, cid);
+	async upsertDocument(doc: StoredDocument): Promise<void> {
+		const handle = await this.handle();
+		await handle.upsertDocument({
+			spaceId: doc.spaceId,
+			documentId: doc.documentId,
+			contentJson: doc.contentJson,
+			published: doc.published,
+			updatedAtMs: doc.updatedAtMs,
+		});
 	}
 
-	upsertDocument(doc: StoredDocument): Promise<void> {
-		return upsertDocument(this.client, doc);
+	async getDocument(spaceId: string, documentId: string): Promise<StoredDocument | null> {
+		const handle = await this.handle();
+		const res = await handle.getDocument(spaceId, documentId);
+		if (!res) return null;
+		return {
+			spaceId: res.spaceId,
+			documentId: res.documentId,
+			contentJson: res.contentJson,
+			published: !!res.published,
+			updatedAtMs: Number(res.updatedAtMs ?? Date.now()),
+		};
 	}
 
-	getDocument(spaceId: string, documentId: string): Promise<StoredDocument | null> {
-		return getDocument(this.client, spaceId, documentId);
+	async ensurePage(page: StoredPage): Promise<StoredPage> {
+		const handle = await this.handle();
+		const res = await handle.ensurePage({
+			spaceId: page.spaceId,
+			pageId: page.pageId,
+			title: page.title,
+			parentPageIds: page.parentPageIds,
+			createdAtMs: page.createdAtMs,
+			updatedAtMs: page.updatedAtMs,
+		});
+		return mapPage(res);
 	}
 
-	ensurePage(page: StoredPage): Promise<StoredPage> {
-		return ensurePage(this.client, page);
+	async listPages(spaceId: string): Promise<StoredPage[]> {
+		const handle = await this.handle();
+		const res = await handle.listPages(spaceId);
+		return (res ?? []).map((page) => mapPage(page));
 	}
 
-	listPages(spaceId: string): Promise<StoredPage[]> {
-		return listPages(this.client, spaceId);
+	async updatePageTitle(spaceId: string, pageId: string, title: string): Promise<StoredPage | null> {
+		const handle = await this.handle();
+		const res = await handle.updatePageTitle(spaceId, pageId, title);
+		return res ? mapPage(res) : null;
 	}
 
-	updatePageTitle(spaceId: string, pageId: string, title: string): Promise<StoredPage | null> {
-		return updatePageTitle(this.client, spaceId, pageId, title);
+	async setPageParents(spaceId: string, pageId: string, parentPageIds: string[]): Promise<StoredPage | null> {
+		const handle = await this.handle();
+		const res = await handle.setPageParents(spaceId, pageId, parentPageIds);
+		return res ? mapPage(res) : null;
 	}
 
-	setPageParents(spaceId: string, pageId: string, parentPageIds: string[]): Promise<StoredPage | null> {
-		return setPageParents(this.client, spaceId, pageId, parentPageIds);
+	async listSpaces(options?: { limit?: number; offset?: number; query?: string }): Promise<ListSpacesResult> {
+		const handle = await this.handle();
+		const res = await handle.listSpaces({
+			limit: options?.limit ?? 50,
+			offset: options?.offset ?? 0,
+			q: options?.query,
+		});
+		return {
+			spaces: (res.spaces ?? []).map((space) => mapSpace(space)),
+			limit: Number(res.limit ?? options?.limit ?? 50),
+			offset: Number(res.offset ?? options?.offset ?? 0),
+			nextOffset: res.nextOffset ?? null,
+		};
 	}
 
-	listSpaces(options?: { limit?: number; offset?: number; query?: string }): Promise<ListSpacesResult> {
-		return listSpaces(this.client, options);
+	async createSpace(input: { spaceId?: string; displayName?: string }): Promise<StoredSpace> {
+		const handle = await this.handle();
+		const res = await handle.createSpace({
+			spaceId: input.spaceId ?? "",
+			displayName: input.displayName ?? "",
+		});
+		return {
+			spaceId: res.spaceId || input.spaceId || "",
+			displayName: input.displayName ?? "",
+			ownerPeerId: res.ownerPeerId ?? "",
+			createdAt: Date.now(),
+		};
 	}
 
-	createSpace(input: { spaceId?: string; displayName?: string }): Promise<StoredSpace> {
-		return createSpace(this.client, input);
+	async getSpace(spaceId: string): Promise<StoredSpace | null> {
+		const handle = await this.handle();
+		try {
+			const res = await handle.getSpace(spaceId);
+			return res ? mapSpace(res) : null;
+		} catch (error) {
+			if (isNotFound(error)) return null;
+			throw error;
+		}
 	}
 
-	getSpace(spaceId: string): Promise<StoredSpace | null> {
-		return getSpace(this.client, spaceId);
+	async updateSpace(input: { spaceId: string; displayName?: string }): Promise<StoredSpace> {
+		const handle = await this.handle();
+		const res = await handle.updateSpace({
+			spaceId: input.spaceId,
+			displayName: input.displayName ?? "",
+		});
+		// Trust the addon. Fabricating a synthetic record with
+		// `createdAt: Date.now()` would lie about the original creation
+		// timestamp and corrupt downstream caches; let the caller see the
+		// addon's actual error if the update didn't yield a record.
+		if (!res) {
+			throw new Error(`updateSpace returned no record for spaceId=${input.spaceId}`);
+		}
+		return mapSpace(res);
 	}
 
-	updateSpace(input: { spaceId: string; displayName?: string }): Promise<StoredSpace> {
-		return updateSpace(this.client, input);
+	async deleteSpace(spaceId: string): Promise<boolean> {
+		const handle = await this.handle();
+		return !!(await handle.deleteSpace(spaceId));
 	}
 
-	deleteSpace(spaceId: string): Promise<boolean> {
-		return deleteSpace(this.client, spaceId);
+	async listSpaceMembers(spaceId: string): Promise<StoredSpaceMember[]> {
+		if (!spaceId) return [];
+		const handle = await this.handle();
+		const res = await handle.listSpaceMembers(spaceId);
+		return (res ?? []).map((member) => mapMember(member));
 	}
 
-	listSpaceMembers(spaceId: string): Promise<StoredSpaceMember[]> {
-		return listSpaceMembers(this.client, spaceId);
+	async listMyMemberships(): Promise<StoredSpaceMember[]> {
+		const handle = await this.handle();
+		const res = await handle.listMyMemberships();
+		return (res ?? []).map((member) => mapMember(member));
 	}
 
-	listMyMemberships(): Promise<StoredSpaceMember[]> {
-		return listMyMemberships(this.client);
+	async joinSpace(input: JoinSpaceInput): Promise<JoinSpaceResult> {
+		if (!input.spaceId?.trim()) throw new Error("spaceId is required");
+		if (!input.targetPeerId?.trim()) throw new Error("targetPeerId is required");
+		const targetMultiaddrs = (input.targetMultiaddrs ?? [])
+			.map((value) => value.trim())
+			.filter((value) => value.length > 0);
+		if (targetMultiaddrs.length === 0) throw new Error("targetMultiaddrs is required");
+
+		const handle = await this.handle();
+		const requestId = await handle.joinSpace({
+			spaceId: input.spaceId.trim(),
+			displayName: input.displayName?.trim() ?? "",
+			deviceName: input.deviceName?.trim() ?? "",
+			targetPeerId: input.targetPeerId.trim(),
+			targetMultiaddrs,
+		});
+		return { requestId };
 	}
 
-	joinSpace(input: JoinSpaceInput): Promise<JoinSpaceResult> {
-		return joinSpace(this.client, input);
+	async listJoinRequests(): Promise<StoredJoinRequest[]> {
+		const handle = await this.handle();
+		const res = await handle.listJoinRequests();
+		return (res ?? []).map((request) => ({
+			requestId: request.requestId,
+			spaceId: request.spaceId,
+			subjectPeerId: request.subjectPeerId,
+			displayName: request.displayName,
+			deviceName: request.deviceName,
+			requestedRole: request.requestedRole,
+			createdAt: Number(request.createdAt ?? 0),
+		}));
 	}
 
-	listJoinRequests(): Promise<StoredJoinRequest[]> {
-		return listJoinRequests(this.client);
+	/**
+	 * The legacy grpc decideJoin returned `DecideJoinResult | null` (null when
+	 * the daemon had no decision to report). The addon now always returns a
+	 * `JoinDecisionRecordJs`, so we always map to a non-null result. Callers
+	 * already treat the value as "decision recorded" — see
+	 * `command-registry/space-handlers.ts`.
+	 */
+	async decideJoin(input: DecideJoinInput): Promise<DecideJoinResult | null> {
+		if (!input.requestId?.trim()) throw new Error("requestId is required");
+		const handle = await this.handle();
+		const res = await handle.decideJoin({
+			requestId: input.requestId.trim(),
+			approve: input.approve,
+			role: input.role?.trim() ?? "",
+			reason: input.reason?.trim() ?? "",
+		});
+		return {
+			decisionId: res.decisionId,
+			spaceId: res.spaceId,
+			subjectPeerId: res.subjectPeerId,
+			decision: res.decision,
+			reason: res.reason,
+		};
 	}
 
-	decideJoin(input: DecideJoinInput): Promise<DecideJoinResult | null> {
-		return decideJoin(this.client, input);
+	async revokeSpaceMembership(input: RevokeMembershipInput): Promise<boolean> {
+		if (!input.spaceId?.trim()) throw new Error("spaceId is required");
+		if (!input.subjectPeerId?.trim()) throw new Error("subjectPeerId is required");
+		const handle = await this.handle();
+		return !!(await handle.revokeSpace({
+			spaceId: input.spaceId.trim(),
+			subjectPeerId: input.subjectPeerId.trim(),
+			reason: input.reason?.trim() ?? "",
+		}));
 	}
 
-	revokeSpaceMembership(input: RevokeMembershipInput): Promise<boolean> {
-		return revokeSpaceMembership(this.client, input);
+	private async handle() {
+		// `AddonRuntime.start()` is idempotent — returns the cached handle if
+		// already started, otherwise starts and caches.
+		return this.runtime.start();
 	}
+}
+
+function mapSpace(space: {
+	spaceId: string;
+	displayName: string;
+	ownerPeerId: string;
+	createdAt: number;
+}): StoredSpace {
+	return {
+		spaceId: space.spaceId,
+		displayName: space.displayName,
+		ownerPeerId: space.ownerPeerId,
+		createdAt: Number(space.createdAt ?? Date.now()),
+	};
+}
+
+function mapMember(member: { spaceId: string; peerId: string; role: string; expiresAt: number }): StoredSpaceMember {
+	return {
+		spaceId: member.spaceId,
+		peerId: member.peerId,
+		role: member.role,
+		expiresAt: Number(member.expiresAt ?? 0),
+	};
+}
+
+function mapPage(page: {
+	spaceId: string;
+	pageId: string;
+	title: string;
+	parentPageIds: string[];
+	createdAtMs: number;
+	updatedAtMs: number;
+}): StoredPage {
+	return {
+		spaceId: page.spaceId,
+		pageId: page.pageId,
+		title: page.title,
+		parentPageIds: page.parentPageIds ?? [],
+		createdAtMs: Number(page.createdAtMs ?? Date.now()),
+		updatedAtMs: Number(page.updatedAtMs ?? Date.now()),
+	};
+}
+
+/**
+ * Best-effort check for "this record doesn't exist" so the daemon-client
+ * facade can return `null` instead of propagating the error to callers that
+ * model absence as `null`.
+ *
+ * The @soma/node addon currently surfaces these as generic JS errors with a
+ * string message — no typed/error-coded surface yet. The patterns here match
+ * the exact phrases the daemon's handle layer emits (see
+ * `backend/bins/daemon/src/handle/*.rs`), anchored with word boundaries to
+ * avoid matching unrelated strings like "configuration file not found".
+ *
+ * TODO(phase-5): once @soma/node exposes typed errors / codes, switch this
+ * check to `error.code === "NOT_FOUND"` and drop the regex.
+ */
+function isNotFound(error: unknown): boolean {
+	if (!error) return false;
+	const message = error instanceof Error ? error.message : String(error);
+	// Anchored matches for the actual daemon-layer error strings.
+	return /\b(?:space|page|document|blob|membership)\s+not\s+found\b/i.test(message);
 }
