@@ -9,7 +9,7 @@ Soma ships as a desktop application plus a small set of cloud services. This pag
 - **Build tooling** – Electron builds the desktop apps; daemon/agent are built as Rust binaries. The bundle packaging step combines published artifacts into `.deb/.rpm` (Linux) or `.pkg` (macOS).
 - **Release discovery** – daemon and desktop releases can publish explicit `*-release-manifest.json` assets. `desktop/packaging` can consume those manifests directly, or fall back to GitHub release asset discovery when needed.
 - **Cross-repo readiness** – bundle packaging can resolve daemon and desktop artifacts from different GitHub repos with `--daemons-repo` / `--desktop-repo`, which is the intended bridge toward backend/desktop repo separation.
-- **Installation details** – On Linux, packages install systemd unit files; on macOS, packages install launchd plists. Services are not auto-enabled by default; operators/users can enable them if they want the daemon running in the background.
+- **Installation details** – On Linux, the AppImage runs standalone; on macOS, the `.app` is dragged to `~/Applications`. No system-wide services or root-level persistence are installed by default.
 
 ## Supporting Infrastructure
 
