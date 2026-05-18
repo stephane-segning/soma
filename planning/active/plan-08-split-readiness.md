@@ -1,205 +1,39 @@
 # Plan 08: Backend/Desktop Split Readiness
 
-Goal: make the repo structurally ready for a future split into backend-only and desktop-only repos without breaking delivery, packaging, or shared contracts.
+Goal: track what would be required to split this monorepo into separate backend and desktop repos. The architectural collapse (PRs #41–#48) resolved most of the original blockers, so this plan is now mostly a "what would be left" inventory rather than an active work item.
 
 Important recommendation:
 
-> do not split now; first extract contracts and release boundaries
+> do not split now; the remaining coupling is small but there is no concrete pressure (independent release cadences, separate ownership, repo-size pain) that justifies the coordination cost. Revisit when one of those pressures appears.
 
 ## Status
 
-| Phase | Status | Deliverables |
-|-------|--------|--------------|
-| 1. Freeze interfaces | **Complete** | `docs/src/architecture/shared-contracts.md`, `docs/src/architecture/split-readiness.md` |
-| 2. Extract contracts | Pending | `soma-contracts` repo, published SDKs |
-| 3. Decouple packaging | Pending | Release manifests, cross-repo discovery |
-| 4. Split tooling | Pending | Separate CI, justfiles |
-| 5. Repo split | Pending | Physical split |
+Post-collapse, most pre-existing phases became moot. The published doc lives at `docs/src/architecture/split-readiness.md`; this file is the planning-side reflection.
 
-## Why this exists
+| Pre-collapse phase | Outcome |
+|---|---|
+| 1. Freeze interfaces | Subsumed by the collapse. The boundary between backend and desktop is now napi (`@soma/node`), not gRPC + sockets. |
+| 2. Extract contracts (`proto/` → published SDK) | Not needed. `proto/` is libp2p-only, Rust-only. `desktop/desktop-proto` deleted in P4. |
+| 3. Decouple packaging | Subsumed. `desktop/packaging` deleted in P6a; packaging is per-artifact (electron-builder, multi-arch Dockerfile). |
+| 4. Split tooling and CI | Largely done. `release-desktop.yml` and `release-server.yml` are independent and driven by `.github/targets.json`. |
+| 5. Repo split | Deferred. See "What's actually left" below. |
 
-The code layout is already close to split-ready, but the shared contract layer and release engineering are still monorepo-native.
+## What's actually left
 
-Biggest blockers:
+Real coupling between `backend/` and `desktop/` after the collapse:
 
-- shared `proto/` source
-- generated SDKs tied to repo paths
-- stage/socket/runtime conventions spread across code and packaging
-- bundle packaging that assumes one repo namespace and release layout
-- root tooling/docs that still assume one checkout
+- **`@soma/node` build-time link.** `desktop/soma`'s Electron bundle embeds `soma-node.<os>-<arch>.node`, built from `backend/crates/soma-node`. In a split, the desktop repo would either consume the addon as an npm package or vendor prebuilt `.node` files per `(os, arch)` from a `node-v*` Release.
+- **`.github/targets.json`** lives at the repo root and is read by both release workflows.
+- **Single `docs/` VitePress site** covers both products.
+- **Root pnpm/Cargo workspace files** (`Cargo.toml`, `pnpm-workspace.yaml`, `package.json`).
+- **`xtask/`** sits at the repo root, intended to move with backend.
 
-## Target Ownership Model
+## Open decisions before any split
 
-### Repo 1: `soma-contracts`
+- Does `@soma/node` ship via npm (registered, versioned) or via GitHub Release downloads keyed by `(os, arch)`?
+- Where do the docs live — one `soma-docs` repo, or per-product docs?
+- Does the desktop repo build a release against arbitrary backend versions, or pin to a known-good `@soma/node` per desktop release?
 
-Owns:
+## Why this plan stays in the active folder for now
 
-- `proto/`
-- generated Rust/TS SDK publication
-- compatibility policy
-- release-manifest schema
-- shared runtime conventions that both backend and desktop must honor
-
-### Repo 2: `soma-backend`
-
-Owns:
-
-- `backend/`
-- `xtask/`
-- backend Docker/release/deploy assets
-- daemon/agent/server binaries
-- storage/networking crates
-
-### Repo 3: `soma-desktop`
-
-Owns:
-
-- `desktop/soma`
-- `desktop/tapia`
-- shared desktop packages
-
-### Optional repo or platform-owned area: packaging/docs portal
-
-Should own:
-
-- bundle packaging if it still assembles both backend and desktop outputs
-- unified cross-product docs if you keep one docs site
-
-## What Must Be Extracted First
-
-### Shared contracts
-
-- `proto/`
-- generated Rust crate(s)
-- published `@soma/proto`
-
-### Shared runtime conventions
-
-- socket naming
-- stage behavior
-- service names
-- install locations
-- compatibility expectations for daemon and agent endpoints
-
-### Shared release contract
-
-- artifact naming
-- tag naming
-- machine-readable release manifest for packaging
-
-## What Can Move Cleanly Later
-
-### Backend-only
-
-- `backend/`
-- `xtask/`
-- backend Docker assets
-- backend deploy/manifests
-- backend workflows
-
-### Desktop-only
-
-- `desktop/soma`
-- `desktop/tapia`
-- `desktop/desktp-config`
-- `desktop/desktp-data`
-- `desktop/desktp-editor`
-- `desktop/desktp-ui`
-- `desktop/desktp-icons`
-
-## Things That Are Not Cleanly Movable Yet
-
-- `proto/`
-- `desktop/desktp-proto`
-- `desktop/packaging`
-- `docs/` if kept as one shared site
-- root `justfile`
-- root `package.json`
-- root `pnpm-workspace.yaml`
-- release workflows that assume one GitHub repo namespace
-
-## Required Pre-Split Changes
-
-### Phase 1: Freeze interfaces
-
-Define and document:
-
-- supported daemon/agent IPC versions
-- socket naming rules
-- event semantics
-- artifact names and tags
-
-Acceptance criteria:
-
-- the split boundary is a documented contract, not repo folklore
-
-### Phase 2: Extract contracts
-
-Move `proto/` into a shared contracts package/repo and publish generated artifacts.
-
-Acceptance criteria:
-
-- backend and desktop can consume published contracts without repo-relative generation
-
-### Phase 3: Decouple packaging and release discovery
-
-Stop scraping same-repo tags and file names as implicit truth.
-
-Replace with:
-
-- explicit backend release manifest
-- explicit desktop release manifest
-- stable artifact naming contract
-
-Acceptance criteria:
-
-- packaging can consume released artifacts from separate repos cleanly
-
-### Phase 4: Split tooling and CI
-
-Break the root tooling apart:
-
-- separate `justfile` or task runners
-- separate CI validation pipelines
-- separate release workflows
-- updated docs ownership
-
-Acceptance criteria:
-
-- backend and desktop can build/test/release independently
-
-### Phase 5: Repo split
-
-Only after phases 1-4:
-
-- move backend to backend repo
-- move desktop to desktop repo
-- keep contracts shared and versioned
-
-Acceptance criteria:
-
-- both repos consume the same published contracts and released artifacts
-
-## Suggested Migration Order
-
-1. contract inventory and compatibility policy
-2. shared contracts extraction
-3. artifact manifest and packaging contract
-4. split docs/tooling ownership
-5. backend repo split
-6. desktop repo split
-
-## High-Risk Areas To Stabilize Before Split
-
-- daemon/agent IPC semantics
-- event mapping between backend and renderer-facing desktop events
-- packaging assumptions in `desktop/packaging`
-- release tag and artifact discovery logic
-- docs that still imply a single-repo operational model
-
-## Definition of Done
-
-- backend and desktop can be developed and released independently
-- both consume the same versioned shared contracts
-- packaging no longer relies on monorepo-local assumptions
-- docs and tooling reflect explicit ownership boundaries instead of one-root convenience
+It's a small, written-down checklist of what a split would touch. Easier to keep here than to reconstruct later. Move to `planning/archive/` if a deliberate decision is made not to split.
