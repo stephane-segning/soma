@@ -52,7 +52,7 @@ Pre-prod refactor. Breaking changes are fine; there is no backwards-compatibilit
 - [x] P4 — Soma main rewritten to call addon directly; daemon-process-manager / splash gate / socket config removed
 - [x] **Server-binary collapse** (was P5) — `bins/{botd,relayd,rendezvousd,bffd,serverd}` deleted; one `somad` binary with subcommands (`bot`, `relay`, `rendezvous`, `bff`, `all`); one Dockerfile, one image
 - [x] P5 — Streaming: daemon `stream_events` wired through napi `ThreadsafeFunction`; renderer reacts via `DomainEventsService`. `chat_stream` deferred (no consumer — Soma uses OpenAI HTTP)
-- [x] P6a — Packaging cleanup: sudoless user-domain install at `~/Applications`, SHA256SUMS published with `desktop-v*` releases, install/uninstall bootstrap dedup, obsolete `desktop/packaging/` + `release.yml` (bundle workflow) deleted
+- [x] P6a — Packaging cleanup: sudoless user-domain install at `~/Applications`, SHA256SUMS published with `desktop-v*` releases, obsolete `desktop/packaging/` + `release.yml` (bundle workflow) deleted. (The install/uninstall bootstrap scripts originally introduced here were retired once notarized macOS zips + Linux AppImages made `curl | bash` unnecessary; users download directly from the release.)
 - [x] P6b — Developer ID code signing + notarization: `electron-builder.yml` has `notarize: true`; `release-desktop.yml` reads `CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_API_KEY` (content, materialized to `$RUNNER_TEMP/AuthKey.p8`), `APPLE_API_KEY_ID`, `APPLE_API_ISSUER`, `APPLE_TEAM_ID` from repo secrets; ad-hoc `codesign --sign -` + `ditto` rezip step removed
 - [x] P7 — CI matrix dedup: `.github/targets.json` is the single `(os, arch)` source, consumed via a `targets` job + `fromJSON` in both `release-desktop.yml` and `release-server.yml`. Dead `release-daemons.yml` + its sole-consumer `cargo-cross-build` composite action removed. `docker-backend.yml` renamed to `release-server.yml` to match the doc.
 
@@ -78,7 +78,7 @@ When this document says "today" or describes current behavior in present tense, 
   - `desktop/desktop-config/` — stage detection + path normalization (`@soma/desktop-config`). Socket-path logic deleted in P4.
   - `desktop/desktop-editor/`, `desktop/desktop-data/`, `desktop/desktop-icons/` — supporting packages.
 - `proto/` — libp2p wire formats (rust-only after P4 when `desktop-proto` is removed).
-- `docs/` — VitePress docs (`@soma/docs`). Hosts the `install.sh` / `uninstall.sh` bootstrap.
+- `docs/` — VitePress docs (`@soma/docs`).
 - `deploy/` — Helm charts and infrastructure manifests for server backends.
 - `prd/` — product requirements.
 - `.github/workflows/` — release pipelines (single desktop matrix, single addon matrix, server-binary matrix).
@@ -432,21 +432,14 @@ Target (post-P5) — sudoless, signed, single-bundle.
 
 - One `.app` per install, containing the addon (`.node`) shipped inside the Electron bundle. No separate `soma-daemon.app` / `soma-agentd.app`.
 - Build → **Developer ID Application** code-sign (`codesign --deep --options runtime --timestamp --sign ...`) → notarize via `notarytool` → `xcrun stapler staple`.
-- Distribute as a notarized zip. The installer script (or the user) drags the `.app` into `~/Applications/Soma/`. No `/Applications`, no `/Library/LaunchAgents`, no `pkgbuild`, no `installer` invocation, no sudo, no `xattr -dr` quarantine stripping.
+- Distribute as a notarized zip via the GitHub Release. The user downloads the zip, unzips, and drags `Soma.app` into `~/Applications/`. No `/Applications`, no `/Library/LaunchAgents`, no `pkgbuild`, no `installer` invocation, no sudo, no `xattr -dr` quarantine stripping, no install/uninstall scripts.
 - macOS Login Item registered via `app.setLoginItemSettings({ openAtLogin: true, openAsHidden: true })` so the peer is online from session start (when the user opts in). The peer is alive only while the process is running — closing the window hides to tray.
 - arm64 only (5e38e7d set the precedent; the Intel path was retired).
 
 ### Linux
 
-- Tarball unpacked into `~/.local/share/soma/`; binary symlinked into `~/.local/bin/soma` if it's on PATH (otherwise just the launcher in the tarball). AppImage is an acceptable alternative artifact.
-- Optional autostart via a user-domain `~/.config/systemd/user/soma.service` (opt-in) or `~/.config/autostart/soma.desktop`. No system-wide units.
+- Distribute as an `.AppImage` per arch (amd64 + arm64) via the GitHub Release. The user `chmod +x`'s it and runs it; moving it under `~/Applications/` is encouraged but not required. No tarball, no install script, no systemd unit shipped — autostart is the user's problem (a `.desktop` file under `~/.config/autostart/` is the conventional way).
 - No dpkg/rpm by default. If we ship distro packages later, they remain optional and sudo'd; the default install path is sudoless.
-
-### Installer bootstrap
-
-- `docs/src/public/install.sh` and `docs/src/public/uninstall.sh` are thin wrappers around a shared `bootstrap.sh` (script name as `$1`). Both served from `https://soma.vaam.store/` (gh-pages).
-- Bootstrap fetches the bundle's `SHA256SUMS` (signed manifest if/when we sign manifests), verifies the install/uninstall script and the bundle archive before exec.
-- macOS Apple Silicon check at the top of the bootstrap; reject Intel cleanly.
 
 ### CI
 

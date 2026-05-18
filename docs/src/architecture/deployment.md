@@ -10,7 +10,6 @@ Soma ships as a desktop application plus a small set of cloud services. This pag
 - **Release discovery** – daemon and desktop releases can publish explicit `*-release-manifest.json` assets. `desktop/packaging` can consume those manifests directly, or fall back to GitHub release asset discovery when needed.
 - **Cross-repo readiness** – bundle packaging can resolve daemon and desktop artifacts from different GitHub repos with `--daemons-repo` / `--desktop-repo`, which is the intended bridge toward backend/desktop repo separation.
 - **Installation details** – On Linux, packages install systemd unit files; on macOS, packages install launchd plists. Services are not auto-enabled by default; operators/users can enable them if they want the daemon running in the background.
-- **Convenience scripts** – bundle releases also publish `install.sh` / `uninstall.sh` helper scripts that download and install/remove the right package for your OS/arch.
 
 ## Supporting Infrastructure
 
