@@ -79,7 +79,7 @@ function loadRenderer(window: BrowserWindow): void {
 		window.loadURL(process.env["ELECTRON_RENDERER_URL"]);
 		return;
 	}
-	window.loadFile(join(__dirname, "../../renderer/index.html"));
+	window.loadFile(join(__dirname, "../renderer/index.html"));
 }
 
 function restoreWindowState(window: BrowserWindow, windowState: WindowState | null): void {
