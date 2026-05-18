@@ -53,6 +53,13 @@ export type CommandPaletteProps = {
 	onOpen?: () => void;
 	placeholder?: string;
 	hotkey?: string;
+	/**
+	 * Notified on every keystroke in the search input. Use this to pipe
+	 * the query into an external search service whose results you feed
+	 * back via `items`. Independent of the built-in client-side filter,
+	 * which always runs against the current `items`.
+	 */
+	onQueryChange?: (query: string) => void;
 };
 
 const SECTION_ORDER: CommandPaletteSectionKind[] = [
@@ -69,6 +76,7 @@ export function CommandPalette({
 	onOpen,
 	placeholder,
 	hotkey = "mod+k",
+	onQueryChange,
 }: CommandPaletteProps) {
 	const t = useT();
 	const [query, setQuery] = useState("");
@@ -101,8 +109,11 @@ export function CommandPalette({
 	// Reset the filter when the palette opens so consecutive opens
 	// don't surface stale query state.
 	useEffect(() => {
-		if (open) setQuery("");
-	}, [open]);
+		if (open) {
+			setQuery("");
+			onQueryChange?.("");
+		}
+	}, [open, onQueryChange]);
 
 	const sectionLabel = useMemo<Record<CommandPaletteSectionKind, string>>(
 		() => ({
@@ -233,7 +244,10 @@ export function CommandPalette({
 								<input
 									autoFocus
 									className="min-w-0 flex-1 bg-transparent text-body outline-none placeholder:text-base-content/40"
-									onChange={(event) => setQuery(event.target.value)}
+									onChange={(event) => {
+										setQuery(event.target.value);
+										onQueryChange?.(event.target.value);
+									}}
 									placeholder={
 										placeholder ??
 										t({
