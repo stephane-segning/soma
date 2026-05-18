@@ -74,11 +74,14 @@ The same rules apply per-panel: a panel that wants to split horizontally only do
 
 ### Density defaults
 
-- Base font: **14px**.
-- Line-height: **1.45** for body, **1.2** for UI chrome.
+- Font sizes: **14px body**, **13px UI-sm** (row metadata, secondary text), **11px UI-xs** (labels, pills).
+- Line-height: **1.5** for body, **1.2** for UI chrome. (Bumped from 1.45 after the refero pass — every dense product surveyed runs ~1.5 at 14px; 1.45 visibly compresses two-line metadata.)
 - Spacing scale: extend Tailwind with `0.5` → 2px, `1.5` → 6px steps. Defaults to `2`–`3` spacing (8–12px) for component padding, not `4`–`6`.
-- Shadows: **remove globally.** Replace with 1px borders + subtle background contrast (DaisyUI `base-200` / `base-300`).
+- Row heights: **32px / 40px / 52px** tiers for dense / cozy / oversized lists.
+- Shadows: **one token total**, reserved for modal + popup window only. Everywhere else use 1px borders + bg-step (DaisyUI `base-200` / `base-300`).
 - Border radius: `rounded-md` (6px) max for surfaces; `rounded-sm` for chips/inline.
+
+Concrete token table lives in [prd/ui-revamp-v0-refs-files-density.md §3](ui-revamp-v0-refs-files-density.md).
 
 ## 4. Flows to define (this PRD locks them)
 
@@ -88,7 +91,13 @@ Each flow gets a short subsection: trigger, steps, surface, success state. Draft
 _Draft._ Trigger: spaces-rail "+" button. Steps: name → privacy (local / shared) → done. No bots, no assistant yet — those are added from settings after creation. Success: routed to empty space with onboarding placeholder.
 
 ### 4.2 Configure a space
-_Draft._ Single settings screen with tabbed sections, **not** a buttons-everywhere modal. Tabs: General · Members · Assistant · Bots · Sharing · Danger. Each tab has at most one primary action. No floating CTAs.
+_Draft._ Single settings screen with **horizontal pill/underline tabs** under the page title: General · Members · Assistant · Bots · Sharing · Danger. Each tab is a single screen of sectioned cards.
+
+**Save model — auto-save on blur, no global Save button.** Per-section Save buttons are banned. Errors surface inline under the field; success is silent (the value just persists). Explicit primary actions exist only for *initiation* (e.g. "Add backend", "Add bot") and *destructive* operations (Danger tab — see below).
+
+**Danger zone** sits on its own card on the Danger tab, red-labelled. `Delete space` opens an inline slug-confirm form (type the space slug to confirm); the destructive button stays disabled until the typed slug matches.
+
+See [prd/ui-revamp-v0-refs-space-lifecycle.md §2](ui-revamp-v0-refs-space-lifecycle.md) for the locked tab IA.
 
 ### 4.3 Add an assistant (LLM) to a space
 _Draft._ Soma speaks the **Agent Client Protocol (ACP)** — the same protocol Zed uses — so any ACP-capable backend works: Ollama, LM Studio, Codex, and OpenAI-compatible endpoints via an ACP shim. ACP backends are managed by the embedded `soma-agentd` runtime; the renderer configures and selects them through the napi `SomaHandle`, not by dialing services directly. Settings → Assistant tab lists configured backends and lets the user add new ones (transport URL + auth). One backend can be marked default for the space; per-message override happens in the chat header (see 4.5).
@@ -114,21 +123,39 @@ No floating modals. No multi-step wizard. Two visible steps, one save.
 It is not yet confirmed whether the daemon already persists registered bots per-space or exposes a handshake entry point — this is a v0 backend item to verify and complete in parallel with the UI work. The API additions live in [backend/crates/daemon/src/handle/](../../../../backend/crates/daemon/src/handle/) and surface through [backend/crates/soma-node](../../../../backend/crates/soma-node).
 
 ### 4.5 Chat with the assistant
-_Draft._ Right-area chat panel. Input at bottom, messages scroll up. Slash menu for actions on current document. `@` opens mention picker — first section is bots in this space, second is documents, third is users.
+_Draft._ Right-area chat panel. Input at bottom, messages scroll up. Slash menu for actions on current document. `@` opens a sectioned mention picker — Bots → Documents → Members, in that order. Bot mentions render as pills with a distinct icon and surface tint so the user sees at a glance that the mention will dispatch to a runtime, not the LLM.
 
-**Backend switcher (in-chat, dense).** Chat header shows the active ACP backend as a single icon (provider mark, e.g. ollama / openai / lmstudio). Click → dropdown with text labels lists configured backends; selection applies to the next message. No labels in the header itself — icon only — to stay dense. The same dropdown lets the user open settings for "Add backend…".
+**Backend switcher (composer footer, dense).** The active ACP backend sits as a chip in the **composer footer**, not the chat header: `<provider-mark> <name> ↕`. Click → dropdown with text labels lists configured backends; selection applies to the next message. The dropdown also surfaces "Add backend…" which deep-links to the Assistant settings tab. Header stays empty of provider chrome — saves vertical space and puts the control where the user's eye is when picking.
+
+**Streaming.** Partial tokens render live. A `Thinking…` pill covers sub-first-token latency. While streaming, the composer's send button swaps to a solid round stop. After completion, a chip row appears under the message: `↻ Regenerate` · `Copy` · `…`.
 
 ### 4.6 Send an instruction to a bot
-_Draft._ In chat (or document, in v0.1): `@bot:foo do X`. Renders as a distinct chip in the message. On send, message is dispatched to bot's runtime, not the LLM. Response comes back as a bot-attributed message in the same chat panel.
+_Draft._ In chat (v0.1: also from documents): `@bot:foo do X`. The bot mention renders as a distinct pill. When the composer text begins with `@bot:`, the send button label flips to `Dispatch` and the left edge of the composer picks up the bot-mention surface tint — the user sees a different action is about to occur.
+
+On send, the message routes to the bot's runtime (via the napi `SomaHandle`), not the LLM. Rendering in the thread:
+- **User message** — text up to the `@bot:` pill in proportional face; instruction body wraps in monospace + `$` prefix to read as a command.
+- **Dispatch ack** — collapsed pill between command and reply: `bot:foo · dispatched · <timestamp>`. Expandable on click to show ACP/handshake trace.
+- **Bot reply** — bot-attribution pill in the message header; monospace for structured output, proportional for prose.
+- **Failure** — same chat slot the response would have occupied, monospace + red surface tint, inline `Retry` chip + `Open bot status` link. No toast.
 
 ### 4.7 Open a focused popup task (10-finger typing)
 _Draft._ From `/practice` exercise detail, "Open in window" → spawns a `BrowserWindow` with route `#/popup/typing/<exercise-id>`. Popup renders only [`CharDisplay`](../../../../desktop/desktop-ui/src/components/tapia/char-display.tsx) + input + minimal stats. Main window stays usable. Same mechanism will host future exam/survey popups.
+
+**Popup chrome (locked).** 520×360 default, min-width 480px. Chrome auto-hides to a 28px drag strip on input focus. Glyph cluster on the drag region, flush-right: **pin** (always-on-top toggle, default off) · **restart** · **return-to-main** (closes popup + focuses main, leaves exercise state intact and resumable) · **close**. OS window title = the exercise's own name (not `Soma — Typing`) so the popup is identifiable in the dock / window switcher.
+
+**Completion.** Popup closes → `app.focus()` on main + route to `/practice/<id>` → single toast `Exercise complete · WPM · accuracy · View result`.
 
 ### 4.8 Switch spaces / documents
 _Draft._ Spaces rail = icons only (52px wide). Document tree lives _inside_ the document column header as a breadcrumb + tree popover, not as a third pane. Saves horizontal space.
 
 ### 4.9 Upload / attach a file
 _Draft._ Drag into document or attachments panel. File type detected from content, not just extension (fixes the "ZIP archive" bug for .txt). Inline preview in attachments panel.
+
+- **Drag overlay.** 2px dashed accent border on the entire document column (not per-block); single centered "Drop to attach" tile.
+- **In-document attachment.** Chip-row: type glyph + filename + MIME + size + `×`. Two per row when width allows.
+- **Attachments panel.** Dashed dropzone tile *above* the file list (never as the whole panel). Rows: 16px color-coded file-type glyph + truncated name + faint date subline + always-visible `⋯`.
+- **Upload progress.** Inline bar baked into the row background; `n%` on the right; replaced by size on completion.
+- **MIME mismatch.** Warning glyph + parenthetical detected type in the chip (`txt (detected) · 14 KB`), tooltip on hover. No toast.
 
 ## 5. What we're killing
 
@@ -145,17 +172,27 @@ New / extended components, all built once for both `soma` and `practice` consume
 |---|---|---|
 | `PanelContainer` | Right-area stack + split host | new |
 | `Panel` | Header + body + collapse/drag-handle | new |
-| `SlashMenu` | Editor command palette | new |
-| `MentionPicker` | `@` autocomplete: bots / docs / users | new |
-| `SelectionBubble` | Inline formatting bar over editor selection | new |
-| `BotCatalogList` | Bot picker for space settings | new |
-| `CapabilityForm` | Scope + expiry + sign UI | new |
-| `BackendSwitcher` | Icon-only ACP backend picker for chat header | new |
+| `SlashMenu` | Editor command palette. Sections: Text · List · Embed · Action · Advanced. **No AI tile** — AI goes through the right-area chat panel, a slash AI block would be a redundant trap | new |
+| `MentionPicker` | `@` autocomplete: Bots → Documents → Members. Keyboard-first | new |
+| `SelectionBubble` | Inline formatting bar over editor selection. Single dark pill above selection; block-style dropdown leftmost | new |
+| `BotList` | Bot list for space settings (status pill, capability scope, alias). _Renamed from `BotCatalogList` — there is no catalog; bots are added by paste_ | new |
+| `CapabilityForm` | Identity / Scopes (collapsible groups with counts) / Expiry / Issue, one scroll surface | new |
+| `BackendSwitcher` | ACP backend picker chip for the **composer footer** (was originally specced for chat header) | new |
 | `PeerAddressInput` | Single-field paste + validate for bot adding | new |
 | `SpacesRail` | 52px icon rail with active indicator | refactor |
 | `CharDisplay` | Existing typing visual | keep, extract any inline styles |
 | `DensityProvider` | Tailwind context for compact / cozy toggle | new |
-| `Empty` | Empty-state primitive (icon, text, single CTA) | new |
+| `Empty` | Empty-state primitive with three variants: **full** (icon + headline + optional CTA), **compact** (dashed-border single line, for narrow panels), **filter** (CTA is `Clear filter ×`) | new |
+| `DenseRow` | Shared list-row slot model: `leading · primary(+sub) · status pill · meta · always-visible ⋯`. Used by members, bots, attachments, recent docs | new |
+| `CommandPalette` | ⌘K modal: Recent docs (any space) → Spaces → Documents → Commands | new |
+| `TreePopover` | Document-tree picker anchored under the last breadcrumb segment in the document column header | new |
+| `PopupShell` | Reusable popup-window chrome (drag strip + glyph cluster: pin / restart / return-to-main / close). Hosts `CharDisplay` in v0; exams/surveys later | new |
+| `SelectionAIBar` | Inline AI popover above selection — prompt input + categorized action list (Rewrite / Modify / Tone / Transform / Translate / Custom). Trailing chip on `SelectionBubble` opens it | new |
+| `InlineAIAcceptBar` | `Accept · Try again · Refine… · Discard · Open in chat` bar anchored under inserted region after AI streams | new |
+| `NodeAIRegistry` | Per-block-type AI action registry consumed by `SlashMenu`, `SelectionAIBar`, and the right-click block menu's `AI ▸` cluster | new |
+| `InlineAIStream` | Streaming display primitive at the caret: accent underline + `Thinking…` pill + Stop chip. Region is `contenteditable=false` while streaming | new |
+
+Detailed component specifications live in the locked patterns of the six refs docs ([overview](ui-revamp-v0-refs.md), [space lifecycle](ui-revamp-v0-refs-space-lifecycle.md), [assistant + bots](ui-revamp-v0-refs-assistant-bots.md), [editor](ui-revamp-v0-refs-editor.md), [files + density](ui-revamp-v0-refs-files-density.md), [popup window](ui-revamp-v0-refs-popup-window.md)).
 
 ## 7. Phased delivery
 
@@ -178,7 +215,14 @@ New / extended components, all built once for both `soma` and `practice` consume
 1. **Right area sizing.** No fixed max width. Adaptive collapse: docked → drawer+overlay → fullscreen takeover, depending on window width (see §3 _Responsive behavior_). Editor is the priority surface.
 2. **Very small screens.** Panel fullscreen-takeover; editor hidden while a panel is active. Same component tree, different layout slot.
 3. **Bot adding ≠ discovery.** Bots are added manually by pasting a peer address (see §4.4). RBAC governs who can add and with what scope. Daemon-side handshake + encryption + registration. **Backend item to verify:** whether `soma-daemon` already enumerates / persists registered bots per-space; if not, build it in parallel with the UI.
-4. **LLM provider scope.** **Agent Client Protocol (ACP)**, same as Zed. Backends supported: Ollama, LM Studio, Codex, OpenAI-compatible (via ACP shim). Switching happens in the chat header — icon-only with text dropdown (§4.5).
+4. **LLM provider scope.** **Agent Client Protocol (ACP)**, same as Zed. Backends supported: Ollama, LM Studio, Codex, OpenAI-compatible (via ACP shim).
+5. **Backend switcher lives in the composer footer**, not the chat header. Saves vertical chrome and puts the control where the user's eye is when picking a backend (§4.5).
+6. **Settings auto-save on blur.** No global Save button anywhere in space settings; per-section Save buttons are banned. Errors surface inline (§4.2).
+7. **Density: 1.5 body line-height, 1px borders, one shadow token.** Concrete numbers in §3 and the density refs doc.
+8. **No AI tile in the slash menu.** AI goes through the right-area chat. A slash AI block would duplicate intent across surfaces (§6).
+9. **`Empty` has three variants** (full / compact / filter); used everywhere instead of ad-hoc empty-state markup (§6).
+10. **`DenseRow` is the single list-row primitive** used by members, bots, attachments, recent docs (§6).
+11. **Popup windows have a reusable shell** (`PopupShell`) — drag strip + glyph cluster (pin / restart / return-to-main / close). v0 hosts `CharDisplay`; future exams/surveys reuse the shell (§4.7).
 
 ---
 

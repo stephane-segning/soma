@@ -49,6 +49,7 @@ const sidebar: DefaultTheme.Sidebar = {
                 {text: 'ADR-0002: Capabilities & Membership', link: '/architecture/adrs/0002-capabilities-membership'},
                 {text: 'ADR-0003: Bots as Cache', link: '/architecture/adrs/0003-bots-as-cache'},
                 {text: 'ADR-0004: VDFs Crate', link: '/architecture/adrs/0004-vdfs-crate'},
+                {text: 'ADR-0005: UI Revamp v0', link: '/architecture/adrs/0005-ui-revamp-v0'},
             ],
         },
         {
