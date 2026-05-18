@@ -104,24 +104,27 @@ export function CommandPalette({
 		if (open) setQuery("");
 	}, [open]);
 
-	const sectionLabel: Record<CommandPaletteSectionKind, string> = {
-		"recent-docs": t({
-			id: "command-palette.section.recent-docs",
-			defaultMessage: "Recent",
+	const sectionLabel = useMemo<Record<CommandPaletteSectionKind, string>>(
+		() => ({
+			"recent-docs": t({
+				id: "command-palette.section.recent-docs",
+				defaultMessage: "Recent",
+			}),
+			spaces: t({
+				id: "command-palette.section.spaces",
+				defaultMessage: "Spaces",
+			}),
+			documents: t({
+				id: "command-palette.section.documents",
+				defaultMessage: "Documents",
+			}),
+			commands: t({
+				id: "command-palette.section.commands",
+				defaultMessage: "Commands",
+			}),
 		}),
-		spaces: t({
-			id: "command-palette.section.spaces",
-			defaultMessage: "Spaces",
-		}),
-		documents: t({
-			id: "command-palette.section.documents",
-			defaultMessage: "Documents",
-		}),
-		commands: t({
-			id: "command-palette.section.commands",
-			defaultMessage: "Commands",
-		}),
-	};
+		[t],
+	);
 
 	const grouped = useMemo(() => {
 		const lower = query.toLowerCase();
@@ -129,7 +132,10 @@ export function CommandPalette({
 			if (lower.length === 0) return true;
 			return (
 				item.title.toLowerCase().includes(lower) ||
-				item.subtitle?.toLowerCase().includes(lower)
+				item.subtitle?.toLowerCase().includes(lower) ||
+				// Restored from the pre-refactor behavior: typing "recent" /
+				// "commands" / "spaces" / "documents" filters by section.
+				sectionLabel[item.section].toLowerCase().includes(lower)
 			);
 		});
 		const buckets = new Map<CommandPaletteSectionKind, CommandPaletteItem[]>();
@@ -139,7 +145,7 @@ export function CommandPalette({
 			section,
 			items: buckets.get(section) ?? [],
 		})).filter((g) => g.items.length > 0);
-	}, [items, query]);
+	}, [items, query, sectionLabel]);
 
 	const flat = useMemo(() => grouped.flatMap((g) => g.items), [grouped]);
 
@@ -148,6 +154,18 @@ export function CommandPalette({
 		setActiveIndex(0);
 	}, [flat]);
 
+	// Avoid re-binding the global keydown listener on every keystroke /
+	// selection change. The listener attaches once when `open` flips
+	// true and reads the latest `flat` / `activeIndex` via refs.
+	const flatRef = useRef(flat);
+	const activeIndexRef = useRef(activeIndex);
+	useEffect(() => {
+		flatRef.current = flat;
+	}, [flat]);
+	useEffect(() => {
+		activeIndexRef.current = activeIndex;
+	}, [activeIndex]);
+
 	useEffect(() => {
 		if (!open) return;
 		const onKeyDown = (event: KeyboardEvent) => {
@@ -155,27 +173,30 @@ export function CommandPalette({
 			const target = event.target;
 			if (!(target instanceof Node)) return;
 			if (!containerRef.current?.contains(target)) return;
+			const currentFlat = flatRef.current;
 			if (event.key === "ArrowDown") {
 				event.preventDefault();
 				setActiveIndex((idx) =>
-					flat.length === 0 ? 0 : (idx + 1) % flat.length,
+					currentFlat.length === 0 ? 0 : (idx + 1) % currentFlat.length,
 				);
 			} else if (event.key === "ArrowUp") {
 				event.preventDefault();
 				setActiveIndex((idx) =>
-					flat.length === 0 ? 0 : (idx - 1 + flat.length) % flat.length,
+					currentFlat.length === 0
+						? 0
+						: (idx - 1 + currentFlat.length) % currentFlat.length,
 				);
 			} else if (event.key === "Enter") {
 				event.preventDefault();
-				if (flat.length > 0) {
-					flat[activeIndex]?.onSelect();
+				if (currentFlat.length > 0) {
+					currentFlat[activeIndexRef.current]?.onSelect();
 					onClose();
 				}
 			}
 		};
 		window.addEventListener("keydown", onKeyDown);
 		return () => window.removeEventListener("keydown", onKeyDown);
-	}, [open, flat, activeIndex, onClose]);
+	}, [open, onClose]);
 
 	let runningIndex = 0;
 	return (

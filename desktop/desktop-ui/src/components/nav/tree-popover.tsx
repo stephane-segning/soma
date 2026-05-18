@@ -28,7 +28,14 @@ import {
 } from "react-complex-tree";
 import "react-complex-tree/lib/style-modern.css";
 import { ChevronRight, FileText, Search, Star } from "react-feather";
-import { type ReactNode, useMemo, useRef, useState } from "react";
+import {
+	type MouseEvent,
+	type ReactNode,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { useT } from "../../i18n/use-t";
 import { cn } from "../../utils/cn";
 
@@ -67,6 +74,38 @@ export function TreePopover({
 	const t = useT();
 	const [query, setQuery] = useState("");
 	const containerRef = useRef<HTMLDivElement | null>(null);
+
+	// Tracks whether the meta/ctrl key is currently held — used to route
+	// the tree's `onPrimaryAction` (which doesn't carry an event object)
+	// through `onSelectInNewTab` when the user pressed ⌘↵ instead of ↵.
+	// Row-level handlers receive a real MouseEvent and check
+	// `event.metaKey || event.ctrlKey` directly without consulting this.
+	const metaHeldRef = useRef(false);
+	useEffect(() => {
+		const container = containerRef.current;
+		if (!container) return;
+		const onDown = (event: KeyboardEvent) => {
+			if (event.metaKey || event.ctrlKey) metaHeldRef.current = true;
+		};
+		const onUp = (event: KeyboardEvent) => {
+			if (!event.metaKey && !event.ctrlKey) metaHeldRef.current = false;
+		};
+		container.addEventListener("keydown", onDown);
+		container.addEventListener("keyup", onUp);
+		return () => {
+			container.removeEventListener("keydown", onDown);
+			container.removeEventListener("keyup", onUp);
+		};
+	}, []);
+
+	function dispatchSelect(id: string, withMeta: boolean) {
+		if (withMeta && onSelectInNewTab) {
+			onSelectInNewTab(id);
+		} else {
+			onSelect(id);
+		}
+		onClose();
+	}
 
 	const byId = useMemo(() => {
 		const map = new Map<string, TreeDoc>();
@@ -140,6 +179,24 @@ export function TreePopover({
 		[treeItems],
 	);
 
+	// `react-complex-tree`'s UncontrolledTreeEnvironment uses `viewState`
+	// as a SEED — the library forks it into its own internal state on
+	// mount. Passing a fresh object literal each render makes the
+	// library think the seed has changed and resets expansion. Memo
+	// the seed so its identity is stable across renders.
+	const initialViewState = useMemo(
+		() => ({
+			"soma-tree": {
+				expandedItems: [] as string[],
+				selectedItems: currentId ? [currentId] : ([] as string[]),
+			},
+		}),
+		// `currentId` shouldn't reset expansion mid-session — only used
+		// as the initial selection seed on mount.
+		// biome-ignore lint/correctness/useExhaustiveDependencies: intentional one-shot seed
+		[],
+	);
+
 	return (
 		<div
 			aria-label={t({
@@ -165,10 +222,7 @@ export function TreePopover({
 			{filteredDocs ? (
 				<FilteredList
 					docs={filteredDocs}
-					onSelect={(id) => {
-						onSelect(id);
-						onClose();
-					}}
+					onSelect={(id, withMeta) => dispatchSelect(id, withMeta)}
 				/>
 			) : (
 				<>
@@ -184,10 +238,9 @@ export function TreePopover({
 									active={doc.id === currentId}
 									doc={doc}
 									key={`recent-${doc.id}`}
-									onSelect={() => {
-										onSelect(doc.id);
-										onClose();
-									}}
+									onSelect={(withMeta) =>
+										dispatchSelect(doc.id, withMeta)
+									}
 								/>
 							))}
 						</Section>
@@ -205,10 +258,9 @@ export function TreePopover({
 									active={doc.id === currentId}
 									doc={doc}
 									key={`starred-${doc.id}`}
-									onSelect={() => {
-										onSelect(doc.id);
-										onClose();
-									}}
+									onSelect={(withMeta) =>
+										dispatchSelect(doc.id, withMeta)
+									}
 									showStar
 								/>
 							))}
@@ -232,8 +284,10 @@ export function TreePopover({
 								onPrimaryAction={(item, _treeId) => {
 									if (typeof item.index !== "string") return;
 									if (item.index === ROOT_ID) return;
-									onSelect(item.index);
-									onClose();
+									// `onPrimaryAction` doesn't carry a DOM event,
+									// so we consult the meta-held ref maintained
+									// by the container's keydown/keyup listener.
+									dispatchSelect(item.index, metaHeldRef.current);
 								}}
 								renderItemArrow={({ item, context }) =>
 									item.isFolder ? (
@@ -266,12 +320,10 @@ export function TreePopover({
 										</span>
 									</span>
 								)}
-								viewState={{
-									"soma-tree": {
-										expandedItems: [],
-										selectedItems: currentId ? [currentId] : [],
-									},
-								}}
+								// Memoized seed (see `initialViewState` above) — stable
+								// across renders so the library keeps its internal
+								// expansion state.
+								viewState={initialViewState}
 							>
 								<Tree
 									rootItem={ROOT_ID}
@@ -307,6 +359,7 @@ function SearchInput({
 		<div className="flex items-center gap-2 rounded-md bg-base-200 px-2 py-1.5">
 			<Search aria-hidden className="size-4 shrink-0 text-base-content/60" />
 			<input
+				aria-label={placeholder}
 				className="min-w-0 flex-1 bg-transparent text-body outline-none placeholder:text-base-content/40"
 				onChange={(event) => onChange(event.target.value)}
 				placeholder={placeholder}
@@ -336,9 +389,13 @@ function DocRow({
 }: {
 	doc: TreeDoc;
 	active?: boolean;
-	onSelect: () => void;
+	/** Receives `true` when the user held ⌘ / Ctrl during the click. */
+	onSelect: (withMeta: boolean) => void;
 	showStar?: boolean;
 }) {
+	function handleClick(event: MouseEvent<HTMLButtonElement>) {
+		onSelect(event.metaKey || event.ctrlKey);
+	}
 	return (
 		<button
 			aria-selected={active}
@@ -348,7 +405,7 @@ function DocRow({
 					? "bg-primary/10 text-primary"
 					: "hover:bg-base-200",
 			)}
-			onClick={onSelect}
+			onClick={handleClick}
 			type="button"
 		>
 			<FileText
@@ -371,7 +428,7 @@ function FilteredList({
 	onSelect,
 }: {
 	docs: TreeDoc[];
-	onSelect: (id: string) => void;
+	onSelect: (id: string, withMeta: boolean) => void;
 }) {
 	const t = useT();
 	if (docs.length === 0) {
@@ -387,7 +444,11 @@ function FilteredList({
 	return (
 		<div className="flex max-h-72 flex-col gap-0.5 overflow-y-auto">
 			{docs.map((doc) => (
-				<DocRow doc={doc} key={doc.id} onSelect={() => onSelect(doc.id)} />
+				<DocRow
+					doc={doc}
+					key={doc.id}
+					onSelect={(withMeta) => onSelect(doc.id, withMeta)}
+				/>
 			))}
 		</div>
 	);
