@@ -42,7 +42,7 @@ export const Default: Story = {
 			<BotList
 				bots={BOTS}
 				onAddBot={() => undefined}
-				onRemove={(id) => alert(`remove ${id}`)}
+				onOverflow={(id) => alert(`overflow menu for ${id}`)}
 				onRetry={(id) => alert(`retry ${id}`)}
 				onSelect={(id) => alert(`open ${id}`)}
 			/>
@@ -71,7 +71,7 @@ export const AllActive: Story = {
 		<div className="max-w-2xl">
 			<BotList
 				bots={BOTS.filter((b) => b.status === "active")}
-				onRemove={() => undefined}
+				onOverflow={() => undefined}
 			/>
 		</div>
 	),
@@ -84,7 +84,7 @@ export const DarkTheme: Story = {
 			<BotList
 				bots={BOTS}
 				onAddBot={() => undefined}
-				onRemove={() => undefined}
+				onOverflow={() => undefined}
 				onRetry={() => undefined}
 				onSelect={() => undefined}
 			/>

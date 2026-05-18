@@ -182,6 +182,7 @@ function IdentityCard({
 }) {
 	const t = useT();
 	const aliasId = useId();
+	const peerIdId = useId();
 	return (
 		<Card
 			title={t({
@@ -191,14 +192,14 @@ function IdentityCard({
 		>
 			<div className="grid gap-3 sm:grid-cols-2">
 				<div className="flex flex-col gap-1">
-					<label className="text-base-content/60 text-ui-xs" htmlFor="peer-id">
+					<label className="text-base-content/60 text-ui-xs" htmlFor={peerIdId}>
 						{t({
 							id: "capability-form.identity.peer-id",
 							defaultMessage: "Peer id",
 						})}
 					</label>
 					<div className="flex items-center gap-1 rounded-md border border-base-300 bg-base-200 px-2 py-1.5 font-mono text-ui-xs">
-						<span className="min-w-0 flex-1 truncate" id="peer-id">
+						<span className="min-w-0 flex-1 truncate" id={peerIdId}>
 							{peerId}
 						</span>
 						<CopyButton value={peerId} />
@@ -216,7 +217,10 @@ function IdentityCard({
 						className="rounded-md border border-base-300 bg-base-100 px-2 py-1.5 font-mono text-body outline-none focus-visible:border-primary"
 						id={aliasId}
 						onChange={(event) => onAliasChange(event.target.value)}
-						placeholder="my-bot"
+						placeholder={t({
+							id: "capability-form.identity.alias-placeholder",
+							defaultMessage: "my-bot",
+						})}
 						spellCheck={false}
 						type="text"
 						value={alias}
@@ -252,7 +256,11 @@ function CopyButton({ value }: { value: string }) {
 					setTimeout(() => setCopied(false), 1500);
 				});
 			}}
-			title={copied ? "Copied!" : undefined}
+			title={
+				copied
+					? t({ id: "capability-form.copied", defaultMessage: "Copied!" })
+					: undefined
+			}
 			type="button"
 		>
 			<Copy aria-hidden className="size-3" />
@@ -401,7 +409,13 @@ function ExpiryCard({
 		const now = new Date();
 		const days = preset === "7d" ? 7 : preset === "30d" ? 30 : 90;
 		now.setDate(now.getDate() + days);
-		onChange(now.toISOString().slice(0, 10));
+		// Use local-time methods rather than `toISOString().slice(0, 10)`.
+		// `toISOString` returns UTC, so a user in a non-UTC timezone would
+		// see the calendar day off by one near midnight.
+		const year = now.getFullYear();
+		const month = String(now.getMonth() + 1).padStart(2, "0");
+		const day = String(now.getDate()).padStart(2, "0");
+		onChange(`${year}-${month}-${day}`);
 	}
 
 	const activePreset = inferPreset(value);
@@ -465,9 +479,12 @@ function ExpiryCard({
 							defaultMessage: "Exact date",
 						})}
 					</label>
+					{/* The date input stays enabled even when the current
+					    value is `null` / "Never" — picking a date there is
+					    a valid way to leave the Never state. Clearing the
+					    input commits as `null` again. */}
 					<input
-						className="rounded-md border border-base-300 bg-base-100 px-2 py-1.5 text-body outline-none focus-visible:border-primary disabled:opacity-50"
-						disabled={value === null}
+						className="rounded-md border border-base-300 bg-base-100 px-2 py-1.5 text-body outline-none focus-visible:border-primary"
 						id={dateId}
 						onChange={handleDateChange}
 						type="date"

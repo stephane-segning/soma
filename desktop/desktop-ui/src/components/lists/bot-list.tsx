@@ -13,7 +13,7 @@
  * the very first surface a user lands on in a new space points at the
  * v0 priority flow.
  */
-import { type ReactNode } from "react";
+import { type MouseEvent, type ReactNode } from "react";
 import { AlertTriangle, Cpu, MoreHorizontal, RotateCw } from "react-feather";
 import { useT } from "../../i18n/use-t";
 import { cn } from "../../utils/cn";
@@ -40,7 +40,16 @@ export type BotListProps = {
 	bots: Bot[];
 	onSelect?: (id: string) => void;
 	onRetry?: (id: string) => void;
-	onRemove?: (id: string) => void;
+	/**
+	 * Open the per-bot overflow menu. The caller wires the actual menu
+	 * (revoke / open detail / copy peer id / …) and confirms any
+	 * destructive action there. The `⋯` trigger is deliberately NOT a
+	 * one-click remove — removing capability-bearing bots needs intent.
+	 *
+	 * `event` is the click event so the caller can position a context
+	 * menu near the trigger.
+	 */
+	onOverflow?: (id: string, event: MouseEvent<HTMLButtonElement>) => void;
 	onAddBot?: () => void;
 	className?: string;
 };
@@ -49,7 +58,7 @@ export function BotList({
 	bots,
 	onSelect,
 	onRetry,
-	onRemove,
+	onOverflow,
 	onAddBot,
 	className,
 }: BotListProps) {
@@ -94,7 +103,7 @@ export function BotList({
 				<BotEntry
 					bot={bot}
 					key={bot.id}
-					onRemove={onRemove}
+					onOverflow={onOverflow}
 					onRetry={onRetry}
 					onSelect={onSelect}
 				/>
@@ -107,12 +116,12 @@ function BotEntry({
 	bot,
 	onSelect,
 	onRetry,
-	onRemove,
+	onOverflow,
 }: {
 	bot: Bot;
 	onSelect?: (id: string) => void;
 	onRetry?: (id: string) => void;
-	onRemove?: (id: string) => void;
+	onOverflow?: (id: string, event: MouseEvent<HTMLButtonElement>) => void;
 }) {
 	const t = useT();
 	const truncatedPeerId = useTruncatedPeerId(bot.peerId);
@@ -143,19 +152,26 @@ function BotEntry({
 				onClick={onSelect ? () => onSelect(bot.id) : undefined}
 				primary={
 					<span className="flex items-center gap-2">
-						<span>@bot:{bot.alias}</span>
+						<span>
+							{t({
+								id: "bot-list.mention",
+								defaultMessage: "@bot:{alias}",
+								values: { alias: bot.alias },
+							})}
+						</span>
 					</span>
 				}
 				status={<StatusPill status={bot.status} />}
 				actions={
-					onRemove ? (
+					onOverflow ? (
 						<button
+							aria-haspopup="menu"
 							aria-label={t({
-								id: "bot-list.remove",
-								defaultMessage: "Remove bot",
+								id: "bot-list.more",
+								defaultMessage: "More options",
 							})}
 							className="grid size-7 place-items-center rounded-md text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content"
-							onClick={() => onRemove(bot.id)}
+							onClick={(event) => onOverflow(bot.id, event)}
 							type="button"
 						>
 							<MoreHorizontal aria-hidden className="size-4" />
