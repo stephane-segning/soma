@@ -42,11 +42,11 @@ function Component(): React.JSX.Element {
 	const { spaceId } = useParams<{ spaceId: string }>();
 	const [activeTab, setActiveTab] = useState<TabId>("general");
 	const spaceQuery = useSpaceQuery(spaceId ?? "");
-	const accessSettings = useSpaceAccessSettings(spaceId);
-	const workspaceSettings = useWorkspaceAgentSettings(spaceId);
 
 	const spaceLabel =
-		spaceQuery.data?.displayName?.trim() || spaceId || "Unknown";
+		spaceQuery.data?.displayName?.trim() ||
+		spaceId ||
+		t("space.settings.unknown", "Unknown");
 
 	const tabs = [
 		{
@@ -108,46 +108,58 @@ function Component(): React.JSX.Element {
 				<GeneralTab spaceLabel={spaceLabel} />
 			) : null}
 
-			{activeTab === "members" ? (
-				<div className="flex flex-col gap-4">
-					{accessSettings.spaceOpsMessage ? (
-						<div className="rounded-lg bg-base-200 px-3 py-2 text-sm">
-							{accessSettings.spaceOpsMessage}
-						</div>
-					) : null}
-					<SpaceAccessSummary
-						memberRows={accessSettings.memberRows}
-						pendingJoinRequests={accessSettings.pendingJoinRequests}
-						spaceId={spaceId}
-					/>
-					<JoinRequestsSection {...accessSettings} />
-					<CurrentAccessSection {...accessSettings} />
-				</div>
-			) : null}
+			{activeTab === "members" ? <MembersTab spaceId={spaceId} /> : null}
 
 			{activeTab === "bots" ? <BotsTab spaceId={spaceId} /> : null}
 
 			{activeTab === "assistant" ? (
-				<WorkspaceModelSection
-					effectiveConfig={workspaceSettings.effectiveConfig}
-					isSaving={workspaceSettings.isSaving}
-					newCapabilityModel={workspaceSettings.newCapabilityModel}
-					onAddCapabilityModel={workspaceSettings.addCapabilityModel}
-					onNewCapabilityModelChange={workspaceSettings.setNewCapabilityModel}
-					onPersist={workspaceSettings.persist}
-					onRemoveCapabilityModel={workspaceSettings.removeCapabilityModel}
-					onUpdateCapability={workspaceSettings.updateCapability}
-					rows={workspaceSettings.capabilityRows}
-					setWorkspaceDraft={workspaceSettings.setWorkspaceDraft}
-					spaceId={spaceId}
-					workspaceDraft={workspaceSettings.workspaceDraft}
-				/>
+				<AssistantTab spaceId={spaceId} />
 			) : null}
 
 			{activeTab === "sharing" ? <PlaceholderTab kind="sharing" /> : null}
 
 			{activeTab === "danger" ? <PlaceholderTab kind="danger" /> : null}
 		</div>
+	);
+}
+
+function MembersTab({ spaceId }: { spaceId: string | undefined }) {
+	const accessSettings = useSpaceAccessSettings(spaceId);
+	return (
+		<div className="flex flex-col gap-4">
+			{accessSettings.spaceOpsMessage ? (
+				<div className="rounded-lg bg-base-200 px-3 py-2 text-sm">
+					{accessSettings.spaceOpsMessage}
+				</div>
+			) : null}
+			<SpaceAccessSummary
+				memberRows={accessSettings.memberRows}
+				pendingJoinRequests={accessSettings.pendingJoinRequests}
+				spaceId={spaceId}
+			/>
+			<JoinRequestsSection {...accessSettings} />
+			<CurrentAccessSection {...accessSettings} />
+		</div>
+	);
+}
+
+function AssistantTab({ spaceId }: { spaceId: string | undefined }) {
+	const workspaceSettings = useWorkspaceAgentSettings(spaceId);
+	return (
+		<WorkspaceModelSection
+			effectiveConfig={workspaceSettings.effectiveConfig}
+			isSaving={workspaceSettings.isSaving}
+			newCapabilityModel={workspaceSettings.newCapabilityModel}
+			onAddCapabilityModel={workspaceSettings.addCapabilityModel}
+			onNewCapabilityModelChange={workspaceSettings.setNewCapabilityModel}
+			onPersist={workspaceSettings.persist}
+			onRemoveCapabilityModel={workspaceSettings.removeCapabilityModel}
+			onUpdateCapability={workspaceSettings.updateCapability}
+			rows={workspaceSettings.capabilityRows}
+			setWorkspaceDraft={workspaceSettings.setWorkspaceDraft}
+			spaceId={spaceId}
+			workspaceDraft={workspaceSettings.workspaceDraft}
+		/>
 	);
 }
 
