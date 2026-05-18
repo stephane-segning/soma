@@ -1,14 +1,19 @@
+import { SelectionBubble, type BlockStyleOption } from "@soma/ui/components/editor/selection-bubble";
 import type { Editor } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { AnimatePresence } from "motion/react";
 import { useCallback, useState } from "react";
-import { getRotateActionLabel, readCurrentBlockKind, rotateBlock } from "./block-rotation";
-import { FormatToolbar } from "./contextual-menu/format-toolbar";
+import { applyBlockKind, BLOCK_KIND_ORDER, BLOCK_LABEL, readCurrentBlockKind, type BlockKind } from "./block-rotation";
 import { QuickActionPanel } from "./contextual-menu/quick-action-panel";
 import { readSelection, type SelectionSnapshot } from "./contextual-menu/selection";
 import type { QuickActionRequest, QuickActionResponse, QuickActionType } from "./contextual-menu/types";
 
 export type { QuickActionRequest, QuickActionResponse, QuickActionType };
+
+const BLOCK_STYLE_OPTIONS: BlockStyleOption[] = BLOCK_KIND_ORDER.map((kind) => ({
+	id: kind,
+	label: BLOCK_LABEL[kind],
+}));
 
 export function ContextualMenu({
 	editor,
@@ -54,15 +59,36 @@ export function ContextualMenu({
 		[editor, onQuickAction, runningAction, selection],
 	);
 
+	const blockKind: BlockKind = readCurrentBlockKind(editor);
+	const linkUrl = (editor.getAttributes("link")?.href as string | undefined) ?? null;
+
 	return (
 		<>
 			<BubbleMenu className="bubble-menu" editor={editor}>
-				<FormatToolbar
-					editor={editor}
-					onQuickActions={onQuickAction ? openQuickActions : undefined}
-					onRotate={() => rotateBlock(editor)}
-					panelOpen={panelOpen}
-					rotateLabel={getRotateActionLabel(readCurrentBlockKind(editor))}
+				<SelectionBubble
+					blockStyle={{ id: blockKind, label: BLOCK_LABEL[blockKind] }}
+					blockStyleOptions={BLOCK_STYLE_OPTIONS}
+					bold={editor.isActive("bold")}
+					code={editor.isActive("code")}
+					italic={editor.isActive("italic")}
+					linkUrl={linkUrl}
+					onAskAI={onQuickAction ? openQuickActions : undefined}
+					onChangeBlockStyle={(id) => applyBlockKind(editor, id as BlockKind)}
+					onSetLink={(url) => {
+						const chain = editor.chain().focus().extendMarkRange("link");
+						if (url === null) {
+							chain.unsetLink().run();
+						} else {
+							chain.setLink({ href: url }).run();
+						}
+					}}
+					onToggleBold={() => editor.chain().focus().toggleBold().run()}
+					onToggleCode={() => editor.chain().focus().toggleCode().run()}
+					onToggleItalic={() => editor.chain().focus().toggleItalic().run()}
+					onToggleStrike={() => editor.chain().focus().toggleStrike().run()}
+					onToggleUnderline={() => editor.chain().focus().toggleUnderline().run()}
+					strike={editor.isActive("strike")}
+					underline={editor.isActive("underline")}
 				/>
 			</BubbleMenu>
 			<AnimatePresence>

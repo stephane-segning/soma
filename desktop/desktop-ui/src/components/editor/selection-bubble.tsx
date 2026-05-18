@@ -172,19 +172,21 @@ export function SelectionBubble(props: SelectionBubbleProps) {
 			>
 				<Link2 aria-hidden className="size-3.5" />
 			</ToolButton>
-			<ToolButton
-				active={props.highlight}
-				label={t({
-					id: "selection-bubble.highlight",
-					defaultMessage: "Highlight",
-				})}
-				onClick={props.onToggleHighlight}
-			>
-				<span
-					aria-hidden
-					className="inline-block size-3 rounded-sm bg-warning/60"
-				/>
-			</ToolButton>
+			{props.onToggleHighlight ? (
+				<ToolButton
+					active={props.highlight}
+					label={t({
+						id: "selection-bubble.highlight",
+						defaultMessage: "Highlight",
+					})}
+					onClick={props.onToggleHighlight}
+				>
+					<span
+						aria-hidden
+						className="inline-block size-3 rounded-sm bg-warning/60"
+					/>
+				</ToolButton>
+			) : null}
 
 			{props.onComment ? (
 				<>

@@ -22,7 +22,7 @@ const ROTATION_ORDER: BlockKind[] = [
 	"code-block",
 ];
 
-const BLOCK_LABEL: Record<BlockKind, string> = {
+export const BLOCK_LABEL: Record<BlockKind, string> = {
 	paragraph: "Paragraph",
 	"heading-2": "Heading 2",
 	"heading-3": "Heading 3",
@@ -32,6 +32,8 @@ const BLOCK_LABEL: Record<BlockKind, string> = {
 	blockquote: "Quote",
 	"code-block": "Code Block",
 };
+
+export const BLOCK_KIND_ORDER: readonly BlockKind[] = ROTATION_ORDER;
 
 function nextBlockKind(kind: BlockKind): BlockKind {
 	const index = ROTATION_ORDER.indexOf(kind);
@@ -82,7 +84,7 @@ export function rotateBlock(editor: Editor): { from: BlockKind; to: BlockKind } 
 	return { from, to };
 }
 
-function applyBlockKind(editor: Editor, kind: BlockKind): void {
+export function applyBlockKind(editor: Editor, kind: BlockKind): void {
 	switch (kind) {
 		case "paragraph":
 			editor.chain().focus().setParagraph().run();
