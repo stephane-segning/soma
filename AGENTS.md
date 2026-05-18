@@ -77,7 +77,6 @@ When this document says "today" or describes current behavior in present tense, 
   - `desktop/desktop-ui/` — shared React components (`@soma/ui`), subpath-imports only (`@soma/ui/components/*`, `@soma/ui/hooks/*`, etc.; no root export).
   - `desktop/desktop-config/` — stage detection + path normalization (`@soma/desktop-config`). Socket-path logic deleted in P4.
   - `desktop/desktop-editor/`, `desktop/desktop-data/`, `desktop/desktop-icons/` — supporting packages.
-  - `desktop/packaging/` — TS CLI for producing notarized macOS zips and Linux tarballs; AppImage on Linux.
 - `proto/` — libp2p wire formats (rust-only after P4 when `desktop-proto` is removed).
 - `docs/` — VitePress docs (`@soma/docs`). Hosts the `install.sh` / `uninstall.sh` bootstrap.
 - `deploy/` — Helm charts and infrastructure manifests for server backends.
