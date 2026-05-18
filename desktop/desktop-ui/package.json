@@ -71,10 +71,9 @@
 	"exports": {
 		"./types": "./src/types.ts",
 		"./hooks/*": "./src/hooks/*.ts",
-		"./components/*": [
-			"./src/components/*.tsx",
-			"./src/components/*.ts"
-		],
+		"./components/*": "./src/components/*.tsx",
+		"./components/editor/node-ai-registry": "./src/components/editor/node-ai-registry.ts",
+		"./components/editor/node-ai-registry.types": "./src/components/editor/node-ai-registry.types.ts",
 		"./utils/*": "./src/utils/*.ts",
 		"./i18n": "./src/i18n/index.ts",
 		"./styles.css": "./src/styles.css",

@@ -59,10 +59,15 @@ export function createNodeAIRegistry(): NodeAIRegistry {
 				if (surfaces.includes(surface)) visible.push(action);
 			}
 			// Sort by category order, preserving insertion order inside each.
+			// Unknown categories (would only happen if the type system is
+			// bypassed at runtime) sink to the bottom instead of floating
+			// to the top via `indexOf`'s -1.
 			visible.sort((a, b) => {
 				const ai = CATEGORY_ORDER.indexOf(a.category);
 				const bi = CATEGORY_ORDER.indexOf(b.category);
-				return ai - bi;
+				const aOrder = ai === -1 ? Number.POSITIVE_INFINITY : ai;
+				const bOrder = bi === -1 ? Number.POSITIVE_INFINITY : bi;
+				return aOrder - bOrder;
 			});
 			return visible;
 		},

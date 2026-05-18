@@ -13,7 +13,7 @@
  * Overflow actions are **always visible** — never hover-only — per
  * ADR-0005 §9.
  */
-import type { MouseEvent, ReactNode } from "react";
+import type { KeyboardEvent, MouseEvent, ReactNode } from "react";
 import { useDensityValue } from "../primitives/density-provider";
 import { cn } from "../../utils/cn";
 
@@ -41,8 +41,12 @@ export type DenseRowProps = {
 	 * `sub` is provided regardless.
 	 */
 	tier?: DenseRowTier;
-	/** Renders as a button when set. */
-	onClick?: (event: MouseEvent<HTMLDivElement>) => void;
+	/** Renders as a button when set. Fires on click or on Enter/Space. */
+	onClick?: (
+		event:
+			| MouseEvent<HTMLDivElement>
+			| KeyboardEvent<HTMLDivElement>,
+	) => void;
 	className?: string;
 	"aria-label"?: string;
 };
@@ -77,7 +81,7 @@ export function DenseRow({
 				"flex w-full items-center gap-3 rounded-md px-3 text-ui-sm",
 				tierClass,
 				onClick &&
-					"cursor-pointer transition-colors hover:bg-base-200 focus-visible:bg-base-200 focus-visible:outline-none",
+					"cursor-pointer transition-colors hover:bg-base-200 focus-visible:bg-base-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
 				className,
 			)}
 			onClick={onClick}
@@ -86,7 +90,7 @@ export function DenseRow({
 					? (event) => {
 							if (event.key === "Enter" || event.key === " ") {
 								event.preventDefault();
-								onClick(event as unknown as MouseEvent<HTMLDivElement>);
+								onClick(event);
 							}
 						}
 					: undefined
@@ -112,7 +116,17 @@ export function DenseRow({
 			{meta ? (
 				<div className="shrink-0 text-ui-xs text-base-content/60">{meta}</div>
 			) : null}
-			{actions ? <div className="shrink-0">{actions}</div> : null}
+			{actions ? (
+				// Stop propagation so action buttons don't also fire the row's
+				// onClick / keyboard handlers when the row is interactive.
+				<div
+					className="shrink-0"
+					onClick={(event) => event.stopPropagation()}
+					onKeyDown={(event) => event.stopPropagation()}
+				>
+					{actions}
+				</div>
+			) : null}
 		</div>
 	);
 }
