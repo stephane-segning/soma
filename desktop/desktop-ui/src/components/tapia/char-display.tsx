@@ -43,7 +43,7 @@ export const CharDisplay = memo(function CharDisplay({
 			const ref = index === lastIndex ? cursorRef : undefined;
 			const typerClass =
 				index === lastIndex
-					? "after:absolute after:bottom-0 after:right-0 after:h-14 after:w-[0.125em] after:animate-caret after:bg-black"
+					? "after:absolute after:bottom-0 after:right-0 after:h-14 after:w-[0.125em] after:animate-caret after:bg-base-content"
 					: undefined;
 
 			if (!hasUserChar) {

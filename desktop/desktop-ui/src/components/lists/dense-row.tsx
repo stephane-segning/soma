@@ -1,0 +1,129 @@
+/**
+ * DenseRow — the single list-row primitive used by every list in the
+ * revamped UI: members, bots, attachments, recent docs.
+ *
+ * Locked by [ADR-0005 §9](../../../../../docs/src/architecture/adrs/0005-ui-revamp-v0.md)
+ * and the slot model in
+ * [refs files-density §4](../../../../../docs/src/architecture/prd/ui-revamp-v0-refs-files-density.md).
+ *
+ * Slot order, left to right:
+ *
+ *   `leading`  ·  `primary` (+ `sub`)  ·  `status`  ·  `meta`  ·  `actions` (overflow)
+ *
+ * Overflow actions are **always visible** — never hover-only — per
+ * ADR-0005 §9.
+ */
+import type { MouseEvent, ReactNode } from "react";
+import { useDensityValue } from "../primitives/density-provider";
+import { cn } from "../../utils/cn";
+
+export type DenseRowTier = "text" | "avatar" | "card";
+
+export type DenseRowProps = {
+	/** Avatar, icon, file-type glyph, etc. Optional. */
+	leading?: ReactNode;
+	/** The required primary label. */
+	primary: ReactNode;
+	/** Optional secondary line below the primary. Implies `card` tier. */
+	sub?: ReactNode;
+	/** Status pill or similar inline indicator. */
+	status?: ReactNode;
+	/** Right-aligned metadata (timestamp, size, peer-id, etc.). */
+	meta?: ReactNode;
+	/**
+	 * Overflow actions (typically a `⋯` button). Always visible — do
+	 * not gate behind hover.
+	 */
+	actions?: ReactNode;
+	/**
+	 * Row-height tier. Defaults to `avatar` when `leading` is set or
+	 * `sub` is provided, otherwise `text`. Tier `card` is forced when
+	 * `sub` is provided regardless.
+	 */
+	tier?: DenseRowTier;
+	/** Renders as a button when set. */
+	onClick?: (event: MouseEvent<HTMLDivElement>) => void;
+	className?: string;
+	"aria-label"?: string;
+};
+
+export function DenseRow({
+	leading,
+	primary,
+	sub,
+	status,
+	meta,
+	actions,
+	tier,
+	onClick,
+	className,
+	...rest
+}: DenseRowProps) {
+	const resolvedTier: DenseRowTier =
+		tier ?? (sub ? "card" : leading ? "avatar" : "text");
+
+	// Density-aware: dense default; cozy/oversized bump every row up a tier.
+	const tierFromDensity = useDensityValue<DenseRowTier>({
+		dense: resolvedTier,
+		cozy: bumpTier(resolvedTier),
+		oversized: "card",
+	});
+
+	const tierClass = tierToClass[tierFromDensity];
+
+	return (
+		<div
+			className={cn(
+				"flex w-full items-center gap-3 rounded-md px-3 text-ui-sm",
+				tierClass,
+				onClick &&
+					"cursor-pointer transition-colors hover:bg-base-200 focus-visible:bg-base-200 focus-visible:outline-none",
+				className,
+			)}
+			onClick={onClick}
+			onKeyDown={
+				onClick
+					? (event) => {
+							if (event.key === "Enter" || event.key === " ") {
+								event.preventDefault();
+								onClick(event as unknown as MouseEvent<HTMLDivElement>);
+							}
+						}
+					: undefined
+			}
+			role={onClick ? "button" : undefined}
+			tabIndex={onClick ? 0 : undefined}
+			{...rest}
+		>
+			{leading ? (
+				<div className="flex shrink-0 items-center justify-center">
+					{leading}
+				</div>
+			) : null}
+			<div className="flex min-w-0 flex-1 flex-col gap-0.5">
+				<div className="truncate text-body text-base-content/90">{primary}</div>
+				{sub ? (
+					<div className="truncate text-ui-xs text-base-content/60">
+						{sub}
+					</div>
+				) : null}
+			</div>
+			{status ? <div className="shrink-0">{status}</div> : null}
+			{meta ? (
+				<div className="shrink-0 text-ui-xs text-base-content/60">{meta}</div>
+			) : null}
+			{actions ? <div className="shrink-0">{actions}</div> : null}
+		</div>
+	);
+}
+
+const tierToClass: Record<DenseRowTier, string> = {
+	text: "row-text",
+	avatar: "row-avatar",
+	card: "row-card",
+};
+
+function bumpTier(tier: DenseRowTier): DenseRowTier {
+	if (tier === "text") return "avatar";
+	return "card";
+}

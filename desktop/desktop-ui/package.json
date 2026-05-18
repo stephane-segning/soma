@@ -71,7 +71,10 @@
 	"exports": {
 		"./types": "./src/types.ts",
 		"./hooks/*": "./src/hooks/*.ts",
-		"./components/*": "./src/components/*.tsx",
+		"./components/*": [
+			"./src/components/*.tsx",
+			"./src/components/*.ts"
+		],
 		"./utils/*": "./src/utils/*.ts",
 		"./i18n": "./src/i18n/index.ts",
 		"./styles.css": "./src/styles.css",
