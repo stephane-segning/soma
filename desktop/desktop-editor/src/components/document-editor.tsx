@@ -9,6 +9,7 @@ import type { BlobFileUploadResult } from "../extensions/blob-file";
 import type { BlobImageUploadResult } from "../extensions/blob-image";
 import type { EditorCommand } from "../extensions/commander";
 import type { MentionProvider } from "../extensions/link-mention";
+import type { NodeAIRegistryExtensionOptions } from "../extensions/node-ai-registry";
 import { ActionMenu } from "../menus/action-menu";
 import { createDefaultAIRegistry } from "../menus/ai-registry";
 import { createDocumentExtensions } from "./document-editor/extensions";
@@ -93,7 +94,7 @@ export function DocumentEditor({
 			(e) => e.name === "nodeAIRegistry",
 		);
 		if (!ext) return;
-		(ext.options as { registry: typeof aiRegistry }).registry = aiRegistry;
+		(ext.options as NodeAIRegistryExtensionOptions).registry = aiRegistry;
 	}, [editor, aiRegistry]);
 
 	return (

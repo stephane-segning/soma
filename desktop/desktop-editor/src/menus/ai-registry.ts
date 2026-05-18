@@ -40,39 +40,32 @@ const TEXT_BEARING_NODES = [
 export type AIRegistryFactoryInput = {
 	editor: Editor;
 	onQuickAction?: (input: QuickActionRequest) => Promise<QuickActionResponse>;
-	/**
-	 * Called when the registry catches an error — runtime fault in the
-	 * dispatch callback, missing response content for an action that
-	 * needs to mutate the doc, etc. Default is `console.error`.
-	 */
-	onError?: (error: unknown, action: NodeAIAction) => void;
 };
 
 export function createDefaultAIRegistry({
 	editor,
 	onQuickAction,
-	onError,
 }: AIRegistryFactoryInput): NodeAIRegistry {
 	const registry = createNodeAIRegistry();
 	if (!onQuickAction) return registry;
 
-	function dispatchAndInsert(
+	async function dispatchAndInsert(
 		action: "explain" | "expand",
 		ctx: { text: string; metadata?: Record<string, unknown> },
 	): Promise<void> {
-		return Promise.resolve(
-			onQuickAction!({ action, selectionText: ctx.text }),
-		).then((response) => {
-			if (response.status !== "done" || !response.content?.trim()) return;
-			const from = (ctx.metadata?.from as number | undefined) ?? null;
-			const to = (ctx.metadata?.to as number | undefined) ?? null;
-			if (from === null || to === null) return;
-			editor
-				.chain()
-				.focus()
-				.insertContentAt({ from, to }, response.content.trim())
-				.run();
+		const response = await onQuickAction!({
+			action,
+			selectionText: ctx.text,
 		});
+		if (response.status !== "done" || !response.content?.trim()) return;
+		const from = (ctx.metadata?.from as number | undefined) ?? null;
+		const to = (ctx.metadata?.to as number | undefined) ?? null;
+		if (from === null || to === null) return;
+		editor
+			.chain()
+			.focus()
+			.insertContentAt({ from, to }, response.content.trim())
+			.run();
 	}
 
 	const actions: NodeAIAction[] = [
@@ -98,15 +91,14 @@ export function createDefaultAIRegistry({
 			description: "Queue a research task. Result lands in chat.",
 			category: "custom",
 			surfaces: ["selection"],
-			run: async (ctx) => {
-				try {
-					await onQuickAction!({ action: "research", selectionText: ctx.text });
-				} catch (error) {
-					if (onError) {
-						onError(error, actions.find((a) => a.id === "research")!);
-					}
-				}
-			},
+			// Rejections propagate to the NodeAIRegistryExtension's
+			// `runActionSafely`, which routes them through `onActionError`
+			// (and falls back to `console.error`). Swallowing here would
+			// hide failures when the host doesn't configure `onError`.
+			run: (ctx) =>
+				onQuickAction!({ action: "research", selectionText: ctx.text }).then(
+					() => undefined,
+				),
 		},
 	];
 
