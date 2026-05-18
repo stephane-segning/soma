@@ -14,7 +14,13 @@
  * Positioning is the caller's job — the editor extension wraps this
  * in its own floating surface anchored above the selection.
  */
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+	type ReactNode,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { Star } from "react-feather";
 import { useT } from "../../i18n/use-t";
 import { cn } from "../../utils/cn";
@@ -57,6 +63,7 @@ export function SelectionAIBar({
 }: SelectionAIBarProps) {
 	const t = useT();
 	const [prompt, setPrompt] = useState("");
+	const containerRef = useRef<HTMLDivElement | null>(null);
 
 	const sectionLabel: Record<NodeAIActionCategory, string> = {
 		rewrite: t({ id: "selection-ai.section.rewrite", defaultMessage: "Rewrite" }),
@@ -105,6 +112,12 @@ export function SelectionAIBar({
 
 	useEffect(() => {
 		const onKeyDown = (event: KeyboardEvent) => {
+			// Only respond when the event originated inside this instance.
+			// Without this, multiple SelectionAIBars mounted simultaneously
+			// would all react to the same keypress.
+			const target = event.target;
+			if (!(target instanceof Node)) return;
+			if (!containerRef.current?.contains(target)) return;
 			if (event.key === "ArrowDown") {
 				event.preventDefault();
 				setActiveIndex((idx) =>
@@ -138,10 +151,16 @@ export function SelectionAIBar({
 
 	return (
 		<div
+			aria-label={t({
+				id: "selection-ai.dialog-label",
+				defaultMessage: "Ask AI",
+			})}
+			aria-modal="true"
 			className={cn(
 				"glass-panel shadow-elevated w-96 flex flex-col gap-1 p-1",
 				className,
 			)}
+			ref={containerRef}
 			role="dialog"
 		>
 			<div className="flex items-center gap-2 rounded-md bg-base-100 px-2 py-1.5">

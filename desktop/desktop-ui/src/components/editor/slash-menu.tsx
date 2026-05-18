@@ -16,7 +16,13 @@
  * Positioning is the caller's job — the menu is presentational so
  * the TipTap extension can anchor it at the caret.
  */
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+	type ReactNode,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { Star } from "react-feather";
 import { useT } from "../../i18n/use-t";
 import { cn } from "../../utils/cn";
@@ -108,6 +114,7 @@ export function SlashMenu({
 	);
 
 	const [activeIndex, setActiveIndex] = useState(0);
+	const containerRef = useRef<HTMLDivElement | null>(null);
 	// Reset when the result set changes so the highlight stays in-bounds.
 	useEffect(() => {
 		setActiveIndex(0);
@@ -115,6 +122,11 @@ export function SlashMenu({
 
 	useEffect(() => {
 		const onKeyDown = (event: KeyboardEvent) => {
+			// Only respond when the event originated inside this instance —
+			// otherwise multiple slash menus on the page would all react.
+			const target = event.target;
+			if (!(target instanceof Node)) return;
+			if (!containerRef.current?.contains(target)) return;
 			if (event.key === "ArrowDown") {
 				event.preventDefault();
 				setActiveIndex((idx) =>
@@ -149,11 +161,14 @@ export function SlashMenu({
 					"glass-panel shadow-elevated w-80 flex flex-col gap-1 p-1",
 					className,
 				)}
+				ref={containerRef}
 				role="listbox"
 			>
 				<button
+					aria-selected="true"
 					className="flex items-center gap-2 rounded-md bg-info/10 px-2 py-1.5 text-left text-info text-ui-sm"
 					onClick={() => onAIPrompt(query.trim())}
+					role="option"
 					type="button"
 				>
 					<Star aria-hidden className="size-4 shrink-0" />
@@ -177,6 +192,7 @@ export function SlashMenu({
 					"glass-panel shadow-elevated w-80 p-2 text-base-content/60 text-ui-sm",
 					className,
 				)}
+				ref={containerRef}
 			>
 				{t({ id: "slash-menu.empty", defaultMessage: "No matches" })}
 			</div>
@@ -190,6 +206,7 @@ export function SlashMenu({
 				"glass-panel shadow-elevated w-80 flex max-h-80 flex-col gap-1 overflow-y-auto p-1",
 				className,
 			)}
+			ref={containerRef}
 			role="listbox"
 		>
 			{grouped.map((group) => (

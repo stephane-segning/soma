@@ -326,7 +326,20 @@ function LinkInputMode({
 
 	function handleSubmit(event: FormEvent) {
 		event.preventDefault();
-		onSubmit(value.trim());
+		const trimmed = value.trim();
+		if (trimmed.length === 0) {
+			// Empty input commits as "clear link".
+			onSubmit("");
+			return;
+		}
+		// Type="url" would force the user to type the protocol. Use text
+		// and prefix `https://` ourselves when the input looks like a bare
+		// domain (no scheme, no leading slash for in-app links).
+		const hasScheme = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(trimmed);
+		const looksLikeRelativePath = trimmed.startsWith("/");
+		const normalized =
+			hasScheme || looksLikeRelativePath ? trimmed : `https://${trimmed}`;
+		onSubmit(normalized);
 	}
 
 	return (
@@ -352,7 +365,7 @@ function LinkInputMode({
 					defaultMessage: "Paste link…",
 				})}
 				ref={inputRef}
-				type="url"
+				type="text"
 				value={value}
 			/>
 			<button
