@@ -1,3 +1,4 @@
+import { JumpToPageButton } from "@app/components/side/jump-to-page-button";
 import { PageTree } from "@app/components/page-tree.tsx";
 import { useCreatePage } from "@app/queries/pages";
 import { Plus, Settings, Type, Users } from "react-feather";
@@ -17,15 +18,18 @@ function AsideNavigation() {
 			<div className="flex-1 overflow-y-auto p-2">
 				<div className="mb-2 flex items-center justify-between font-semibold text-[11px] text-base-content/60 uppercase tracking-[0.12em]">
 					<span>{t("space.sidebar.pages", "Pages")}</span>
-					<button
-						aria-label={t("space.pages.new", "New page")}
-						className="btn btn-circle btn-ghost btn-xs"
-						disabled={isPending || !spaceId}
-						onClick={() => createPage([])}
-						type="button"
-					>
-						<Plus className="size-4" />
-					</button>
+					<div className="flex items-center gap-1">
+						<JumpToPageButton />
+						<button
+							aria-label={t("space.pages.new", "New page")}
+							className="btn btn-circle btn-ghost btn-xs"
+							disabled={isPending || !spaceId}
+							onClick={() => createPage([])}
+							type="button"
+						>
+							<Plus className="size-4" />
+						</button>
+					</div>
 				</div>
 
 				<PageTree activePageId={pageId ?? undefined} showNewButton={false} spaceId={spaceId ?? ""} />
