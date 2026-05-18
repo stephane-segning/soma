@@ -14,6 +14,7 @@
  * extractor harvests `id` + `defaultMessage` into per-locale catalogs.
  * Use ICU placeholders (`{count, plural, one {} other {}}`) where useful.
  */
+import { useCallback } from "react";
 import { useIntl } from "react-intl";
 
 export type Translation = {
@@ -27,6 +28,9 @@ export type TFn = (translation: Translation) => string;
 
 export function useT(): TFn {
 	const intl = useIntl();
-	return ({ id, defaultMessage, description, values }) =>
-		intl.formatMessage({ id, defaultMessage, description }, values);
+	return useCallback<TFn>(
+		({ id, defaultMessage, description, values }) =>
+			intl.formatMessage({ id, defaultMessage, description }, values),
+		[intl],
+	);
 }

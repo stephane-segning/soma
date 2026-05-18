@@ -74,7 +74,7 @@
 		"./components/*": "./src/components/*.tsx",
 		"./utils/*": "./src/utils/*.ts",
 		"./i18n": "./src/i18n/index.ts",
-		"./i18n/*": "./src/i18n/*.ts",
-		"./styles.css": "./src/styles.css"
+		"./styles.css": "./src/styles.css",
+		"./tokens.css": "./src/tokens.css"
 	}
 }

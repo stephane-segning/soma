@@ -8,7 +8,7 @@
  * density-aware rendering today and the cozy/oversized variants become a
  * config flip post-v0, not a rewrite. Read density via {@link useDensity}.
  */
-import { createContext, type ReactNode, useContext, useMemo } from "react";
+import { createContext, type ReactNode, useContext } from "react";
 
 export type Density = "dense" | "cozy" | "oversized";
 
@@ -43,8 +43,12 @@ export function useDensity(): Density {
  *   oversized: "row-card",
  * });
  * ```
+ *
+ * Property access is cheap; we deliberately do not wrap it in `useMemo`
+ * (which would just add overhead and miss when `values` is an inline
+ * object literal anyway).
  */
 export function useDensityValue<T>(values: Record<Density, T>): T {
 	const density = useDensity();
-	return useMemo(() => values[density], [density, values]);
+	return values[density];
 }
