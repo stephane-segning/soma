@@ -1,13 +1,12 @@
 # Desktop Configuration Service
 
-`@soma/desktop-config` is the shared Electron runtime config layer for Soma and Tapia.
+`@soma/desktop-config` is the shared Electron runtime config layer for Soma
+and Tapia.
 
 It centralizes:
 
-- stage detection
+- stage detection (dev / staging / prod)
 - stage-specific Electron data paths
-- daemon socket naming
-- agent socket naming
 
 Package location:
 
@@ -19,7 +18,8 @@ Main implementation:
 
 ## What It Does
 
-`StageConfigService` resolves a runtime stage and then adjusts Electron paths and local socket names to keep dev, staging, and prod installs isolated from each other.
+`StageConfigService` resolves a runtime stage and then adjusts Electron paths
+to keep dev, staging, and prod installs isolated from each other.
 
 For non-prod stages it rewrites Electron paths such as:
 
@@ -47,43 +47,17 @@ Important behavior:
 - unpackaged/dev runs allow env overrides
 - `production` normalizes to `prod`
 
-## Socket Naming
+## Daemon transport
 
-Default socket directory:
-
-- prod Linux: `$XDG_RUNTIME_DIR/soma` (systemd user units use `%t/soma`)
-- prod macOS: `$TMPDIR/soma`
-- dev/staging: `/tmp`
-
-Default socket names for the Soma app family:
-
-| Stage | Daemon socket | Agent socket |
-| --- | --- | --- |
-| `prod` on Linux | `$XDG_RUNTIME_DIR/soma/soma-daemon.sock` | `$XDG_RUNTIME_DIR/soma/soma-agentd.sock` |
-| `prod` on macOS | `$TMPDIR/soma/soma-daemon.sock` | `$TMPDIR/soma/soma-agentd.sock` |
-| `dev` | `/tmp/soma-daemon-dev.sock` | `/tmp/soma-agentd-dev.sock` |
-| `staging` | `/tmp/soma-daemon-staging.sock` | `/tmp/soma-agentd-staging.sock` |
-
-The suffix rule is simple:
-
-- `prod`: no suffix, under the per-user runtime socket directory
-- everything else: `-<stage>.sock`
-
-## Local Development Implication
-
-Your running daemons must match the stage-specific socket path the app expects.
-
-Examples:
-
-- `just run-daemon` -> `/tmp/soma-daemon-dev.sock`
-- `just run-agentd` -> `/tmp/soma-agentd-dev.sock`
-
-If the sockets do not match, the desktop app will fail to connect even if the processes are otherwise healthy.
+The daemon and agent runtimes are linked into the `@soma/node` napi addon and
+loaded in-process by the Electron main process. There is no daemon socket and
+no separate daemon process — historical fields like socket paths and
+`SOMA_DAEMON_SOCKET` / `SOMA_AGENTD_SOCKET` are gone.
 
 ## Current Package Shape
 
 The package currently exports its source entry directly:
 
-- `desktop/desktp-config/package.json`
+- `desktop/desktop-config/package.json`
 
 So the important source of truth is the implementation in `src/stage-config.ts`.

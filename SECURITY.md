@@ -24,8 +24,8 @@ Include, when possible:
 In scope:
 
 - Desktop apps: `desktop/soma`
-- Desktop backends: `backend/bins/daemon` (`soma-daemon`), `backend/bins/agentd` (`soma-agentd`)
-- Server backends: `backend/bins/botd`, `backend/bins/relayd`, `backend/bins/rendezvousd`, `backend/bins/bffd`, `backend/bins/serverd`
+- Desktop runtime libraries (linked into the `@soma/node` napi addon and run in-process inside Electron main): `backend/crates/daemon` (`soma-daemon`), `backend/crates/agentd` (`soma-agentd`), `backend/crates/soma-node` (the napi cdylib)
+- Server binary: `backend/bins/somad` with subcommands `bot` / `relay` / `rendezvous` / `bff` / `all`
 - Protocols and storage: `proto/`, `backend/crates/*`
 - Packaging and release artifacts under `.github/` and `deploy/` when they affect produced binaries/images
 

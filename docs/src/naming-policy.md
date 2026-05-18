@@ -72,7 +72,7 @@ A **cache peer** is a libp2p peer that fetches and caches blobs addressed by con
 
 ### Admin Mode
 
-**Admin mode** is the operating mode of `soma-botd` that exposes administrative HTTP endpoints for join decisions, issuer delegation, and space management.
+**Admin mode** is the operating mode of `somad bot` that exposes administrative HTTP endpoints for join decisions, issuer delegation, and space management.
 
 **Use:**
 - `admin` as the mode name
@@ -111,17 +111,14 @@ Events should follow the pattern: `<entity>_<action>`
 
 ---
 
-## Binary Naming
+## Binary / Crate Naming
 
-| Binary | Purpose | Notes |
-|--------|---------|-------|
-| `soma-daemon` | Desktop peer/IPC | Stable |
-| `soma-agentd` | Desktop local helper | Stable |
-| `soma-botd` | Server peer/bot | Stable |
-| `soma-relayd` | Circuit relay | Stable |
-| `soma-rendezvousd` | Rendezvous discovery | Stable |
-| `soma-bffd` | LLM BFF | Stable |
-| `soma-serverd` | Infrastructure aggregator | Consider `soma-infrad` (Phase 6) |
+| Name | Kind | Purpose | Notes |
+|------|------|---------|-------|
+| `somad` | Binary | Unified server binary with `bot` / `relay` / `rendezvous` / `bff` / `all` subcommands | Stable; replaces the former per-service `soma-botd` / `soma-relayd` / `soma-rendezvousd` / `soma-bffd` / `soma-serverd` binaries |
+| `soma-daemon` | Library | Desktop peer / daemon runtime | Stable; linked into `@soma/node` napi addon, no standalone binary |
+| `soma-agentd` | Library | Desktop agent runtime (Yjs drift resolver, etc.) | Stable; linked into `@soma/node` napi addon, no standalone binary |
+| `@soma/node` (`soma-node`) | napi cdylib | In-process bridge from Electron main to the daemon + agent libraries | Stable |
 
 ---
 

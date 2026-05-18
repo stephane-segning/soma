@@ -112,11 +112,10 @@ Capabilities are intended to cover permissions for both humans and bots, such as
 
 ### Architecture (high level)
 
-- **Desktop UI** (Electron/Chromium + React)
-- **Local daemon** (Rust, gRPC over Unix socket)
-- **Agent service** (local AI, optional)
-- **Bot daemons** (cache + onboarding)
-- **Relay + Rendezvous** (connectivity only)
+- **Desktop UI** (Electron/Chromium + React) with the Rust daemon + agent runtimes linked in-process via the `@soma/node` napi addon
+- **`somad` server binary** (with `bot` / `relay` / `rendezvous` / `bff` / `all` subcommands)
+- **Bot peers** (`somad bot`: cache + onboarding)
+- **Relay + Rendezvous** (`somad relay` / `somad rendezvous`: connectivity only)
 
 ---
 

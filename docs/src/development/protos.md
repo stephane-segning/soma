@@ -49,6 +49,6 @@ The package also supports `SOMA_PROTO_ROOT` so it can generate from an external 
 ## Quick local checks
 
 - Compile Rust bindings: `cargo build -p soma-proto-build`
-- Compile a Rust binary that uses the protos: `cargo build -p soma-daemon`
+- Compile a Rust crate that uses the protos: `cargo build -p somad` or `cargo build -p soma-node`
 - Generate TypeScript bindings: `pnpm --filter @soma/proto run generate`
 - Generate TypeScript bindings from an alternate checkout: `SOMA_PROTO_ROOT=/absolute/path/to/proto pnpm --filter @soma/proto run generate`

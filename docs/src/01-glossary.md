@@ -19,25 +19,21 @@ The main navigable note or document unit inside a workspace.
 An attachment (PDF, image, etc.), content-addressed by hash.
 
 **Daemon**  
-The local backend process handling networking, storage, and permissions.
+The local backend handling networking, storage, and permissions. On desktop, it runs in-process inside the Electron main process via the `@soma/node` napi addon (no separate process).
 
 **soma-daemon**  
-The desktop peer/daemon binary (libp2p peer + local Unix socket API; no Axum).
-
-**soma-botd**  
-The server peer/bot binary (libp2p peer + Axum control plane + metrics).
-
-**soma-relayd**  
-The relay service binary (libp2p Circuit Relay + Axum + metrics).
-
-**soma-rendezvousd**  
-The rendezvous service binary (libp2p Rendezvous discovery + Axum + metrics).
-
-**soma-bffd**  
-The LLM BFF service binary (Axum + metrics; the only backend not using libp2p).
+The desktop peer/daemon library crate (libp2p peer + storage). Linked into the `@soma/node` napi addon; no standalone binary.
 
 **soma-agentd**  
-An optional desktop-only companion process for local automation / helpers; does not own the peer identity.
+The desktop agent library crate (Yjs drift resolver and helpers). Linked into the `@soma/node` napi addon; no standalone binary.
+
+**somad**  
+The unified server binary. Subcommands `bot`, `relay`, `rendezvous`, `bff`, and `all` (TOML-composed multi-mode) replace the former per-service binaries.
+
+- `somad bot`: server peer/bot (libp2p peer + Axum control plane + metrics).
+- `somad relay`: libp2p Circuit Relay + Axum + metrics.
+- `somad rendezvous`: libp2p Rendezvous discovery + Axum + metrics.
+- `somad bff`: LLM BFF (Axum + metrics; no libp2p).
 
 **PeerId**  
 Cryptographic identity of a device.

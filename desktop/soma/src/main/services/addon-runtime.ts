@@ -38,7 +38,6 @@ export class AddonRuntime {
 		const config = await this.buildConfig();
 		this.logger.log("info", "starting @soma/node addon runtime", {
 			daemonDbPath: config.daemonDbPath,
-			agentdDbPath: config.agentdDbPath,
 			blobDir: config.blobDir,
 			listenAddrs: config.listenAddrs,
 		});
@@ -89,7 +88,6 @@ export class AddonRuntime {
 	private async buildConfig(): Promise<StartConfig> {
 		const dataDir = join(this.options.userDataDir, "daemon");
 		const daemonDbPath = join(dataDir, "daemon.db");
-		const agentdDbPath = join(dataDir, "agentd.db");
 		const blobDir = join(dataDir, "blobs");
 		// Pin the libp2p identity inside userData so packaged launches don't
 		// fall back to `data/daemon/identity.key` relative to Electron's cwd
@@ -104,7 +102,6 @@ export class AddonRuntime {
 
 		const base: StartConfig = {
 			daemonDbPath,
-			agentdDbPath,
 			blobDir,
 			identityPath,
 			listenAddrs: ["/ip4/0.0.0.0/tcp/0/ws"],

@@ -64,14 +64,14 @@ Revocation can be implemented by expiring capabilities, publishing revocation ev
 ### Current implementation snapshot
 
 - Transport: libp2p request/response protocol `/soma/join/1` (see `soma-peer`).
-- Daemon: exposes Join via gRPC over Unix socket (`Daemon/JoinSpace`), then sends a JoinRequest over libp2p and streams decisions over `Daemon/StreamEvents`.
-- Join decisions: botd now ships a real join decider that approves requests (optionally attaching an issuer capability if the bot has been delegated) and persists decisions/memberships to the shared SQLx storage.
+- Daemon: the in-process `DaemonHandle` exposes `joinSpace` (via the napi addon's `SomaHandle`), then sends a JoinRequest over libp2p and surfaces decisions through `subscribeEvents`.
+- Join decisions: `somad bot` ships a real join decider that approves requests (optionally attaching an issuer capability if the bot has been delegated) and persists decisions/memberships to the shared SQLx storage.
 - Bot operating modes:
   - `bot` mode (default): HTTP is read-only (`/info`, `/healthz`, `/metrics`); join decisions still flow over libp2p via the decider.
   - `admin` mode: exposes admin-token-gated join control endpoints over HTTP for admin tooling; controllers still delegate to the decider/storage and never "force-join".
-- Auto-approval rules: botd auto-approves only when it holds a valid issuer capability for the target space; otherwise join requests are recorded for manual approval. Manual approval surfaces now exist in both soma-daemon (gRPC) and admin HTTP.
-- Owner delegation: soma-daemon exposes `IssueIssuerCapability`; the current daemon must own the space, and the signed delegation is persisted for audit/reuse.
-- Discovery: soma-daemon exposes `DiscoverSpaces`, but it currently returns only locally known/member spaces. Rendezvous-backed space discovery is still future work.
+- Auto-approval rules: the bot auto-approves only when it holds a valid issuer capability for the target space; otherwise join requests are recorded for manual approval. Manual approval surfaces exist in both the desktop daemon (via the napi addon's `decideJoin`) and the bot's admin HTTP.
+- Owner delegation: the daemon exposes `issueIssuerCapability` on its in-process handle; the current daemon must own the space, and the signed delegation is persisted for audit/reuse.
+- Discovery: the daemon exposes `discoverSpaces`, but it currently returns only locally known/member spaces. Rendezvous-backed space discovery is still future work.
 - Ownership proof: new daemon-created spaces carry an owner-signed genesis artifact in storage.
 - Peer event pipeline: join decisions and failures are surfaced as `PeerEvent` and dispatched via the shared event dispatcher (see `docs/src/development/peer-events.md`).
 

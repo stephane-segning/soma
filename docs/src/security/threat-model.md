@@ -21,8 +21,8 @@ This page captures a practical threat model for Soma’s current architecture. I
 
 ### Desktop boundary
 
-- **Renderer (untrusted UI surface)** → **Electron main process** → **`soma-daemon` (trusted local backend)**.
-- `soma-daemon` exposes gRPC over a **Unix domain socket** (no TCP listener by default) to minimize attack surface.
+- **Renderer (untrusted UI surface)** → **Electron main process (trusted local backend, including the `soma-daemon` and `soma-agentd` libraries linked in via the `soma-node` napi addon)**.
+- There is no separate daemon process and no IPC socket. Daemon operations are plain Rust calls inside the Electron main process — the only inter-process hop is the Chromium-renderer ↔ Electron-main bridge, which is already constrained to the controllers exposed by the preload script.
 
 ### P2P boundary
 
@@ -31,7 +31,7 @@ This page captures a practical threat model for Soma’s current architecture. I
 
 ### Infrastructure boundary
 
-- `soma-relayd` and `soma-rendezvousd` are **connectivity-only**; they should not store or process application content beyond what libp2p protocols require.
+- `somad relay` and `somad rendezvous` are **connectivity-only**; they should not store or process application content beyond what libp2p protocols require.
 
 ## Threats and mitigations (by area)
 
@@ -39,14 +39,14 @@ This page captures a practical threat model for Soma’s current architecture. I
 
 Threats:
 
-- A malicious local process connects to the daemon IPC socket.
-- A malicious renderer payload triggers unsafe IPC calls (confused deputy).
+- A malicious renderer payload triggers unsafe IPC calls into the Electron main process (confused deputy).
+- Another local process tampers with the daemon's on-disk state (SQLite DB, blob directory, libp2p identity key) under the user's home directory.
 
 Mitigations:
 
-- Prefer gRPC over **UDS** and keep the socket under a user-private directory (file permissions matter).
-- Keep renderer IPC narrow; route privileged operations through main/daemon controllers.
-- Consider an application-level auth token for local IPC where appropriate (see ADR-0001).
+- Keep renderer ↔ main IPC narrow; route privileged operations through the small, audited controller surface exposed by the preload script.
+- Store the libp2p identity and DBs under Electron's `userData` directory with default file permissions and let the OS isolation do its job; we do not rely on app-level authentication for "is this the same user."
+- See ADR-0001 for why we no longer maintain a separate daemon process / Unix-socket IPC surface.
 
 ### 2) Unauthorized membership / capability forgery
 

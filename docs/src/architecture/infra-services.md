@@ -2,13 +2,13 @@
 
 Soma uses two lightweight libp2p infrastructure services to improve discovery and connectivity.
 
-## Relay (`soma-relayd`)
+## Relay (`somad relay`)
 
-The relay service runs the libp2p **Circuit Relay v2** server behaviour. Peers that cannot establish direct connections can reserve slots on the relay and route encrypted libp2p traffic through it.
+The relay subcommand runs the libp2p **Circuit Relay v2** server behaviour. Peers that cannot establish direct connections can reserve slots on the relay and route encrypted libp2p traffic through it.
 
-## Rendezvous (`soma-rendezvousd`)
+## Rendezvous (`somad rendezvous`)
 
-The rendezvous service runs the libp2p **Rendezvous server** behaviour. Peers register under namespaces and query for other registered peers to bootstrap connectivity.
+The rendezvous subcommand runs the libp2p **Rendezvous server** behaviour. Peers register under namespaces and query for other registered peers to bootstrap connectivity.
 
 For how peers consume relay/rendezvous (and the relevant CLI flags), see `docs/src/architecture/peer-connectivity.md`.
 

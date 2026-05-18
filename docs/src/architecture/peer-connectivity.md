@@ -1,6 +1,6 @@
 # Peer Connectivity (Daemon + Bot)
 
-This doc describes how Soma peers (like `soma-daemon` and `soma-botd`) discover each other and establish connectivity using libp2p.
+This doc describes how Soma peers (the desktop daemon runtime — `soma-daemon`, linked in-process via the `@soma/node` napi addon — and `somad bot`) discover each other and establish connectivity using libp2p.
 
 The implementation lives in the shared peer runtime: `backend/crates/peer` (`soma-peer`).
 
@@ -125,19 +125,25 @@ sequenceDiagram
   end
 ```
 
-## CLI / Environment Configuration
+## Configuration
 
-The peer-facing binaries accept the following optional connectivity configuration.
+### Desktop daemon (in-process via `@soma/node`)
 
-### `soma-daemon` (`backend/bins/daemon`)
+The desktop daemon library reads its connectivity configuration from the napi
+addon's `StartConfig` (see `desktop/soma/src/main/services/addon-runtime.ts`).
+The relevant fields:
 
-- `--listen-addrs` / `SOMA_LISTEN_ADDRS` (comma-delimited)
-- `--bootstrap-addrs` / `SOMA_BOOTSTRAP_ADDRS` (comma-delimited)
-- `--rendezvous-addrs` / `SOMA_RDV_ADDRS` (comma-delimited)
-- `--relay-addrs` / `SOMA_RELAY_ADDRS` (comma-delimited)
-- `--disable-mdns` / `SOMA_DISABLE_MDNS`
+- `listenAddrs` (array of multiaddrs)
+- `bootstrapAddrs`
+- `rendezvousAddrs`
+- `relayAddrs`
+- `enableMdns`
 
-### `soma-botd` (`backend/bins/botd`)
+There are no CLI flags or `SOMA_*` environment variables on the desktop side —
+the addon is loaded by the Electron main process, which constructs the config
+directly.
+
+### `somad bot` (server peer)
 
 - `--listen-addrs` / `SOMA_LISTEN_ADDRS` (comma-delimited)
 - `--bootstrap-addrs` / `SOMA_BOOTSTRAP_ADDRS` (comma-delimited)
@@ -149,18 +155,20 @@ The peer-facing binaries accept the following optional connectivity configuratio
 
 ### Start infra
 
-From `backend/`:
+From the repo root:
 
-- Relay: `cargo run -p soma-relayd -- --http-addr 0.0.0.0:8081`
-- Rendezvous: `cargo run -p soma-rendezvousd -- --http-addr 0.0.0.0:8082`
+- Relay: `just backend-run-relay`
+- Rendezvous: `just backend-run-rendezvous`
 
 Copy their logged listen multiaddrs (including `/p2p/<peerid>`).
 
-### Start a daemon and point it at infra
+### Run the desktop app and point it at infra
 
-From `backend/`:
-
-`cargo run -p soma-daemon -- --rendezvous-addrs "<RDV_MULTIADDR>" --relay-addrs "<RELAY_MULTIADDR>"`
+The Electron app embeds the daemon runtime, so connectivity is configured via
+the napi addon's `StartConfig` passed in from
+`desktop/soma/src/main/services/addon-runtime.ts`. Edit that file (or the
+desktop stage config it reads) to inject your local `--rendezvous-addrs` /
+`--relay-addrs` equivalents.
 
 ### Observe behaviour
 

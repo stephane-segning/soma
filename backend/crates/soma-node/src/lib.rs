@@ -39,7 +39,6 @@ pub struct DaemonStatusJs {
 #[napi(object)]
 pub struct StartConfig {
     pub daemon_db_path: String,
-    pub agentd_db_path: String,
     pub blob_dir: String,
     pub identity_path: Option<String>,
     pub listen_addrs: Option<Vec<String>>,
@@ -941,11 +940,10 @@ fn model_to_js(m: agent_types::ModelInfo) -> ModelInfoJs {
 #[napi]
 pub async fn start(config: StartConfig) -> napi::Result<SomaHandle> {
     let daemon_config = build_daemon_config(&config)?;
-    let agentd_config = build_agentd_config(&config);
 
     let daemon = soma_daemon::run(daemon_config).await.map_err(to_napi)?;
 
-    let agentd = match soma_agentd::run(agentd_config).await {
+    let agentd = match soma_agentd::run(AgentdConfig::default()).await {
         Ok(h) => h,
         Err(err) => {
             if let Err(shutdown_err) = daemon.shutdown().await {
@@ -962,7 +960,6 @@ pub async fn start(config: StartConfig) -> napi::Result<SomaHandle> {
 
 fn build_daemon_config(config: &StartConfig) -> napi::Result<DaemonConfig> {
     let mut daemon_config = DaemonConfig::default();
-    daemon_config.socket_path = None;
     daemon_config.db_path = PathBuf::from(&config.daemon_db_path);
     daemon_config.blob_dir = PathBuf::from(&config.blob_dir);
     if let Some(path) = config.identity_path.as_ref() {
@@ -984,13 +981,6 @@ fn build_daemon_config(config: &StartConfig) -> napi::Result<DaemonConfig> {
         daemon_config.enable_mdns = enable;
     }
     Ok(daemon_config)
-}
-
-fn build_agentd_config(config: &StartConfig) -> AgentdConfig {
-    AgentdConfig {
-        socket_path: None,
-        db_path: PathBuf::from(&config.agentd_db_path),
-    }
 }
 
 fn parse_multiaddrs(addrs: &[String], field: &str) -> napi::Result<Vec<libp2p::Multiaddr>> {

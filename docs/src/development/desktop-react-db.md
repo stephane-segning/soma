@@ -2,9 +2,16 @@
 
 This doc is a mental model for Soma/Tapia desktop persistence when using `@tanstack/react-db` backed by `electron-store`, and how (and when) data flows to `soma-daemon`.
 
-## The 4 Local Layers (same laptop, different responsibilities)
+> Note on processes: `soma-daemon` is no longer a separate process. It is a
+> library crate linked into the `@soma/node` napi addon and loaded directly by
+> the Electron main process. When this doc says "daemon does X" it means a
+> Rust call into the in-process daemon runtime, not an IPC hop. The
+> renderer ↔ main IPC boundary is still real.
 
-Even on one machine, Soma is multiple processes with different trust + durability boundaries:
+## The 3 Local Layers (same laptop, different responsibilities)
+
+Even on one machine, Soma still has different trust + durability boundaries to
+think about:
 
 1. Renderer (UI) state
    - React components + `@tanstack/react-db` collections
@@ -12,10 +19,10 @@ Even on one machine, Soma is multiple processes with different trust + durabilit
 2. Electron main persistence
    - `electron-store` (filesystem-backed) owned by the Electron main process
    - In Soma/Tapia we expose a small IPC storage bridge (`db_storage_*`) so renderer collections can persist.
-3. `soma-daemon` persistence
-   - SQLite + blob pool on disk (daemon-owned)
-   - Canonical domain state that can participate in peer sync (libp2p) lives here.
-4. Network peers (optional for "local")
+   - The in-process `soma-daemon` runtime also lives here: it owns its own
+     SQLite + blob pool under Electron's `userData/daemon/`. Canonical domain
+     state that can participate in peer sync (libp2p) lives in the daemon DB.
+3. Network peers (optional for "local")
    - Other devices/peers, bots, and VDF caches
    - Not required for single-laptop usage, but it is why daemon-owned data must remain canonical.
 
@@ -63,9 +70,9 @@ Key point: UX state never leaves the laptop and does not touch `soma-daemon`.
 ### B) Domain state write (documents/pages)
 
 ```text
-Renderer (React)                 Electron main (controllers)             soma-daemon (gRPC over UDS)             Disk
+Renderer (React)                 Electron main (controllers)             soma-daemon (in-process via @soma/node)             Disk
 ----------------                 --------------------------             ----------------------------             ----
-user edit page                -> documents_* IPC command             -> Daemon/UpsertDocument RPC             -> SQLite (documents)
+user edit page                -> documents_* IPC command             -> daemon.upsertDocument() (napi)        -> SQLite (documents)
 UI triggers save/sync            DocumentsController/DaemonClient        (canonical doc state)                    (canonical)
 
 Conflict resolution for content: Yjs (daemon-side / peer-side), NOT LWW.
@@ -78,7 +85,7 @@ Key point: renderer does not own canonical document state; it only sends operati
 ```text
 Renderer (React)                 Electron main                         soma-daemon                               Disk
 ----------------                 -------------                         ---------                                ----
-select file bytes            -> blobs_stage IPC                    -> Daemon/UploadBlob RPC                 -> blob pool (bytes)
+select file bytes            -> blobs_stage IPC                    -> daemon.uploadBlob() (napi)            -> blob pool (bytes)
 track job in uploadJobs         BlobsController/DaemonClient          verify/record metadata                   + SQLite (blobs/meta)
 ```
 
@@ -93,7 +100,7 @@ Renderer <img src="soma-blob://daemon/{space}/{cid}">
 Electron protocol handler (main): desktop/soma/src/main/services/blob-protocol.ts
      |
      v
-soma-daemon: Daemon/ReadBlob (gRPC over UDS) -> bytes
+soma-daemon: readBlob() (in-process napi call) -> bytes
 ```
 
 Key point: UI never reads blob files directly from disk.
@@ -120,7 +127,7 @@ If we replicated documents/pages into React DB we would:
 
 This is what we do by default today:
 
-- Renderer calls IPC methods implemented in Electron main (which calls the daemon gRPC client).
+- Renderer calls IPC methods implemented in Electron main (which calls the in-process daemon via the napi addon).
 - RTK Query caches responses and provides a "reactive enough" UI (but updates require invalidation/refetch).
 
 Typical triggers:

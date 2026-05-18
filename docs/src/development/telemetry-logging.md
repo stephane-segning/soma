@@ -11,31 +11,37 @@ All Rust backends initialize `tracing` via `soma_core::telemetry::init_tracing(.
 
 ## Examples
 
-Plain text to stdout/stderr:
+The remaining standalone backend binary is `somad` (with subcommands
+`bot` / `relay` / `rendezvous` / `bff` / `all`). The desktop side embeds the
+daemon + agent runtimes in-process via the `@soma/node` napi addon, so the
+same env vars (`RUST_LOG`, `SOMA_LOG_FORMAT`, `SOMA_LOGS_DIR`,
+`SOMA_FLAME_ENABLED`) apply when exported into the Electron main process.
+
+Plain text to stdout/stderr (server binary):
 
 ```bash
-RUST_LOG=info cargo run -p soma-daemon -- --help
+RUST_LOG=info cargo run -p somad -- bot --help
 ```
 
 JSON to stdout/stderr:
 
 ```bash
-SOMA_LOG_FORMAT=json RUST_LOG=debug cargo run -p soma-daemon -- --help
+SOMA_LOG_FORMAT=json RUST_LOG=debug cargo run -p somad -- relay
 ```
 
 JSON to a rolling file:
 
 ```bash
-SOMA_LOGS_DIR=./.data/logs/daemon SOMA_LOG_FORMAT=json RUST_LOG=debug \
-  cargo run -p soma-daemon -- --help
+SOMA_LOGS_DIR=./.data/logs/bot SOMA_LOG_FORMAT=json RUST_LOG=debug \
+  cargo run -p somad -- bot
 ```
 
 Flame capture alongside logs:
 
 ```bash
-SOMA_FLAME_ENABLED=1 SOMA_LOGS_DIR=./.data/logs/daemon RUST_LOG=info \
-  cargo run -p soma-daemon -- --help
+SOMA_FLAME_ENABLED=1 SOMA_LOGS_DIR=./.data/logs/bot RUST_LOG=info \
+  cargo run -p somad -- bot
 
 # Convert folded stacks to an SVG flamegraph (requires inferno)
-cat ./.data/flame/soma-daemon.folded | inferno-flamegraph > ./.data/flame/soma-daemon.svg
+cat ./.data/flame/somad.folded | inferno-flamegraph > ./.data/flame/somad.svg
 ```

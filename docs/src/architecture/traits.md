@@ -11,8 +11,7 @@ This repo now prefers **traits as the default abstraction**. Patterns to follow:
 
 Examples to apply next:
 
-- Peer identity/spawn: trait in `soma-peer`, implemented by daemon/botd/bffd.
-- HTTP services: trait in `soma-core` (or service crate), implemented per bin.
-- Unix IPC/gRPC: trait in `soma-socket`, implemented by daemon/agentd.
+- Peer identity/spawn: trait in `soma-peer`, implemented by the daemon library and by each `somad` subcommand that runs a peer (`bot`, etc.).
+- HTTP services: trait in `soma-core` (or service crate), implemented per `somad` subcommand.
 
 Keep traits cohesive, name methods for intent, and avoid leaking unrelated concerns into a single trait.

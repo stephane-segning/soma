@@ -12,7 +12,7 @@ Note: CI-critical automation uses `cargo xtask` for Cargo workspace tasks (see `
 
 ## Preferred grouped targets
 
-- **Backend builds / runs** – `just backend-build-servers`, `just backend-run-bot`, `just backend-run-relay`, `just backend-run-rendezvous`, `just backend-run-bff` (all server subcommands dispatch to the single `somad` binary). Transitional `just backend-build-daemons` / `just backend-run-daemon` / `just backend-run-agentd` still exist for the legacy `soma-daemon` and `soma-agentd` binaries but are not used by the desktop app, which now loads the addon directly.
+- **Backend builds / runs** – `just backend-build-servers`, `just backend-run-bot`, `just backend-run-relay`, `just backend-run-rendezvous`, `just backend-run-bff`, `just backend-run-all` (all server subcommands dispatch to the single `somad` binary). `just backend-build-node-addon` builds the `@soma/node` napi addon used by the Electron desktop app.
 - **Backend tests / xtask** – `just backend-test`, `just backend-test-relay-smoke`, `just backend-test-rendezvous-smoke`, `just backend-xtask-help`, `just backend-xtask-version-workspace`
 - **Desktop workspace** – `just desktop-install`, `just desktop-run-soma`, `just desktop-build-soma`, `just desktop-test-soma`, `just desktop-test-all`
 - **Desktop icons** – `just desktop-icons-soma`

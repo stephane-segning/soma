@@ -12,21 +12,13 @@ set shell := ["bash", "-lc"]
 # Backend workspace helpers (`backend/`)
 #
 
-# Build the desktop-facing Rust daemons from the backend workspace
-backend-build-daemons:
-	cd backend && cargo build -p soma-daemon -p soma-agentd
-
-# Run the desktop soma-daemon peer for local development
-backend-run-daemon:
-	export SOMA_DATA_DIR="$PWD/.data" && mkdir -p "$SOMA_DATA_DIR/db" && cd backend && cargo run -p soma-daemon -- --socket-path "/tmp/soma-daemon-dev.sock" --db-path "$SOMA_DATA_DIR/db/daemon.db" --blob-dir "$SOMA_DATA_DIR/blobs/daemon" --listen-addrs /ip4/0.0.0.0/tcp/0/ws
-
-# Run the soma-agentd helper process
-backend-run-agentd:
-	export SOMA_DATA_DIR="$PWD/.data" && mkdir -p "$SOMA_DATA_DIR/db" && cd backend && cargo run -p soma-agentd -- --socket-path "/tmp/soma-agentd-dev.sock" --db-path "$SOMA_DATA_DIR/db/agentd.db"
-
 # Build the unified server binary
 backend-build-servers:
 	cd backend && cargo build -p somad
+
+# Build the @soma/node napi addon that hosts the daemon + agent in-process
+backend-build-node-addon:
+	cd backend && cargo build -p soma-node --release
 
 # Run somad bot
 backend-run-bot:

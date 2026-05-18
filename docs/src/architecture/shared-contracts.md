@@ -66,12 +66,14 @@ That layout is intentionally kept compatible with a future external contracts re
 
 ### RPC Service Definitions
 
-#### Daemon Service (`daemon.v1.Daemon`)
+#### Daemon Surface (`daemon.v1.Daemon`)
 
-Transport: gRPC over Unix domain socket
+Transport: in-process napi calls on the `@soma/node` `SomaHandle`. The proto
+methods listed below are kept as a record-shape reference; they are not
+exposed as a gRPC service.
 
-| RPC | Status | Description |
-|-----|--------|-------------|
+| Method | Status | Description |
+|--------|--------|-------------|
 | `Status` | Stable | Get daemon peer status |
 | `JoinSpace` | Stable | Submit join request |
 | `StreamEvents` | Stable | Stream daemon events |
@@ -98,20 +100,18 @@ Transport: gRPC over Unix domain socket
 | `UpdatePageTitle` | Stable | Update page title |
 | `SetPageParents` | Stable | Set page parent IDs |
 
-#### Agent Service (`agent.v1.Agent`)
+#### Agent Surface (`agent.v1.Agent`)
 
-Transport: gRPC over Unix domain socket
+Transport: in-process napi calls on the `@soma/node` `SomaHandle`. The
+agent surface no longer ships as a gRPC service; the proto file is kept as a
+record-shape reference only.
 
-| RPC | Status | Description |
-|-----|--------|-------------|
+| Method | Status | Description |
+|--------|--------|-------------|
 | `Status` | Stable | Get local helper status |
-| `ListModels` | Compatibility | Returns an empty model list from agentd |
-| `InlineComplete` | Compatibility stub | Returns `UNIMPLEMENTED` from agentd |
-| `Chat` | Compatibility stub | Returns `UNIMPLEMENTED` from agentd |
-| `ChatStream` | Compatibility stub | Returns `UNIMPLEMENTED` from agentd |
-| `Embed` | Compatibility stub | Returns `UNIMPLEMENTED` from agentd |
-| `Rerank` | Compatibility stub | Returns `UNIMPLEMENTED` from agentd |
+| `ListModels` | Compatibility | Returns an empty model list (chat / list-models go to the OpenAI-compatible HTTP endpoint instead) |
 | `ResolveDrift` | Stable | Merge Yjs updates |
+| `InlineComplete` / `Chat` / `ChatStream` / `Embed` / `Rerank` | Removed | The library no longer implements these; the desktop side calls an OpenAI-compatible HTTP endpoint directly |
 | `EnqueueBackgroundTask` | Compatibility | Persist a failed background task record |
 | `ListBackgroundTasks` | Stable | List background tasks |
 
@@ -130,19 +130,12 @@ Emitted via `StreamEvents` RPC:
 
 ## Runtime Conventions
 
-### Socket Paths
+### Desktop ↔ daemon transport
 
-Default socket locations (Unix domain sockets):
-
-| Service | Default Path | Stage Override |
-|---------|--------------|----------------|
-| Daemon | `/tmp/soma-daemon.sock` | `/tmp/soma-daemon-{stage}.sock` |
-| Agent | `/tmp/soma-agentd.sock` | `/tmp/soma-agentd-{stage}.sock` |
-
-Environment variable overrides (development only):
-
-- `SOMA_DAEMON_SOCKET`: Override daemon socket path
-- `SOMA_AGENTD_SOCKET`: Override agent socket path
+The daemon and agent runtimes are linked into the `@soma/node` napi addon and
+loaded in-process by the Electron main process. There is no IPC socket and no
+separate daemon process; the previous `SOMA_DAEMON_SOCKET` /
+`SOMA_AGENTD_SOCKET` env vars and the per-stage socket-path tables are gone.
 
 ### Stage Detection
 
@@ -157,30 +150,25 @@ Detection order (desktop apps):
 Stage effects:
 
 - Non-`prod`: App data redirected to `{appData}/{prefix}-{stage}/`
-- Non-`prod`: Sockets suffixed with `-{stage}`
-
-### Service Labels (Packaging)
-
-| Service | Label |
-|---------|-------|
-| Daemon | `digital.camer.soma.daemon` |
-| Agent | `digital.camer.soma.agentd` |
 
 ## Release Contracts
 
 ### Artifact Naming
 
-#### Daemon/Agent Binaries
+#### Server binary (`somad`)
 
 ```
-soma-daemon-{version}-{os}-{arch}.tar.gz
-soma-agentd-{version}-{os}-{arch}.tar.gz
+somad-{version}-{os}-{arch}.tar.gz
 ```
 
 Examples:
 
-- `soma-daemon-0.1.0-linux-amd64.tar.gz`
-- `soma-agentd-0.1.0-macos-arm64.tar.gz`
+- `somad-0.1.0-linux-amd64.tar.gz`
+- `somad-0.1.0-macos-arm64.tar.gz`
+
+The desktop daemon + agent runtimes are not shipped as standalone binaries —
+they're embedded in the desktop app's `@soma/node` napi addon and ride along
+with the Electron release.
 
 OS values: `linux`, `macos`
 
@@ -213,36 +201,38 @@ Extensions:
 
 | Release Type | Tag Pattern | Example |
 |--------------|-------------|---------|
-| Daemons | `daemons-v{version}` | `daemons-v0.1.0` |
+| Server (`somad`) | `server-v{version}` | `server-v0.1.0` |
 | Desktop | `desktop-v{version}` | `desktop-v1.0.0` |
 | Bundle | `bundle-{label}` | `bundle-20250101-120000` |
 
 ### Release Manifest Schema
 
-Release discovery is moving toward explicit JSON manifests. Upstream daemon and desktop releases may publish one of these assets on the GitHub Release:
+Release discovery is moving toward explicit JSON manifests. Upstream server
+and desktop releases may publish one of these assets on the GitHub Release:
 
-- `daemons-release-manifest.json`
+- `server-release-manifest.json`
 - `desktop-release-manifest.json`
 - `release-manifest.json` (generic fallback name)
 
-The packaging CLI can also consume a manifest directly from a local file path or URL via `--daemons-manifest` / `--desktop-manifest`.
+The packaging CLI can also consume a manifest directly from a local file path
+or URL via `--server-manifest` / `--desktop-manifest`.
 
 #### Upstream release manifest (`soma.release-manifest.v1`)
 
 ```json
 {
   "schema_version": "soma.release-manifest.v1",
-  "release_type": "daemons",
+  "release_type": "server",
   "version": "0.1.0",
-  "tag": "daemons-v0.1.0",
+  "tag": "server-v0.1.0",
   "repo": "digitalcamer/soma-backend",
   "artifacts": [
     {
-      "name": "soma-daemon-0.1.0-linux-amd64.tar.gz",
-      "kind": "soma-daemon",
+      "name": "somad-0.1.0-linux-amd64.tar.gz",
+      "kind": "somad",
       "os": "linux",
       "arch": "amd64",
-      "url": "https://github.com/digitalcamer/soma-backend/releases/download/daemons-v0.1.0/soma-daemon-0.1.0-linux-amd64.tar.gz"
+      "url": "https://github.com/digitalcamer/soma-backend/releases/download/server-v0.1.0/somad-0.1.0-linux-amd64.tar.gz"
     }
   ]
 }
@@ -251,12 +241,12 @@ The packaging CLI can also consume a manifest directly from a local file path or
 Field expectations:
 
 - `schema_version`: current value `soma.release-manifest.v1`
-- `release_type`: `daemons`, `desktop`, or `bundle`
+- `release_type`: `server`, `desktop`, or `bundle`
 - `version`: semantic version or bundle label for the published release
 - `tag`: Git tag backing the release
 - `repo`: canonical source repo in `owner/name` form
 - `artifacts[]`: explicit artifact records with stable `name`, `url`, `os`, and `arch`
-- `artifacts[].kind`: recommended for daemon/bundle artifacts (`soma-daemon`, `soma-agentd`, `deb`, `rpm`, `pkg`, ...)
+- `artifacts[].kind`: recommended for server/bundle artifacts (`somad`, `deb`, `rpm`, `pkg`, ...)
 - `artifacts[].app`: recommended for desktop artifacts (`soma` or `tapia`)
 
 #### Bundle output manifest

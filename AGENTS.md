@@ -24,7 +24,7 @@ Subcommands map to the existing service crates: `bot` uses `crates/peer` + `crat
 
 What's gone in the fully-collapsed target:
 
-- `backend/bins/daemon/`, `backend/bins/agentd/` — desktop runtimes move to `crates/desktop-peer/` and `crates/desktop-agent/` (lib-only). The addon consumes them; no binaries.
+- `backend/bins/daemon/`, `backend/bins/agentd/` — desktop runtimes moved to `crates/daemon/` and `crates/agentd/` (lib-only). The napi addon consumes them; no standalone binaries.
 - `backend/bins/botd/`, `backend/bins/relayd/`, `backend/bins/rendezvousd/`, `backend/bins/bffd/`, `backend/bins/serverd/` — replaced by `backend/bins/somad/` with subcommands.
 - `desktop/tapia/` — merged into Soma's `/practice` route.
 - `desktop/desktop-proto/` (`@soma/proto`) — gRPC TS codegen unnecessary because Electron main calls the addon directly; libp2p protobuf stays Rust-only.
@@ -62,14 +62,14 @@ When this document says "today" or describes current behavior in present tense, 
 
 - `backend/` — Rust workspace.
   - `crates/soma-node/` — napi-rs addon (cdylib) embedding the desktop peer + agent runtimes; loaded by Electron main.
-  - `crates/desktop-peer/` — desktop peer runtime (former `bins/daemon`'s library). Consumed by `soma-node` and by `somad desktop-peer` (transitional; removed once Soma main no longer spawns a peer process).
-  - `crates/desktop-agent/` — desktop agent runtime (former `bins/agentd`'s library). Consumed by `soma-node` and by `somad desktop-agent` (transitional).
+  - `crates/daemon/` (`soma-daemon`) — desktop peer runtime, library only. Consumed by `soma-node`; no standalone binary.
+  - `crates/agentd/` (`soma-agentd`) — desktop agent runtime, library only. Consumed by `soma-node`; no standalone binary.
   - `crates/peer/` — libp2p peer behaviour, event types, request/response protocols.
   - `crates/agent/` — local LLM/embed/Yjs reconciliation runtime.
   - `crates/storage/` — repositories + schema; consumes the `.cstack` schema via `cratestack-rusqlite`.
   - `crates/core/` — domain types, `DbFactory`, telemetry, shared utilities.
   - `crates/net/` — libp2p swarm builder (typestate transport order: TCP → QUIC → DNS → WS → Behaviour).
-  - `crates/membership/`, `crates/api/`, `crates/cache/`, `crates/common/`, `crates/metrics/`, `crates/vdfs/`, `crates/socket/`, `crates/relay/`, `crates/rendezvous/`, `crates/bff/`, `crates/proto-build/` — unchanged in role.
+  - `crates/membership/`, `crates/api/`, `crates/cache/`, `crates/common/`, `crates/metrics/`, `crates/vdfs/`, `crates/relay/`, `crates/rendezvous/`, `crates/bff/`, `crates/proto-build/` — unchanged in role.
   - `bins/somad/` — the **only** server binary. Subcommand-dispatch entry point (`bot`, `relay`, `rendezvous`, `bff`, `all`). Mode-specific argument parsing lives per-subcommand under `bins/somad/src/commands/`.
 - `desktop/` — single Electron app + shared TS packages.
   - `desktop/soma/` — Soma app. Renderer under `src/renderer`, main under `src/main`. Loads `@soma/node` (the napi addon).
