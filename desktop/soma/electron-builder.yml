@@ -34,6 +34,7 @@ nsis:
 mac:
   target:
     - zip
+    - dmg
   icon: build/icon.icns
   hardenedRuntime: true
   entitlements: build/entitlements.mac.plist
@@ -53,9 +54,16 @@ mac:
 linux:
   target:
     - AppImage
-  maintainer: electronjs.org
+    - deb
+  maintainer: Soma <hello@ssegning.com>
   category: Utility
+  description: Soma desktop — local-first workspaces for private collaboration.
+  synopsis: Local-first workspace
 appImage:
+  artifactName: ${name}-${version}.${ext}
+deb:
+  artifactName: ${name}_${version}_${arch}.${ext}
+dmg:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false
 publish:
