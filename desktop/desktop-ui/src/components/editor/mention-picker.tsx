@@ -13,7 +13,13 @@
  * surface anchored at the caret). The picker just renders + handles
  * keyboard nav + filtering.
  */
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+	type ReactNode,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { Cpu } from "react-feather";
 import { useT } from "../../i18n/use-t";
 import { cn } from "../../utils/cn";
@@ -86,6 +92,7 @@ export function MentionPicker({
 	);
 
 	const [activeIndex, setActiveIndex] = useState(0);
+	const containerRef = useRef<HTMLDivElement | null>(null);
 	useEffect(() => {
 		// Reset when results change so the highlight stays in-bounds.
 		// Without `flat` in the dep array the index would persist across
@@ -96,6 +103,11 @@ export function MentionPicker({
 
 	useEffect(() => {
 		const onKeyDown = (event: KeyboardEvent) => {
+			// Only respond when the event originated inside this instance —
+			// otherwise multiple mention pickers on the page would all react.
+			const target = event.target;
+			if (!(target instanceof Node)) return;
+			if (!containerRef.current?.contains(target)) return;
 			if (event.key === "ArrowDown") {
 				event.preventDefault();
 				setActiveIndex((idx) => (flat.length === 0 ? 0 : (idx + 1) % flat.length));
@@ -139,6 +151,7 @@ export function MentionPicker({
 					"glass-panel shadow-elevated w-72 p-2 text-base-content/60 text-ui-sm",
 					className,
 				)}
+				ref={containerRef}
 			>
 				{t({
 					id: "mention-picker.empty",
@@ -155,6 +168,7 @@ export function MentionPicker({
 				"glass-panel shadow-elevated w-72 flex flex-col gap-1 p-1",
 				className,
 			)}
+			ref={containerRef}
 			role="listbox"
 		>
 			{filtered.map(({ section, items }) => (
