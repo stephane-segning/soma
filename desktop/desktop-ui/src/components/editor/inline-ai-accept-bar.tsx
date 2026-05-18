@@ -53,7 +53,10 @@ export function InlineAIAcceptBar({
 				"glass-panel shadow-elevated flex flex-wrap items-center gap-1 p-1",
 				className,
 			)}
-			role="toolbar"
+			// `role="group"` not `toolbar`: we rely on the default tab
+			// order between buttons and don't implement the arrow-key
+			// focus management the WAI-ARIA toolbar pattern requires.
+			role="group"
 		>
 			{prompt ? (
 				<span className="px-2 py-0.5 text-base-content/60 text-ui-xs">

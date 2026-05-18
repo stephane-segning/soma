@@ -49,7 +49,10 @@ export function InlineAIStream({
 }: InlineAIStreamProps) {
 	const t = useT();
 
-	if (pending && text.length === 0) {
+	// Hold the Thinking pill until the first NON-whitespace token arrives.
+	// A leading space or newline from the model would otherwise pop the
+	// pill off prematurely and cause a visual flicker.
+	if (pending && text.trim().length === 0) {
 		return (
 			<span
 				aria-busy="true"
@@ -67,37 +70,46 @@ export function InlineAIStream({
 		);
 	}
 
+	// The wrapper is plain inline so the streamed tokens participate in
+	// normal paragraph line wrapping. An `inline-flex` parent would
+	// box the text as one max-content item and overflow the document
+	// column for multi-sentence rewrites. The Stop button is itself
+	// `inline-flex` (small fixed size) and sits inside this inline
+	// span — its layout doesn't fight wrapping.
 	return (
 		<span
 			aria-busy={streaming ? "true" : undefined}
 			aria-live="polite"
 			className={cn(
-				"inline-flex items-baseline gap-1 align-baseline",
+				"transition-colors duration-200",
 				streaming &&
 					"text-info underline decoration-info decoration-dashed underline-offset-4",
 				className,
 			)}
 		>
-			<span className="min-w-0">{text}</span>
+			{text}
 			{streaming && onStop ? (
-				<button
-					aria-label={t({
-						id: "inline-ai-stream.stop",
-						defaultMessage: "Stop generating",
-					})}
-					className="inline-flex size-5 items-center justify-center rounded-full bg-info text-info-content transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/40"
-					onClick={onStop}
-					title={t({
-						id: "inline-ai-stream.stop",
-						defaultMessage: "Stop generating",
-					})}
-					type="button"
-				>
-					<Square
-						aria-hidden
-						className="size-2.5 fill-current text-info-content"
-					/>
-				</button>
+				<>
+					{" "}
+					<button
+						aria-label={t({
+							id: "inline-ai-stream.stop",
+							defaultMessage: "Stop generating",
+						})}
+						className="inline-flex size-5 items-center justify-center rounded-full bg-info align-middle text-info-content transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/40"
+						onClick={onStop}
+						title={t({
+							id: "inline-ai-stream.stop",
+							defaultMessage: "Stop generating",
+						})}
+						type="button"
+					>
+						<Square
+							aria-hidden
+							className="size-2.5 fill-current text-info-content"
+						/>
+					</button>
+				</>
 			) : null}
 		</span>
 	);
