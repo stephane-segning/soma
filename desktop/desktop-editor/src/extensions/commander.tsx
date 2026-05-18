@@ -2,7 +2,6 @@ import type { Range } from "@tiptap/core";
 import { Editor, Extension } from "@tiptap/core";
 import { PluginKey } from "@tiptap/pm/state";
 import { Suggestion } from "@tiptap/suggestion";
-import { filterCommands } from "./commander/filter";
 import { renderCommanderItems } from "./commander/render";
 import type { EditorCommand } from "./commander/types";
 
@@ -27,7 +26,9 @@ export const CommanderExtension = Extension.create<CommanderOptions>({
 				editor: this.editor,
 				pluginKey: COMMANDER_SUGGESTION_KEY,
 				char: "/",
-				items: ({ query }: { query: string }) => filterCommands(query, this.options.commands),
+				// Return every non-disabled command; the slash menu owns the
+				// filter so its filtered view stays in sync with `props.query`.
+				items: () => this.options.commands.filter((c) => !c.disabled),
 				command: async ({ editor, range, props }: { editor: Editor; range: Range; props: EditorCommand }) => {
 					const result = props.handler({ editor, range });
 					if (result instanceof Promise) await result;

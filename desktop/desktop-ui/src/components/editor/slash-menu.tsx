@@ -58,6 +58,14 @@ export type SlashMenuProps = {
 	 * a plain empty state.
 	 */
 	onAIPrompt?: (prompt: string) => void;
+	/**
+	 * Where the keyboard handler scopes itself. `"container"` (default)
+	 * only fires on events with `target` inside the menu — useful when
+	 * the menu owns focus. `"window"` listens on every key, useful when
+	 * focus stays in a host editor (e.g. TipTap's contenteditable while
+	 * the slash menu is open).
+	 */
+	captureScope?: "container" | "window";
 	className?: string;
 };
 
@@ -74,6 +82,7 @@ export function SlashMenu({
 	query,
 	onClose,
 	onAIPrompt,
+	captureScope = "container",
 	className,
 }: SlashMenuProps) {
 	const t = useT();
@@ -122,11 +131,13 @@ export function SlashMenu({
 
 	useEffect(() => {
 		const onKeyDown = (event: KeyboardEvent) => {
-			// Only respond when the event originated inside this instance —
-			// otherwise multiple slash menus on the page would all react.
-			const target = event.target;
-			if (!(target instanceof Node)) return;
-			if (!containerRef.current?.contains(target)) return;
+			if (captureScope === "container") {
+				// Only respond when the event originated inside this instance —
+				// otherwise multiple slash menus on the page would all react.
+				const target = event.target;
+				if (!(target instanceof Node)) return;
+				if (!containerRef.current?.contains(target)) return;
+			}
 			if (event.key === "ArrowDown") {
 				event.preventDefault();
 				setActiveIndex((idx) =>
@@ -151,7 +162,7 @@ export function SlashMenu({
 		};
 		window.addEventListener("keydown", onKeyDown);
 		return () => window.removeEventListener("keydown", onKeyDown);
-	}, [flat, activeIndex, onClose, onAIPrompt, query]);
+	}, [flat, activeIndex, onClose, onAIPrompt, query, captureScope]);
 
 	// Empty + onAIPrompt available → AI fallback row instead of a plain empty state.
 	if (flat.length === 0 && onAIPrompt && query.trim().length > 0) {
@@ -233,7 +244,10 @@ export function SlashMenu({
 								role="option"
 								type="button"
 							>
-								<span aria-hidden className="shrink-0 text-base-content/60">
+								<span
+									aria-hidden
+									className="inline-flex size-4 shrink-0 items-center justify-center text-base-content/60"
+								>
 									{item.icon}
 								</span>
 								<span className="min-w-0 flex-1 truncate">{item.label}</span>
