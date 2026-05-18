@@ -24,3 +24,6 @@ gen
 artifacts
 
 storybook-static
+
+# Local Claude Code agent state (per-checkout, not source).
+.claude/
