@@ -1,5 +1,5 @@
 import { mkdir } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import type { StageRuntimeConfig } from "@soma/desktop-config";
 import { type SomaHandle, type StartConfig, start } from "@soma/node";
 
@@ -91,15 +91,22 @@ export class AddonRuntime {
 		const daemonDbPath = join(dataDir, "daemon.db");
 		const agentdDbPath = join(dataDir, "agentd.db");
 		const blobDir = join(dataDir, "blobs");
+		// Pin the libp2p identity inside userData so packaged launches don't
+		// fall back to `data/daemon/identity.key` relative to Electron's cwd
+		// (which is `/` for Finder launches, EACCES) and don't silently rotate
+		// the peer identity between launch contexts. The removed LaunchAgent
+		// path used to set SOMA_DATA_DIR for the same purpose.
+		const identityPath = join(dataDir, "identity.key");
 
-		await mkdir(dataDir, { recursive: true });
-		await mkdir(dirname(daemonDbPath), { recursive: true });
+		// `mkdir … { recursive: true }` on the deepest directory creates every
+		// parent on the way, so one call is enough.
 		await mkdir(blobDir, { recursive: true });
 
 		const base: StartConfig = {
 			daemonDbPath,
 			agentdDbPath,
 			blobDir,
+			identityPath,
 			listenAddrs: ["/ip4/0.0.0.0/tcp/0/ws"],
 			enableMdns: true,
 		};

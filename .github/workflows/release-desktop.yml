@@ -103,6 +103,14 @@ jobs:
           corepack enable
           corepack prepare pnpm@9.0.0 --activate
 
+      # The @soma/node napi-rs addon is built by `pnpm --filter @soma/node run
+      # build` during the desktop build, so cargo + rustc must be available.
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup protoc
+        uses: ./.github/actions/setup-protoc
+
       - name: Install dependencies
         shell: bash
         run: pnpm install --frozen-lockfile

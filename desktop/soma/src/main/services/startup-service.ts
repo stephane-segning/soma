@@ -52,10 +52,25 @@ export class StartupService {
 		app.on("window-all-closed", () => {
 			if (process.platform !== "darwin") app.quit();
 		});
-		app.on("before-quit", () => {
+		// Intercept the quit so we can await the async addon shutdown. Electron
+		// would otherwise tear down the process while shutdown() is still
+		// flushing DB state / closing libp2p sockets, risking corruption.
+		// `shuttingDown` guards re-entry on the second app.quit() call below.
+		let shuttingDown = false;
+		app.on("before-quit", (event) => {
+			if (shuttingDown) return;
+			event.preventDefault();
+			shuttingDown = true;
 			this.daemonEvents.stop();
 			this.stopAgentEventStream();
-			void this.addonRuntime.shutdown();
+			this.addonRuntime
+				.shutdown()
+				.catch((error) => {
+					this.logger.log("warn", "addon shutdown raised; quitting anyway", {
+						error: error instanceof Error ? error.message : String(error),
+					});
+				})
+				.finally(() => app.quit());
 		});
 	}
 

@@ -131,7 +131,7 @@ export class AgentClient {
 	}
 
 	private async handle() {
-		if (this.runtime.isStarted()) return this.runtime.getHandle();
+		// `AddonRuntime.start()` is idempotent.
 		return this.runtime.start();
 	}
 }

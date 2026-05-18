@@ -184,14 +184,14 @@ export class DaemonClient {
 			spaceId: input.spaceId,
 			displayName: input.displayName ?? "",
 		});
-		return res
-			? mapSpace(res)
-			: {
-					spaceId: input.spaceId,
-					displayName: input.displayName ?? "",
-					ownerPeerId: "",
-					createdAt: Date.now(),
-				};
+		// Trust the addon. Fabricating a synthetic record with
+		// `createdAt: Date.now()` would lie about the original creation
+		// timestamp and corrupt downstream caches; let the caller see the
+		// addon's actual error if the update didn't yield a record.
+		if (!res) {
+			throw new Error(`updateSpace returned no record for spaceId=${input.spaceId}`);
+		}
+		return mapSpace(res);
 	}
 
 	async deleteSpace(spaceId: string): Promise<boolean> {
@@ -282,7 +282,8 @@ export class DaemonClient {
 	}
 
 	private async handle() {
-		if (this.runtime.isStarted()) return this.runtime.getHandle();
+		// `AddonRuntime.start()` is idempotent — returns the cached handle if
+		// already started, otherwise starts and caches.
 		return this.runtime.start();
 	}
 }
@@ -328,8 +329,23 @@ function mapPage(page: {
 	};
 }
 
+/**
+ * Best-effort check for "this record doesn't exist" so the daemon-client
+ * facade can return `null` instead of propagating the error to callers that
+ * model absence as `null`.
+ *
+ * The @soma/node addon currently surfaces these as generic JS errors with a
+ * string message — no typed/error-coded surface yet. The patterns here match
+ * the exact phrases the daemon's handle layer emits (see
+ * `backend/bins/daemon/src/handle/*.rs`), anchored with word boundaries to
+ * avoid matching unrelated strings like "configuration file not found".
+ *
+ * TODO(phase-5): once @soma/node exposes typed errors / codes, switch this
+ * check to `error.code === "NOT_FOUND"` and drop the regex.
+ */
 function isNotFound(error: unknown): boolean {
 	if (!error) return false;
 	const message = error instanceof Error ? error.message : String(error);
-	return /not\s*found/i.test(message);
+	// Anchored matches for the actual daemon-layer error strings.
+	return /\b(?:space|page|document|blob|membership)\s+not\s+found\b/i.test(message);
 }
