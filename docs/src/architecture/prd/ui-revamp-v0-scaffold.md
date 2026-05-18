@@ -20,6 +20,8 @@ Token sweep is the only PR that needs zero new components — it cleans the foun
 
 PRD §6 lists 20 components for v0. Many already exist in `desktop/desktop-ui/src/components/` as starting points. The scaffold work is: refactor where there is precedent, build where there is none.
 
+**Audit override.** A Storybook reality-check ([ui-revamp-v0-audit.md](./ui-revamp-v0-audit.md)) walked every existing story and found that several "refactor target" components are actually unverified (no story) or visibly broken; some of the verdicts below are downgraded to rebuild or story-first-refactor. Read the audit alongside this table.
+
 | PRD §6 component | Existing in `@soma/ui` | Plan |
 |---|---|---|
 | `PanelContainer` | _none_ | New. `panels/panel-container.tsx`. |
