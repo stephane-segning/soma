@@ -14,7 +14,12 @@ export function ResizeHandle() {
 			onMouseLeave={() => setHover(false)}
 			role="none"
 		>
-			<span className={cn("h-10 rounded-full bg-base-300 transition-all duration-150", hover ? "w-1.5" : "w-px")} />
+			<span
+				className={cn(
+					"h-10 rounded-full bg-base-300 transition-all duration-150",
+					hover ? "w-1.5" : "w-px",
+				)}
+			/>
 		</div>
 	);
 }

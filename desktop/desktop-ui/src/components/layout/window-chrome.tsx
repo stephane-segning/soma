@@ -34,7 +34,7 @@ export function WindowChrome({
 	return (
 		<div
 			className={cn(
-				"glass-panel relative flex items-center justify-between rounded-t-2xl px-4 py-2 text-sm",
+				"glass-panel relative flex items-center justify-between rounded-t-md px-4 py-2 text-sm",
 				"[data-drag-region]",
 				className,
 			)}

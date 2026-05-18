@@ -17,7 +17,7 @@ export function DesktopGuardRail({
 }: GuardProps) {
 	if (isLoading) {
 		return (
-			<div className="flex h-full w-full items-center justify-center text-sm text-base-content/60">
+			<div className="flex h-full w-full items-center justify-center text-base-content/60 text-sm">
 				{loadingContent ?? "Loading…"}
 			</div>
 		);
@@ -25,7 +25,7 @@ export function DesktopGuardRail({
 
 	if (isBlocked) {
 		return (
-			<div className="flex h-full w-full items-center justify-center p-6 text-center text-sm text-error">
+			<div className="flex h-full w-full items-center justify-center p-6 text-center text-error text-sm">
 				{blockedContent ?? "Access to this space is blocked or unavailable."}
 			</div>
 		);

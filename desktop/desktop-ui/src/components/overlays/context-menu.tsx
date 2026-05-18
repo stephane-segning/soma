@@ -47,12 +47,7 @@ export function ContextMenu({
 							style={{ top: position.y, left: position.x }}
 							transition={{ duration: 0.12 }}
 						>
-							<div
-								className={cn(
-									"glass-panel min-w-48 rounded-xl p-2 backdrop-blur-xl",
-									className,
-								)}
-							>
+							<div className={cn("glass-panel min-w-48 p-2", className)}>
 								{items.map((item) => (
 									<button
 										className={cn(

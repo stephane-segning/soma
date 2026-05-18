@@ -29,7 +29,7 @@ export function Taskbar({
 	return (
 		<div
 			className={cn(
-				"glass-panel mx-auto mt-2 mb-4 flex w-full max-w-6xl items-center gap-2 rounded-2xl px-3 py-2",
+				"glass-panel mx-auto mt-2 mb-4 flex w-full max-w-6xl items-center gap-2 px-3 py-2",
 				className,
 			)}
 		>

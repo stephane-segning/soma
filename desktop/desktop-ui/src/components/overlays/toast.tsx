@@ -6,8 +6,8 @@ import type {
 import { Toaster, toast } from "react-hot-toast";
 
 const baseToastOptions: DefaultToastOptions = {
-	className: "glass-panel shadow-xl text-base-content",
-	style: { padding: "12px 14px", borderRadius: "12px" },
+	className: "glass-panel text-base-content",
+	style: { padding: "12px 14px", borderRadius: "6px" },
 	iconTheme: { primary: "#22c55e", secondary: "#fff" },
 };
 

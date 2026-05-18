@@ -33,6 +33,7 @@
 		"react-feather": "^2.0.10",
 		"react-hot-toast": "^2.6.0",
 		"react-hotkeys-hook": "^5.2.3",
+		"react-intl": "^7.1.13",
 		"react-textarea-autosize": "^8.5.9",
 		"react-use": "^17.6.0",
 		"rehype-react": "^8.0.0",
@@ -72,6 +73,8 @@
 		"./hooks/*": "./src/hooks/*.ts",
 		"./components/*": "./src/components/*.tsx",
 		"./utils/*": "./src/utils/*.ts",
+		"./i18n": "./src/i18n/index.ts",
+		"./i18n/*": "./src/i18n/*.ts",
 		"./styles.css": "./src/styles.css"
 	}
 }

@@ -10,6 +10,7 @@
 }
 
 @theme {
+	/* Cursor blink keyframe (unchanged). */
 	--animate-caret: blink 1s steps(11) infinite 2s;
 
 	@keyframes blink {
@@ -29,15 +30,84 @@
 			opacity: 0;
 		}
 	}
+
+	/* -----------------------------------------------------------------
+	 * Density tokens — rem-based for accessibility, px equivalents
+	 * shown as the design target. Locked in ADR-0005 §7 and detailed in
+	 * docs/src/architecture/prd/ui-revamp-v0-refs-files-density.md §3.
+	 * ----------------------------------------------------------------- */
+
+	/* Font sizes. Use `text-body`, `text-ui-sm`, `text-ui-xs`. */
+	--text-body: 0.875rem; /* 14px @ 16px root */
+	--text-body--line-height: 1.5;
+	--text-ui-sm: 0.8125rem; /* 13px */
+	--text-ui-sm--line-height: 1.2;
+	--text-ui-xs: 0.6875rem; /* 11px */
+	--text-ui-xs--line-height: 1.2;
+
+	/* Single allowed shadow token. Reserved for modal + popup window. */
+	--shadow-elevated:
+		0 6px 24px -8px rgba(0, 0, 0, 0.18), 0 2px 6px -2px rgba(0, 0, 0, 0.08);
+}
+
+/* -----------------------------------------------------------------
+ * Row-height tiers — named by content, not by bare px.
+ * `row-text` does NOT fit a 40px avatar; use `row-avatar` for that.
+ * ----------------------------------------------------------------- */
+
+@utility row-text {
+	@apply h-8; /* 2rem / 32px — text-only or icon-leading rows */
+}
+
+@utility row-avatar {
+	@apply h-10; /* 2.5rem / 40px — rows with avatars / file-type glyphs */
+}
+
+@utility row-card {
+	height: 3.25rem; /* 3.25rem / 52px — two-line content (primary + sub) */
+}
+
+/* -----------------------------------------------------------------
+ * Revamped surface utilities. Border-first; the single shadow token
+ * applies only to floating / modal-class surfaces (glass-panel).
+ *
+ * `surface-card` is the resting-surface utility used by sections and
+ * cards inside a page. No shadow.
+ *
+ * `glass-panel` is the floating-surface utility used by modal,
+ * popover, dropdown, command palette, etc. Carries `--shadow-elevated`
+ * — the only place shadow is allowed per ADR-0005 §7.
+ * ----------------------------------------------------------------- */
+
+@utility surface-card {
+	@apply bg-base-100 border border-base-300 rounded-md;
 }
 
 @utility glass-panel {
+	@apply border border-base-300/70 bg-base-100/85 backdrop-blur-xl rounded-md;
+	box-shadow: var(--shadow-elevated);
+}
+
+/* -----------------------------------------------------------------
+ * Legacy variants preserved for non-revamped screens during the
+ * incremental cutover. Use these only if you genuinely need the
+ * heavier depth on a surface that hasn't been revamped yet.
+ *
+ * A sweep PR deletes these once
+ * docs/src/architecture/prd/ui-revamp-v0-scaffold.md §5 completes.
+ * ----------------------------------------------------------------- */
+
+@utility surface-card-legacy {
+	@apply bg-base-100/80 border border-base-300/60 shadow-xl rounded-2xl;
+}
+
+@utility glass-panel-legacy {
 	@apply border border-base-300/70 bg-base-100/70 backdrop-blur-xl shadow-2xl;
 }
 
-@utility surface-card {
-	@apply bg-base-100/80 border border-base-300/60 shadow-xl rounded-2xl;
-}
+/* -----------------------------------------------------------------
+ * Other utilities (unchanged).
+ * ----------------------------------------------------------------- */
 
 @utility wallpaper-grid {
 	background-image: radial-gradient(

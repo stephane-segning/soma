@@ -49,33 +49,61 @@ export function DesktopShell(props: DesktopShellProps) {
 	);
 
 	return (
-		<div className={cn("relative h-screen w-screen overflow-hidden bg-base-100 text-base-content", props.className)}>
-			{props.overlays ? <div className="pointer-events-none absolute inset-0 z-20">{props.overlays}</div> : null}
-			<div className={cn("relative z-10 flex h-full w-full flex-col", props.bodyClassName)}>
-				{headerNode ? <div className={cn("flex flex-col", props.headerClassName)}>{headerNode}</div> : null}
-				<div className={cn("flex min-h-0 flex-1 items-start overflow-hidden", props.contentClassName)}>
+		<div
+			className={cn(
+				"relative h-screen w-screen overflow-hidden bg-base-100 text-base-content",
+				props.className,
+			)}
+		>
+			{props.overlays ? (
+				<div className="pointer-events-none absolute inset-0 z-20">
+					{props.overlays}
+				</div>
+			) : null}
+			<div
+				className={cn(
+					"relative z-10 flex h-full w-full flex-col",
+					props.bodyClassName,
+				)}
+			>
+				{headerNode ? (
+					<div className={cn("flex flex-col", props.headerClassName)}>
+						{headerNode}
+					</div>
+				) : null}
+				<div
+					className={cn(
+						"flex min-h-0 flex-1 items-start overflow-hidden",
+						props.contentClassName,
+					)}
+				>
 					<ShellPanel
 						content={props.leftColumn}
-						open={state.leftOpen}
-						side="left"
-						width={state.leftWidth}
 						onResizeStop={(next) => {
 							state.setLeftWidth(next);
 							props.onLeftResizeStop?.(next);
 						}}
+						open={state.leftOpen}
+						side="left"
+						width={state.leftWidth}
 					/>
-					<main className={cn("max-h-full min-h-0 flex-1 overflow-auto", props.mainClassName)}>
+					<main
+						className={cn(
+							"max-h-full min-h-0 flex-1 overflow-auto",
+							props.mainClassName,
+						)}
+					>
 						{props.children}
 					</main>
 					<ShellPanel
 						content={props.rightColumn}
-						open={state.rightOpen}
-						side="right"
-						width={state.rightWidth}
 						onResizeStop={(next) => {
 							state.setRightWidth(next);
 							props.onRightResizeStop?.(next);
 						}}
+						open={state.rightOpen}
+						side="right"
+						width={state.rightWidth}
 					/>
 				</div>
 				{props.footer ? <div>{props.footer}</div> : null}

@@ -5,7 +5,9 @@ export type PersistedDesktopShellState = {
 	rightWidth?: number;
 };
 
-export function readPersistedState(storageKey?: string): PersistedDesktopShellState | null {
+export function readPersistedState(
+	storageKey?: string,
+): PersistedDesktopShellState | null {
 	if (!storageKey || typeof window === "undefined") return null;
 	try {
 		const raw = window.localStorage.getItem(storageId(storageKey));
@@ -15,7 +17,10 @@ export function readPersistedState(storageKey?: string): PersistedDesktopShellSt
 	}
 }
 
-export function writePersistedState(storageKey: string | undefined, state: PersistedDesktopShellState): void {
+export function writePersistedState(
+	storageKey: string | undefined,
+	state: PersistedDesktopShellState,
+): void {
 	if (!storageKey || typeof window === "undefined") return;
 	try {
 		window.localStorage.setItem(storageId(storageKey), JSON.stringify(state));
