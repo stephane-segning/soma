@@ -67,7 +67,7 @@ export function ActionMenu({
 						>
 							<HandleButton
 								label={t({ id: "action-menu.add", defaultMessage: "Add block" })}
-								onMouseDown={() => {
+								onActivate={() => {
 									const rect = addButtonRef.current?.getBoundingClientRect();
 									if (!rect) return;
 									setAddMenuPosition({ x: rect.right + 8, y: rect.top });
@@ -81,9 +81,14 @@ export function ActionMenu({
 								label={t({
 									id: "action-menu.rotate",
 									defaultMessage: "Change to {next}",
-									values: { next: BLOCK_LABEL[activeNode.blockKind] },
+									values: {
+										next: t({
+											id: `block-kind.${activeNode.blockKind}`,
+											defaultMessage: BLOCK_LABEL[activeNode.blockKind],
+										}),
+									},
 								})}
-								onMouseDown={() => {
+								onActivate={() => {
 									editor
 										.chain()
 										.focus()
@@ -95,6 +100,10 @@ export function ActionMenu({
 								<RefreshCw aria-hidden className="size-3.5" />
 							</HandleButton>
 							<div
+								aria-label={t({
+									id: "action-menu.drag",
+									defaultMessage: "Drag block",
+								})}
 								className="inline-flex size-7 cursor-grab items-center justify-center rounded-md text-base-content/70 hover:bg-base-200 hover:text-base-content active:cursor-grabbing"
 								data-drag-handle
 								draggable
@@ -114,17 +123,13 @@ export function ActionMenu({
 
 const HandleButton = forwardRef<
 	HTMLButtonElement,
-	{ label: string; onMouseDown: () => void; children: ReactNode }
->(function HandleButton({ label, onMouseDown, children }, ref) {
+	{ label: string; onActivate: () => void; children: ReactNode }
+>(function HandleButton({ label, onActivate, children }, ref) {
 	return (
 		<button
 			aria-label={label}
 			className="inline-flex size-7 items-center justify-center rounded-md text-base-content/70 transition-colors hover:bg-base-200 hover:text-base-content focus-visible:bg-base-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-			onMouseDown={(event) => {
-				event.preventDefault();
-				event.stopPropagation();
-				onMouseDown();
-			}}
+			onClick={onActivate}
 			ref={ref}
 			title={label}
 			type="button"
