@@ -23,3 +23,9 @@ export { AccordionNode } from "./extensions/accordion";
 
 export type { MentionItem, MentionProvider } from "./extensions/link-mention";
 export { createLinkMentionExtension } from "./extensions/link-mention";
+
+export type { NodeAIRegistryExtensionOptions } from "./extensions/node-ai-registry";
+export {
+	getNodeAIStorage,
+	NodeAIRegistryExtension,
+} from "./extensions/node-ai-registry";
