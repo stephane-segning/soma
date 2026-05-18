@@ -33,4 +33,4 @@ pnpm docs:build   # outputs to ./site
 
 ## Repo automation (`cargo xtask`)
 
-Repo automation lives in `xtask/` and is invoked via `cargo xtask ...` (wired through `.cargo/config.toml`). CI uses this for Cargo workspace version resolution; bundle packaging is handled by the TypeScript CLI under `desktop/packaging`.
+Repo automation lives in `xtask/` and is invoked via `cargo xtask ...` (wired through `.cargo/config.toml`). CI uses this for Cargo workspace version resolution. Desktop builds and packaging are owned by the `desktop/` workspace (`@napi-rs/cli` + `electron-builder`); the release pipelines themselves live in `.github/workflows/release-desktop.yml` and `release-server.yml`.

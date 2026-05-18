@@ -32,53 +32,13 @@ Use `cargo xtask` for tasks that are primarily about:
 
 Do not move these concerns into `cargo xtask`:
 
-- `pnpm` install, lint, build, or packaging flows owned by `desktop/`
+- `pnpm` install, lint, build, or release flows owned by `desktop/`
 - Electron app development commands
 - ad hoc root-level glue that would hide which workspace actually owns the command
 
-## Local packaging (desktop/packaging)
-
-For local packaging tests (using local build artifacts), use the TypeScript CLI under `desktop/packaging`. This is intentionally outside `cargo xtask` because packaging spans Electron artifacts and desktop workspace concerns:
-
-```bash
-pnpm --filter @soma/packaging run bundle -- --os linux --arch amd64
-```
-
-This outputs to `artifacts/bundle-local/<os>-<arch>/` by default and expects:
-
-- daemon + agent binaries at `target/release/`
-- desktop artifacts in `desktop/soma/dist` and `desktop/tapia/dist`
-
-## Release bundle (CI / GitHub assets)
-
-The CI release bundle is built with the same TypeScript CLI, but it pulls published assets from GitHub releases and prints a JSON payload for workflow outputs. `cargo xtask` may help resolve backend metadata for CI, but it is not the bundle builder:
-
-```bash
-export GITHUB_REPOSITORY=owner/repo
-export GITHUB_TOKEN=...
-
-pnpm --filter @soma/packaging run bundle:release -- --os linux --arch amd64
-```
-
-Optional flags:
-
-- `--daemons-version <x.y.z>` (otherwise resolves latest `daemons-v*`)
-- `--desktop-version <x.y.z>` (otherwise resolves latest `desktop-v*`)
-- `--bundle-version <label>` (otherwise uses a timestamp)
-- `--out-dir <path>` (default `artifacts/bundle`)
-
 ## CI integration
 
-GitHub Actions workflows use `cargo xtask` for Cargo workspace version resolution and `@soma/packaging` for bundle packaging:
-
-- Version resolution: `cargo xtask version workspace ...`
-- Bundle build: `pnpm --filter @soma/packaging run bundle:release ...` (prints JSON used to set action outputs)
-
-This split is deliberate:
-
-- backend CI logic stays close to the Rust workspace
-- desktop packaging stays close to the desktop workspace
-- the root repo can orchestrate both without collapsing them into one tool
+GitHub Actions workflows use `cargo xtask` for Cargo workspace version resolution (e.g. resolving the workspace version label consumed by `release-server.yml`). The desktop and server release pipelines themselves live entirely in their own workflows (`release-desktop.yml`, `release-server.yml`) — `xtask` is not involved in bundling, packaging, or asset publication.
 
 ## Extending xtask
 
