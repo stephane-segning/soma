@@ -32,19 +32,6 @@ function SpacesRail(): React.JSX.Element {
 		[spacesQuery.data],
 	);
 
-	if (spacesQuery.isLoading && items.length === 0) {
-		return (
-			<nav
-				aria-busy
-				aria-label="Spaces"
-				className="flex h-full w-[52px] shrink-0 flex-col items-center gap-1 border-base-300 border-r bg-base-100 py-2"
-			>
-				<div className="skeleton size-9 rounded-md" />
-				<div className="skeleton size-9 rounded-md" />
-			</nav>
-		);
-	}
-
 	return (
 		<SomaSpacesRail
 			activeId={activeId}
@@ -59,9 +46,9 @@ function monogram(displayName: string | undefined, fallback: string): string {
 	const source = displayName?.trim() || fallback;
 	const words = source.split(/\s+/).filter(Boolean);
 	if (words.length >= 2) {
-		return (words[0][0] + words[1][0]).toUpperCase();
+		return ([...words[0]][0] + [...words[1]][0]).toUpperCase();
 	}
-	return source.slice(0, 2).toUpperCase();
+	return [...source].slice(0, 2).join("").toUpperCase();
 }
 
 export { SpacesRail };
