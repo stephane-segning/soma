@@ -7,6 +7,7 @@ import type {
 	DaemonStreamHandlers,
 	DecideJoinInput,
 	DecideJoinResult,
+	IssueIssuerCapabilityInput,
 	JoinSpaceInput,
 	JoinSpaceResult,
 	ListSpacesResult,
@@ -324,6 +325,20 @@ export class DaemonClient {
 			spaceId: input.spaceId.trim(),
 			subjectPeerId: input.subjectPeerId.trim(),
 			reason: input.reason?.trim() ?? "",
+		}));
+	}
+
+	async issueIssuerCapability(input: IssueIssuerCapabilityInput): Promise<boolean> {
+		if (!input.spaceId?.trim()) throw new Error("spaceId is required");
+		if (!input.targetPeerId?.trim()) throw new Error("targetPeerId is required");
+		if (!Number.isFinite(input.expiresAt) || input.expiresAt <= 0) {
+			throw new Error("expiresAt must be a positive epoch-ms value");
+		}
+		const handle = await this.handle();
+		return !!(await handle.issueIssuerCapability({
+			spaceId: input.spaceId.trim(),
+			targetPeerId: input.targetPeerId.trim(),
+			expiresAt: input.expiresAt,
 		}));
 	}
 

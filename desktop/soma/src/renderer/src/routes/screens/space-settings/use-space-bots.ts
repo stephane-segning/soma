@@ -2,18 +2,24 @@
  * useSpaceBots — renderer hook that backs the Bots tab in space
  * settings.
  *
- * v0 status: the napi `SomaHandle` exposes `issueIssuerCapability` but
- * NOT `listSpaceBots` yet (see backend gap noted in cutover-1 scope).
- * Until the daemon ships a list endpoint + a bot-status event stream,
- * the hook returns an empty list and dispatches the add-bot flow
- * through the existing `issueIssuerCapability` path.
- *
- * Once the daemon lands `list_space_bots`, only the implementation of
- * this hook changes — the component API (`bots`, `addBot`, etc.) is
- * the contract the UI consumes today.
+ * Cutover 1b status:
+ *  - **addBot** is now wired end-to-end through `spaces_issue_issuer_capability`
+ *    IPC → `DaemonClient.issueIssuerCapability` → napi
+ *    `SomaHandle.issueIssuerCapability`. The form's `peerId` +
+ *    `expiryDate` map onto `targetPeerId` + `expiresAt` (epoch-ms).
+ *  - **bots list** is still empty: the daemon doesn't expose a
+ *    `list_space_bots` endpoint yet. The Bots tab's empty state
+ *    handles this case. Once the daemon ships the endpoint, this
+ *    hook gains a `useListSpaceBotsQuery` call here.
+ *  - **alias** and **scopeIds** from the form are not yet propagated
+ *    to the daemon — the daemon's capability model doesn't store
+ *    aliases or scope grants today. The form still captures them so
+ *    the local UX is complete; they wait on a daemon-side schema
+ *    extension.
  */
-import { useCallback, useState } from "react";
+import { useIssueIssuerCapabilityMutation } from "@app/queries/spaces";
 import type { Bot } from "@soma/ui/components/lists/bot-list";
+import { useCallback, useState } from "react";
 
 export type AddBotInput = {
 	peerId: string;
@@ -32,46 +38,54 @@ export type UseSpaceBotsResult = {
 	clearAddError: () => void;
 };
 
-/**
- * @param spaceId — the space the Bots tab is scoped to.
- */
-export function useSpaceBots(_spaceId: string | undefined): UseSpaceBotsResult {
-	// TODO(cutover-1b): swap the empty list for a real RTK Query call
-	// once the daemon exposes `list_space_bots` on `SomaHandle`. The
-	// query should also subscribe to the bot-status event stream so
-	// the UI updates as handshakes complete.
-	const [isAdding, setAdding] = useState(false);
+// Two years out — comfortably larger than any realistic v0 session
+// without being indefinite. Daemon-side enforcement will tighten this
+// once a default expiry policy lands.
+const DEFAULT_EXPIRY_MS = 1000 * 60 * 60 * 24 * 365 * 2;
+
+export function useSpaceBots(spaceId: string | undefined): UseSpaceBotsResult {
+	const issue = useIssueIssuerCapabilityMutation();
 	const [addError, setAddError] = useState<string | null>(null);
 
-	const addBot = useCallback(async (_input: AddBotInput) => {
-		setAdding(true);
-		setAddError(null);
-		try {
-			// TODO(cutover-1b): wire the napi `issueIssuerCapability`
-			// (already on `SomaHandle`) once a spaces-service IPC method
-			// is added in the main process. The renderer surface should
-			// translate `AddBotInput` into the
-			// `IssueIssuerCapabilityInputJs` shape — peerId, computed
-			// `expiresAt` ms (from `expiryDate` or null = far future),
-			// and route to the controller.
-			await new Promise<void>((resolve) => setTimeout(resolve, 600));
-			throw new Error(
-				"Bot capability issuance isn't wired through IPC yet. The daemon backend item is tracked in the cutover-1 follow-up.",
-			);
-		} catch (error) {
-			setAddError(error instanceof Error ? error.message : String(error));
-			throw error;
-		} finally {
-			setAdding(false);
-		}
-	}, []);
+	const addBot = useCallback(
+		async (input: AddBotInput) => {
+			if (!spaceId) {
+				const message = "No space is selected; cannot issue capability.";
+				setAddError(message);
+				throw new Error(message);
+			}
+			setAddError(null);
+			const expiresAt = input.expiryDate
+				? Date.parse(input.expiryDate)
+				: Date.now() + DEFAULT_EXPIRY_MS;
+			if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+				const message =
+					"Expiry date must be a valid date in the future.";
+				setAddError(message);
+				throw new Error(message);
+			}
+			try {
+				await issue.mutateAsync({
+					spaceId,
+					targetPeerId: input.peerId,
+					expiresAt,
+				});
+			} catch (error) {
+				const message =
+					error instanceof Error ? error.message : String(error);
+				setAddError(message);
+				throw error;
+			}
+		},
+		[issue, spaceId],
+	);
 
 	return {
 		bots: [],
 		isLoading: false,
 		loadError: null,
 		addBot,
-		isAdding,
+		isAdding: issue.isLoading,
 		addError,
 		clearAddError: () => setAddError(null),
 	};

@@ -36,6 +36,16 @@ export function registerSpaceHandlers(ipc: IpcMain, context: CommandRegistryCont
 		if (accepted) broadcastSpacesChanged(context, "spaces_revoke_member");
 		return accepted;
 	});
+	ipc.handle("spaces_issue_issuer_capability", async (_event, params) => {
+		const accepted = await context.spaces.issueIssuerCapability({
+			spaceId: params?.spaceId ?? "",
+			targetPeerId: params?.targetPeerId ?? "",
+			expiresAt: Number(params?.expiresAt ?? 0),
+		});
+		if (accepted && params?.spaceId)
+			broadcastSpaceChanged(context, params.spaceId, "spaces_issue_issuer_capability");
+		return accepted;
+	});
 	ipc.handle("spaces_create", async (_event, params) => {
 		const space = await context.spaces.create(params ?? {});
 		broadcastSpacesChanged(context, "spaces_create");

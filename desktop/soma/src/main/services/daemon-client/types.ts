@@ -93,6 +93,13 @@ export type RevokeMembershipInput = {
 	reason?: string;
 };
 
+export type IssueIssuerCapabilityInput = {
+	spaceId: string;
+	targetPeerId: string;
+	/** Absolute expiry in milliseconds since the unix epoch. */
+	expiresAt: number;
+};
+
 export type ListSpacesResult = {
 	spaces: StoredSpace[];
 	limit: number;
