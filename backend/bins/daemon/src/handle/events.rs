@@ -27,22 +27,28 @@ impl DaemonHandle {
         let (tx, rx) = tokio::sync::mpsc::channel(buffer.max(1));
         let mut stream = BroadcastStream::new(self.state.events.subscribe());
         tokio::spawn(async move {
-            while let Some(msg) = stream.next().await {
-                let Ok(event) = msg else {
-                    // Lagged: BroadcastStream surfaces drops as Err. Skip and
-                    // continue — losing transient events is preferable to
-                    // killing the subscription.
-                    continue;
-                };
-                let Some(payload) = event.event else {
-                    continue;
-                };
-                let Some(record) = map_event(payload) else {
-                    continue;
-                };
-                if tx.send(record).await.is_err() {
-                    // Receiver dropped — JS unsubscribed. Stop translating.
-                    break;
+            loop {
+                tokio::select! {
+                    // Prefer the close signal so unsubscribe wakes the task
+                    // promptly even if no events are arriving — otherwise the
+                    // broadcast receiver would linger until the next published
+                    // event finally caused `tx.send` to fail.
+                    biased;
+                    _ = tx.closed() => break,
+                    msg = stream.next() => {
+                        let Some(msg) = msg else { break };
+                        let Ok(event) = msg else {
+                            // Lagged: BroadcastStream surfaces drops as Err.
+                            // Skip and continue — losing transient events is
+                            // preferable to killing the subscription.
+                            continue;
+                        };
+                        let Some(payload) = event.event else { continue };
+                        let Some(record) = map_event(payload) else { continue };
+                        if tx.send(record).await.is_err() {
+                            break;
+                        }
+                    }
                 }
             }
         });

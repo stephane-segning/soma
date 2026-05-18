@@ -54,14 +54,29 @@ export class DaemonEventStreamBridge {
 					documentId: event.docId,
 				});
 				return;
-			case "join-decision":
+			case "join-decision": {
+				const atMs = Date.now();
+				// Broadcast both: spaces-changed refreshes the broad list +
+				// listMyMemberships (see renderer/domain-events handler), and
+				// the targeted space-changed invalidates per-space caches like
+				// SpaceMembers/<spaceId> which the access UI relies on.
 				this.domainEvents.broadcast({
 					kind: "spaces-changed",
 					source: "daemon",
-					atMs: Date.now(),
+					atMs,
 					reason: "join-decision",
 				});
+				if (event.spaceId) {
+					this.domainEvents.broadcast({
+						kind: "space-changed",
+						source: "daemon",
+						atMs,
+						spaceId: event.spaceId,
+						reason: "join-decision",
+					});
+				}
 				return;
+			}
 			case "join-submitted":
 				this.logger.log("info", "daemon join request submitted", {
 					requestId: event.requestId,

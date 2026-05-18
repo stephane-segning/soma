@@ -16,6 +16,7 @@ use std::str::FromStr;
 use napi::Error as NapiError;
 use napi::Status;
 use napi::bindgen_prelude::Buffer;
+use napi::bindgen_prelude::Unknown;
 use napi::threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode};
 use napi_derive::napi;
 use tokio::sync::Mutex;
@@ -433,17 +434,32 @@ impl SomaHandle {
     /// translated event; call `unsubscribe()` on the returned `Subscription`
     /// to stop. Backpressure: a 256-slot mpsc buffers between the broadcast
     /// translator and the JS callback; lagged events are dropped silently.
+    ///
+    /// Disables `CalleeHandled` (the napi-rs default) by setting the const
+    /// generic to `false`, so the JS callback signature stays
+    /// `(event) => void` rather than `(err, event) => void`. The translator
+    /// task self-terminates if `call` returns `Status::Closing` (the napi env
+    /// is being torn down, typically during `shutdown`).
     #[napi(ts_args_type = "onEvent: (event: DaemonEventJs) => void")]
     pub async fn subscribe_events(
         &self,
-        on_event: ThreadsafeFunction<DaemonEventJs>,
+        on_event: ThreadsafeFunction<
+            DaemonEventJs,
+            Unknown<'static>,
+            DaemonEventJs,
+            Status,
+            false,
+        >,
     ) -> napi::Result<EventSubscription> {
         let handle = self.daemon_handle().await?;
         let mut rx = handle.subscribe_events(256);
         let task = tokio::spawn(async move {
             while let Some(record) = rx.recv().await {
                 let event = DaemonEventJs::from_record(record);
-                on_event.call(Ok(event), ThreadsafeFunctionCallMode::NonBlocking);
+                if on_event.call(event, ThreadsafeFunctionCallMode::NonBlocking) == Status::Closing
+                {
+                    break;
+                }
             }
         });
         Ok(EventSubscription {
