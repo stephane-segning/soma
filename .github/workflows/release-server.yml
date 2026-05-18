@@ -21,21 +21,31 @@ env:
   IMAGE_NAME: ${{ github.repository_owner }}/somad
 
 jobs:
+  targets:
+    name: Load build matrix
+    runs-on: ubuntu-latest
+    outputs:
+      server: ${{ steps.load.outputs.server }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - id: load
+        shell: bash
+        run: |
+          set -euo pipefail
+          SERVER="$(jq -c '.server' .github/targets.json)"
+          echo "server=$SERVER" >> "$GITHUB_OUTPUT"
+
   build-binary:
     name: Build somad (${{ matrix.arch }})
+    needs: targets
     runs-on: ${{ matrix.runs_on }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - arch: amd64
-            runs_on: ubuntu-latest
-            target: x86_64-unknown-linux-musl
-            linker_env: CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER
-          - arch: arm64
-            runs_on: ubuntu-24.04-arm
-            target: aarch64-unknown-linux-musl
-            linker_env: CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER
+        include: ${{ fromJSON(needs.targets.outputs.server) }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -53,7 +63,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             musl-tools build-essential pkg-config perl
-          rustup target add ${{ matrix.target }}
+          rustup target add ${{ matrix.rust_target }}
 
       - name: Setup protoc
         uses: ./.github/actions/setup-protoc
@@ -63,7 +73,7 @@ jobs:
         run: |
           set -euo pipefail
           export ${{ matrix.linker_env }}=musl-gcc
-          cargo build --release --locked --target "${{ matrix.target }}" -p somad
+          cargo build --release --locked --target "${{ matrix.rust_target }}" -p somad
 
       - name: Collect artifact
         shell: bash
@@ -71,7 +81,7 @@ jobs:
           set -euo pipefail
           OUT="dist/backend/linux-${{ matrix.arch }}"
           mkdir -p "$OUT"
-          cp target/${{ matrix.target }}/release/somad "$OUT/"
+          cp target/${{ matrix.rust_target }}/release/somad "$OUT/"
           (cd "$OUT" && shasum -a 256 somad > SHA256SUMS.txt 2>/dev/null || sha256sum somad > SHA256SUMS.txt)
 
       - name: Upload artifact
