@@ -3,13 +3,15 @@ import { useLowlight } from "../hooks/lowlight";
 import { ContextualMenu, type QuickActionRequest, type QuickActionResponse } from "../menus/contextual-menu";
 import type { JSONContent } from "@tiptap/core";
 import { EditorContent, useEditor } from "@tiptap/react";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { defaultCommands } from "../commands/default-commands";
 import type { BlobFileUploadResult } from "../extensions/blob-file";
 import type { BlobImageUploadResult } from "../extensions/blob-image";
 import type { EditorCommand } from "../extensions/commander";
 import type { MentionProvider } from "../extensions/link-mention";
+import type { NodeAIRegistryExtensionOptions } from "../extensions/node-ai-registry";
 import { ActionMenu } from "../menus/action-menu";
+import { createDefaultAIRegistry } from "../menus/ai-registry";
 import { createDocumentExtensions } from "./document-editor/extensions";
 import { insertFileFromPicker, insertImageFromPicker } from "./document-editor/file-pickers";
 
@@ -78,6 +80,23 @@ export function DocumentEditor({
 		onUpdate: ({ editor }) => onChange?.(editor.getJSON()),
 	});
 
+	// Build the AI registry once we have an editor reference. The
+	// NodeAIRegistryExtension was mounted with `registry: null`; we mutate
+	// its options here so the extension's dispatch / resolve sees the
+	// real catalog without forcing a full extension reload.
+	const aiRegistry = useMemo(
+		() => (editor ? createDefaultAIRegistry({ editor, onQuickAction }) : null),
+		[editor, onQuickAction],
+	);
+	useEffect(() => {
+		if (!editor) return;
+		const ext = editor.extensionManager.extensions.find(
+			(e) => e.name === "nodeAIRegistry",
+		);
+		if (!ext) return;
+		(ext.options as NodeAIRegistryExtensionOptions).registry = aiRegistry;
+	}, [editor, aiRegistry]);
+
 	return (
 		<div className={className}>
 			<div className="relative">
@@ -87,7 +106,7 @@ export function DocumentEditor({
 					onInsertImage={(targetEditor, insertPos) => insertImageFromPicker(targetEditor, insertPos, uploadImage)}
 				/>
 				<EditorContent editor={editor} />
-				{editor && <ContextualMenu editor={editor} onQuickAction={onQuickAction} />}
+				{editor && <ContextualMenu editor={editor} registry={aiRegistry} />}
 				{editor && limit && <LimitPercentage editor={editor} limit={limit} />}
 			</div>
 		</div>
