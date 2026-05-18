@@ -24,9 +24,11 @@ import {
 import { TreePopover, type TreeDoc } from "@soma/ui/components/nav/tree-popover";
 import { Search } from "react-feather";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router";
 
 export function JumpToPageButton() {
+	const { t } = useTranslation("common");
 	const { spaceId, pageId } = useParams<{
 		spaceId: string;
 		pageId: string;
@@ -47,23 +49,24 @@ export function JumpToPageButton() {
 	const dismiss = useDismiss(context);
 	const { getFloatingProps, getReferenceProps } = useInteractions([click, dismiss]);
 
+	const untitled = t("space.pages.untitled", "Untitled");
 	const documents = useMemo<TreeDoc[]>(() => {
 		const pages = pagesQuery.data ?? [];
 		return pages.map((page) => ({
 			id: page.pageId,
-			title: page.title || "Untitled",
+			title: page.title || untitled,
 			// Pages can have multiple parents in this p2p model; pick the
 			// first as the primary parent for the popover's tree view.
 			parentId: page.parentPageIds[0] ?? null,
 		}));
-	}, [pagesQuery.data]);
+	}, [pagesQuery.data, untitled]);
 
 	if (!spaceId) return null;
 
 	return (
 		<>
 			<button
-				aria-label="Jump to page"
+				aria-label={t("space.pages.jump", "Jump to page")}
 				className="btn btn-circle btn-ghost btn-xs"
 				ref={refs.setReference}
 				type="button"
@@ -88,8 +91,7 @@ export function JumpToPageButton() {
 									tabsActions.openTab({
 										path: `/spaces/${spaceId}/pages/${id}`,
 										title:
-											documents.find((doc) => doc.id === id)?.title ??
-											"Untitled",
+											documents.find((doc) => doc.id === id)?.title ?? untitled,
 									}),
 								)
 							}
