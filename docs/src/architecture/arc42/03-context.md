@@ -1,6 +1,6 @@
 # 3. Context and Scope
 
-Soma is a desktop-first system where each device runs a local daemon that participates in a libp2p network. Optional infrastructure improves discovery/connectivity, but user content stays on peers.
+Soma is a desktop-first system. Each device runs the Soma Electron app, which embeds a Rust libp2p peer (`soma-daemon` library) in-process via the `@soma/node` napi addon; the device participates in a libp2p network through that embedded peer. Optional server infrastructure improves discovery/connectivity, but user content stays on peers.
 
 ## Business context
 
@@ -12,35 +12,31 @@ Soma is a desktop-first system where each device runs a local daemon that partic
 
 ```mermaid
 flowchart LR
-  subgraph DeviceA["User device (A)"]
-    SomaA[Soma desktop app]
-    DaemonA[soma-daemon]
-    SomaA --> DaemonA
+  subgraph DeviceA["User device (A) — Electron main process"]
+    SomaA["Soma desktop app<br/>(+ soma-daemon library in-process)"]
   end
 
-  subgraph DeviceB["User device (B)"]
-    SomaB[Soma desktop app]
-    DaemonB[soma-daemon]
-    SomaB --> DaemonB
+  subgraph DeviceB["User device (B) — Electron main process"]
+    SomaB["Soma desktop app<br/>(+ soma-daemon library in-process)"]
   end
 
-  subgraph Server["Optional server components"]
-    Bot["soma-botd (VDF)"]
-    Relay[soma-relayd]
-    Rdz[soma-rendezvousd]
-    Bff["soma-bffd (LLM BFF)"]
+  subgraph Server["Optional server components (all via somad)"]
+    Bot["somad bot (VDF)"]
+    Relay["somad relay"]
+    Rdz["somad rendezvous"]
+    Bff["somad bff (LLM BFF)"]
   end
 
-  DaemonA <--> DaemonB
-  DaemonA <--> Bot
-  DaemonB <--> Bot
+  SomaA <--> SomaB
+  SomaA <--> Bot
+  SomaB <--> Bot
 
-  DaemonA --> Rdz
-  DaemonB --> Rdz
+  SomaA --> Rdz
+  SomaB --> Rdz
   Bot --> Rdz
 
-  DaemonA --> Relay
-  DaemonB --> Relay
+  SomaA --> Relay
+  SomaB --> Relay
   Bot --> Relay
 
   SomaA -. optional .-> Bff
@@ -49,7 +45,7 @@ flowchart LR
 
 ## External interfaces
 
-- **Desktop IPC**: `soma-daemon` gRPC API over UDS (`proto/daemon/v1/daemon.proto`).
+- **Renderer ↔ Main**: Electron IPC (the only inter-process surface on the desktop side; the daemon runs inside main).
 - **P2P protocols**: libp2p request/response and pubsub protocols implemented in `backend/crates/peer`.
-- **Infra HTTP**: health/metrics endpoints for server daemons (Axum).
-- **LLM backends**: optional HTTP APIs consumed by `soma-bffd` (configurable endpoint/model).
+- **Infra HTTP**: health/metrics endpoints for the `somad` subcommands (Axum).
+- **LLM backends**: optional HTTP APIs consumed by `somad bff` (configurable endpoint/model).

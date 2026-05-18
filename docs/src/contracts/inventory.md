@@ -76,8 +76,8 @@ This document tracks the shared contract surface between backend (Rust gRPC) and
 ### Agent Client Dual-Path Behavior
 
 The desktop `AgentClient` has two runtime paths:
-- **agentd path**: Uses gRPC to `soma-agentd` (Unix socket) for local helper RPCs only
-- **openai-compatible path**: Direct HTTP calls to OpenAI-compatible endpoints (Ollama, etc.)
+- **agentd library path**: in-process napi calls into `soma-agentd` for `agentStatus`, `listModels`, and `resolveDrift` only
+- **openai-compatible path**: Direct HTTP calls to OpenAI-compatible endpoints (Ollama, etc.) for chat / list-models / rerank
 
 This means not all agent features are strictly bound to `agent.proto`. See Phase 3 deliverable.
 
@@ -151,9 +151,9 @@ These require documentation and/or fixes before backend/desktop can evolve indep
 
 ### 6. `ChatStream` ownership
 
-- **Current:** `soma-agentd` keeps the proto method but returns `UNIMPLEMENTED`
-- **Risk:** Desktop callers must use an explicit provider path for model chat
-- **Action:** Remove or redesign the agentd proto method once generated-client compatibility permits it
+- **Current:** `soma-agentd` no longer ships model RPCs; the proto method is kept in `agent.proto` for type compatibility only
+- **Risk:** Desktop callers must use the OpenAI-compatible HTTP path for model chat (Ollama / remote)
+- **Action:** Remove the model methods from `agent.proto` once generated-client compatibility permits
 
 ---
 

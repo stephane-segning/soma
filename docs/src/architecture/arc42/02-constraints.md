@@ -2,8 +2,8 @@
 
 ## Technical constraints
 
-- **Desktop backends expose no HTTP server**: `soma-daemon` uses gRPC over Unix Domain Socket (UDS); desktop backends must not depend on Axum.
-- **Server backends use Axum + metrics**: `soma-botd`, `soma-relayd`, `soma-rendezvousd`, `soma-bffd` expose `GET /healthz` and `GET /metrics`.
+- **Desktop daemon is in-process**: `soma-daemon` ships as a library linked into the `@soma/node` napi addon and runs inside the Electron main process. There is no separate daemon binary, no Unix-socket IPC, and no HTTP/Axum surface on the desktop side.
+- **Server backends use Axum + metrics**: `somad bot`, `somad relay`, `somad rendezvous`, `somad bff` expose `GET /healthz` and `GET /metrics`.
 - **Rust workspace dependency policy**: third-party versions live only in root `Cargo.toml` under `[workspace.dependencies]`.
 - **Desktop JS tooling**: `pnpm` workspace under `desktop/`.
 - **Offline-first networking**: must function on LAN without servers (mDNS) and across networks with optional infra (rendezvous + relay).

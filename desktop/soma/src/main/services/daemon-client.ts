@@ -383,7 +383,7 @@ function mapPage(page: {
  * The @soma/node addon currently surfaces these as generic JS errors with a
  * string message — no typed/error-coded surface yet. The patterns here match
  * the exact phrases the daemon's handle layer emits (see
- * `backend/bins/daemon/src/handle/*.rs`), anchored with word boundaries to
+ * `backend/crates/daemon/src/handle/*.rs`), anchored with word boundaries to
  * avoid matching unrelated strings like "configuration file not found".
  *
  * TODO(phase-5): once @soma/node exposes typed errors / codes, switch this

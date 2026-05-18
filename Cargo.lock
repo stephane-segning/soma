@@ -4349,21 +4349,13 @@ dependencies = [
 name = "soma-agentd"
 version = "0.1.2"
 dependencies = [
- "anyhow",
- "clap",
  "futures",
- "mimalloc",
- "rand 0.9.2",
  "soma-agent",
  "soma-common",
  "soma-core",
  "soma-proto-build",
- "soma-socket",
- "sqlx",
  "tokio",
- "tonic",
  "tracing",
- "tracing-subscriber",
  "yrs",
 ]
 
@@ -4430,10 +4422,8 @@ name = "soma-daemon"
 version = "0.1.2"
 dependencies = [
  "async-trait",
- "clap",
  "futures",
  "libp2p",
- "mimalloc",
  "prost",
  "prost-types",
  "rand 0.9.2",
@@ -4445,15 +4435,12 @@ dependencies = [
  "soma-net",
  "soma-peer",
  "soma-proto-build",
- "soma-socket",
  "soma-storage",
  "soma-vdfs",
  "sqlx",
  "tokio",
  "tokio-stream",
- "tonic",
  "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]
@@ -4573,17 +4560,6 @@ dependencies = [
  "soma-net",
  "tempfile",
  "tokio",
- "tracing",
-]
-
-[[package]]
-name = "soma-socket"
-version = "0.1.2"
-dependencies = [
- "soma-core",
- "tokio",
- "tokio-stream",
- "tonic",
  "tracing",
 ]
 

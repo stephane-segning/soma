@@ -2,12 +2,15 @@
 
 ## Configuration
 
-- Rust binaries use `clap` with environment variable support.
+- The `somad` server binary uses `clap` with environment variable support.
 - Common env vars include:
   - `SOMA_BLOB_DIR` (blob pool / cache root)
   - `SOMA_LISTEN_ADDRS`, `SOMA_RDV_ADDRS`, `SOMA_RELAY_ADDRS` (libp2p connectivity)
-  - `HTTP_ADDR` (server daemon HTTP bind)
-  - `SOMA_DAEMON_SOCKET` (desktop daemon UDS path)
+  - `HTTP_ADDR` (server HTTP bind)
+- The desktop daemon library is configured by the napi addon's `StartConfig`
+  (constructed in
+  `desktop/soma/src/main/services/addon-runtime.ts`); there are no
+  `SOMA_*` env vars on the desktop side.
 
 ## Observability
 
@@ -18,13 +21,13 @@
 
 ## Storage and migrations
 
-- `soma-daemon` uses a local SQLite database by default (`SOMA_DAEMON_DB`).
-- `soma-botd` uses `SOMA_DATABASE_URL` and supports SQLite or Postgres via SQLx AnyPool.
+- The desktop daemon library uses a local SQLite database under Electron's `userData/daemon/`. Path is configured via the napi addon's `StartConfig.daemonDbPath`.
+- `somad bot` uses `SOMA_DATABASE_URL` and supports SQLite or Postgres via SQLx AnyPool.
 - Migrations live in `backend/crates/storage/migrations` and are applied at startup.
 
 ## Security
 
-- Desktop daemon uses gRPC over UDS to avoid exposing a public network API surface.
+- The desktop daemon runs in-process inside the Electron main process; there is no public-network or local-IPC API surface to attack. The only inter-process boundary is the renderer ↔ main Electron IPC bridge, which exposes a narrow controller set.
 - Capability-based membership avoids accounts/passwords and supports explicit delegation.
 - Blob CAS verifies bytes match the claimed CID before persisting/serving.
 

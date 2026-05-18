@@ -1,67 +1,84 @@
 # Desktop Apps + Local Daemon (Soma platform)
 
-Soma is a **desktop-first, local-first** platform with a small set of supporting server peers.
+Soma is a **desktop-first, local-first** platform with a small set of
+supporting server peers.
 
 On a user device you typically run:
 
-- **Soma desktop app** (`desktop/soma`, Electron + React) — the main UI for spaces, documents, and chat.
-- **Tapia** (`desktop/tapia`, Electron + React) — a typing-practice companion app that shares stage/socket conventions, but currently has a lighter and less backend-integrated feature surface than Soma.
-- **soma-daemon** (`backend/bins/daemon`) — the local Rust backend that owns the libp2p identity, storage, and networking.
-- **soma-agentd** (`backend/bins/agentd`, optional) — a local helper process for desktop-only background helpers such as Yjs drift resolution.
+- **Soma desktop app** (`desktop/soma`, Electron + React) — the main UI for
+  spaces, documents, and chat. The Electron main process loads the
+  `@soma/node` napi addon, which embeds the libp2p peer (`soma-daemon`
+  library) and the agent runtime (`soma-agentd` library) in-process.
+- **Tapia** (`desktop/tapia`, Electron + React) — a typing-practice companion
+  app that shares stage conventions, but currently has a lighter and less
+  backend-integrated feature surface than Soma.
 
-This document explains how those pieces fit together and how optional infrastructure (relay/rendezvous/bots) improves connectivity and availability.
+There is no separate daemon process and no IPC socket; "the daemon" is a
+library running inside the Electron main process.
 
-## Local daemon: `soma-daemon`
+## Local daemon (in-process via `@soma/node`)
 
-`soma-daemon` is a long-lived background process on every participating device. It:
+The daemon runtime owns the device's libp2p identity, storage, and networking,
+even though it is no longer a separate process. It:
 
-- embeds a libp2p peer that holds the device’s private key and Peer ID (device identity).[^security]
-- manages networking responsibilities: discovery, dialing, request/response protocols, pubsub topics, relay reservations, NAT traversal.
-- persists identity material, memberships/capabilities, and other state needed across UI restarts.
-- exposes a **local IPC API** (gRPC over Unix socket) so desktop apps can issue commands without re-implementing libp2p.
+- embeds a libp2p peer that holds the device's private key and Peer ID
+  (device identity).[^security]
+- manages networking responsibilities: discovery, dialing, request/response
+  protocols, pubsub topics, relay reservations, NAT traversal.
+- persists identity material, memberships/capabilities, and other state
+  needed across UI restarts (SQLite + on-disk blob pool under Electron's
+  `userData/daemon/`).
+- exposes an **in-process API** (the `DaemonHandle` Rust facade, surfaced to
+  JS as the `SomaHandle` napi class) so the Electron main process can issue
+  commands without re-implementing libp2p.
 
 ## Desktop apps: `desktop/soma` and `desktop/tapia`
 
-The desktop apps focus on user experience and talk to the local daemon over IPC:
+The desktop apps focus on user experience. The renderer talks to Electron
+main over Electron IPC; main calls the embedded daemon directly through napi:
 
-- **Soma desktop app (Electron)**: classes/spaces, documents, blobs, chat, onboarding flows.
-- **Tapia (Electron)**: typing practice, short passages, and companion UX; it can read/write relevant data through the same daemon.
+- **Soma desktop app (Electron)**: classes/spaces, documents, blobs, chat,
+  onboarding flows.
+- **Tapia (Electron)**: typing practice, short passages, and companion UX.
 
-The key design rule is: **desktop apps do not implement libp2p**; they delegate network and security to `soma-daemon`.
+The key design rule is unchanged: **the renderer does not implement libp2p**;
+it delegates network and security to the daemon runtime running in main.
 
 ## Optional local worker: `soma-agentd`
 
-`soma-agentd` is a desktop-only helper process for local helper RPCs. It no longer proxies or serves model calls; model/provider access is handled by explicit provider paths outside agentd.
-
-In the current desktop implementation, the Electron main process coordinates the agent process and forwards runtime updates back to the renderer.
-
-See `docs/src/development/agentd-ipc.md` for the current topology and IPC notes.
+`soma-agentd` is the desktop-only agent runtime, packaged as a library and
+linked into the same `@soma/node` addon. It handles in-process Yjs drift
+resolution and exposes a small status/list-models surface. It does **not**
+proxy or serve chat / embed / rerank — those go directly from the Electron
+main process to an OpenAI-compatible HTTP endpoint configured in the desktop
+runtime config.
 
 ## Architecture overview
 
 ```mermaid
 flowchart LR
-  subgraph "User Device"
-    SomaUI["Soma desktop app<br/>(Electron + React)"]
-    TapiaUI["Tapia companion app<br/>(Electron + React)"]
-    Daemon["soma-daemon<br/>(Rust libp2p peer + storage)"]
-    Agent["soma-agentd (optional)<br/>(local helpers)"]
+  subgraph "User Device — Electron main process"
+    direction TB
+    Renderer["Soma renderer<br/>(React, runs in Chromium child)"]
+    Main["Electron main"]
+    Daemon["soma-daemon library<br/>(libp2p peer + storage)"]
+    Agent["soma-agentd library<br/>(drift resolver)"]
 
-    SomaUI -- IPC (gRPC over UDS) --> Daemon
-    TapiaUI -. optional or app-specific use .-> Daemon
-    SomaUI -- IPC --> Agent
+    Renderer -- Electron IPC --> Main
+    Main -- napi (in-process) --> Daemon
+    Main -- napi (in-process) --> Agent
   end
 
   subgraph "P2P Network"
     Daemon -- libp2p --> Other["Other peer (daemon/bot)"]
-    Bot["soma-botd<br/>(cache-only peer + onboarding)"]:::peer
+    Bot["somad bot<br/>(cache-only peer + onboarding)"]:::peer
     Daemon -- libp2p --> Bot
     Bot -- libp2p --> Other
   end
 
   subgraph "Infrastructure (Cloud/Server)"
-    Rendezvous[[soma-rendezvousd]]:::infra
-    Relay[[soma-relayd]]:::infra
+    Rendezvous[[somad rendezvous]]:::infra
+    Relay[[somad relay]]:::infra
   end
 
   Daemon -- registers/discovers --> Rendezvous
@@ -72,26 +89,25 @@ flowchart LR
 
 ## Deep linking (invite links)
 
-The **Soma desktop app** registers the `soma://` URL scheme so invite links can open the app and hand the payload to the local daemon.
+The **Soma desktop app** registers the `soma://` URL scheme so invite links
+can open the app and hand the payload to the daemon runtime (in-process).
 
 ```mermaid
 sequenceDiagram
     participant User as User (Clicks Invite Link)
     participant OS as Operating System
-    participant SomaApp as Soma desktop app (Electron)
-    participant Daemon as Soma Daemon
-    participant Bot as Space Bot (Issuer)
+    participant SomaApp as Soma desktop app (Electron main + daemon library)
+    participant Bot as somad bot (Issuer)
     User ->> OS: Clicks soma://join?space=X link
     OS ->> SomaApp: Launches app with payload
-    SomaApp ->> Daemon: Connect to local API
-    SomaApp ->> Daemon: Join space X
-    Daemon ->> Bot: JoinRequest (libp2p)
+    SomaApp ->> SomaApp: in-process: joinSpace(X)
+    SomaApp ->> Bot: JoinRequest (libp2p)
     Note right of Bot: Bot holds IssuerCapability
-    Bot -->> Daemon: Sends MembershipCapability
-    Daemon -->> SomaApp: Join approved
+    Bot -->> SomaApp: MembershipCapability
     SomaApp ->> User: Navigate to space X
 ```
 
-Because the daemon keeps running even if the UI exits, deep links can reattach quickly. Other daemon clients remain a possible future direction, but the current product path is the Electron desktop apps.
+The daemon runtime lives for as long as the Electron main process. Quitting
+the app stops everything; there is no separate daemon left behind.
 
 [^security]: https://docs.libp2p.io/concepts/security/security-considerations/

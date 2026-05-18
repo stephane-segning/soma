@@ -12,7 +12,7 @@ It intentionally does **not** cover any virtual filesystem mapping (paths, direc
 
 Terminology note:
 
-- In repo discussions, a **VDF** is the **cache-only peer role** (most commonly `soma-botd`).
+- In repo discussions, a **VDF** is the **cache-only peer role** (most commonly `somad bot`).
 - In code, the crate is currently named `soma-vdfs` for historical reasons.
 - In user-facing docs, prefer **cache-serving bot** or **cache peer** over `VDF`.
 
@@ -26,7 +26,7 @@ Terminology note:
 ## Non‑goals
 
 - Virtual filesystem mapping / path semantics.
-- HTTP upload endpoints for bots (`soma-botd` stays cache‑only).
+- HTTP upload endpoints for bots (`somad bot` stays cache‑only).
 - Large file support beyond the current size-bounded request/response path.
 
 ## Concepts
@@ -35,8 +35,8 @@ Terminology note:
 - **CID**: identity of a blob, computed from the blob’s bytes (today: SHA‑256 hex string).
 - **Space scope**: blobs are stored under a `space_id` directory for layout and operational scoping.
 - **Daemon store vs bot cache**:
-  - `soma-daemon` is the source of truth for user‑created blobs (local IPC upload).
-  - `soma-botd` is cache‑only for blobs (writes only as a side‑effect of fetching by CID).
+  - The desktop daemon library (`soma-daemon`, run in-process inside the Electron main process via `@soma/node`) is the source of truth for user‑created blobs (uploaded through the napi addon's `uploadBlob`).
+  - `somad bot` is cache‑only for blobs (writes only as a side‑effect of fetching by CID).
 
 ## CID format (today)
 
@@ -47,7 +47,7 @@ Terminology note:
 Implementations:
 
 - Shared filesystem store: `soma_vdfs::fs::FsBlobStore` (`backend/crates/vdfs/src/fs.rs`)
-  - Used by both `soma-daemon` (authoritative store) and `soma-botd` (cache-only by policy, populated via fetch).
+  - Used by both the in-process desktop daemon (authoritative store) and `somad bot` (cache-only by policy, populated via fetch).
 
 Note: this is “CID” in the generic sense; it is not currently a multihash/CIDv1 string.
 
@@ -59,21 +59,24 @@ Both daemon and bot use the same layout:
 
 Examples:
 
-- Daemon blob root: configured by `--blob-dir` / `SOMA_BLOB_DIR` (see `backend/bins/daemon/src/config.rs`)
-- Bot blob root: configured by `--blob-dir` / `SOMA_BLOB_DIR` (see `backend/bins/botd/src/config.rs`)
+- Desktop daemon blob root: configured by the napi addon's `StartConfig.blobDir`; the desktop app places it under Electron's `userData/daemon/blobs/`.
+- `somad bot` blob root: configured by `--blob-dir` / `SOMA_BLOB_DIR` (see `backend/bins/somad/src/commands/bot/`).
 
 ## Local ingestion (desktop)
 
-Desktop UX stages blobs locally and then uploads them to the daemon through Electron main-process plumbing:
+Desktop UX stages blobs locally and then uploads them to the in-process
+daemon library:
 
 - Renderer stages blobs via Electron IPC through the main process.
 - Main process can keep local staged handles during upload preparation.
-- Daemon persistence happens through `Daemon/UploadBlob`, after which the desktop renders daemon-owned blob references through `soma-blob://daemon/{space_id}/{cid}`.
+- Daemon persistence happens through `SomaHandle.uploadBlob` (a Rust napi
+  call), after which the desktop renders daemon-owned blob references through
+  `soma-blob://daemon/{space_id}/{cid}`.
 
-Daemon API:
+Daemon ingestion path:
 
-- gRPC: `Daemon/UploadBlob` (`proto/daemon/v1/daemon.proto`, implemented in `backend/bins/daemon/src/grpc.rs`)
-- Size limit: `MAX_UPLOAD_BYTES = 8 MiB` (`backend/bins/daemon/src/grpc.rs`)
+- In-process napi method on the daemon handle (`uploadBlob`) — see [DaemonHandle::upload_blob](../../../backend/crates/daemon/src/handle/blobs.rs).
+- Size limit: `MAX_UPLOAD_BYTES = 8 MiB` (enforced in the daemon handle).
 
 ## Network fetch protocol (libp2p)
 
@@ -110,7 +113,7 @@ This means blobs are currently limited to “small attachment” sizes.
 
 Implementations:
 
-- `soma-daemon` and `soma-botd`: `soma_vdfs::fs::FsBlobStore` (`backend/crates/vdfs/src/fs.rs`)
+- Desktop daemon library and `somad bot`: `soma_vdfs::fs::FsBlobStore` (`backend/crates/vdfs/src/fs.rs`)
 
 Operational note: current filesystem implementations require a non‑empty `space_id` and will refuse to read/write if it is missing.
 
@@ -120,7 +123,7 @@ Operational note: current filesystem implementations require a non‑empty `spac
 sequenceDiagram
   autonumber
   participant UI as Desktop UI
-  participant D as soma-daemon (peer + blob store)
+  participant D as soma-daemon (in-process via @soma/node — peer + blob store)
   participant P as soma-peer runtime (libp2p)
   participant R as Remote peer (daemon or bot)
   participant S as Remote BlobProvider (store/cache)
@@ -138,15 +141,15 @@ Today, the peer runtime already supports `/soma/blob/1` and `PeerCommand::FetchB
 
 ## Security and limits
 
-- Always enforce a maximum blob size at ingress (daemon IPC) and egress (network transfer). Current limit is 8 MiB on both paths.
+- Always enforce a maximum blob size at ingress (`uploadBlob` napi call) and egress (network transfer). Current limit is 8 MiB on both paths.
 - Always verify bytes match the CID before persisting or serving (both current FS implementations do this on `put`).
 - Treat remote blobs as untrusted: do not automatically execute or render without appropriate UI sandboxing.
 - Blob serving is membership-gated at the peer layer. Additional permission granularity may still evolve, but the fetch path is no longer intended to be open to non-members.
 
 ## Implementation note: shared FS backend
 
-The daemon and bot now share a single filesystem backend in `soma-vdfs`:
+The desktop daemon library and `somad bot` share a single filesystem backend in `soma-vdfs`:
 
 - `soma_vdfs::fs::FsBlobStore` (`backend/crates/vdfs/src/fs.rs`)
 
-Policy-level differences (“authoritative store” vs “cache-only”) are enforced by which code paths are exposed to users (daemon IPC upload vs network pull-by-CID) rather than by separate storage implementations today.
+Policy-level differences ("authoritative store" vs "cache-only") are enforced by which code paths are exposed to users (desktop `uploadBlob` napi call vs network pull-by-CID) rather than by separate storage implementations today.

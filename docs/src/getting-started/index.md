@@ -4,11 +4,11 @@ This is the current development path for the repo as it exists today.
 
 The quickest useful setup is:
 
-- `soma-daemon`
-- `soma-agentd`
-- `desktop/soma`
+- `desktop/soma` (Electron app — embeds the daemon + agent runtimes in-process
+  via the `@soma/node` napi addon)
 
-Add `soma-botd`, `soma-relayd`, and `soma-rendezvousd` only when you need peer/network flows.
+Add `somad` (with the `bot`, `relay`, or `rendezvous` subcommand) only when you
+need peer/network flows that aren't satisfied by mDNS on the local machine.
 
 ## Prerequisites
 
@@ -24,65 +24,56 @@ pnpm install
 
 ## Fast Local Loop
 
-From the repo root, in separate terminals:
+From the repo root:
 
 ```bash
-just run-daemon
+just desktop-run-soma
 ```
 
-```bash
-just run-agentd
-```
-
-```bash
-just run-soma-desktop
-```
-
-This uses the repo's dev-stage socket layout under `/tmp`, including:
-
-- `/tmp/soma-daemon-dev.sock`
-- `/tmp/soma-agentd-dev.sock`
-
-The `just` recipes also keep local data under `.data/` instead of scattering it across the repo root.
+The desktop app starts the embedded daemon + agent runtimes inside the Electron
+main process; there is no separate daemon binary to launch and no Unix socket
+involved. Local data lives under Electron's `userData` directory.
 
 ## What Each Process Does
 
-- `soma-daemon`: local peer/backend for spaces, pages, documents, blobs, memberships, and peer connectivity
-- `soma-agentd`: local helper for drift resolution and persisted background task records; it is not a model provider
-- `desktop/soma`: main Electron UI; Electron main talks to daemon and agentd over local IPC
+- `desktop/soma` (Electron): main UI. Electron main loads the `@soma/node` napi
+  addon, which embeds the libp2p peer / blob store / agent runtime; the
+  renderer talks to main over Electron IPC.
 
 ## Optional: Run Tapia
 
 Tapia is currently a lighter desktop app than Soma.
 
-Today it is best treated as a focused typing-practice companion: short passages, generated drills, and local session feedback.
+Today it is best treated as a focused typing-practice companion: short
+passages, generated drills, and local session feedback.
 
 ```bash
 pnpm --filter tapia run dev
 ```
-
-It shares stage/socket conventions, but its current feature surface is not as backend-integrated as Soma.
 
 ## Optional: Run Peer/Infra Services
 
 Use these when validating discovery, relays, or hosted peer flows:
 
 ```bash
-just run-botd
-just run-relayd
-just run-rendezvousd
+just backend-run-bot
+just backend-run-relay
+just backend-run-rendezvous
 ```
 
 Notes:
 
-- `soma-botd` does not blindly auto-approve joins by default; approval depends on the bot holding valid issuer capability material or on a manual decision path
-- `soma-relayd` and `soma-rendezvousd` expose health/metrics HTTP endpoints in addition to libp2p listeners
+- `somad bot` does not blindly auto-approve joins by default; approval depends
+  on the bot holding valid issuer capability material or on a manual decision
+  path.
+- `somad relay` and `somad rendezvous` expose health/metrics HTTP endpoints in
+  addition to libp2p listeners.
 
 ## Useful Checks
 
 ```bash
-just test-backend
-just test-desktop-all
+just backend-test
+just desktop-test-all
 ```
 
 For docs:
@@ -93,13 +84,15 @@ pnpm --filter @soma/docs run build
 
 ## Troubleshooting
 
-- if Soma does not start cleanly, verify that `soma-daemon` is already running on the expected socket
-- if agent helper features are unavailable, verify that `soma-agentd` is running on the matching stage socket
-- if peer flows fail, start with `RUST_LOG=debug` and add `soma-botd` / relay / rendezvous only after the local daemon path works
+- The daemon runs inside the Electron main process; if Soma fails to start,
+  watch the Electron main logs for `starting @soma/node addon runtime` and any
+  error that follows. There is no separate daemon process to inspect.
+- For peer-flow issues, start with `RUST_LOG=debug` on the Electron main
+  process and bring up `somad bot` / `somad relay` / `somad rendezvous` only
+  after the local in-process daemon path works.
 
 ## More Specific Docs
 
 - `docs/src/development/agentd-models.md`
-- `docs/src/development/daemon-grpcurl.md`
 - `docs/src/development/desktop-config.md`
 - `docs/src/architecture/peer-connectivity.md`
