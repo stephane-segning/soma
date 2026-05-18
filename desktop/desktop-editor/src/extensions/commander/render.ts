@@ -7,12 +7,21 @@ import { navigationKeys } from "./keys";
 export function renderCommanderItems() {
 	let component: ReactRenderer | null = null;
 
+	function destroy() {
+		component?.destroy();
+		component = null;
+	}
+
+	function buildProps(props: SuggestionProps) {
+		return { ...props, props, onDismiss: destroy };
+	}
+
 	return {
 		onStart: (props: SuggestionProps) => {
 			if (!getEditorDom(props.editor)) return;
 			component = new ReactRenderer(CommandList, {
 				editor: props.editor,
-				props: { ...props, props },
+				props: buildProps(props),
 			});
 		},
 		onUpdate: (props: SuggestionProps) => {
@@ -20,16 +29,21 @@ export function renderCommanderItems() {
 			if (!component) {
 				component = new ReactRenderer(CommandList, {
 					editor: props.editor,
-					props: { ...props, props },
+					props: buildProps(props),
 				});
 				return;
 			}
-			component.updateProps({ ...props, props });
+			component.updateProps(buildProps(props));
 		},
-		onKeyDown: (props: SuggestionKeyDownProps) => props.event.key === "Escape" || navigationKeys.includes(props.event.key),
+		onKeyDown: (props: SuggestionKeyDownProps) => {
+			if (props.event.key === "Escape") {
+				destroy();
+				return true;
+			}
+			return navigationKeys.includes(props.event.key);
+		},
 		onExit: () => {
-			component?.destroy();
-			component = null;
+			destroy();
 		},
 	};
 }

@@ -20,11 +20,18 @@ export function CommandList({
 	command,
 	range,
 	props,
+	onDismiss,
 }: {
 	items: EditorCommand[];
 	command: (item: EditorCommand, range: Range) => void;
 	range: Range;
 	props: SuggestionProps;
+	/**
+	 * Called when the menu requests dismissal (Esc, AI fallback). The
+	 * renderer destroys the React component; the suggestion plugin's
+	 * `onUpdate` re-creates it if the user keeps typing.
+	 */
+	onDismiss: () => void;
 }): React.JSX.Element | null {
 	const { refs, floatingStyles, update } = useFloating({
 		placement: "bottom-start",
@@ -65,8 +72,9 @@ export function CommandList({
 		<FloatingPortal>
 			<div ref={refs.setFloating} style={floatingStyles} className="z-50">
 				<SlashMenu
+					captureScope="window"
 					items={slashItems}
-					onClose={() => undefined}
+					onClose={onDismiss}
 					query={props.query}
 				/>
 			</div>
