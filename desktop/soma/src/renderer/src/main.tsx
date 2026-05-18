@@ -7,6 +7,7 @@ import { startAgentEventListener } from "@app/services/agent-events";
 import { startDomainEventListener } from "@app/services/domain-events";
 import { startUploadOutboxWorker } from "@app/services/upload-outbox";
 import { store } from "@app/store/store";
+import { SomaIntlProvider } from "@soma/ui/i18n";
 import { StrictMode } from "react";
 import { ConfigProvider } from "react-avatar";
 import { createRoot } from "react-dom/client";
@@ -27,11 +28,13 @@ createRoot(document.getElementById("root") as HTMLElement).render(
 	<StrictMode>
 		<AppErrorBoundary>
 			<I18nextProvider i18n={i18n}>
-				<Provider store={store}>
-					<ConfigProvider>
-						<TabbedApp />
-					</ConfigProvider>
-				</Provider>
+				<SomaIntlProvider>
+					<Provider store={store}>
+						<ConfigProvider>
+							<TabbedApp />
+						</ConfigProvider>
+					</Provider>
+				</SomaIntlProvider>
 			</I18nextProvider>
 		</AppErrorBoundary>
 	</StrictMode>,
