@@ -118,6 +118,19 @@ export async function revokeMembership(input: RevokeMembershipInput): Promise<bo
 	return invoke<boolean>("spaces_revoke_member", input).catch(() => false);
 }
 
+export type IssueIssuerCapabilityInput = {
+	spaceId: string;
+	targetPeerId: string;
+	/** Absolute expiry in milliseconds since the unix epoch. */
+	expiresAt: number;
+};
+
+export async function issueIssuerCapability(
+	input: IssueIssuerCapabilityInput,
+): Promise<boolean> {
+	return invoke<boolean>("spaces_issue_issuer_capability", input);
+}
+
 export async function updateSpace(input: { spaceId: string; displayName?: string }): Promise<Space> {
 	return invoke<Space>("spaces_update", {
 		spaceId: input.spaceId,

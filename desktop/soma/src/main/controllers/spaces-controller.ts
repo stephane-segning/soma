@@ -2,6 +2,7 @@ import type {
 	DaemonClient,
 	DecideJoinInput,
 	DecideJoinResult,
+	IssueIssuerCapabilityInput,
 	JoinSpaceInput,
 	JoinSpaceResult,
 	RevokeMembershipInput,
@@ -66,5 +67,9 @@ export class SpacesController {
 
 	revokeMembership(input: RevokeMembershipInput): Promise<boolean> {
 		return this.daemon.revokeSpaceMembership(input);
+	}
+
+	issueIssuerCapability(input: IssueIssuerCapabilityInput): Promise<boolean> {
+		return this.daemon.issueIssuerCapability(input);
 	}
 }

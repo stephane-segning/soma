@@ -73,11 +73,22 @@ function useRevokeMembershipMutation() {
 	};
 }
 
+function useIssueIssuerCapabilityMutation() {
+	const [mutate, state] = api.useIssueIssuerCapabilityMutation();
+	return {
+		...state,
+		mutate,
+		mutateAsync: (input: { spaceId: string; targetPeerId: string; expiresAt: number }) =>
+			mutate(input).unwrap(),
+	};
+}
+
 export {
 	useCreateSpaceMutation,
 	useDecideJoinMutation,
 	useUpdateSpaceMutation,
 	useDeleteSpaceMutation,
+	useIssueIssuerCapabilityMutation,
 	useJoinRequestsQuery,
 	useJoinSpaceMutation,
 	useMyMembershipsQuery,

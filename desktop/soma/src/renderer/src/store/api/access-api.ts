@@ -122,6 +122,17 @@ export const accessApi = spacesApi.injectEndpoints({
 				...spaceMemberTags(input.spaceId),
 			],
 		}),
+		issueIssuerCapability: builder.mutation<boolean, spacesService.IssueIssuerCapabilityInput>({
+			queryFn: async (input) => {
+				try {
+					const data = await spacesService.issueIssuerCapability(input);
+					return { data };
+				} catch (error) {
+					return { error };
+				}
+			},
+			invalidatesTags: (_result, _error, input) => spaceMemberTags(input.spaceId),
+		}),
 	}),
 });
 
