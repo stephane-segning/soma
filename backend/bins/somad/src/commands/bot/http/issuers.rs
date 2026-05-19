@@ -64,6 +64,12 @@ pub(super) async fn issue_handler(
         &delegate_peer_id,
         allowed_roles,
         payload.expires_at_secs,
+        // somad's HTTP issuer endpoint is a server-to-server path used by
+        // bot hosts to register capabilities programmatically. There's no
+        // operator-typed alias here — the renderer's Bots tab is the only
+        // surface that captures one. Pass None and let the row carry a
+        // null alias in storage.
+        None,
     )
     .await
     .map_err(internal_error("failed to issue issuer capability"))?;
@@ -99,6 +105,8 @@ pub(super) async fn import_handler(
             issued_at: now_secs(),
             expires_at: payload.expires_at_secs,
             capability: Some(bytes),
+            // Imported capabilities carry no operator-typed alias.
+            alias: None,
         })
         .await
         .map_err(internal_error("failed to import issuer capability"))?;
