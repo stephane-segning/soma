@@ -27,6 +27,15 @@ use super::{
 ///    longer than the ceiling receive an `invalid(…)` error so they can
 ///    correct the request rather than silently getting a shorter-than-asked
 ///    expiry.
+///
+/// **Scope**: this ceiling is the daemon's *renderer-facing* policy. It is
+/// enforced on `DaemonHandle::issue_issuer_capability` only. somad's HTTP
+/// issuer routes (`backend/bins/somad/src/commands/bot/http/issuers.rs`)
+/// are admin-token-gated server-to-server paths that accept an explicit
+/// `Option<i64>` expiry and intentionally bypass this ceiling — bot hosts
+/// using that path own their rotation policy. If we ever want the ceiling
+/// to apply there too, lift the helper into `soma_membership` and call it
+/// from both sites.
 pub const MAX_ISSUER_CAPABILITY_LIFETIME_SECS: u64 = 180 * 86_400; // 180 days
 
 impl DaemonHandle {
@@ -175,18 +184,20 @@ pub(crate) fn resolve_expires_at(
     expires_at: i64,
     now_secs: i64,
 ) -> Result<i64, soma_core::Error> {
-    let max_expires_at = now_secs + MAX_ISSUER_CAPABILITY_LIFETIME_SECS as i64;
+    // `saturating_add` guards against a clock pushed near `i64::MAX`; in the
+    // pathological case the ceiling clamps at `i64::MAX` and any non-zero
+    // request still has to pass the `<= now_secs` and `> max_expires_at`
+    // checks below, so the policy stays sound.
+    let max_expires_at = now_secs.saturating_add(MAX_ISSUER_CAPABILITY_LIFETIME_SECS as i64);
     if expires_at == 0 {
         Ok(max_expires_at)
+    } else if expires_at <= now_secs {
+        Err(invalid("expires_at must be in the future"))
+    } else if expires_at > max_expires_at {
+        Err(invalid(
+            "expires_at exceeds maximum issuer capability lifetime",
+        ))
     } else {
-        if expires_at <= now_secs {
-            return Err(invalid("expires_at must be in the future"));
-        }
-        if expires_at > max_expires_at {
-            return Err(invalid(
-                "expires_at exceeds maximum issuer capability lifetime",
-            ));
-        }
         Ok(expires_at)
     }
 }
