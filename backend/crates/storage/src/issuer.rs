@@ -23,6 +23,11 @@ pub trait IssuerRepository: Send + Sync {
         space_id: &str,
         delegate_peer_id: &str,
     ) -> SomaResult<Option<IssuerCapability>>;
+    /// List every issuer capability currently stored for `space_id`. Used by
+    /// `DaemonHandle::list_space_bots` — bots are persisted as issuer
+    /// capabilities (not memberships), so this is the read path that
+    /// matches the write path of `issue_issuer_capability`.
+    async fn list_by_space(&self, space_id: &str) -> SomaResult<Vec<IssuerCapability>>;
     async fn delete(&self, space_id: &str, delegate_peer_id: &str) -> SomaResult<u64>;
 }
 
@@ -85,6 +90,23 @@ impl IssuerRepository for SqlIssuerRepository {
         .map_err(Error::service)?;
 
         Ok(row.map(map_row))
+    }
+
+    async fn list_by_space(&self, space_id: &str) -> SomaResult<Vec<IssuerCapability>> {
+        let rows = sqlx::query(
+            r#"
+            SELECT space_id, issuer_peer_id, delegate_peer_id, issued_at, expires_at, capability
+            FROM issuer_capabilities
+            WHERE space_id = $1
+            ORDER BY issued_at DESC
+            "#,
+        )
+        .bind(space_id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(Error::service)?;
+
+        Ok(rows.into_iter().map(map_row).collect())
     }
 
     async fn delete(&self, space_id: &str, delegate_peer_id: &str) -> SomaResult<u64> {
