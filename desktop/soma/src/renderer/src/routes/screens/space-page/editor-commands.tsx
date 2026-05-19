@@ -1,6 +1,6 @@
 import { defaultCommands, type EditorCommand } from "@soma/editor";
 import { useMemo } from "react";
-import { File, Image, Link2, Paperclip } from "react-feather";
+import { File as FileIcon, Image as ImageIcon, Link2, Paperclip } from "react-feather";
 import * as documentsService from "../../../services/documents-service";
 import { UNTITLED_PAGE_TITLE } from "../page-title";
 import type { EditorLike } from "./types";
@@ -31,7 +31,7 @@ export function usePageEditorCommands({
 				description: "Create a nested page and insert a link",
 				keywords: ["page", "subpage", "nested"],
 				section: "action",
-				icon: <File className="size-3.5" />,
+				icon: <FileIcon className="size-3.5" />,
 				handler: async ({ editor, range }) => {
 					const created = await documentsService.ensurePage({
 						spaceId,
@@ -60,7 +60,7 @@ export function usePageEditorCommands({
 				description: "Insert an image from disk",
 				keywords: ["image", "photo", "picture"],
 				section: "embed",
-				icon: <Image className="size-3.5" />,
+				icon: <ImageIcon className="size-3.5" />,
 				handler: async ({ editor, range }) => {
 					const files = await pickFiles({ accept: "image/*", multiple: true });
 					if (files.length === 0) return;
