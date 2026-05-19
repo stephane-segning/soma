@@ -46,7 +46,16 @@ backend-run-all config="server.toml":
 backend-build-workspace:
 	cargo build --workspace --locked
 
-# Run the full Rust backend test suite
+# Test every crate in the Rust workspace, with the lockfile enforced.
+# Symmetric counterpart to `backend-build-workspace` — covers crates
+# outside backend/ like `desktop/desktop-icons` and `xtask`. CI uses
+# this same target.
+backend-test-workspace:
+	cargo test --workspace --locked
+
+# Run the full Rust backend test suite (legacy, scoped to backend/).
+# Kept for compatibility with existing callers; new callers should
+# prefer `backend-test-workspace`.
 backend-test:
 	cd backend && cargo test
 
@@ -153,10 +162,10 @@ compose-ps:
 #
 
 # Run backend checks used in CI — build the full workspace (catches
-# binaries) then run the test suite.
+# binaries) then run the workspace-wide test suite.
 ci-backend:
 	just backend-build-workspace
-	just backend-test
+	just backend-test-workspace
 
 # Run desktop checks used in CI
 ci-desktop:
