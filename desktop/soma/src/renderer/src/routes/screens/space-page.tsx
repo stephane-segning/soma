@@ -1,7 +1,8 @@
 import { useAppDispatch } from "@app/store/hooks";
+import { recentPagesActions } from "@app/store/recent-pages";
 import { tabsActions } from "@app/store/tabs";
 import { DocumentEditor, type JSONContent } from "@soma/editor";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { HotkeysProvider } from "react-hotkeys-hook";
 import { useLoaderData } from "react-router";
@@ -32,6 +33,16 @@ function Component(): React.JSX.Element {
 	const dispatch = useAppDispatch();
 	const pendingPageInsertRef = useRef<PendingPageInsert | null>(null);
 	const [isPagePickerOpen, setIsPagePickerOpen] = useState(false);
+
+	useEffect(() => {
+		dispatch(
+			recentPagesActions.recordPageOpened({
+				spaceId: data.spaceId,
+				pageId: data.pageId,
+				title: data.pageTitle,
+			}),
+		);
+	}, [dispatch, data.spaceId, data.pageId, data.pageTitle]);
 
 	const initialValue = useMemo(() => parseContent(data.initialContentJson), [data.initialContentJson]);
 	const showEmptyPageHint = useMemo(() => isDocumentEffectivelyEmpty(initialValue), [initialValue]);

@@ -40,11 +40,12 @@ vi.mock("react-i18next", () => ({
 
 import { JumpToPageButton } from "./jump-to-page-button";
 
-/** Minimal Redux store satisfying the tabs slice used by dispatch. */
+/** Minimal Redux store satisfying the tabs + recentPages slices. */
 function makeStore() {
 	return configureStore({
 		reducer: {
 			tabs: (state = { initialized: false, activeId: "", tabs: [] }) => state,
+			recentPages: (state = { entries: [] }) => state,
 		},
 	});
 }
