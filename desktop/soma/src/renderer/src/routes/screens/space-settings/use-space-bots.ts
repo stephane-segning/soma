@@ -66,9 +66,14 @@ export function useSpaceBots(spaceId: string | undefined): UseSpaceBotsResult {
 				throw new Error(message);
 			}
 			setAddError(null);
-			// `expiresAt = 0` is the daemon's "no expiry" sentinel. The
+			// `expiresAt = 0` is the daemon's "Never" sentinel. The
 			// CapabilityForm leaves `expiryDate === null` when the user picks
 			// the "Never" toggle — pass `0` straight through.
+			//
+			// The daemon translates `0` to `now + 180 days` server-side
+			// (`MAX_ISSUER_CAPABILITY_LIFETIME_SECS`). A future UI refinement
+			// should hint "Expires in up to 180 days" near the toggle so the
+			// operator isn't surprised by the bounded lifetime.
 			let expiresAt: number;
 			if (input.expiryDate === null) {
 				expiresAt = 0;

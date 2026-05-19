@@ -11,6 +11,24 @@ use super::{
     types::IssueIssuerCapabilityInput,
 };
 
+/// Maximum lifetime that the daemon will sign into an issuer capability,
+/// regardless of what the caller requests.
+///
+/// **180 days** (15_552_000 s) is the chosen ceiling. Rationale:
+///  - Long enough that a legitimate bot deployment never hits it
+///    accidentally (six months covers any reasonable quarterly/semi-annual
+///    rotation cycle).
+///  - Short enough to bound the blast radius if a capability is
+///    compromised or the delegate peer goes rogue: worst-case exposure is
+///    six months, not forever.
+///  - The renderer's "Never" toggle passes `expires_at = 0`; the daemon
+///    translates `0` → `now + MAX` rather than letting an unbounded
+///    capability propagate. Callers that explicitly request a lifetime
+///    longer than the ceiling receive an `invalid(…)` error so they can
+///    correct the request rather than silently getting a shorter-than-asked
+///    expiry.
+pub const MAX_ISSUER_CAPABILITY_LIFETIME_SECS: u64 = 180 * 86_400; // 180 days
+
 impl DaemonHandle {
     /// Issue an owner-gated issuer capability for `target_peer_id` over
     /// `space_id`. Stores the signed delegation locally. Returns `true` on
@@ -37,18 +55,20 @@ impl DaemonHandle {
         let target_peer_id =
             PeerId::from_str(&target_peer_id).map_err(|_| invalid("invalid target_peer_id"))?;
 
-        let expires_at = if expires_at == 0 {
-            None
-        } else {
-            let now = SystemTime::now()
-                .duration_since(SystemTime::UNIX_EPOCH)
-                .map_err(|_| invalid("system clock before unix epoch"))?
-                .as_secs() as i64;
-            if expires_at <= now {
-                return Err(invalid("expires_at must be in the future"));
-            }
-            Some(expires_at)
-        };
+        // Resolve `expires_at` against the daemon-side policy ceiling.
+        //
+        // Contract with callers (renderer, napi shim, tests):
+        //  - `expires_at == 0`  → "Never" toggle; translate to
+        //    `now + MAX_ISSUER_CAPABILITY_LIFETIME_SECS` so the signed
+        //    capability is always time-bounded.
+        //  - `expires_at > 0 && expires_at <= now` → already-elapsed; reject.
+        //  - `expires_at > now + MAX` → exceeds the ceiling; reject.
+        //  - Otherwise → accept as-is.
+        let now = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .map_err(|_| invalid("system clock before unix epoch"))?
+            .as_secs() as i64;
+        let expires_at = Some(resolve_expires_at(expires_at, now)?);
 
         // Collapse whitespace-only aliases into None so the storage layer
         // never holds blank labels; trim everything else.
@@ -134,5 +154,97 @@ impl DaemonHandle {
         }
 
         Ok(true)
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Policy helpers — extracted for unit-testing without a live DaemonState.
+// ---------------------------------------------------------------------------
+
+/// Resolve an `expires_at` epoch-seconds value against the daemon policy
+/// ceiling.
+///
+/// Returns `Ok(resolved_expires_at_secs)` where the value is always
+/// `Some(…)` — the daemon never persists an unbounded capability.
+///
+/// # Errors
+/// - `expires_at > 0 && expires_at <= now_secs` → already elapsed.
+/// - `expires_at > now_secs + MAX_ISSUER_CAPABILITY_LIFETIME_SECS` → exceeds
+///   ceiling.
+pub(crate) fn resolve_expires_at(
+    expires_at: i64,
+    now_secs: i64,
+) -> Result<i64, soma_core::Error> {
+    let max_expires_at = now_secs + MAX_ISSUER_CAPABILITY_LIFETIME_SECS as i64;
+    if expires_at == 0 {
+        Ok(max_expires_at)
+    } else {
+        if expires_at <= now_secs {
+            return Err(invalid("expires_at must be in the future"));
+        }
+        if expires_at > max_expires_at {
+            return Err(invalid(
+                "expires_at exceeds maximum issuer capability lifetime",
+            ));
+        }
+        Ok(expires_at)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Approximate "now" for test purposes — 2026-01-01 00:00:00 UTC.
+    const FAKE_NOW: i64 = 1_767_225_600_i64;
+
+    #[test]
+    fn zero_becomes_ceiling() {
+        let resolved = resolve_expires_at(0, FAKE_NOW).unwrap();
+        assert_eq!(resolved, FAKE_NOW + MAX_ISSUER_CAPABILITY_LIFETIME_SECS as i64);
+    }
+
+    #[test]
+    fn valid_future_date_accepted() {
+        // One day in the future — well within the ceiling.
+        let one_day = FAKE_NOW + 86_400;
+        let resolved = resolve_expires_at(one_day, FAKE_NOW).unwrap();
+        assert_eq!(resolved, one_day);
+    }
+
+    #[test]
+    fn exact_ceiling_accepted() {
+        let ceiling = FAKE_NOW + MAX_ISSUER_CAPABILITY_LIFETIME_SECS as i64;
+        let resolved = resolve_expires_at(ceiling, FAKE_NOW).unwrap();
+        assert_eq!(resolved, ceiling);
+    }
+
+    #[test]
+    fn one_second_past_ceiling_rejected() {
+        let over = FAKE_NOW + MAX_ISSUER_CAPABILITY_LIFETIME_SECS as i64 + 1;
+        let err = resolve_expires_at(over, FAKE_NOW).unwrap_err();
+        let msg = err.to_string();
+        assert!(
+            msg.contains("exceeds maximum"),
+            "unexpected error message: {msg}"
+        );
+    }
+
+    #[test]
+    fn past_timestamp_rejected() {
+        let past = FAKE_NOW - 1;
+        let err = resolve_expires_at(past, FAKE_NOW).unwrap_err();
+        let msg = err.to_string();
+        assert!(
+            msg.contains("future"),
+            "unexpected error message: {msg}"
+        );
+    }
+
+    #[test]
+    fn now_itself_rejected() {
+        // `expires_at == now` is not in the future.
+        let err = resolve_expires_at(FAKE_NOW, FAKE_NOW).unwrap_err();
+        assert!(err.to_string().contains("future"));
     }
 }
