@@ -15,12 +15,14 @@
  *    and `expiresAt` (epoch-ms).
  *
  * Open follow-ups (per ui-revamp-v0-cutover-status):
- *  - **scopeIds** from the form are now propagated end-to-end through
- *    storage → daemon → napi → IPC → RTK → this hook. They are stored
- *    for forward-looking visibility; runtime authorisation enforcement
- *    (checking scopes at action time) is NOT yet implemented — that is
- *    a separate, larger PR involving the membership crate's
- *    `validate_issuer_capability` path.
+ *  - **scopeIds** from the form are propagated end-to-end through
+ *    storage → daemon → napi → IPC → RTK → this hook. Runtime
+ *    enforcement landed: `membership::ensure_can_issue_membership`
+ *    rejects capabilities whose non-empty scopes don't include
+ *    `"issue:membership"`. Empty scopes remain unrestricted (backward
+ *    compat). The only recognised v0 scope is `"issue:membership"`;
+ *    the free-text form field accepts any string but only that value
+ *    will be honoured by the daemon today.
  *  - **status** — there's no bot status event stream yet. Every
  *    listed bot is reported as `active`; a `pending`/`failed` split
  *    waits on daemon event plumbing.

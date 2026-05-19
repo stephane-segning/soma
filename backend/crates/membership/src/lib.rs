@@ -1,5 +1,6 @@
 pub mod bot_status;
 pub mod outbox;
+pub mod scopes;
 
 mod issuer;
 mod join_decider;

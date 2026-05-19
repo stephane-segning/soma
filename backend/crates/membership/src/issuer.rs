@@ -8,7 +8,7 @@ use soma_core::{Error, SomaResult};
 use soma_proto_build::space::{IssuerCapability, SpaceId, SpaceRole};
 use soma_storage::RepositoryProvider;
 
-use crate::time::epoch_seconds;
+use crate::{scopes::SCOPE_ISSUE_MEMBERSHIP, time::epoch_seconds};
 
 pub async fn issue_issuer_capability_to_storage(
     repos: &dyn RepositoryProvider,
@@ -144,6 +144,13 @@ pub(crate) async fn ensure_can_issue_membership(
         }
     }
 
+    // Scope enforcement (option B — local-only; scopes are not yet in the
+    // signed proto).  An empty scopes vec means "no restriction" for
+    // backward compatibility with pre-#92 rows (NULL → empty Vec on read).
+    // If scopes are present and don't include "issue:membership" this
+    // capability is not authorised to approve memberships.
+    check_issue_membership_scope(&stored_cap.scopes)?;
+
     let bytes = stored_cap
         .capability
         .as_ref()
@@ -234,4 +241,87 @@ fn validate_issuer_capability(
     }
 
     Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// Unit tests — scope enforcement
+// ---------------------------------------------------------------------------
+//
+// These tests exercise the scope-check logic inside
+// `ensure_can_issue_membership` directly by constructing a minimal
+// `soma_storage::issuer::IssuerCapability` row and verifying the three
+// cases:
+//
+//  1. empty scopes  → allowed (backward compat for pre-#92 rows)
+//  2. scopes contains "issue:membership" → allowed
+//  3. scopes present but no "issue:membership" → rejected
+//
+// We don't spin up a real database; instead we call the private
+// `scope_allowed` helper extracted below so the tests remain fast and
+// dependency-free.
+
+/// Returns `Ok(())` when the stored scopes allow `"issue:membership"`, or
+/// an `Err` explaining the rejection.  Extracted so tests can call it
+/// without a live `RepositoryProvider`.
+pub(crate) fn check_issue_membership_scope(scopes: &[String]) -> SomaResult<()> {
+    if scopes.is_empty() {
+        // Empty → no restriction (backward compat).
+        return Ok(());
+    }
+    if scopes.iter().any(|s| s == SCOPE_ISSUE_MEMBERSHIP) {
+        return Ok(());
+    }
+    Err(Error::service(
+        "issuer capability lacks issue:membership scope",
+    ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn empty_scopes_are_allowed() {
+        assert!(
+            check_issue_membership_scope(&[]).is_ok(),
+            "empty scopes should be allowed for backward compat"
+        );
+    }
+
+    #[test]
+    fn matching_scope_is_allowed() {
+        let scopes = vec![SCOPE_ISSUE_MEMBERSHIP.to_string()];
+        assert!(
+            check_issue_membership_scope(&scopes).is_ok(),
+            "scopes containing issue:membership should be allowed"
+        );
+    }
+
+    #[test]
+    fn matching_scope_among_others_is_allowed() {
+        let scopes = vec![
+            "some:other".to_string(),
+            SCOPE_ISSUE_MEMBERSHIP.to_string(),
+            "yet:another".to_string(),
+        ];
+        assert!(
+            check_issue_membership_scope(&scopes).is_ok(),
+            "issue:membership present among other scopes should be allowed"
+        );
+    }
+
+    #[test]
+    fn non_matching_scope_is_rejected() {
+        let scopes = vec!["read:space".to_string(), "post:message".to_string()];
+        let result = check_issue_membership_scope(&scopes);
+        assert!(
+            result.is_err(),
+            "scopes without issue:membership should be rejected"
+        );
+        let err_msg = result.unwrap_err().to_string();
+        assert!(
+            err_msg.contains("issue:membership"),
+            "error should mention the missing scope, got: {err_msg}"
+        );
+    }
 }
