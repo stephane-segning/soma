@@ -13,6 +13,40 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  rust:
+    # Build + test the whole Rust workspace, not just the crates that
+    # land in the napi addon. `pnpm typecheck:node` only walks the
+    # soma-node dependency graph (daemon, peer, storage, …), so
+    # downstream consumers like `somad` were drifting silently — a
+    # signature change in `soma-membership` broke the bot HTTP routes
+    # on #85 and the workflow never noticed. `--workspace` catches
+    # binaries + every test crate in one pass.
+    name: Rust workspace (build + test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup protoc
+        uses: ./.github/actions/setup-protoc
+
+      - name: Cache cargo target
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/cache
+            ~/.cargo/registry/index
+            ~/.cargo/git/db
+            target
+          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            cargo-${{ runner.os }}-
+
+      - name: cargo build --workspace
+        run: cargo build --workspace --locked
+
+      - name: cargo test --workspace
+        run: cargo test --workspace --locked
+
   unit:
     name: Unit tests + coverage
     runs-on: ubuntu-latest

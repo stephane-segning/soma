@@ -40,7 +40,22 @@ backend-run-bff:
 backend-run-all config="server.toml":
 	export SOMA_DATA_DIR="$PWD/.data" && cd backend && cargo run -p somad -- all --config {{config}}
 
-# Run the full Rust backend test suite
+# Build every crate + binary in the Rust workspace. Catches downstream
+# breakage in `somad` and other binaries that the napi-scoped
+# `pnpm typecheck:node` doesn't walk. CI uses this same target.
+backend-build-workspace:
+	cargo build --workspace --locked
+
+# Test every crate in the Rust workspace, with the lockfile enforced.
+# Symmetric counterpart to `backend-build-workspace` — covers crates
+# outside backend/ like `desktop/desktop-icons` and `xtask`. CI uses
+# this same target.
+backend-test-workspace:
+	cargo test --workspace --locked
+
+# Run the full Rust backend test suite (legacy, scoped to backend/).
+# Kept for compatibility with existing callers; new callers should
+# prefer `backend-test-workspace`.
 backend-test:
 	cd backend && cargo test
 
@@ -146,9 +161,11 @@ compose-ps:
 # CI-oriented aggregations
 #
 
-# Run backend checks used in CI
+# Run backend checks used in CI — build the full workspace (catches
+# binaries) then run the workspace-wide test suite.
 ci-backend:
-	just backend-test
+	just backend-build-workspace
+	just backend-test-workspace
 
 # Run desktop checks used in CI
 ci-desktop:
