@@ -1,5 +1,5 @@
-@import "../../desktp-ui/src/styles.css";
+@import "../../desktop-ui/src/styles.css";
 @import "highlight.js/styles/github.css";
 
 @source "../src";
-@source "../../desktp-ui/src";
+@source "../../desktop-ui/src";
