@@ -5,9 +5,11 @@ import { DragHandle } from "@tiptap/extension-drag-handle-react";
 import type { Editor } from "@tiptap/react";
 import { AnimatePresence, motion } from "motion/react";
 import { forwardRef, type ReactNode, useCallback, useRef, useState } from "react";
-import { Move, Plus, RefreshCw } from "react-feather";
+import { Move, Plus, RefreshCw, Star } from "react-feather";
 import { BLOCK_LABEL, readBlockKindFromNode, rotateBlock, type BlockKind } from "./block-rotation";
 import { createAddMenuItems } from "./action-menu/add-menu-items";
+import { normalizeNodeName } from "../extensions/node-ai-registry";
+import type { NodeAITrigger } from "./contextual-menu";
 
 type ActiveNode = {
 	pos: number;
@@ -19,22 +21,75 @@ export function ActionMenu({
 	editor,
 	onInsertImage,
 	onInsertFile,
+	onAskAIForNode,
 }: {
 	editor: Editor | null;
 	onInsertImage?: (editor: Editor, insertPos: number) => Promise<void>;
 	onInsertFile?: (editor: Editor, insertPos: number) => Promise<void>;
+	/**
+	 * Called when the user clicks "AI" on the drag-handle menu for a block.
+	 * The caller (DocumentEditor) relays the trigger into ContextualMenu so
+	 * it can open the SelectionAIBar anchored at the block's handle position.
+	 * When omitted the AI button is not rendered (registry not available).
+	 */
+	onAskAIForNode?: (trigger: NodeAITrigger) => void;
 }): React.JSX.Element | null {
 	const [activeNode, setActiveNode] = useState<ActiveNode | null>(null);
 	const [isDragging, setIsDragging] = useState(false);
 	const [addMenuOpen, setAddMenuOpen] = useState(false);
 	const [addMenuPosition, setAddMenuPosition] = useState({ x: 0, y: 0 });
 	const addButtonRef = useRef<HTMLButtonElement | null>(null);
+	const aiButtonRef = useRef<HTMLButtonElement | null>(null);
 
 	const t = useT();
 	const insertAt = useCallback((content: Record<string, unknown>) => {
 		if (!editor || !activeNode) return;
 		editor.chain().focus().insertContentAt(activeNode.insertPos, content).run();
 	}, [activeNode, editor]);
+
+	/**
+	 * Handle the AI button click on the drag-handle menu.
+	 *
+	 * Steps:
+	 *  1. Set a NodeSelection so TipTap / ProseMirror knows which block is
+	 *     active. The NodeAIRegistryExtension reads this to build the context.
+	 *  2. Resolve the block's text content directly from the node (so the bar
+	 *     is populated even for empty blocks — it'll show the action list with
+	 *     an empty `selectedText`).
+	 *  3. Anchor the AI bar near the drag handle (right of the handle button).
+	 *  4. Delegate to `onAskAIForNode` — DocumentEditor relays into
+	 *     ContextualMenu's `nodeAITrigger` prop.
+	 *
+	 * Edge cases:
+	 *  - Empty block (no text): selectedText is "". SelectionAIBar renders the
+	 *    full action list; actions receive an empty `ctx.text`.
+	 *  - Image / horizontal-rule blocks: `node.textContent` is "". The AI bar
+	 *    still opens; the registry may return an empty action list for that
+	 *    nodeType, showing "No matching actions". No crash.
+	 *  - Code blocks: treated as text-bearing; the block's raw code is passed
+	 *    as `selectedText`.
+	 */
+	const handleAIClick = useCallback(() => {
+		if (!editor || !activeNode || !onAskAIForNode) return;
+
+		// Set NodeSelection so the extension resolves surface = "node".
+		editor.chain().setNodeSelection(activeNode.pos).run();
+
+		// Read the block node text after setting the selection.
+		const nodeAt = editor.state.doc.nodeAt(activeNode.pos);
+		const blockText = nodeAt?.textContent ?? "";
+		const rawNodeType = nodeAt?.type.name ?? "paragraph";
+		const nodeType = normalizeNodeName(rawNodeType);
+
+		// Anchor the bar next to the AI handle button if available,
+		// otherwise fall back to a sensible default near the editor.
+		const rect = aiButtonRef.current?.getBoundingClientRect();
+		const anchor = rect
+			? { x: rect.right + 12, y: rect.top + rect.height / 2 }
+			: { x: window.innerWidth / 2, y: 100 };
+
+		onAskAIForNode({ pos: activeNode.pos, nodeType, text: blockText, anchor });
+	}, [editor, activeNode, onAskAIForNode]);
 
 	const addMenuItems = createAddMenuItems({ activeNode, editor, insertAt, onInsertFile, onInsertImage });
 	if (!editor) return null;
@@ -99,6 +154,18 @@ export function ActionMenu({
 							>
 								<RefreshCw aria-hidden className="size-3.5" />
 							</HandleButton>
+							{onAskAIForNode ? (
+								<HandleButton
+									label={t({
+										id: "action-menu.ai",
+										defaultMessage: "Ask AI",
+									})}
+									onActivate={handleAIClick}
+									ref={aiButtonRef}
+								>
+									<Star aria-hidden className="size-3.5" />
+								</HandleButton>
+							) : null}
 							<div
 								aria-label={t({
 									id: "action-menu.drag",
