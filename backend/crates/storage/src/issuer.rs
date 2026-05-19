@@ -26,8 +26,13 @@ pub struct IssuerCapability {
     /// Stored as a JSON-encoded array of strings in the `scopes` column.
     /// Defaults to empty when the column is NULL (pre-migration rows).
     ///
-    /// NOTE: scopes are stored for forward-looking visibility only —
-    /// runtime authorisation enforcement is NOT yet implemented.
+    /// Runtime enforcement is in `membership::ensure_can_issue_membership`,
+    /// which reads this field and rejects capabilities whose non-empty
+    /// scopes list doesn't include `"issue:membership"`.  An empty list is
+    /// treated as "no restriction" for backward compat with pre-#92 rows.
+    ///
+    /// NOTE: enforcement is local-only (option B) — the signed
+    /// `IssuerCapability` proto does not yet carry a scopes field.
     pub scopes: Vec<String>,
 }
 
