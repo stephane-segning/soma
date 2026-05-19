@@ -133,6 +133,10 @@ export function BotsTab({ spaceId }: { spaceId: string | undefined }) {
 					bots={space.bots}
 					onAddBot={() => setShowAdd(true)}
 					onOverflow={() => undefined}
+					onRetry={(id) => {
+						const bot = space.bots.find((b) => b.id === id);
+						if (bot) space.retryBot(bot);
+					}}
 				/>
 			) : null}
 		</div>

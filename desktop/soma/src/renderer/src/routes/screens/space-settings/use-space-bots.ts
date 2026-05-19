@@ -40,6 +40,7 @@ export type UseSpaceBotsResult = {
 	isLoading: boolean;
 	loadError: string | null;
 	addBot: (input: AddBotInput) => Promise<void>;
+	retryBot: (bot: Bot) => Promise<void>;
 	isAdding: boolean;
 	addError: string | null;
 	clearAddError: () => void;
@@ -98,6 +99,50 @@ export function useSpaceBots(spaceId: string | undefined): UseSpaceBotsResult {
 		[issue, spaceId],
 	);
 
+	const retryBot = useCallback(
+		async (bot: Bot) => {
+			if (!spaceId) {
+				const message = "No space is selected; cannot retry capability.";
+				setAddError(message);
+				throw new Error(message);
+			}
+			setAddError(null);
+			// Re-run the same mutation with the bot's original peerId and alias.
+			// `expiresAt = 0` is the "no expiry" sentinel — retries always drop
+			// the expiry so the operator doesn't accidentally issue a capability
+			// that immediately re-expires. The storage upsert resets the row to
+			// `pending` and the Rust-side `update_status WHERE status = 'pending'`
+			// gating ensures stale events from the prior attempt become no-ops.
+			//
+			// Look up the underlying daemon row by peerId so we send the
+			// *original* alias — not the UI fallback `bot-<suffix>` that
+			// `toBot` synthesises when the stored alias is null/empty. Without
+			// this lookup, retry would promote the fallback to a permanent
+			// alias in the capability store.
+			const originalRow = (listQuery.data ?? []).find(
+				(row) => row.peerId === bot.peerId,
+			);
+			const sourceAlias = originalRow
+				? (originalRow.alias ?? "")
+				: bot.alias;
+			const alias = sourceAlias.trim() ? sourceAlias.trim() : null;
+			try {
+				await issue.mutateAsync({
+					spaceId,
+					targetPeerId: bot.peerId,
+					expiresAt: 0,
+					alias,
+				});
+			} catch (error) {
+				const message =
+					error instanceof Error ? error.message : String(error);
+				setAddError(message);
+				throw error;
+			}
+		},
+		[issue, listQuery.data, spaceId],
+	);
+
 	return {
 		bots,
 		isLoading: listQuery.isLoading || listQuery.isFetching,
@@ -107,6 +152,7 @@ export function useSpaceBots(spaceId: string | undefined): UseSpaceBotsResult {
 				: String(listQuery.error)
 			: null,
 		addBot,
+		retryBot,
 		isAdding: issue.isLoading,
 		addError,
 		clearAddError: () => setAddError(null),
@@ -125,6 +171,12 @@ export function useSpaceBots(spaceId: string | undefined): UseSpaceBotsResult {
  *   server-side from `expires_at` on each `list_space_bots` call;
  *   `pending`/`failed` flow from the handshake protocol (foundation
  *   in this PR; transitions land in a follow-up).
+ * - `errorReason` — the daemon doesn't yet carry a structured reason
+ *   on the capability row, but the `BotList` `FailureRow` (and its
+ *   Retry button) only renders when this string is truthy. Synthesise
+ *   a generic message for failed rows so the operator can re-issue;
+ *   a real per-failure message lands when the handshake protocol
+ *   surfaces a reason on the row.
  *
  * Client-side safety net: if the Bots tab is open across an expiry
  * without any RTK cache invalidation, the snapshot we have here may
@@ -145,8 +197,17 @@ function toBot(bot: SpaceBot): Bot {
 		alias,
 		peerId,
 		status,
+		errorReason: status === "failed" ? GENERIC_FAILURE_REASON : undefined,
 	};
 }
+
+/**
+ * Generic fallback reason for failed handshake rows. The daemon-side
+ * capability row doesn't yet carry a structured reason — when the
+ * handshake protocol surfaces one (`PeerEvent::IssuerNackReceived`
+ * etc.), this branch swaps to that.
+ */
+const GENERIC_FAILURE_REASON = "Handshake did not complete.";
 
 function clientDerivedStatus(bot: SpaceBot): BotStatus {
 	// `expiresAt` is daemon-side epoch seconds (matches the existing
