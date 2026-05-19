@@ -54,12 +54,19 @@ pub struct SpaceMemberRecord {
 /// in Space Settings reads this directly; `alias` is the human label
 /// the operator typed into the Add form, persisted alongside the
 /// issuer capability.
+///
+/// `status` is derived at read time:
+///   - `"expired"` — `expires_at != 0` and the wall clock has passed it
+///   - `"pending"` / `"active"` / `"failed"` — whatever the storage row
+///     carries (today every row writes `"active"`; `pending`/`failed`
+///     flow in once the handshake protocol lands)
 #[derive(Debug, Clone)]
 pub struct SpaceBotRecord {
     pub space_id: String,
     pub peer_id: String,
     pub expires_at: i64,
     pub alias: Option<String>,
+    pub status: String,
 }
 
 #[derive(Debug, Clone)]

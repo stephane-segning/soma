@@ -17,6 +17,11 @@ pub struct IssuerCapability {
     /// purely for UI display + future `@bot:<alias>` mention resolution.
     /// Authz still keys on `(space_id, delegate_peer_id)`.
     pub alias: Option<String>,
+    /// Persistent status of the delegation. Today only `"active"` is
+    /// written on issuance; `"pending"` / `"failed"` flow in once the
+    /// handshake protocol lands. The `expired` state is derived from
+    /// `expires_at` at read time and never stored.
+    pub status: String,
 }
 
 #[async_trait]
@@ -52,15 +57,16 @@ impl IssuerRepository for SqlIssuerRepository {
         sqlx::query(
             r#"
             INSERT INTO issuer_capabilities (
-                space_id, issuer_peer_id, delegate_peer_id, issued_at, expires_at, capability, alias
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+                space_id, issuer_peer_id, delegate_peer_id, issued_at, expires_at, capability, alias, status
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             ON CONFLICT(space_id, delegate_peer_id)
             DO UPDATE SET
                 issuer_peer_id = excluded.issuer_peer_id,
                 issued_at = excluded.issued_at,
                 expires_at = excluded.expires_at,
                 capability = excluded.capability,
-                alias = excluded.alias
+                alias = excluded.alias,
+                status = excluded.status
             "#,
         )
         .bind(&cap.space_id)
@@ -70,6 +76,7 @@ impl IssuerRepository for SqlIssuerRepository {
         .bind(cap.expires_at)
         .bind(&cap.capability)
         .bind(&cap.alias)
+        .bind(&cap.status)
         .execute(&self.pool)
         .await
         .map_err(Error::service)?;
@@ -84,7 +91,7 @@ impl IssuerRepository for SqlIssuerRepository {
     ) -> SomaResult<Option<IssuerCapability>> {
         let row = sqlx::query(
             r#"
-            SELECT space_id, issuer_peer_id, delegate_peer_id, issued_at, expires_at, capability, alias
+            SELECT space_id, issuer_peer_id, delegate_peer_id, issued_at, expires_at, capability, alias, status
             FROM issuer_capabilities
             WHERE space_id = $1 AND delegate_peer_id = $2
             "#,
@@ -101,7 +108,7 @@ impl IssuerRepository for SqlIssuerRepository {
     async fn list_by_space(&self, space_id: &str) -> SomaResult<Vec<IssuerCapability>> {
         let rows = sqlx::query(
             r#"
-            SELECT space_id, issuer_peer_id, delegate_peer_id, issued_at, expires_at, capability, alias
+            SELECT space_id, issuer_peer_id, delegate_peer_id, issued_at, expires_at, capability, alias, status
             FROM issuer_capabilities
             WHERE space_id = $1
             ORDER BY issued_at DESC
@@ -155,6 +162,7 @@ fn map_row(row: sqlx::any::AnyRow) -> IssuerCapability {
         expires_at: row.get("expires_at"),
         capability: row.get("capability"),
         alias: row.get("alias"),
+        status: row.get("status"),
     }
 }
 

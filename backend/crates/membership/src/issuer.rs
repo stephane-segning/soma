@@ -58,6 +58,11 @@ pub async fn issue_issuer_capability_to_storage(
             expires_at: expires_at_secs,
             capability: Some(issuer_cap.encode_to_vec()),
             alias,
+            // Today every issuance lands as `active`. Once the
+            // libp2p handshake protocol lands, new issuances will
+            // write `pending` here and flip to `active` only when
+            // the delegate ACKs.
+            status: "active".to_string(),
         })
         .await?;
 

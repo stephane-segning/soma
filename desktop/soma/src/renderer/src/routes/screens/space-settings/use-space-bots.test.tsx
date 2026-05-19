@@ -3,13 +3,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mutateAsync = vi.fn();
 const isLoading = { value: false };
+type FakeBotRow = {
+	spaceId: string;
+	peerId: string;
+	expiresAt: number;
+	alias: string | null;
+	status: "pending" | "active" | "failed" | "expired";
+};
+
 const listQueryState: {
-	data: Array<{
-		spaceId: string;
-		peerId: string;
-		expiresAt: number;
-		alias: string | null;
-	}>;
+	data: FakeBotRow[];
 	isLoading: boolean;
 	isFetching: boolean;
 	error: unknown;
@@ -59,6 +62,7 @@ describe("useSpaceBots list view", () => {
 				peerId: "12D3KooWAbcdef",
 				expiresAt: 0,
 				alias: "scribe",
+				status: "active",
 			},
 		];
 
@@ -81,12 +85,14 @@ describe("useSpaceBots list view", () => {
 				peerId: "12D3KooWAbcdef",
 				expiresAt: 0,
 				alias: null,
+				status: "active",
 			},
 			{
 				spaceId: "space_1",
 				peerId: "12D3KooWzZ1234",
 				expiresAt: 0,
 				alias: "   ", // whitespace-only counts as missing
+				status: "active",
 			},
 		];
 
@@ -105,6 +111,40 @@ describe("useSpaceBots list view", () => {
 				peerId: "12D3KooWzZ1234",
 				status: "active",
 			},
+		]);
+	});
+
+	it("forwards daemon-side status states (expired/pending/failed) to the @soma/ui Bot rows", () => {
+		listQueryState.data = [
+			{
+				spaceId: "space_1",
+				peerId: "12D3KooWExpiredBot",
+				expiresAt: 1,
+				alias: "stale",
+				status: "expired",
+			},
+			{
+				spaceId: "space_1",
+				peerId: "12D3KooWPendingBot",
+				expiresAt: 0,
+				alias: "handshaking",
+				status: "pending",
+			},
+			{
+				spaceId: "space_1",
+				peerId: "12D3KooWFailedBot",
+				expiresAt: 0,
+				alias: "rejected",
+				status: "failed",
+			},
+		];
+
+		const { result } = renderHook(() => useSpaceBots("space_1"));
+
+		expect(result.current.bots.map((b) => b.status)).toEqual([
+			"expired",
+			"pending",
+			"failed",
 		]);
 	});
 

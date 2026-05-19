@@ -58,7 +58,13 @@ describe("spaces service", () => {
 
 	it("forwards listSpaceBots to the spaces_list_bots IPC channel and returns SpaceBot rows", async () => {
 		invoke.mockResolvedValue([
-			{ peerId: "12D3Koo1", expiresAt: 0, spaceId: "space_1", alias: "scribe" },
+			{
+				peerId: "12D3Koo1",
+				expiresAt: 0,
+				spaceId: "space_1",
+				alias: "scribe",
+				status: "active",
+			},
 		]);
 		const service = await import("./spaces-service");
 
@@ -66,7 +72,13 @@ describe("spaces service", () => {
 
 		expect(invoke).toHaveBeenCalledWith("spaces_list_bots", { spaceId: "space_1" });
 		expect(bots).toEqual([
-			{ peerId: "12D3Koo1", expiresAt: 0, spaceId: "space_1", alias: "scribe" },
+			{
+				peerId: "12D3Koo1",
+				expiresAt: 0,
+				spaceId: "space_1",
+				alias: "scribe",
+				status: "active",
+			},
 		]);
 	});
 

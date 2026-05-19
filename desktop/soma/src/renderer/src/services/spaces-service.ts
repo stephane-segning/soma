@@ -98,12 +98,22 @@ export async function listSpaceMembers(spaceId: string): Promise<SpaceMember[]> 
 	}).catch(() => []);
 }
 
+export type SpaceBotStatus = "pending" | "active" | "failed" | "expired";
+
 export type SpaceBot = {
 	spaceId: string;
 	peerId: string;
 	expiresAt: number;
 	/** Operator-typed alias from the Bots-tab Add form, or `null` if blank. */
 	alias: string | null;
+	/**
+	 * Current state of the delegation. `expired` is derived server-side
+	 * from `expires_at`; `pending`/`active`/`failed` flow from the
+	 * persistent state (today every issuance is recorded as `active` —
+	 * the handshake protocol that introduces `pending`/`failed`
+	 * transitions lands in a follow-up).
+	 */
+	status: SpaceBotStatus;
 };
 
 /**

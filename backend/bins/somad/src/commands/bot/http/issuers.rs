@@ -107,6 +107,9 @@ pub(super) async fn import_handler(
             capability: Some(bytes),
             // Imported capabilities carry no operator-typed alias.
             alias: None,
+            // Imports come in fully formed — treat as `active` (the
+            // caller asserts the capability is already valid).
+            status: "active".to_string(),
         })
         .await
         .map_err(internal_error("failed to import issuer capability"))?;

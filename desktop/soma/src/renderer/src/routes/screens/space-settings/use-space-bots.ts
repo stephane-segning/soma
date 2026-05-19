@@ -121,15 +121,16 @@ export function useSpaceBots(spaceId: string | undefined): UseSpaceBotsResult {
  *   the user left it blank (or the row predates the alias column),
  *   we fall back to `bot-<lowercased-last-6-of-peerId>` so the
  *   `@bot:<alias>` mention path always has something to anchor to.
- * - `status` is hard-coded `active` until the bot status event stream
- *   lands (cutover doc follow-up). `pending`/`failed` need daemon
- *   event plumbing analogous to `agent-events`.
+ * - `status` is forwarded from the daemon. `expired` is derived
+ *   server-side from `expires_at`; `pending`/`failed` flow from the
+ *   handshake protocol (foundation in this PR; transitions land in a
+ *   follow-up).
  */
 function toBot(bot: SpaceBot): Bot {
 	const peerId = bot.peerId;
 	const fallbackAliasSuffix = peerId.slice(-6).toLowerCase() || "bot";
 	const alias = bot.alias?.trim() ? bot.alias.trim() : `bot-${fallbackAliasSuffix}`;
-	const status: BotStatus = "active";
+	const status: BotStatus = bot.status;
 	return {
 		id: peerId,
 		alias,

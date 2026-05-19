@@ -50,11 +50,14 @@ export type StoredSpaceMember = {
 	expiresAt: number;
 };
 
+export type StoredBotStatus = "pending" | "active" | "failed" | "expired";
+
 export type StoredSpaceBot = {
 	spaceId: string;
 	peerId: string;
 	expiresAt: number;
 	alias: string | null;
+	status: StoredBotStatus;
 };
 
 export type JoinSpaceInput = {

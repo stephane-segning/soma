@@ -1,3 +1,5 @@
+use std::time::SystemTime;
+
 use soma_core::SomaResult;
 use soma_storage::membership::SpaceMembership;
 
@@ -5,15 +7,37 @@ use super::{DaemonHandle, types::{SpaceBotRecord, SpaceMemberRecord}};
 
 /// Map an `IssuerCapability` row onto `SpaceBotRecord`. `delegate_peer_id`
 /// is the bot; `expires_at: None` becomes `0` (the daemon's no-expiry
-/// sentinel, consistent with `to_member_record` below). `alias` flows
-/// straight through.
-fn issuer_to_bot_record(cap: soma_storage::issuer::IssuerCapability) -> SpaceBotRecord {
+/// sentinel). `alias` flows straight through.
+///
+/// `status` is derived: rows whose stored status is `"active"` and
+/// whose `expires_at` has passed wall-clock-now are reported as
+/// `"expired"` instead. Other states (`pending`, `failed`) pass
+/// through unchanged so the renderer sees the persistent value the
+/// handshake protocol writes.
+fn issuer_to_bot_record(
+    cap: soma_storage::issuer::IssuerCapability,
+    now_secs: i64,
+) -> SpaceBotRecord {
+    let expires_at = cap.expires_at.unwrap_or_default();
+    let derived_status = if cap.status == "active" && expires_at != 0 && expires_at <= now_secs {
+        "expired".to_string()
+    } else {
+        cap.status
+    };
     SpaceBotRecord {
         space_id: cap.space_id,
         peer_id: cap.delegate_peer_id,
-        expires_at: cap.expires_at.unwrap_or_default(),
+        expires_at,
         alias: cap.alias,
+        status: derived_status,
     }
+}
+
+fn now_secs() -> i64 {
+    SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .map(|d| d.as_secs() as i64)
+        .unwrap_or_default()
 }
 
 impl DaemonHandle {
@@ -61,7 +85,11 @@ impl DaemonHandle {
             .issuer_repo()
             .list_by_space(space_id)
             .await?;
-        Ok(caps.into_iter().map(issuer_to_bot_record).collect())
+        let now = now_secs();
+        Ok(caps
+            .into_iter()
+            .map(|cap| issuer_to_bot_record(cap, now))
+            .collect())
     }
 }
 

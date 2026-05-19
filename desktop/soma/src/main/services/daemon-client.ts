@@ -399,13 +399,31 @@ function mapBot(bot: {
 	peerId: string;
 	expiresAt: number;
 	alias?: string | null;
+	status?: string | null;
 }): StoredSpaceBot {
 	return {
 		spaceId: bot.spaceId,
 		peerId: bot.peerId,
 		expiresAt: Number(bot.expiresAt ?? 0),
 		alias: bot.alias ?? null,
+		status: normaliseStatus(bot.status),
 	};
+}
+
+// The Rust daemon could in principle send any string for `status` (a
+// future state added without coordinating wire types). Anything outside
+// the known set falls back to `"active"` so the UI keeps rendering
+// usefully rather than dropping the row.
+function normaliseStatus(raw: string | null | undefined): StoredSpaceBot["status"] {
+	switch (raw) {
+		case "pending":
+		case "active":
+		case "failed":
+		case "expired":
+			return raw;
+		default:
+			return "active";
+	}
 }
 
 function mapPage(page: {
