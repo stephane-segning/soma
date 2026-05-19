@@ -94,13 +94,16 @@ pub struct DiscoveredSpaceJs {
 
 /// Bot-shaped wire record for `list_space_bots`. `alias` flows from the
 /// issuer-capability row; renderer hydrates `bot-<peerSuffix>` only if
-/// the user never typed one in the Add form.
+/// the user never typed one in the Add form. `status` is the persistent
+/// state with `expired` derived from `expires_at` at read time —
+/// renderer renders it as-is.
 #[napi(object)]
 pub struct SpaceBotJs {
     pub space_id: String,
     pub peer_id: String,
     pub expires_at: i64,
     pub alias: Option<String>,
+    pub status: String,
 }
 
 #[napi(object)]
@@ -949,6 +952,7 @@ fn bot_to_js(b: daemon_types::SpaceBotRecord) -> SpaceBotJs {
         peer_id: b.peer_id,
         expires_at: b.expires_at,
         alias: b.alias,
+        status: b.status,
     }
 }
 

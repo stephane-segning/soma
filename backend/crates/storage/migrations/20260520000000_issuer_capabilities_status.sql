@@ -1,0 +1,11 @@
+-- Status state machine for issued bot capabilities. Today every issuance
+-- is treated as immediately `active` (the handshake protocol that would
+-- flip new rows to `pending` until the delegate ACKs lands in a
+-- follow-up). Pre-migration rows are also `active` — they were issued
+-- under the prior model where reaching storage *was* the success
+-- condition.
+--
+-- The renderer also derives `expired` on read by comparing `expires_at`
+-- against the wall clock — that's a UI concern; the column here stores
+-- the persistent state only.
+ALTER TABLE issuer_capabilities ADD COLUMN status TEXT NOT NULL DEFAULT 'active';

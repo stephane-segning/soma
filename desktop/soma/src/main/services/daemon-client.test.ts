@@ -146,19 +146,21 @@ describe("DaemonClient.listSpaceBots", () => {
 		expect(listSpaceBots).not.toHaveBeenCalled();
 	});
 
-	it("forwards the spaceId to the napi handle and maps the result (incl. alias)", async () => {
+	it("forwards the spaceId to the napi handle and maps the result (incl. alias + status)", async () => {
 		listSpaceBots.mockResolvedValue([
 			{
 				spaceId: "space_1",
 				peerId: "12D3KooWBot1",
 				expiresAt: 0,
 				alias: "scribe",
+				status: "active",
 			},
 			{
 				spaceId: "space_1",
 				peerId: "12D3KooWBot2",
 				expiresAt: 1_700_000_000,
 				alias: null,
+				status: "expired",
 			},
 		]);
 
@@ -172,14 +174,42 @@ describe("DaemonClient.listSpaceBots", () => {
 				peerId: "12D3KooWBot1",
 				expiresAt: 0,
 				alias: "scribe",
+				status: "active",
 			},
 			{
 				spaceId: "space_1",
 				peerId: "12D3KooWBot2",
 				expiresAt: 1_700_000_000,
 				alias: null,
+				status: "expired",
 			},
 		]);
+	});
+
+	it("normalises unknown status strings from the wire to 'active'", async () => {
+		listSpaceBots.mockResolvedValue([
+			{
+				spaceId: "space_1",
+				peerId: "12D3KooWPeer",
+				expiresAt: 0,
+				alias: null,
+				status: "mystery-future-state",
+			},
+		]);
+
+		const client = makeClient();
+		const [bot] = await client.listSpaceBots("space_1");
+		expect(bot.status).toBe("active");
+	});
+
+	it("defaults to 'active' when the napi row lacks a status field (defensive against forward/backward skew)", async () => {
+		listSpaceBots.mockResolvedValue([
+			{ spaceId: "space_1", peerId: "12D3KooWPeer", expiresAt: 0 },
+		] as unknown as never);
+
+		const client = makeClient();
+		const [bot] = await client.listSpaceBots("space_1");
+		expect(bot.status).toBe("active");
 	});
 
 	it("coerces missing alias on the wire to null", async () => {

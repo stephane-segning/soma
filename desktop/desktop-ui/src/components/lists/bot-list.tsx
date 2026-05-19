@@ -21,7 +21,7 @@ import { DenseRow } from "./dense-row";
 import { Empty } from "../primitives/empty";
 import { Pill } from "../primitives/pill";
 
-export type BotStatus = "pending" | "active" | "failed";
+export type BotStatus = "pending" | "active" | "failed" | "expired";
 
 export type Bot = {
 	id: string;
@@ -208,6 +208,16 @@ function StatusPill({ status }: { status: BotStatus }) {
 				{t({
 					id: "bot-list.status.active",
 					defaultMessage: "Active",
+				})}
+			</Pill>
+		);
+	}
+	if (status === "expired") {
+		return (
+			<Pill dot tone="warning">
+				{t({
+					id: "bot-list.status.expired",
+					defaultMessage: "Expired",
 				})}
 			</Pill>
 		);

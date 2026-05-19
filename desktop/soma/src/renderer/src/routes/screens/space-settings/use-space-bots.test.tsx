@@ -3,13 +3,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mutateAsync = vi.fn();
 const isLoading = { value: false };
+type FakeBotRow = {
+	spaceId: string;
+	peerId: string;
+	expiresAt: number;
+	alias: string | null;
+	status: "pending" | "active" | "failed" | "expired";
+};
+
 const listQueryState: {
-	data: Array<{
-		spaceId: string;
-		peerId: string;
-		expiresAt: number;
-		alias: string | null;
-	}>;
+	data: FakeBotRow[];
 	isLoading: boolean;
 	isFetching: boolean;
 	error: unknown;
@@ -59,6 +62,7 @@ describe("useSpaceBots list view", () => {
 				peerId: "12D3KooWAbcdef",
 				expiresAt: 0,
 				alias: "scribe",
+				status: "active",
 			},
 		];
 
@@ -81,12 +85,14 @@ describe("useSpaceBots list view", () => {
 				peerId: "12D3KooWAbcdef",
 				expiresAt: 0,
 				alias: null,
+				status: "active",
 			},
 			{
 				spaceId: "space_1",
 				peerId: "12D3KooWzZ1234",
 				expiresAt: 0,
 				alias: "   ", // whitespace-only counts as missing
+				status: "active",
 			},
 		];
 
@@ -105,6 +111,115 @@ describe("useSpaceBots list view", () => {
 				peerId: "12D3KooWzZ1234",
 				status: "active",
 			},
+		]);
+	});
+
+	it("client-side override flips stale 'active' rows to 'expired' when the wall clock has moved past expiresAt", () => {
+		// Snapshot in RTK still says `active` (Bots tab opened before the
+		// 60-second TTL elapsed). 5 seconds ago in epoch seconds:
+		const fiveSecondsAgo = Math.floor((Date.now() - 5_000) / 1000);
+		listQueryState.data = [
+			{
+				spaceId: "space_1",
+				peerId: "12D3KooWStaleBot",
+				expiresAt: fiveSecondsAgo,
+				alias: "stale",
+				status: "active",
+			},
+		];
+
+		const { result } = renderHook(() => useSpaceBots("space_1"));
+		expect(result.current.bots[0].status).toBe("expired");
+	});
+
+	it("client-side override is a no-op for active bots with future expiry", () => {
+		const oneHourFromNow = Math.floor((Date.now() + 60 * 60 * 1000) / 1000);
+		listQueryState.data = [
+			{
+				spaceId: "space_1",
+				peerId: "12D3KooWFreshBot",
+				expiresAt: oneHourFromNow,
+				alias: "fresh",
+				status: "active",
+			},
+		];
+
+		const { result } = renderHook(() => useSpaceBots("space_1"));
+		expect(result.current.bots[0].status).toBe("active");
+	});
+
+	it("client-side override is a no-op for the no-expiry sentinel (expiresAt=0)", () => {
+		listQueryState.data = [
+			{
+				spaceId: "space_1",
+				peerId: "12D3KooWPermBot",
+				expiresAt: 0,
+				alias: "permanent",
+				status: "active",
+			},
+		];
+
+		const { result } = renderHook(() => useSpaceBots("space_1"));
+		expect(result.current.bots[0].status).toBe("active");
+	});
+
+	it("client-side override does not touch pending or failed rows (the handshake protocol owns those)", () => {
+		const fiveSecondsAgo = Math.floor((Date.now() - 5_000) / 1000);
+		listQueryState.data = [
+			{
+				spaceId: "space_1",
+				peerId: "12D3KooWPendingBot",
+				expiresAt: fiveSecondsAgo,
+				alias: "handshaking",
+				status: "pending",
+			},
+			{
+				spaceId: "space_1",
+				peerId: "12D3KooWFailedBot",
+				expiresAt: fiveSecondsAgo,
+				alias: "rejected",
+				status: "failed",
+			},
+		];
+
+		const { result } = renderHook(() => useSpaceBots("space_1"));
+		expect(result.current.bots.map((b) => b.status)).toEqual([
+			"pending",
+			"failed",
+		]);
+	});
+
+	it("forwards daemon-side status states (expired/pending/failed) to the @soma/ui Bot rows", () => {
+		listQueryState.data = [
+			{
+				spaceId: "space_1",
+				peerId: "12D3KooWExpiredBot",
+				expiresAt: 1,
+				alias: "stale",
+				status: "expired",
+			},
+			{
+				spaceId: "space_1",
+				peerId: "12D3KooWPendingBot",
+				expiresAt: 0,
+				alias: "handshaking",
+				status: "pending",
+			},
+			{
+				spaceId: "space_1",
+				peerId: "12D3KooWFailedBot",
+				expiresAt: 0,
+				alias: "rejected",
+				status: "failed",
+			},
+		];
+
+		const { result } = renderHook(() => useSpaceBots("space_1"));
+
+		expect(result.current.bots.map((b) => b.status)).toEqual([
+			"expired",
+			"pending",
+			"failed",
 		]);
 	});
 

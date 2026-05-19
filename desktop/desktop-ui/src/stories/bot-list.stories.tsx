@@ -34,6 +34,13 @@ const BOTS: Bot[] = [
 			"Signature rejected: issuer capability expired (2026-04-12). Re-issue from the owner peer to retry.",
 		lastAcked: "5m ago",
 	},
+	{
+		id: "bot-4",
+		alias: "annotator",
+		peerId: "12D3KooWqqqqqqqqRrSsTtUuVvWwXxYyZzAaBb",
+		status: "expired",
+		lastAcked: "yesterday",
+	},
 ];
 
 export const Default: Story = {
