@@ -3,7 +3,6 @@ import {
 	autoUpdate,
 	flip,
 	FloatingPortal,
-	hide,
 	offset,
 	shift,
 	useFloating,
@@ -12,7 +11,7 @@ import {
 import { SlashMenu, type SlashMenuItem } from "@soma/ui/components/editor/slash-menu";
 import type { Range } from "@tiptap/core";
 import type { SuggestionProps } from "@tiptap/suggestion";
-import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { useLayoutEffect, useMemo, useRef } from "react";
 import { getEditorDom } from "./dom";
 import type { EditorCommand } from "./types";
 
@@ -46,39 +45,29 @@ export function CommandList({
 	const arrowRef = useRef<HTMLDivElement | null>(null);
 	const { refs, floatingStyles, middlewareData, placement, update } = useFloating({
 		placement: "bottom-start",
-		middleware: [
-			offset(8),
-			flip(),
-			shift({ padding: 8 }),
-			arrow({ element: arrowRef }),
-			// `hide()` exposes `referenceHidden: true` once the caret rect is
-			// clipped by its scroll container or scrolled off-screen. We
-			// listen for that in the effect below and dismiss the menu, so a
-			// user who types `/` then scrolls the page doesn't end up with a
-			// stale menu floating over unrelated content.
-			hide({ strategy: "referenceHidden" }),
-		],
+		middleware: [offset(8), flip(), shift({ padding: 8 }), arrow({ element: arrowRef })],
 		whileElementsMounted: autoUpdate,
 		strategy: "fixed",
 	});
 
 	useLayoutEffect(() => {
-		const rect = props.clientRect?.() ?? null;
+		const clientRect = props.clientRect;
 		const contextElement = getEditorDom(props.editor);
-		if (!rect || !contextElement) return;
-		const virtualEl: VirtualElement = { getBoundingClientRect: () => rect, contextElement };
+		if (!clientRect || !contextElement) return;
+		// IMPORTANT: read `clientRect()` *inside* `getBoundingClientRect`
+		// rather than once at effect time. autoUpdate fires this getter on
+		// every scroll/resize, and Tiptap's suggestion plugin keeps the
+		// caller's `clientRect` callback in sync with the trigger's
+		// position — so reading fresh each call makes the menu follow the
+		// `/` character through page scroll instead of sticking at the
+		// position it had when it opened.
+		const virtualEl: VirtualElement = {
+			getBoundingClientRect: () => clientRect() ?? new DOMRect(),
+			contextElement,
+		};
 		refs.setPositionReference(virtualEl);
 		update();
 	}, [props.clientRect, props.editor, refs, update]);
-
-	// Close the menu when the trigger character ("/") scrolls out of
-	// view. `hide()` flips `referenceHidden` true when the reference
-	// rect is clipped; `autoUpdate` already ensures the floating
-	// position follows scroll, so this just adds the dismissal contract.
-	const referenceHidden = middlewareData.hide?.referenceHidden ?? false;
-	useEffect(() => {
-		if (referenceHidden) onDismiss();
-	}, [referenceHidden, onDismiss]);
 
 	const slashItems = useMemo<SlashMenuItem[]>(
 		() =>

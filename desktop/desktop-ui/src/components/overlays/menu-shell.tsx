@@ -73,8 +73,14 @@ export const MenuItem = forwardRef<HTMLButtonElement, MenuItemProps>(function Me
 			type="button"
 			disabled={disabled}
 			aria-selected={active || undefined}
+			// No transition on hover/active state. A 150ms colour fade on each
+			// row reads as the row "growing in" when the user moves the
+			// mouse over a menu — bg-color animating from transparent →
+			// base-200 across a sequence of hovered items looks like a wave
+			// of scaling. Snap the highlight instantly instead; the cursor
+			// motion itself supplies all the feedback we need.
 			className={cn(
-				"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-ui-sm transition-colors",
+				"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-ui-sm",
 				disabled && "cursor-not-allowed opacity-50",
 				!disabled && active && !isDanger && "bg-base-200 text-base-content",
 				!disabled && active && isDanger && "bg-error text-error-content",

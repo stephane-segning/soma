@@ -39,6 +39,16 @@ export type PanelContainerProps = {
 	collapsedIds?: ReadonlySet<string> | readonly string[];
 	onToggleCollapse?: (id: string) => void;
 	onClosePanel?: (id: string) => void;
+	/**
+	 * Maximum number of expanded panels rendered at once. Defaults to 2.
+	 * Extra panels past the cap render as if collapsed (their icons
+	 * appear in the strip) so the visible stack always fills the
+	 * available height cleanly — 1 panel = full height, 2 panels =
+	 * 50/50. Callers that want a different policy (e.g. evict the
+	 * focused panel when opening a third) can listen on
+	 * `onToggleCollapse` and rearrange `collapsedIds` themselves.
+	 */
+	maxExpanded?: number;
 	className?: string;
 };
 
@@ -47,6 +57,7 @@ export function PanelContainer({
 	collapsedIds,
 	onToggleCollapse,
 	onClosePanel,
+	maxExpanded = 2,
 	className,
 }: PanelContainerProps) {
 	const t = useT();
@@ -55,8 +66,19 @@ export function PanelContainer({
 			? collapsedIds
 			: new Set<string>(collapsedIds ?? []);
 
-	const expanded = panels.filter((panel) => !collapsedSet.has(panel.id));
-	const collapsed = panels.filter((panel) => collapsedSet.has(panel.id));
+	// Split panels into expanded / collapsed, then clamp the expanded
+	// list to `maxExpanded`. Anything past the cap visually joins the
+	// collapsed strip — without us mutating `collapsedIds`, since this
+	// component is presentational and shouldn't fight the caller's
+	// state. If the caller wants to be smart about which panel evicts
+	// which, they update collapsedIds before re-rendering us.
+	const allExpanded = panels.filter((panel) => !collapsedSet.has(panel.id));
+	const expanded = allExpanded.slice(0, maxExpanded);
+	const overflow = allExpanded.slice(maxExpanded);
+	const collapsed = [
+		...panels.filter((panel) => collapsedSet.has(panel.id)),
+		...overflow,
+	];
 
 	return (
 		<div
@@ -69,12 +91,15 @@ export function PanelContainer({
 			{/* Expanded panels render as a column of floating cards. When no
 			    panel is expanded we drop the whole left area so the right
 			    rail (collapsed strip) sits flush against the editor — no
-			    empty placeholder taking up space. */}
+			    empty placeholder taking up space. Each card uses `flex-1`
+			    so the stack always fills the available height: 1 panel
+			    takes 100%, 2 panels split 50/50. */}
 			{expanded.length > 0 ? (
-				<div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-2">
+				<div className="flex min-h-0 flex-1 flex-col gap-2 p-2">
 					{expanded.map((panel) => (
 						<Panel
 							actions={panel.actions}
+							className="min-h-0 flex-1"
 							footer={panel.footer}
 							key={panel.id}
 							onClose={

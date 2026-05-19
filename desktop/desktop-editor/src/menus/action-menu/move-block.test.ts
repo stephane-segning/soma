@@ -52,7 +52,7 @@ function makeEditor(textBlocks: string[]): { editor: Editor; getDoc: () => strin
 
 function blockStartPos(editor: Editor, index: number): number {
 	let pos = 0;
-	editor.state.doc.forEach((node, offset, i) => {
+	editor.state.doc.forEach((_node, offset, i) => {
 		if (i === index) pos = offset;
 	});
 	return pos;

@@ -148,7 +148,10 @@ export function BackendSwitcher({
 									<button
 										aria-selected={isActive}
 										className={cn(
-											"flex w-full items-start gap-2 rounded-md px-2 py-1.5 text-left text-ui-sm transition-colors",
+											// No `transition-colors` — see MenuItem for context.
+											// Animating the row bg on hover/focus reads as the
+											// row "growing in" as the user mouses through the list.
+											"flex w-full items-start gap-2 rounded-md px-2 py-1.5 text-left text-ui-sm",
 											isActive
 												? "bg-primary/10 text-base-content"
 												: isFocused

@@ -36,20 +36,26 @@ export type PillProps = {
 	"aria-label"?: string;
 };
 
-const toneSurface: Record<PillTone, string> = {
-	neutral: "bg-base-200 text-base-content/80 border-base-300",
-	info: "bg-info/10 text-info border-info/30",
-	success: "bg-success/10 text-success border-success/30",
-	warning: "bg-warning/15 text-warning border-warning/40",
-	error: "bg-error/10 text-error border-error/40",
+// Map our semantic tones onto daisyUI's badge tones. `neutral` reuses
+// daisyUI's default badge (no tone modifier) so it picks up the theme's
+// neutral palette rather than a hand-rolled bg/border combo.
+const toneBadgeClass: Record<PillTone, string> = {
+	neutral: "badge-ghost",
+	info: "badge-info",
+	success: "badge-success",
+	warning: "badge-warning",
+	error: "badge-error",
 };
 
+// Dot colour — slightly darker than the badge background so the dot
+// reads as a status indicator, not a background blob. daisyUI provides
+// `--color-*` tokens we can lean on.
 const toneDot: Record<PillTone, string> = {
-	neutral: "bg-base-content/60",
-	info: "bg-info",
-	success: "bg-success",
-	warning: "bg-warning",
-	error: "bg-error",
+	neutral: "bg-base-content/70",
+	info: "bg-info-content",
+	success: "bg-success-content",
+	warning: "bg-warning-content",
+	error: "bg-error-content",
 };
 
 export function Pill({
@@ -62,13 +68,12 @@ export function Pill({
 	return (
 		<span
 			className={cn(
-				// Pills sit in the same visual family as the rest of the @soma/ui
-				// primitives: rounded-md radius (matches MenuItem rows and the
-				// `surface-card` utility), `text-ui-xs` size, soft border. They
-				// stay smaller than buttons by using xs padding and lighter font
-				// weight — the role is "chip", not "action".
-				"inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-ui-xs font-medium",
-				toneSurface[tone],
+				// Lean on daisyUI's `.badge` primitive for the surface,
+				// `.badge-sm` for the smaller chip footprint, and the tone
+				// modifier picked above. We add `gap-1.5` for the dot spacing
+				// since daisyUI's default gap is tighter than we want.
+				"badge badge-sm gap-1.5",
+				toneBadgeClass[tone],
 				className,
 			)}
 			{...rest}
