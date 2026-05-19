@@ -348,7 +348,16 @@ export class DaemonClient {
 		// `daemon::handle::issuer::issue_issuer_capability` — it builds
 		// `SystemTime::now().as_secs()` and compares against the value).
 		// JS callers stay in native epoch-ms; we convert here. `0` keeps
-		// the daemon's "no expiry" path.
+		// the daemon's "Never" sentinel path.
+		//
+		// **Daemon-side policy ceiling**: `expiresAt = 0` ("Never") is
+		// translated by the daemon to `now + 180 days`
+		// (`MAX_ISSUER_CAPABILITY_LIFETIME_SECS = 15_552_000 s`). The
+		// daemon also rejects any explicit expiry that exceeds that ceiling
+		// with an "exceeds maximum issuer capability lifetime" error. The
+		// renderer may surface this ceiling to users near the "Never"
+		// toggle (e.g. "Expires in up to 180 days") — for now this is
+		// documented here; a UI hint is a follow-up.
 		const expiresAtSecs =
 			input.expiresAt === 0 ? 0 : Math.floor(input.expiresAt / 1000);
 		// Trim whitespace and drop empty aliases so the daemon never
