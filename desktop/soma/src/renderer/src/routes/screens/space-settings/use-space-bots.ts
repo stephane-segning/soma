@@ -11,21 +11,19 @@
  *  - **addBot** — calls `spaces_issue_issuer_capability` IPC →
  *    `DaemonClient.issueIssuerCapability` → napi
  *    `SomaHandle.issueIssuerCapability`. The form's `peerId`,
- *    `alias`, and `expiryDate` map onto `targetPeerId`, `alias`,
- *    and `expiresAt` (epoch-ms).
- *
- * Open follow-ups (per ui-revamp-v0-cutover-status):
- *  - **scopeIds** from the form are propagated end-to-end through
- *    storage → daemon → napi → IPC → RTK → this hook. Runtime
- *    enforcement landed: `membership::ensure_can_issue_membership`
- *    rejects capabilities whose non-empty scopes don't include
- *    `"issue:membership"`. Empty scopes remain unrestricted (backward
- *    compat). The only recognised v0 scope is `"issue:membership"`;
- *    the free-text form field accepts any string but only that value
- *    will be honoured by the daemon today.
- *  - **status** — there's no bot status event stream yet. Every
- *    listed bot is reported as `active`; a `pending`/`failed` split
- *    waits on daemon event plumbing.
+ *    `alias`, `scopeIds`, and `expiryDate` map onto `targetPeerId`,
+ *    `alias`, `scopes`, and `expiresAt` (epoch-ms).
+ *  - **status** — flows from the persistent column written on issuance
+ *    (`pending` initially) through the libp2p handshake protocol
+ *    (delegate ACK → `active`, timeout → `failed`); the renderer also
+ *    derives `expired` client-side as a safety net for long-open tabs.
+ *  - **scopes** — runtime enforcement in
+ *    `membership::ensure_can_issue_membership` rejects capabilities
+ *    whose non-empty scopes don't include `"issue:membership"`. Empty
+ *    scopes remain unrestricted (backward compat for pre-#92 rows).
+ *    The only recognised v0 scope is `"issue:membership"`; the
+ *    free-text form field accepts any string but only that value will
+ *    be honoured by the daemon today.
  */
 import { useIssueIssuerCapabilityMutation, useSpaceBotsQuery } from "@app/queries/spaces";
 import type { SpaceBot } from "@app/services/spaces-service";
