@@ -1,25 +1,33 @@
+import { resolve } from "node:path";
 import react from "@vitejs/plugin-react";
-import tsconfigPaths from "vite-tsconfig-paths";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
-	plugins: [tsconfigPaths(), react()],
+	plugins: [react()],
+	resolve: {
+		alias: {
+			"@soma/ui": resolve(__dirname, "src"),
+		},
+	},
 	test: {
 		environment: "jsdom",
+		globals: true,
 		setupFiles: ["./vitest.setup.ts"],
-		include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+		include: ["src/**/*.{test,spec}.{ts,tsx}"],
+		css: false,
 		restoreMocks: true,
 		clearMocks: true,
 		coverage: {
 			provider: "v8",
 			reporter: ["text", "html", "lcov", "json-summary"],
 			reportsDirectory: "./coverage",
-			include: ["src/main/**/*.ts", "src/renderer/src/**/*.{ts,tsx}", "src/shared/**/*.ts"],
+			include: ["src/**/*.{ts,tsx}"],
 			exclude: [
+				"src/**/*.stories.{ts,tsx}",
 				"src/**/*.test.{ts,tsx}",
 				"src/**/*.d.ts",
-				"src/renderer/src/vite-env.d.ts",
-				"src/renderer/src/main.tsx",
+				"src/types.ts",
+				"src/vite-env.d.ts",
 			],
 		},
 	},

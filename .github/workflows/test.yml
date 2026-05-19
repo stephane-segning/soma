@@ -1,0 +1,102 @@
+name: Test (unit + coverage + UI E2E)
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    name: Unit tests + coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.0.0
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install workspace deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Run @soma/ui vitest with coverage
+        run: pnpm --filter @soma/ui run test:coverage
+
+      - name: Upload @soma/ui coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-soma-ui
+          path: desktop/desktop-ui/coverage
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Run soma renderer vitest with coverage
+        run: pnpm --filter soma run test:coverage
+
+      - name: Upload soma coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-soma
+          path: desktop/soma/coverage
+          if-no-files-found: ignore
+          retention-days: 14
+
+  e2e:
+    name: UI E2E (Cucumber × Playwright)
+    runs-on: ubuntu-latest
+    needs: unit
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.0.0
+          run_install: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install workspace deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Storybook (the same artifact we publish to gh-pages/storybook)
+        run: pnpm --filter @soma/ui run build:storybook -- --output-dir storybook-static
+
+      - name: Install Playwright browsers
+        run: pnpm --filter @soma/e2e exec playwright install --with-deps chromium
+
+      - name: Serve Storybook + run BDD features
+        env:
+          E2E_BASE_URL: http://127.0.0.1:6006
+        run: |
+          npx --yes http-server desktop/desktop-ui/storybook-static -p 6006 -s &
+          SERVER_PID=$!
+          npx --yes wait-on http://127.0.0.1:6006
+          pnpm --filter @soma/e2e run test
+          kill $SERVER_PID || true
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: desktop/desktop-e2e/playwright-report
+          if-no-files-found: ignore
+          retention-days: 14

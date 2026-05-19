@@ -12,6 +12,9 @@
 		"build": "pnpm run clean && pnpm run build:css",
 		"build:css": "postcss src/styles.css -o dist/styles.css",
 		"build:storybook": "storybook build",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"test:coverage": "vitest run --coverage",
 		"typecheck": "tsc --noEmit",
 		"format": "biome format --write .",
 		"lint": "biome check --write ."
@@ -53,10 +56,16 @@
 		"@storybook/react-vite": "~8",
 		"@tailwindcss/postcss": "^4.1.18",
 		"@tailwindcss/typography": "^0.5.19",
+		"@testing-library/jest-dom": "^6.6.4",
+		"@testing-library/react": "^16.1.0",
+		"@testing-library/user-event": "^14.5.2",
 		"@types/node": "^25.1.0",
 		"@types/react": "^19.2.10",
 		"@types/react-dom": "^19.2.3",
+		"@vitejs/plugin-react": "^5.1.2",
+		"@vitest/coverage-v8": "^4.1.6",
 		"cssnano": "^7.1.2",
+		"jsdom": "^26.0.0",
 		"postcss": "^8.5.6",
 		"postcss-cli": "^11.0.1",
 		"react": "^19.2.4",
@@ -67,7 +76,8 @@
 		"tailwind-scrollbar": "^4.0.2",
 		"tailwindcss": "^4.1.18",
 		"typescript": "~5.9.3",
-		"vite": "^7.3.1"
+		"vite": "^7.3.1",
+		"vitest": "^4.1.6"
 	},
 	"exports": {
 		"./types": "./src/types.ts",
