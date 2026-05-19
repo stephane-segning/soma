@@ -46,13 +46,11 @@ impl DaemonHandle {
     /// reading from `issuer_repo` keeps the list view in sync with the
     /// add flow.
     ///
-    /// The capability record schema doesn't yet store bot metadata
-    /// (alias, scopes, status) — that's a follow-up tracked in the
-    /// cutover status doc. Until then, the renderer hydrates aliases
-    /// from the peer-id (UI-side concern) and treats every listed bot
-    /// as `active`. The wire shape (`SpaceMemberRecord`) stays identical
-    /// to `list_space_members` so the renderer can share the same
-    /// `mapMember` helper across both queries.
+    /// Returns `SpaceBotRecord` — a bot-specific shape with `alias`
+    /// (operator-typed label, nullable for legacy rows). `scopes` and
+    /// `status` are still pending capability-schema follow-ups
+    /// (cutover-status doc); until they land, the renderer hard-codes
+    /// `status = "active"`.
     pub async fn list_space_bots(
         &self,
         space_id: &str,
