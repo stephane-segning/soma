@@ -31,6 +31,14 @@ pub(super) async fn handle_issuer_offer_event(
                     .as_ref()
                     .map(|s| s.value.clone())
                     .unwrap_or_default();
+                // ACK first so the owner's pending → active transition
+                // isn't blocked on async handler work. The downstream
+                // event carries the capability so persistence runs in
+                // parallel; the small race window (handler hasn't
+                // landed the row when the owner marks active) is
+                // tolerable because the operator's recourse if the bot
+                // fails to use the cap is to re-issue, which is the
+                // same recourse for any handshake failure.
                 let _ = state
                     .swarm
                     .behaviour_mut()
@@ -39,6 +47,7 @@ pub(super) async fn handle_issuer_offer_event(
                 let _ = state.event_tx.try_send(PeerEvent::IssuerOfferReceived {
                     from: peer,
                     space_id,
+                    capability: request,
                 });
             }
             reqres::Message::Response { request_id, .. } => {

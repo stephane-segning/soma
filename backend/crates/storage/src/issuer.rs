@@ -139,11 +139,16 @@ impl IssuerRepository for SqlIssuerRepository {
         delegate_peer_id: &str,
         status: &str,
     ) -> SomaResult<u64> {
+        // Gate the transition on `status = 'pending'` so a late-arriving
+        // ack/failed event from a superseded issuance attempt can't
+        // overwrite the state of a newer one. Re-issuing a bot is an
+        // `upsert` that resets the row to `pending`, which is the only
+        // state this transition is valid against.
         let res = sqlx::query(
             r#"
             UPDATE issuer_capabilities
             SET status = $3
-            WHERE space_id = $1 AND delegate_peer_id = $2
+            WHERE space_id = $1 AND delegate_peer_id = $2 AND status = 'pending'
             "#,
         )
         .bind(space_id)

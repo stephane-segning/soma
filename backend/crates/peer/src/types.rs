@@ -148,11 +148,14 @@ pub enum PeerEvent {
         space_id: String,
         error: String,
     },
-    /// Delegate-side: an issuer offer arrived for this peer. Logged for
-    /// observability; the codec layer already auto-ACKs.
+    /// Delegate-side: an issuer offer arrived for this peer. The codec
+    /// layer auto-ACKs; downstream handlers persist the signed
+    /// capability so the bot can use it later (e.g. to auto-approve
+    /// join requests via the membership crate's `load_issuer_capability`).
     IssuerOfferReceived {
         from: PeerId,
         space_id: String,
+        capability: space::IssuerCapability,
     },
     /// Emitted when a blob tied to Yoopta content is stored locally.
     YooptaBlobAdded {
