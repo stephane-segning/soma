@@ -56,6 +56,32 @@ describe("spaces service", () => {
 		});
 	});
 
+	it("forwards listSpaceBots to the spaces_list_bots IPC channel", async () => {
+		invoke.mockResolvedValue([
+			{ peerId: "12D3Koo1", role: "bot", expiresAt: 0, spaceId: "space_1" },
+		]);
+		const service = await import("./spaces-service");
+
+		const bots = await service.listSpaceBots("space_1");
+
+		expect(invoke).toHaveBeenCalledWith("spaces_list_bots", { spaceId: "space_1" });
+		expect(bots).toHaveLength(1);
+	});
+
+	it("returns an empty bot list when the spaceId is blank (no IPC call)", async () => {
+		const service = await import("./spaces-service");
+
+		await expect(service.listSpaceBots("")).resolves.toEqual([]);
+		expect(invoke).not.toHaveBeenCalled();
+	});
+
+	it("propagates IPC failures so the RTK Query wrapper can surface them as loadError", async () => {
+		invoke.mockRejectedValue(new Error("offline"));
+		const service = await import("./spaces-service");
+
+		await expect(service.listSpaceBots("space_1")).rejects.toThrow(/offline/);
+	});
+
 	it("passes 0 through as the daemon's no-expiry sentinel", async () => {
 		invoke.mockResolvedValue(true);
 		const service = await import("./spaces-service");

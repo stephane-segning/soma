@@ -20,6 +20,25 @@ export const accessApi = spacesApi.injectEndpoints({
 				},
 			],
 		}),
+		listSpaceBots: builder.query<SpaceMember[], string>({
+			queryFn: async (spaceId) => {
+				try {
+					const data = await spacesService.listSpaceBots(spaceId);
+					return { data };
+				} catch (error) {
+					return { error };
+				}
+			},
+			// Bot rows are members under the hood — share the `SpaceMembers`
+			// cache tag so capability issuance and member revocations both
+			// invalidate this query too.
+			providesTags: (_result, _error, spaceId) => [
+				{
+					type: "SpaceMembers",
+					id: spaceId,
+				},
+			],
+		}),
 		listMyMemberships: builder.query<SpaceMember[], void>({
 			queryFn: async () => {
 				try {

@@ -253,6 +253,13 @@ export class DaemonClient {
 		return (res ?? []).map((member) => mapMember(member));
 	}
 
+	async listSpaceBots(spaceId: string): Promise<StoredSpaceMember[]> {
+		if (!spaceId) return [];
+		const handle = await this.handle();
+		const res = await handle.listSpaceBots(spaceId);
+		return (res ?? []).map((member) => mapMember(member));
+	}
+
 	async listMyMemberships(): Promise<StoredSpaceMember[]> {
 		const handle = await this.handle();
 		const res = await handle.listMyMemberships();

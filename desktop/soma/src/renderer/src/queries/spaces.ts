@@ -9,6 +9,10 @@ const useSpaceMembersQuery = (spaceId: string) =>
 	api.useListSpaceMembersQuery(spaceId, {
 		skip: !spaceId,
 	});
+const useSpaceBotsQuery = (spaceId: string) =>
+	api.useListSpaceBotsQuery(spaceId, {
+		skip: !spaceId,
+	});
 const useMyMembershipsQuery = api.useListMyMembershipsQuery;
 const useJoinRequestsQuery = api.useListJoinRequestsQuery;
 
@@ -94,6 +98,7 @@ export {
 	useMyMembershipsQuery,
 	useRevokeMembershipMutation,
 	useSpaceQuery,
+	useSpaceBotsQuery,
 	useSpaceMembersQuery,
 	useSpacesQuery,
 };

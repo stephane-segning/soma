@@ -49,6 +49,10 @@ export class SpacesController {
 		return this.daemon.listSpaceMembers(spaceId);
 	}
 
+	listBots(spaceId: string): Promise<StoredSpaceMember[]> {
+		return this.daemon.listSpaceBots(spaceId);
+	}
+
 	listMyMemberships(): Promise<StoredSpaceMember[]> {
 		return this.daemon.listMyMemberships();
 	}

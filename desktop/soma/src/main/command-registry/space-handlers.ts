@@ -4,6 +4,7 @@ import type { CommandRegistryContext } from "./types";
 export function registerSpaceHandlers(ipc: IpcMain, context: CommandRegistryContext): void {
 	ipc.handle("spaces_list", (_event, params) => context.spaces.list(params));
 	ipc.handle("spaces_list_members", (_event, params) => context.spaces.listMembers(params?.spaceId ?? ""));
+	ipc.handle("spaces_list_bots", (_event, params) => context.spaces.listBots(params?.spaceId ?? ""));
 	ipc.handle("spaces_list_my_memberships", () => context.spaces.listMyMemberships());
 	ipc.handle("spaces_join", (_event, params) =>
 		context.spaces.join({

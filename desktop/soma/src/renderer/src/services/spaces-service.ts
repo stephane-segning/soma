@@ -98,6 +98,26 @@ export async function listSpaceMembers(spaceId: string): Promise<SpaceMember[]> 
 	}).catch(() => []);
 }
 
+/**
+ * Bot-only flavor of {@link listSpaceMembers}. Calls the daemon's
+ * `spaces_list_bots` IPC, which filters memberships server-side to
+ * `role === "bot"`.
+ *
+ * Unlike `listSpaceMembers`, this *does not* swallow IPC errors — the
+ * RTK Query wrapping this call in `accessApi.listSpaceBots` already
+ * catches rejection and routes it into `query.error`, which
+ * `useSpaceBots` then surfaces as `loadError`. Eating the error here
+ * would hide daemon-connectivity failures behind a permanent empty
+ * state, which is what the Bots tab is supposed to distinguish from a
+ * truly bot-less space.
+ */
+export async function listSpaceBots(spaceId: string): Promise<SpaceMember[]> {
+	if (!spaceId) return [];
+	return invoke<SpaceMember[]>("spaces_list_bots", {
+		spaceId,
+	});
+}
+
 export async function listMyMemberships(): Promise<SpaceMember[]> {
 	return invoke<SpaceMember[]>("spaces_list_my_memberships").catch(() => []);
 }
