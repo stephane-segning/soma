@@ -147,6 +147,10 @@ async fn persist_inbound_capability(
         // owner-signature for v0; the row lands as `active` so the
         // join-decider auto-approval path can find it immediately.
         status: bot_status::ACTIVE.to_string(),
+        // The proto `IssuerCapability` does not carry scopes — they are an
+        // operator-typed UI concept that only flows through the desktop's
+        // Bots-tab add form. Persist empty on the delegate side.
+        scopes: Vec::new(),
     };
 
     if let Err(err) = ctx.repos.issuer_repo().upsert(&row).await {

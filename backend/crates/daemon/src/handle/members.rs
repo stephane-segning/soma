@@ -8,7 +8,7 @@ use super::{DaemonHandle, types::{SpaceBotRecord, SpaceMemberRecord}};
 
 /// Map an `IssuerCapability` row onto `SpaceBotRecord`. `delegate_peer_id`
 /// is the bot; `expires_at: None` becomes `0` (the daemon's no-expiry
-/// sentinel). `alias` flows straight through.
+/// sentinel). `alias` and `scopes` flow straight through.
 ///
 /// `status` is derived: rows whose stored status is `"active"` and
 /// whose `expires_at` has passed wall-clock-now are reported as
@@ -32,6 +32,7 @@ fn issuer_to_bot_record(
         expires_at,
         alias: cap.alias,
         status: derived_status,
+        scopes: cap.scopes,
     }
 }
 
@@ -73,10 +74,12 @@ impl DaemonHandle {
     /// add flow.
     ///
     /// Returns `SpaceBotRecord` — a bot-specific shape with `alias`
-    /// (operator-typed label, nullable for legacy rows). `scopes` and
-    /// `status` are still pending capability-schema follow-ups
-    /// (cutover-status doc); until they land, the renderer hard-codes
-    /// `status = "active"`.
+    /// (operator-typed label, nullable for legacy rows) and `scopes`
+    /// (operator-typed scope identifiers, empty for legacy rows).
+    /// `status` is derived at read time (expired/pending/active/failed).
+    ///
+    /// NOTE: `scopes` are stored + plumbed for forward-looking visibility
+    /// only — runtime authorisation enforcement is NOT yet implemented.
     pub async fn list_space_bots(
         &self,
         space_id: &str,

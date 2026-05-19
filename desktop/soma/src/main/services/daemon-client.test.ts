@@ -70,6 +70,8 @@ describe("DaemonClient.issueIssuerCapability", () => {
 			spaceId: "space_1",
 			targetPeerId: "peer_1",
 			expiresAt: 1_700_000_000,
+			alias: undefined,
+			scopes: [],
 		});
 	});
 
@@ -99,6 +101,7 @@ describe("DaemonClient.issueIssuerCapability", () => {
 			targetPeerId: "peer_1",
 			expiresAt: 0,
 			alias: undefined,
+			scopes: [],
 		});
 	});
 
@@ -131,6 +134,35 @@ describe("DaemonClient.issueIssuerCapability", () => {
 			expect.objectContaining({ alias: undefined }),
 		);
 	});
+
+	it("forwards scopeIds as scopes when provided", async () => {
+		const client = makeClient();
+
+		await client.issueIssuerCapability({
+			spaceId: "space_1",
+			targetPeerId: "peer_1",
+			expiresAt: 0,
+			scopes: ["read", "write"],
+		});
+
+		expect(issueIssuerCapability).toHaveBeenCalledWith(
+			expect.objectContaining({ scopes: ["read", "write"] }),
+		);
+	});
+
+	it("defaults to empty scopes when not provided", async () => {
+		const client = makeClient();
+
+		await client.issueIssuerCapability({
+			spaceId: "space_1",
+			targetPeerId: "peer_1",
+			expiresAt: 0,
+		});
+
+		expect(issueIssuerCapability).toHaveBeenCalledWith(
+			expect.objectContaining({ scopes: [] }),
+		);
+	});
 });
 
 describe("DaemonClient.listSpaceBots", () => {
@@ -146,7 +178,7 @@ describe("DaemonClient.listSpaceBots", () => {
 		expect(listSpaceBots).not.toHaveBeenCalled();
 	});
 
-	it("forwards the spaceId to the napi handle and maps the result (incl. alias + status)", async () => {
+	it("forwards the spaceId to the napi handle and maps the result (incl. alias + scopes + status)", async () => {
 		listSpaceBots.mockResolvedValue([
 			{
 				spaceId: "space_1",
@@ -154,6 +186,7 @@ describe("DaemonClient.listSpaceBots", () => {
 				expiresAt: 0,
 				alias: "scribe",
 				status: "active",
+				scopes: ["read", "write"],
 			},
 			{
 				spaceId: "space_1",
@@ -161,6 +194,7 @@ describe("DaemonClient.listSpaceBots", () => {
 				expiresAt: 1_700_000_000,
 				alias: null,
 				status: "expired",
+				scopes: [],
 			},
 		]);
 
@@ -175,6 +209,7 @@ describe("DaemonClient.listSpaceBots", () => {
 				expiresAt: 0,
 				alias: "scribe",
 				status: "active",
+				scopes: ["read", "write"],
 			},
 			{
 				spaceId: "space_1",
@@ -182,6 +217,7 @@ describe("DaemonClient.listSpaceBots", () => {
 				expiresAt: 1_700_000_000,
 				alias: null,
 				status: "expired",
+				scopes: [],
 			},
 		]);
 	});
@@ -220,6 +256,16 @@ describe("DaemonClient.listSpaceBots", () => {
 		const client = makeClient();
 		const [bot] = await client.listSpaceBots("space_1");
 		expect(bot.alias).toBeNull();
+	});
+
+	it("coerces missing scopes on the wire to empty array", async () => {
+		listSpaceBots.mockResolvedValue([
+			{ spaceId: "space_1", peerId: "12D3KooWPeer", expiresAt: 0 },
+		] as unknown as never);
+
+		const client = makeClient();
+		const [bot] = await client.listSpaceBots("space_1");
+		expect(bot.scopes).toEqual([]);
 	});
 
 	it("tolerates a null/undefined response from the addon (maps to empty list)", async () => {

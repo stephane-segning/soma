@@ -9,6 +9,7 @@ type FakeBotRow = {
 	expiresAt: number;
 	alias: string | null;
 	status: "pending" | "active" | "failed" | "expired";
+	scopes?: string[];
 };
 
 const listQueryState: {
@@ -267,7 +268,7 @@ describe("useSpaceBots.addBot", () => {
 		});
 	});
 
-	it("forwards spaceId, peerId, expiresAt=0, and the trimmed alias for the Never toggle", async () => {
+	it("forwards spaceId, peerId, expiresAt=0, trimmed alias, and scopeIds for the Never toggle", async () => {
 		mutateAsync.mockResolvedValue(undefined);
 		const { result } = renderHook(() => useSpaceBots("space_1"));
 
@@ -285,6 +286,7 @@ describe("useSpaceBots.addBot", () => {
 			targetPeerId: "12D3KooWPeer",
 			expiresAt: 0,
 			alias: "scribe",
+			scopes: ["scope_a"],
 		});
 	});
 
@@ -303,6 +305,42 @@ describe("useSpaceBots.addBot", () => {
 
 		expect(mutateAsync).toHaveBeenCalledWith(
 			expect.objectContaining({ alias: null }),
+		);
+	});
+
+	it("forwards scopeIds from the Add form as the scopes array", async () => {
+		mutateAsync.mockResolvedValue(undefined);
+		const { result } = renderHook(() => useSpaceBots("space_1"));
+
+		await act(async () => {
+			await result.current.addBot({
+				peerId: "12D3KooWPeer",
+				alias: "bot",
+				scopeIds: ["spaces:read", "spaces:write"],
+				expiryDate: null,
+			});
+		});
+
+		expect(mutateAsync).toHaveBeenCalledWith(
+			expect.objectContaining({ scopes: ["spaces:read", "spaces:write"] }),
+		);
+	});
+
+	it("forwards empty scopeIds as an empty scopes array", async () => {
+		mutateAsync.mockResolvedValue(undefined);
+		const { result } = renderHook(() => useSpaceBots("space_1"));
+
+		await act(async () => {
+			await result.current.addBot({
+				peerId: "12D3KooWPeer",
+				alias: "",
+				scopeIds: [],
+				expiryDate: null,
+			});
+		});
+
+		expect(mutateAsync).toHaveBeenCalledWith(
+			expect.objectContaining({ scopes: [] }),
 		);
 	});
 

@@ -22,6 +22,13 @@ pub struct IssuerCapability {
     /// handshake protocol lands. The `expired` state is derived from
     /// `expires_at` at read time and never stored.
     pub status: String,
+    /// Operator-typed scope identifiers from the Bots-tab Add form.
+    /// Stored as a JSON-encoded array of strings in the `scopes` column.
+    /// Defaults to empty when the column is NULL (pre-migration rows).
+    ///
+    /// NOTE: scopes are stored for forward-looking visibility only —
+    /// runtime authorisation enforcement is NOT yet implemented.
+    pub scopes: Vec<String>,
 }
 
 #[async_trait]
@@ -65,11 +72,13 @@ impl SqlIssuerRepository {
 #[async_trait]
 impl IssuerRepository for SqlIssuerRepository {
     async fn upsert(&self, cap: &IssuerCapability) -> SomaResult<()> {
+        let scopes_json = serde_json::to_string(&cap.scopes)
+            .unwrap_or_else(|_| "[]".to_string());
         sqlx::query(
             r#"
             INSERT INTO issuer_capabilities (
-                space_id, issuer_peer_id, delegate_peer_id, issued_at, expires_at, capability, alias, status
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                space_id, issuer_peer_id, delegate_peer_id, issued_at, expires_at, capability, alias, status, scopes
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             ON CONFLICT(space_id, delegate_peer_id)
             DO UPDATE SET
                 issuer_peer_id = excluded.issuer_peer_id,
@@ -77,7 +86,8 @@ impl IssuerRepository for SqlIssuerRepository {
                 expires_at = excluded.expires_at,
                 capability = excluded.capability,
                 alias = excluded.alias,
-                status = excluded.status
+                status = excluded.status,
+                scopes = excluded.scopes
             "#,
         )
         .bind(&cap.space_id)
@@ -88,6 +98,7 @@ impl IssuerRepository for SqlIssuerRepository {
         .bind(&cap.capability)
         .bind(&cap.alias)
         .bind(&cap.status)
+        .bind(&scopes_json)
         .execute(&self.pool)
         .await
         .map_err(Error::service)?;
@@ -102,7 +113,7 @@ impl IssuerRepository for SqlIssuerRepository {
     ) -> SomaResult<Option<IssuerCapability>> {
         let row = sqlx::query(
             r#"
-            SELECT space_id, issuer_peer_id, delegate_peer_id, issued_at, expires_at, capability, alias, status
+            SELECT space_id, issuer_peer_id, delegate_peer_id, issued_at, expires_at, capability, alias, status, scopes
             FROM issuer_capabilities
             WHERE space_id = $1 AND delegate_peer_id = $2
             "#,
@@ -119,7 +130,7 @@ impl IssuerRepository for SqlIssuerRepository {
     async fn list_by_space(&self, space_id: &str) -> SomaResult<Vec<IssuerCapability>> {
         let rows = sqlx::query(
             r#"
-            SELECT space_id, issuer_peer_id, delegate_peer_id, issued_at, expires_at, capability, alias, status
+            SELECT space_id, issuer_peer_id, delegate_peer_id, issued_at, expires_at, capability, alias, status, scopes
             FROM issuer_capabilities
             WHERE space_id = $1
             ORDER BY issued_at DESC
@@ -193,6 +204,10 @@ impl Model for IssuerCapability {
 }
 
 fn map_row(row: sqlx::any::AnyRow) -> IssuerCapability {
+    let scopes_json: Option<String> = row.get("scopes");
+    let scopes = scopes_json
+        .and_then(|json| serde_json::from_str::<Vec<String>>(&json).ok())
+        .unwrap_or_default();
     IssuerCapability {
         space_id: row.get("space_id"),
         issuer_peer_id: row.get("issuer_peer_id"),
@@ -202,6 +217,7 @@ fn map_row(row: sqlx::any::AnyRow) -> IssuerCapability {
         capability: row.get("capability"),
         alias: row.get("alias"),
         status: row.get("status"),
+        scopes,
     }
 }
 

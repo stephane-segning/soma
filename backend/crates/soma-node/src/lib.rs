@@ -96,7 +96,10 @@ pub struct DiscoveredSpaceJs {
 /// issuer-capability row; renderer hydrates `bot-<peerSuffix>` only if
 /// the user never typed one in the Add form. `status` is the persistent
 /// state with `expired` derived from `expires_at` at read time —
-/// renderer renders it as-is.
+/// renderer renders it as-is. `scopes` are the operator-typed scope
+/// identifiers, empty for pre-migration rows.
+///
+/// NOTE: scopes are stored + plumbed only — NOT enforced at runtime.
 #[napi(object)]
 pub struct SpaceBotJs {
     pub space_id: String,
@@ -104,6 +107,9 @@ pub struct SpaceBotJs {
     pub expires_at: i64,
     pub alias: Option<String>,
     pub status: String,
+    /// Operator-typed scope identifiers. Empty for pre-migration rows
+    /// or when the user left the scopes field blank.
+    pub scopes: Vec<String>,
 }
 
 #[napi(object)]
@@ -236,6 +242,9 @@ pub struct IssueIssuerCapabilityInputJs {
     /// Optional human alias for the Bots-tab list view. Empty / whitespace
     /// strings are dropped at the daemon boundary.
     pub alias: Option<String>,
+    /// Operator-typed scope identifiers from the Add form. Forwarded to
+    /// storage as-is; not enforced at runtime.
+    pub scopes: Vec<String>,
 }
 
 // --- Plain napi mirror records for the agent handle surface --------------
@@ -587,8 +596,10 @@ impl SomaHandle {
     }
 
     /// List bots within `space_id`. Wraps [`DaemonHandle::list_space_bots`].
-    /// Returns `SpaceBotJs` (peer + alias + expires_at); status/scopes
-    /// follow in later daemon work.
+    /// Returns `SpaceBotJs` (peer + alias + expires_at + status + scopes).
+    /// `status` is derived (`expired` from `expires_at`); `scopes` are
+    /// stored + plumbed for forward-looking visibility only — runtime
+    /// authorisation enforcement is NOT yet implemented.
     #[napi]
     pub async fn list_space_bots(
         &self,
@@ -842,6 +853,7 @@ impl SomaHandle {
                 target_peer_id: input.target_peer_id,
                 expires_at: input.expires_at,
                 alias: input.alias,
+                scopes: input.scopes,
             })
             .await
             .map_err(to_napi)
@@ -968,6 +980,7 @@ fn bot_to_js(b: daemon_types::SpaceBotRecord) -> SpaceBotJs {
         expires_at: b.expires_at,
         alias: b.alias,
         status: b.status,
+        scopes: b.scopes,
     }
 }
 

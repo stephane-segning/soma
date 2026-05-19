@@ -1,0 +1,13 @@
+-- Capability records grow an optional `scopes` column so the Bots tab in
+-- Space Settings can persist the operator-typed scope identifiers from the
+-- Add form end-to-end.  Nullable: pre-migration rows survive without
+-- backfill and read back as an empty list.  The scopes are stored as a
+-- JSON-encoded array of strings (e.g. '["read","write"]') and decoded on
+-- load by the storage layer.
+--
+-- NOTE: scopes are stored + plumbed for forward-looking visibility only.
+-- Runtime authorisation enforcement (checking scopes at action time) is
+-- NOT implemented in this migration or the accompanying code change — that
+-- is a separate, larger PR involving the membership crate's
+-- `validate_issuer_capability` path.
+ALTER TABLE issuer_capabilities ADD COLUMN scopes TEXT;

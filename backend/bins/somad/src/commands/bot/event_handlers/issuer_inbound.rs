@@ -62,6 +62,11 @@ impl PeerEventHandler<BotState> for IssuerInboundHandler {
             capability: Some(capability.encode_to_vec()),
             alias: None,
             status: bot_status::ACTIVE.to_string(),
+            // The proto `IssuerCapability` does not carry scopes — they are an
+            // operator-typed UI concept that only flows through the desktop's
+            // Bots-tab add form. Inbound capabilities arrive fully formed from
+            // the owner peer; persist empty and let the owner's row hold them.
+            scopes: Vec::new(),
         };
 
         if let Err(err) = ctx.repos.issuer().upsert(&row).await {

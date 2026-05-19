@@ -60,6 +60,9 @@ pub struct SpaceMemberRecord {
 ///   - `"pending"` / `"active"` / `"failed"` — whatever the storage row
 ///     carries (today every row writes `"active"`; `pending`/`failed`
 ///     flow in once the handshake protocol lands)
+///
+/// `scopes` are the operator-typed scope identifiers from the Add form.
+/// Stored for forward-looking visibility only — NOT enforced at runtime.
 #[derive(Debug, Clone)]
 pub struct SpaceBotRecord {
     pub space_id: String,
@@ -67,6 +70,12 @@ pub struct SpaceBotRecord {
     pub expires_at: i64,
     pub alias: Option<String>,
     pub status: String,
+    /// Operator-typed scope identifiers. Empty for pre-migration rows
+    /// or when the user left the scopes field blank.
+    ///
+    /// NOTE: scopes are stored + plumbed only — runtime authorisation
+    /// enforcement is NOT yet implemented.
+    pub scopes: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -216,6 +225,12 @@ pub struct IssueIssuerCapabilityInput {
     /// whitespace-only strings collapse to `None` at the daemon
     /// boundary so the storage layer never holds blank rows.
     pub alias: Option<String>,
+    /// Operator-typed scope identifiers from the Add form. Stored and
+    /// plumbed through for forward-looking visibility.
+    ///
+    /// NOTE: scopes are NOT enforced at runtime — that is a separate,
+    /// larger PR involving `validate_issuer_capability`.
+    pub scopes: Vec<String>,
 }
 
 /// Plain-typed snapshot of one entry on the daemon's broadcast event stream.
