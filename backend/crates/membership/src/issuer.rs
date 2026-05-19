@@ -256,9 +256,9 @@ fn validate_issuer_capability(
 //  2. scopes contains "issue:membership" → allowed
 //  3. scopes present but no "issue:membership" → rejected
 //
-// We don't spin up a real database; instead we call the private
-// `scope_allowed` helper extracted below so the tests remain fast and
-// dependency-free.
+// We don't spin up a real database; instead we call the
+// `check_issue_membership_scope` helper extracted below so the tests
+// remain fast and dependency-free.
 
 /// Returns `Ok(())` when the stored scopes allow `"issue:membership"`, or
 /// an `Err` explaining the rejection.  Extracted so tests can call it
