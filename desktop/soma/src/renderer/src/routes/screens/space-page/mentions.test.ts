@@ -82,7 +82,7 @@ describe("botMention provider", () => {
 			label: "scribe",
 			// Matches `toBot()` in use-space-bots.ts: last 6 chars, lowercased.
 			detail: "cribe1",
-			href: "/spaces/space-1/settings/bots?peerId=12D3KooWScribe1",
+			href: "/spaces/space-1/settings?tab=bots&peerId=12D3KooWScribe1",
 		});
 	});
 

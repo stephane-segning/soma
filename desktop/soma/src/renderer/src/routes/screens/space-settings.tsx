@@ -16,9 +16,8 @@
 import { useSpaceQuery } from "@app/queries/spaces";
 import { SettingsTabs } from "@soma/ui/components/nav/settings-tabs";
 import { Cpu, Settings, Shield, Sliders, Trash2, Users } from "react-feather";
-import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useParams } from "react-router";
+import { useParams, useSearchParams } from "react-router";
 import { BotsTab } from "./space-settings/bots-tab";
 import {
 	CurrentAccessSection,
@@ -37,11 +36,45 @@ type TabId =
 	| "sharing"
 	| "danger";
 
+const TAB_IDS: readonly TabId[] = [
+	"general",
+	"members",
+	"bots",
+	"assistant",
+	"sharing",
+	"danger",
+];
+
+function isTabId(value: string | null): value is TabId {
+	return value !== null && (TAB_IDS as readonly string[]).includes(value);
+}
+
 function Component(): React.JSX.Element {
 	const { t } = useTranslation("common");
 	const { spaceId } = useParams<{ spaceId: string }>();
-	const [activeTab, setActiveTab] = useState<TabId>("general");
+	// Tab + deep-link state live in the URL so mention links like
+	// `/spaces/:id/settings?tab=bots&peerId=…` can route into a specific
+	// tab and row. See `space-page/mentions.ts` (bot mention provider).
+	const [searchParams, setSearchParams] = useSearchParams();
+	const tabParam = searchParams.get("tab");
+	const activeTab: TabId = isTabId(tabParam) ? tabParam : "general";
+	const highlightedPeerId = searchParams.get("peerId") ?? undefined;
 	const spaceQuery = useSpaceQuery(spaceId ?? "");
+
+	function handleTabChange(next: TabId) {
+		setSearchParams(
+			(prev) => {
+				const params = new URLSearchParams(prev);
+				params.set("tab", next);
+				// peerId is only meaningful while pointing at the row that
+				// owns it; clear it on any tab change so the highlight
+				// doesn't linger when the user navigates away and back.
+				if (next !== "bots") params.delete("peerId");
+				return params;
+			},
+			{ replace: true },
+		);
+	}
 
 	const spaceLabel =
 		spaceQuery.data?.displayName?.trim() ||
@@ -99,7 +132,7 @@ function Component(): React.JSX.Element {
 				<SettingsTabs
 					activeId={activeTab}
 					aria-label="Space settings"
-					onChange={(id) => setActiveTab(id as TabId)}
+					onChange={(id) => handleTabChange(id as TabId)}
 					tabs={tabs}
 				/>
 			</header>
@@ -110,7 +143,9 @@ function Component(): React.JSX.Element {
 
 			{activeTab === "members" ? <MembersTab spaceId={spaceId} /> : null}
 
-			{activeTab === "bots" ? <BotsTab spaceId={spaceId} /> : null}
+			{activeTab === "bots" ? (
+				<BotsTab highlightedPeerId={highlightedPeerId} spaceId={spaceId} />
+			) : null}
 
 			{activeTab === "assistant" ? (
 				<AssistantTab spaceId={spaceId} />

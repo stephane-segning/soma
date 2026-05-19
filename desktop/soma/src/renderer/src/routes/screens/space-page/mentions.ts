@@ -111,7 +111,7 @@ export function usePageMentionProviders(spaceId: string): MentionProvider[] {
 							id: bot.peerId,
 							label,
 							detail: peerSuffix(bot.peerId),
-							href: `/spaces/${spaceId}/settings/bots?peerId=${bot.peerId}`,
+							href: `/spaces/${spaceId}/settings?tab=bots&peerId=${bot.peerId}`,
 						};
 					});
 			},
