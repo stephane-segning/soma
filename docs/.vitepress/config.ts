@@ -10,6 +10,10 @@ const nav: DefaultTheme.NavItem[] = [
     {text: 'Architecture', link: '/architecture/arc42/03-context'},
     {text: 'Development', link: '/development/dependencies'},
     {text: 'Security', link: '/security/threat-model'},
+    // Storybook ships under `/storybook/` (see `just docs-build`). Marking
+    // it as `noIcon` so VitePress doesn't render an external-link glyph for
+    // what is, from the published site's perspective, a same-origin route.
+    {text: 'Storybook', link: '/storybook/', target: '_self', noIcon: true},
 ];
 
 const sidebar: DefaultTheme.Sidebar = {
@@ -86,6 +90,7 @@ const sidebar: DefaultTheme.Sidebar = {
                 {text: 'Desktop React DB', link: '/development/desktop-react-db'},
                 {text: 'UI Components', link: '/development/ui-components'},
                 {text: 'UI Framework Candidates', link: '/development/ui-framework-candidates'},
+                {text: 'Testing', link: '/development/testing'},
             ],
         },
     ],

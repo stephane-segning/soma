@@ -1,0 +1,21 @@
+{
+	"name": "@soma/e2e",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"description": "UI E2E suite — Cucumber (Gherkin) features driven by Playwright. Targets the built Storybook (gh-pages /storybook) by default so contributors can smoke the locked surfaces without a full Electron build.",
+	"scripts": {
+		"bdd": "bddgen",
+		"test": "bddgen && playwright test",
+		"test:ui": "bddgen && playwright test --ui",
+		"test:headed": "bddgen && playwright test --headed",
+		"report": "playwright show-report",
+		"install:browsers": "playwright install --with-deps chromium"
+	},
+	"devDependencies": {
+		"@cucumber/cucumber": "^11.2.0",
+		"@playwright/test": "^1.50.0",
+		"playwright-bdd": "^8.5.0",
+		"typescript": "~5.9.3"
+	}
+}

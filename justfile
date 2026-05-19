@@ -84,6 +84,23 @@ desktop-test-soma:
 desktop-test-all:
 	cd desktop && pnpm --filter soma run lint && pnpm --filter soma run typecheck
 
+# Run vitest for @soma/ui (component + portable-stories coverage)
+desktop-test-ui:
+	cd desktop && pnpm --filter @soma/ui run test:coverage
+
+# Run vitest for the soma renderer + main process (with coverage)
+desktop-test-renderer:
+	cd desktop && pnpm --filter soma run test:coverage
+
+# Run all unit tests across desktop workspaces with coverage
+desktop-test-unit:
+	just desktop-test-ui
+	just desktop-test-renderer
+
+# Run Cucumber × Playwright UI E2E features against @soma/ui storybook
+desktop-test-e2e:
+	cd desktop && pnpm --filter @soma/e2e run test
+
 # Generate icon assets for the Electron-based Soma app (desktop/soma)
 desktop-icons-soma input="desktop/soma/build/icon.png":
 	input_path="{{input}}"; input_path="${input_path#input=}"; cargo icons --input "$input_path" --output desktop/soma/build --flatten
@@ -131,6 +148,14 @@ ci-backend:
 # Run desktop checks used in CI
 ci-desktop:
 	just desktop-test-all
+
+# Run all unit tests with coverage (used by the test workflow)
+ci-test-unit:
+	just desktop-test-unit
+
+# Run UI E2E features (used by the test workflow)
+ci-test-e2e:
+	just desktop-test-e2e
 
 # Run backend + desktop checks used in CI pipelines
 ci-verify:
