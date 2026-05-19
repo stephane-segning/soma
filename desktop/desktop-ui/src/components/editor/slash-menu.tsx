@@ -26,6 +26,7 @@ import {
 import { Star } from "react-feather";
 import { useT } from "../../i18n/use-t";
 import { cn } from "../../utils/cn";
+import { MenuItem, MenuSectionLabel, MenuShell } from "../overlays/menu-shell";
 
 export type SlashMenuSection =
 	| "text"
@@ -177,14 +178,7 @@ export function SlashMenu({
 	// Empty + onAIPrompt available → AI fallback row instead of a plain empty state.
 	if (flat.length === 0 && onAIPrompt && query.trim().length > 0) {
 		return (
-			<div
-				className={cn(
-					"glass-panel shadow-elevated w-80 flex flex-col gap-1 p-1",
-					className,
-				)}
-				ref={containerRef}
-				role="listbox"
-			>
+			<MenuShell className={className} ref={containerRef} role="listbox" width="w-80">
 				<button
 					aria-selected="true"
 					className="flex items-center gap-2 rounded-md bg-info/10 px-2 py-1.5 text-left text-info text-ui-sm"
@@ -202,75 +196,50 @@ export function SlashMenu({
 					</span>
 					<span className="text-info/60 text-ui-xs">↵</span>
 				</button>
-			</div>
+			</MenuShell>
 		);
 	}
 
 	if (flat.length === 0) {
 		return (
-			<div
-				className={cn(
-					"glass-panel shadow-elevated w-80 p-2 text-base-content/60 text-ui-sm",
-					className,
-				)}
-				ref={containerRef}
-			>
-				{t({ id: "slash-menu.empty", defaultMessage: "No matches" })}
-			</div>
+			<MenuShell className={cn("text-base-content/60 text-ui-sm", className)} ref={containerRef} width="w-80">
+				<div className="px-2 py-1.5">
+					{t({ id: "slash-menu.empty", defaultMessage: "No matches" })}
+				</div>
+			</MenuShell>
 		);
 	}
 
 	let runningIndex = 0;
 	return (
-		<div
-			className={cn(
-				"glass-panel shadow-elevated w-80 flex max-h-80 flex-col gap-1 overflow-y-auto p-1",
-				className,
-			)}
+		<MenuShell
+			className={cn("max-h-80 overflow-y-auto", className)}
 			ref={containerRef}
 			role="listbox"
+			width="w-80"
 		>
 			{grouped.map((group) => (
 				<div className="flex flex-col gap-0.5" key={group.section}>
-					<div className="px-2 pt-1 text-base-content/50 text-ui-xs uppercase tracking-wide">
-						{sectionLabel[group.section]}
-					</div>
+					<MenuSectionLabel>{sectionLabel[group.section]}</MenuSectionLabel>
 					{group.items.map((item) => {
 						const isActive = runningIndex === activeIndex;
 						const ownIndex = runningIndex;
 						runningIndex += 1;
 						return (
-							<button
-								aria-selected={isActive}
-								className={cn(
-									"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-ui-sm transition-colors",
-									isActive
-										? "bg-base-200 text-base-content"
-										: "hover:bg-base-200",
-								)}
+							<MenuItem
+								active={isActive}
+								icon={item.icon}
 								key={item.id}
+								label={item.label}
 								onClick={() => item.onSelect()}
 								onMouseEnter={() => setActiveIndex(ownIndex)}
 								role="option"
-								type="button"
-							>
-								<span
-									aria-hidden
-									className="inline-flex size-4 shrink-0 items-center justify-center text-base-content/60"
-								>
-									{item.icon}
-								</span>
-								<span className="min-w-0 flex-1 truncate">{item.label}</span>
-								{item.shortcut ? (
-									<span className="shrink-0 font-mono text-base-content/40 text-ui-xs">
-										{item.shortcut}
-									</span>
-								) : null}
-							</button>
+								shortcut={item.shortcut}
+							/>
 						);
 					})}
 				</div>
 			))}
-		</div>
+		</MenuShell>
 	);
 }

@@ -95,7 +95,7 @@ export function createDocumentExtensions(input: CreateDocumentExtensionsInput) {
 			linkOnPaste: true,
 			HTMLAttributes: { rel: "noreferrer", target: "_blank" },
 		}),
-		Dropcursor.configure({ color: "#3b82f6", width: 2 }),
+		Dropcursor.configure({ color: "#3b82f6", width: 3, class: "soma-drop-cursor" }),
 		Placeholder.configure({ placeholder: input.placeholder }),
 		CommanderExtension.configure({ commands: input.commands }),
 		// Registry mounts with `registry: null` and the host (DocumentEditor)

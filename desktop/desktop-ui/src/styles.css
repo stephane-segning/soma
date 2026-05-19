@@ -31,3 +31,17 @@
 .react-hot-toast .toast-error {
 	@apply bg-error text-error-content;
 }
+
+/* -----------------------------------------------------------------
+ * Drop cursor — ProseMirror injects a thin absolutely-positioned div
+ * via the dropcursor plugin. The Tiptap extension forwards `width`
+ * and `color`, but no border-radius / shadow. We round the ends and
+ * add a faint glow so the indicator reads as a clear drop target
+ * rather than a hairline. The class name is configured in the
+ * editor's extensions.ts (Dropcursor `class` option).
+ * ----------------------------------------------------------------- */
+
+.soma-drop-cursor {
+	border-radius: 9999px;
+	box-shadow: 0 0 0 1px color-mix(in oklab, #3b82f6 30%, transparent);
+}

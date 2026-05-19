@@ -156,13 +156,13 @@ export function ActionMenu({
 				<AnimatePresence initial={false}>
 					{activeNode ? (
 						<motion.div
-							animate={{ opacity: 1, x: 0, scale: 1 }}
+							animate={{ opacity: 1, x: 0 }}
 							className={cn(
 								"glass-panel shadow-elevated flex flex-col items-center gap-0.5 p-1",
 								isDragging && "ring-2 ring-info/60",
 							)}
-							exit={{ opacity: 0, x: -6, scale: 0.96 }}
-							initial={{ opacity: 0, x: -8, scale: 0.96 }}
+							exit={{ opacity: 0, x: -6 }}
+							initial={{ opacity: 0, x: -8 }}
 							transition={{ duration: 0.14 }}
 						>
 							<HandleButton

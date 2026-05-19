@@ -228,15 +228,15 @@ export function CommandPalette({
 						onClick={onClose}
 					>
 						<motion.div
-							animate={{ opacity: 1, y: 0, scale: 1 }}
+							animate={{ opacity: 1, y: 0 }}
 							aria-label={t({
 								id: "command-palette.aria-label",
 								defaultMessage: "Command palette",
 							})}
 							aria-modal="true"
 							className="glass-panel shadow-elevated w-full max-w-2xl p-2"
-							exit={{ opacity: 0, y: 8, scale: 0.99 }}
-							initial={{ opacity: 0, y: 10, scale: 0.99 }}
+							exit={{ opacity: 0, y: 8 }}
+							initial={{ opacity: 0, y: 10 }}
 							onClick={(event) => event.stopPropagation()}
 							ref={containerRef}
 							role="dialog"
