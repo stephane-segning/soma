@@ -81,6 +81,13 @@ export function ActionMenu({
 		const rawNodeType = nodeAt?.type.name ?? "paragraph";
 		const nodeType = normalizeNodeName(rawNodeType);
 
+		// Block range covers the node from its start to immediately after
+		// it. Actions that want to replace the block ([from, to)) use the
+		// node's full ProseMirror size, mirroring what TipTap's
+		// `insertContentAt({ from, to }, …)` expects.
+		const from = activeNode.pos;
+		const to = activeNode.pos + (nodeAt?.nodeSize ?? 0);
+
 		// Anchor the bar next to the AI handle button if available,
 		// otherwise fall back to a sensible default near the editor.
 		const rect = aiButtonRef.current?.getBoundingClientRect();
@@ -88,7 +95,14 @@ export function ActionMenu({
 			? { x: rect.right + 12, y: rect.top + rect.height / 2 }
 			: { x: window.innerWidth / 2, y: 100 };
 
-		onAskAIForNode({ pos: activeNode.pos, nodeType, text: blockText, anchor });
+		onAskAIForNode({
+			pos: activeNode.pos,
+			nodeType,
+			text: blockText,
+			from,
+			to,
+			anchor,
+		});
 	}, [editor, activeNode, onAskAIForNode]);
 
 	const addMenuItems = createAddMenuItems({ activeNode, editor, insertAt, onInsertFile, onInsertImage });

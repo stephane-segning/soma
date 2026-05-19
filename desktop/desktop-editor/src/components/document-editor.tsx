@@ -114,7 +114,7 @@ export function DocumentEditor({
 					editor={editor}
 					onInsertFile={(targetEditor, insertPos) => insertFileFromPicker(targetEditor, insertPos, uploadFile)}
 					onInsertImage={(targetEditor, insertPos) => insertImageFromPicker(targetEditor, insertPos, uploadImage)}
-					onAskAIForNode={aiRegistry ? handleAskAIForNode : undefined}
+					onAskAIForNode={onQuickAction ? handleAskAIForNode : undefined}
 				/>
 				<EditorContent editor={editor} />
 				{editor && (

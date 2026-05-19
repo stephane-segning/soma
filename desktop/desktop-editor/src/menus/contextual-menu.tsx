@@ -15,12 +15,18 @@ export type { QuickActionRequest, QuickActionResponse, QuickActionType };
 
 /**
  * Describes a block that was targeted from the drag-handle AI button.
- * The `pos` is the ProseMirror position of the block node's start.
+ * The `pos` is the ProseMirror position of the block node's start;
+ * `from` / `to` cover the full block range (inclusive of its boundary
+ * tokens) so that registry actions that mutate the document have
+ * enough information to do an `insertContentAt({from, to}, …)` call.
  */
 export type NodeAITrigger = {
 	pos: number;
 	nodeType: string;
 	text: string;
+	/** Inclusive ProseMirror range covering the block node. */
+	from: number;
+	to: number;
 	/** Screen coordinates for the AI bar anchor (derived from the handle position). */
 	anchor: { x: number; y: number };
 };
@@ -69,12 +75,19 @@ export function ContextualMenu({
 	const [aiOpen, setAiOpen] = useState(false);
 	const [selection, setSelection] = useState<SelectionSnapshot | null>(null);
 	const [nodeAIOpen, setNodeAIOpen] = useState(false);
+	// Local copy of the most recent trigger. Keeping it here lets the popover
+	// finish its exit animation after the parent clears its prop, and avoids
+	// any null-dereference window during the unmount transition.
+	const [nodeTrigger, setNodeTrigger] = useState<NodeAITrigger | null>(null);
 
 	// When an external node AI trigger arrives (from the drag-handle AI button),
-	// open the node-level AI bar.
+	// open the node-level AI bar. Opening the node bar also closes any open
+	// selection-level bar to keep the two surfaces mutually exclusive.
 	useEffect(() => {
 		if (nodeAITrigger) {
+			setNodeTrigger(nodeAITrigger);
 			setNodeAIOpen(true);
+			setAiOpen(false);
 		}
 	}, [nodeAITrigger]);
 
@@ -83,6 +96,8 @@ export function ContextualMenu({
 		if (!snapshot) return;
 		setSelection(snapshot);
 		setAiOpen(true);
+		// Mutually exclusive with the node-surface bar.
+		setNodeAIOpen(false);
 	}, [editor]);
 
 	const closeNodeAI = useCallback(() => {
@@ -135,6 +150,7 @@ export function ContextualMenu({
 						}}
 					>
 						<SelectionAIBar
+							metadata={{ from: selection.range.from, to: selection.range.to }}
 							nodeType={aiNodeType}
 							onClose={() => setAiOpen(false)}
 							registry={registry}
@@ -144,20 +160,20 @@ export function ContextualMenu({
 				) : null}
 			</AnimatePresence>
 			<AnimatePresence>
-				{nodeAIOpen && nodeAITrigger && registry ? (
+				{nodeAIOpen && nodeTrigger && registry ? (
 					<div
 						className="fixed z-50"
 						style={{
-							left: nodeAITrigger.anchor.x,
-							top: nodeAITrigger.anchor.y,
-							transform: "translateX(-50%)",
+							left: nodeTrigger.anchor.x,
+							top: nodeTrigger.anchor.y,
 						}}
 					>
 						<SelectionAIBar
-							nodeType={nodeAITrigger.nodeType}
+							metadata={{ from: nodeTrigger.from, to: nodeTrigger.to }}
+							nodeType={nodeTrigger.nodeType}
 							onClose={closeNodeAI}
 							registry={registry}
-							selectedText={nodeAITrigger.text}
+							selectedText={nodeTrigger.text}
 						/>
 					</div>
 				) : null}
