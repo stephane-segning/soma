@@ -17,10 +17,10 @@
 		"declaration": true,
 		"declarationMap": true,
 		"outDir": "./dist",
+		"rootDir": "./src",
 		"baseUrl": ".",
 		"paths": {
-			"@soma/editor/*": ["src/*"],
-			"@soma/ui/*": ["../desktop-ui/src/*"]
+			"@soma/editor/*": ["src/*"]
 		}
 	},
 	"include": ["src"],

@@ -44,6 +44,18 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
+      - name: Run @soma/editor vitest with coverage
+        run: pnpm --filter @soma/editor run test:coverage
+
+      - name: Upload @soma/editor coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-soma-editor
+          path: desktop/desktop-editor/coverage
+          if-no-files-found: ignore
+          retention-days: 14
+
       - name: Run soma renderer vitest with coverage
         run: pnpm --filter soma run test:coverage
 

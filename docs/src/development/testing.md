@@ -6,16 +6,22 @@ gates the gh-pages deploy.
 
 ## Unit tests with coverage
 
-Both `@soma/ui` and the `soma` renderer use [Vitest](https://vitest.dev)
+`@soma/ui`, `@soma/editor`, and the `soma` renderer use [Vitest](https://vitest.dev)
 under jsdom with `@vitest/coverage-v8`. Coverage reports land in
 `<package>/coverage/` (HTML + lcov + `coverage-summary.json`) and CI
 uploads them as artifacts.
 
 ```bash
-just desktop-test-unit            # both packages, coverage on
-pnpm --filter @soma/ui run test   # @soma/ui only, no coverage
-pnpm --filter soma   run test     # soma only, no coverage
+just desktop-test-unit               # all three packages, coverage on
+pnpm --filter @soma/ui     run test  # @soma/ui only, no coverage
+pnpm --filter @soma/editor run test  # @soma/editor only (NodeAIRegistry…)
+pnpm --filter soma         run test  # soma only, no coverage
 ```
+
+`@soma/editor` covers `createDefaultAIRegistry` — register, resolve by node
+type and surface, the locked category order (rewrite → transform → custom),
+and dispatch behavior including the "skip insertion when response not done /
+content blank / range missing" branches that the cutover 5d review surfaced.
 
 `@soma/ui` reuses the Storybook preview annotations
 ([decorators + parameters](https://storybook.js.org/docs/writing-tests/portable-stories-vitest))

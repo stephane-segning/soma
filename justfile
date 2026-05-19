@@ -88,6 +88,10 @@ desktop-test-all:
 desktop-test-ui:
 	cd desktop && pnpm --filter @soma/ui run test:coverage
 
+# Run vitest for @soma/editor (NodeAIRegistry, command builders, hooks)
+desktop-test-editor:
+	cd desktop && pnpm --filter @soma/editor run test:coverage
+
 # Run vitest for the soma renderer + main process (with coverage)
 desktop-test-renderer:
 	cd desktop && pnpm --filter soma run test:coverage
@@ -95,6 +99,7 @@ desktop-test-renderer:
 # Run all unit tests across desktop workspaces with coverage
 desktop-test-unit:
 	just desktop-test-ui
+	just desktop-test-editor
 	just desktop-test-renderer
 
 # Run Cucumber × Playwright UI E2E features against @soma/ui storybook
