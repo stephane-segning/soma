@@ -40,7 +40,7 @@ These can land independently of daemon work.
 
 - **`@mention` bots provider** — once `list_space_bots` ships, register a fourth `MentionProvider` with `section: "bots"` so `@bot:alias` resolves inline in the editor and chat composers.
 - **Block-level AI dispatch** — Cutover 5e didn't wire the action-menu's AI affordance. The plan is: click AI on the drag handle → set the block as a `NodeSelection` → `ContextualMenu` renders `SelectionAIBar` with `surface: "node"`. The registry and the UI both already understand the node surface; only the trigger is missing.
-- **Editor-command icons** — `desktop/soma/.../space-page/editor-commands.ts` registers four slash commands (`new-sub-page`, `image`, `file`, `link-to-page`) without icons. SlashMenu now reserves the slot so alignment is fine, but the rows look bare next to the default commands. Rename to `.tsx` and pass `react-feather` icons.
+- **Editor-command icons** — `desktop/soma/.../space-page/editor-commands.ts` registers four slash commands (`new-sub-page`, `insert-image`, `insert-file`, `link-to-page`) without icons. SlashMenu now reserves the slot so alignment is fine, but the rows look bare next to the default commands. Rename to `.tsx` and pass `react-feather` icons.
 - **Recent-pages slice** — `TreePopover` and `CommandPalette` both surface a Recent section that's empty in v0. Add a small redux slice keyed by `(spaceId, pageId, openedAt)`, capped at ~10 entries, hydrated from disk.
 - **Default-expiry policy** — `useSpaceBots.addBot` currently passes `0` (no expiry) for the form's "Never" toggle. The daemon ought to enforce a maximum issuable lifetime, after which the wrapper would translate `null` into that ceiling instead of unbounded.
 
@@ -82,6 +82,8 @@ Triaged by risk × cost:
 4. **Smoke storybook stories** for each renderer wrapper (`SpacesRail`, `JumpToPageButton`, `CommandPaletteShell`, `BotsTab`) once the storybook config is healthy.
 
 A reasonable target before the next round of feature work: ~20–30 tests covering the four areas above. Most are small. The work is more about choosing the testing harness (vitest plus testing-library is already in the soma `devDependencies`) and writing the first one than about volume.
+
+> **Update (post-#82):** the test infrastructure landed in [#82](https://github.com/stephane-segning/soma/pull/82) — vitest + `@vitest/coverage-v8` on `@soma/ui` and the soma renderer, `@storybook/react` portable-stories wired through `setProjectAnnotations`, and a Cucumber × Playwright (`playwright-bdd`) E2E package targeting the same Storybook artifact we publish to gh-pages. Seed tests cover items 1–2 from the triage above (IPC contract for `issueIssuerCapability`, hook tests for `useSpaceBots`). Items 3–4 (NodeAIRegistry actions, renderer-wrapper smoke stories) remain open follow-ups now that the harness is in place. See [Testing](../../development/testing.md) for the running surfaces.
 
 ## Pointers
 
