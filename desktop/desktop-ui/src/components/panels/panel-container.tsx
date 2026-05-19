@@ -16,7 +16,7 @@
  * we render only the first column (single vertical stack) and any
  * additional columns join the stack.
  */
-import { type ReactNode, useEffect } from "react";
+import { type ReactNode } from "react";
 import { useT } from "../../i18n/use-t";
 import { cn } from "../../utils/cn";
 import { Panel } from "./panel";
@@ -68,31 +68,45 @@ export function PanelContainer({
 
 	// Split panels into expanded / collapsed, then clamp the expanded
 	// list to `maxExpanded`. The first `maxExpanded` "open" panels stay
-	// visible; anything past the cap is treated as overflow.
+	// visible; anything past the cap is treated as overflow and shows
+	// in the strip alongside truly-collapsed panels.
 	const allExpanded = panels.filter((panel) => !collapsedSet.has(panel.id));
 	const expanded = allExpanded.slice(0, maxExpanded);
 	const overflow = allExpanded.slice(maxExpanded);
-
-	// When the caller's `collapsedIds` admits more open panels than the
-	// cap allows, we fire `onToggleCollapse` for each overflow panel so
-	// the caller's state catches up. Without this, the third+ "open"
-	// panel would just disappear into the strip silently — the user's
-	// expectation is "never more than two at once", which means the
-	// state should reflect the cap, not just the visible render.
-	//
-	// We key the effect by overflow panel ids so it only fires when the
-	// overflow set changes; if `onToggleCollapse` is unset the container
-	// just renders the cap visually (no state changes).
-	const overflowIdsKey = overflow.map((panel) => panel.id).join(",");
-	useEffect(() => {
-		if (!onToggleCollapse || overflow.length === 0) return;
-		for (const panel of overflow) onToggleCollapse(panel.id);
-		// `overflow` is recomputed every render but its contents only matter
-		// to this effect — depend on the id key so we don't loop.
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [overflowIdsKey, onToggleCollapse]);
-
 	const collapsed = panels.filter((panel) => collapsedSet.has(panel.id));
+	// Strip shows truly-collapsed first, then any overflow. Overflow
+	// icons look identical to collapsed ones — clicking either brings
+	// the panel into view (and our smart handler below evicts the
+	// oldest visible if needed to honour the cap).
+	const stripPanels = [...collapsed, ...overflow];
+
+	// Smart click handler for strip icons. We split on the two possible
+	// states:
+	//   1. The panel is in `collapsedSet` → user wants to expand it.
+	//      If the cap is already full, evict the oldest visible first.
+	//   2. The panel is overflow (not in `collapsedSet` but past the
+	//      cap) → user wants to surface it. Collapse enough of the
+	//      currently-visible panels (oldest first) until the clicked
+	//      one slides into the visible slots.
+	// We batch multiple `onToggleCollapse` calls inside the same event
+	// handler — React composes them via functional setState so the
+	// caller ends up with the correct final state in a single re-render.
+	const handleStripClick = (id: string): void => {
+		if (!onToggleCollapse) return;
+		if (collapsedSet.has(id)) {
+			if (allExpanded.length >= maxExpanded && expanded.length > 0) {
+				onToggleCollapse(expanded[0].id);
+			}
+			onToggleCollapse(id);
+			return;
+		}
+		const clickedIndex = allExpanded.findIndex((panel) => panel.id === id);
+		if (clickedIndex < 0) return;
+		const numToEvict = clickedIndex - maxExpanded + 1;
+		for (let i = 0; i < numToEvict && i < expanded.length; i++) {
+			onToggleCollapse(expanded[i].id);
+		}
+	};
 
 	return (
 		<div
@@ -131,7 +145,7 @@ export function PanelContainer({
 					))}
 				</div>
 			) : null}
-			{collapsed.length > 0 ? (
+			{stripPanels.length > 0 ? (
 				<aside
 					aria-label={t({
 						id: "panel-container.collapsed-strip",
@@ -142,7 +156,7 @@ export function PanelContainer({
 					// cards on the left supply all the visual structure.
 					className="flex w-9 shrink-0 flex-col items-center gap-1 bg-transparent py-2"
 				>
-					{collapsed.map((panel) => (
+					{stripPanels.map((panel) => (
 						<button
 							aria-label={
 								typeof panel.title === "string"
@@ -152,13 +166,9 @@ export function PanelContainer({
 											defaultMessage: "Expand panel",
 										})
 							}
-							className="grid size-7 place-items-center rounded-md text-base-content/70 transition-colors hover:bg-base-200 hover:text-base-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+							className="grid size-7 place-items-center rounded-md text-base-content/70 hover:bg-base-200 hover:text-base-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
 							key={panel.id}
-							onClick={
-								onToggleCollapse
-									? () => onToggleCollapse(panel.id)
-									: undefined
-							}
+							onClick={() => handleStripClick(panel.id)}
 							title={typeof panel.title === "string" ? panel.title : undefined}
 							type="button"
 						>

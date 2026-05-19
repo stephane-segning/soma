@@ -56,16 +56,41 @@ describe("PanelContainer cap policy", () => {
 		expect(cards.length).toBe(2);
 	});
 
-	it("evicts the overflow panels into the collapsed strip", () => {
+	it("renders overflow panels into the strip without mutating caller state", () => {
 		const { container, getAllByRole } = render(<Harness panelCount={5} />);
 		// 5 panels - 2 visible cards = 3 in strip.
 		const stripButtons = getAllByRole("button", {
 			name: /Panel \d/,
 		}).filter((btn) => btn.closest("aside"));
 		expect(stripButtons.length).toBe(3);
-		// And the cards themselves come first in the panels array.
 		const cards = container.querySelectorAll("section");
 		expect(cards.length).toBe(2);
+	});
+
+	it("clicking an overflow strip icon swaps it in for the oldest visible", () => {
+		// Regression for the round-5 click-loop bug: the previous auto-evict
+		// useEffect immediately re-collapsed any panel the user un-collapsed
+		// from the strip. The new smart handler instead evicts the oldest
+		// visible panel and surfaces the clicked one — a real swap.
+		const { container, getAllByRole } = render(<Harness panelCount={5} />);
+
+		const before = Array.from(container.querySelectorAll("section h2")).map((h) =>
+			h.textContent,
+		);
+		// Sanity: first two panels render initially.
+		expect(before).toEqual(["Panel 0", "Panel 1"]);
+
+		const stripButtons = getAllByRole("button", { name: /Panel \d/ }).filter(
+			(btn) => btn.closest("aside"),
+		);
+		// First strip icon is Panel 2 (the first overflow).
+		fireEvent.click(stripButtons[0]);
+
+		const after = Array.from(container.querySelectorAll("section h2")).map((h) =>
+			h.textContent,
+		);
+		// Panel 0 evicted; Panel 2 surfaced. Cap stays at 2.
+		expect(after).toEqual(["Panel 1", "Panel 2"]);
 	});
 
 	it("when no panel is expanded, only the right rail renders (no empty placeholder)", () => {

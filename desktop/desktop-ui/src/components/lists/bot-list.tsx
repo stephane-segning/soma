@@ -106,7 +106,17 @@ export function BotList({
 	}
 
 	return (
-		<div className={cn("flex flex-col divide-y divide-base-300", className)}>
+		<ul
+			className={cn(
+				// daisyUI 5 list aesthetic: card-style surface, rounded
+				// corners, subtle border. The list-row primitive doesn't fit
+				// DenseRow's named-slot API, but we can still wrap the rows
+				// in `<ul class="list">` so daisy's surface tokens carry the
+				// look. Visual outcome matches daisy's docs list demos.
+				"list rounded-md border border-base-300 bg-base-100",
+				className,
+			)}
+		>
 			{bots.map((bot) => (
 				<BotEntry
 					bot={bot}
@@ -117,7 +127,7 @@ export function BotList({
 					onSelect={onSelect}
 				/>
 			))}
-		</div>
+		</ul>
 	);
 }
 
@@ -136,13 +146,13 @@ function BotEntry({
 }) {
 	const t = useT();
 	const truncatedPeerId = useTruncatedPeerId(bot.peerId);
-	const rowRef = useRef<HTMLDivElement | null>(null);
+	const rowRef = useRef<HTMLLIElement | null>(null);
 	useEffect(() => {
 		if (!highlighted) return;
 		rowRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
 	}, [highlighted]);
 	return (
-		<div
+		<li
 			className={cn(
 				"flex flex-col",
 				highlighted && "rounded-md ring-2 ring-primary ring-inset",
@@ -208,7 +218,7 @@ function BotEntry({
 					onRetry={onRetry ? () => onRetry(bot.id) : undefined}
 				/>
 			) : null}
-		</div>
+		</li>
 	);
 }
 
