@@ -396,3 +396,74 @@ describe("useSpaceBots.addBot", () => {
 		expect(result.current.addError).toBeNull();
 	});
 });
+
+describe("useSpaceBots.retryBot", () => {
+	const failedBot = {
+		id: "12D3KooWFailedBot",
+		alias: "rejected",
+		peerId: "12D3KooWFailedBot",
+		status: "failed" as const,
+	};
+
+	beforeEach(() => {
+		resetListQuery();
+		mutateAsync.mockReset();
+		isLoading.value = false;
+	});
+
+	it("calls mutateAsync with the bot's peerId, trimmed alias, and expiresAt=0", async () => {
+		mutateAsync.mockResolvedValue(undefined);
+		const { result } = renderHook(() => useSpaceBots("space_1"));
+
+		await act(async () => {
+			await result.current.retryBot(failedBot);
+		});
+
+		expect(mutateAsync).toHaveBeenCalledWith({
+			spaceId: "space_1",
+			targetPeerId: "12D3KooWFailedBot",
+			expiresAt: 0,
+			alias: "rejected",
+		});
+	});
+
+	it("sends alias=null when the bot alias is whitespace-only", async () => {
+		mutateAsync.mockResolvedValue(undefined);
+		const { result } = renderHook(() => useSpaceBots("space_1"));
+
+		await act(async () => {
+			await result.current.retryBot({ ...failedBot, alias: "   " });
+		});
+
+		expect(mutateAsync).toHaveBeenCalledWith(
+			expect.objectContaining({ alias: null }),
+		);
+	});
+
+	it("rejects and surfaces addError when no space is selected", async () => {
+		const { result } = renderHook(() => useSpaceBots(undefined));
+
+		await expect(result.current.retryBot(failedBot)).rejects.toThrow(
+			/No space is selected/,
+		);
+
+		await waitFor(() => {
+			expect(result.current.addError).toMatch(/No space is selected/);
+		});
+
+		expect(mutateAsync).not.toHaveBeenCalled();
+	});
+
+	it("surfaces mutation rejection in addError", async () => {
+		mutateAsync.mockRejectedValue(new Error("handshake timeout"));
+		const { result } = renderHook(() => useSpaceBots("space_1"));
+
+		await expect(result.current.retryBot(failedBot)).rejects.toThrow(
+			/handshake timeout/,
+		);
+
+		await waitFor(() => {
+			expect(result.current.addError).toMatch(/handshake timeout/);
+		});
+	});
+});

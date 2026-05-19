@@ -40,6 +40,7 @@ export type UseSpaceBotsResult = {
 	isLoading: boolean;
 	loadError: string | null;
 	addBot: (input: AddBotInput) => Promise<void>;
+	retryBot: (bot: Bot) => Promise<void>;
 	isAdding: boolean;
 	addError: string | null;
 	clearAddError: () => void;
@@ -98,6 +99,38 @@ export function useSpaceBots(spaceId: string | undefined): UseSpaceBotsResult {
 		[issue, spaceId],
 	);
 
+	const retryBot = useCallback(
+		async (bot: Bot) => {
+			if (!spaceId) {
+				const message = "No space is selected; cannot retry capability.";
+				setAddError(message);
+				throw new Error(message);
+			}
+			setAddError(null);
+			// Re-run the same mutation with the bot's original peerId and alias.
+			// `expiresAt = 0` is the "no expiry" sentinel — retries always drop
+			// the expiry so the operator doesn't accidentally issue a capability
+			// that immediately re-expires. The storage upsert resets the row to
+			// `pending` and the Rust-side `update_status WHERE status = 'pending'`
+			// gating ensures stale events from the prior attempt become no-ops.
+			const alias = bot.alias.trim() ? bot.alias.trim() : null;
+			try {
+				await issue.mutateAsync({
+					spaceId,
+					targetPeerId: bot.peerId,
+					expiresAt: 0,
+					alias,
+				});
+			} catch (error) {
+				const message =
+					error instanceof Error ? error.message : String(error);
+				setAddError(message);
+				throw error;
+			}
+		},
+		[issue, spaceId],
+	);
+
 	return {
 		bots,
 		isLoading: listQuery.isLoading || listQuery.isFetching,
@@ -107,6 +140,7 @@ export function useSpaceBots(spaceId: string | undefined): UseSpaceBotsResult {
 				: String(listQuery.error)
 			: null,
 		addBot,
+		retryBot,
 		isAdding: issue.isLoading,
 		addError,
 		clearAddError: () => setAddError(null),
