@@ -98,6 +98,20 @@ export async function listSpaceMembers(spaceId: string): Promise<SpaceMember[]> 
 	}).catch(() => []);
 }
 
+/**
+ * Bot-only flavor of {@link listSpaceMembers}. Calls the daemon's
+ * `spaces_list_bots` IPC, which filters memberships server-side to
+ * `role === "bot"`. Returns an empty list on either IPC failure or an
+ * empty `spaceId`, matching the `listSpaceMembers` contract so the
+ * Bots tab can render an empty state without a fallback branch.
+ */
+export async function listSpaceBots(spaceId: string): Promise<SpaceMember[]> {
+	if (!spaceId) return [];
+	return invoke<SpaceMember[]>("spaces_list_bots", {
+		spaceId,
+	}).catch(() => []);
+}
+
 export async function listMyMemberships(): Promise<SpaceMember[]> {
 	return invoke<SpaceMember[]>("spaces_list_my_memberships").catch(() => []);
 }

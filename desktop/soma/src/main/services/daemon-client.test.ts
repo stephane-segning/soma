@@ -3,9 +3,11 @@ import type { AddonRuntime } from "./addon-runtime";
 import { DaemonClient } from "./daemon-client";
 
 const issueIssuerCapability = vi.fn().mockResolvedValue(true);
+const listSpaceBots = vi.fn().mockResolvedValue([]);
 
 const fakeHandle = {
 	issueIssuerCapability,
+	listSpaceBots,
 } as unknown as Awaited<ReturnType<AddonRuntime["start"]>>;
 
 function makeClient() {
@@ -97,5 +99,62 @@ describe("DaemonClient.issueIssuerCapability", () => {
 			targetPeerId: "peer_1",
 			expiresAt: 0,
 		});
+	});
+});
+
+describe("DaemonClient.listSpaceBots", () => {
+	beforeEach(() => {
+		listSpaceBots.mockReset();
+		listSpaceBots.mockResolvedValue([]);
+	});
+
+	it("returns an empty list for blank spaceId without invoking the addon", async () => {
+		const client = makeClient();
+
+		await expect(client.listSpaceBots("")).resolves.toEqual([]);
+		expect(listSpaceBots).not.toHaveBeenCalled();
+	});
+
+	it("forwards the spaceId to the napi handle and maps the result", async () => {
+		listSpaceBots.mockResolvedValue([
+			{
+				spaceId: "space_1",
+				peerId: "12D3KooWBot1",
+				role: "bot",
+				expiresAt: 0,
+			},
+			{
+				spaceId: "space_1",
+				peerId: "12D3KooWBot2",
+				role: "bot",
+				expiresAt: 1_700_000_000,
+			},
+		]);
+
+		const client = makeClient();
+		const bots = await client.listSpaceBots("space_1");
+
+		expect(listSpaceBots).toHaveBeenCalledWith("space_1");
+		expect(bots).toEqual([
+			{
+				spaceId: "space_1",
+				peerId: "12D3KooWBot1",
+				role: "bot",
+				expiresAt: 0,
+			},
+			{
+				spaceId: "space_1",
+				peerId: "12D3KooWBot2",
+				role: "bot",
+				expiresAt: 1_700_000_000,
+			},
+		]);
+	});
+
+	it("tolerates a null/undefined response from the addon (maps to empty list)", async () => {
+		listSpaceBots.mockResolvedValue(null as unknown as never);
+
+		const client = makeClient();
+		await expect(client.listSpaceBots("space_1")).resolves.toEqual([]);
 	});
 });

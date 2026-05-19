@@ -3,6 +3,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mutateAsync = vi.fn();
 const isLoading = { value: false };
+const listQueryState: {
+	data: Array<{ peerId: string; expiresAt: number }>;
+	isLoading: boolean;
+	isFetching: boolean;
+	error: unknown;
+} = {
+	data: [],
+	isLoading: false,
+	isFetching: false,
+	error: null,
+};
 
 vi.mock("@app/queries/spaces", () => ({
 	useIssueIssuerCapabilityMutation: () => ({
@@ -10,12 +21,78 @@ vi.mock("@app/queries/spaces", () => ({
 		mutateAsync,
 		isLoading: isLoading.value,
 	}),
+	useSpaceBotsQuery: () => listQueryState,
 }));
 
 import { useSpaceBots } from "./use-space-bots";
 
+function resetListQuery() {
+	listQueryState.data = [];
+	listQueryState.isLoading = false;
+	listQueryState.isFetching = false;
+	listQueryState.error = null;
+}
+
+describe("useSpaceBots list view", () => {
+	beforeEach(() => {
+		resetListQuery();
+		mutateAsync.mockReset();
+		isLoading.value = false;
+	});
+
+	it("starts empty when the query has no rows", () => {
+		const { result } = renderHook(() => useSpaceBots("space_1"));
+		expect(result.current.bots).toEqual([]);
+		expect(result.current.isLoading).toBe(false);
+		expect(result.current.loadError).toBeNull();
+	});
+
+	it("maps daemon member rows onto the @soma/ui Bot shape (peerId + placeholder alias + active status)", () => {
+		listQueryState.data = [
+			{ peerId: "12D3KooWAbcdef", expiresAt: 0 },
+			{ peerId: "12D3KooWzZ1234", expiresAt: 0 },
+		];
+
+		const { result } = renderHook(() => useSpaceBots("space_1"));
+
+		expect(result.current.bots).toEqual([
+			{
+				id: "12D3KooWAbcdef",
+				alias: "bot-abcdef",
+				peerId: "12D3KooWAbcdef",
+				status: "active",
+			},
+			{
+				id: "12D3KooWzZ1234",
+				alias: "bot-zz1234",
+				peerId: "12D3KooWzZ1234",
+				status: "active",
+			},
+		]);
+	});
+
+	it("surfaces isLoading while the underlying query is in flight", () => {
+		listQueryState.isLoading = true;
+		const { result } = renderHook(() => useSpaceBots("space_1"));
+		expect(result.current.isLoading).toBe(true);
+	});
+
+	it("surfaces isFetching for revalidation as isLoading too", () => {
+		listQueryState.isFetching = true;
+		const { result } = renderHook(() => useSpaceBots("space_1"));
+		expect(result.current.isLoading).toBe(true);
+	});
+
+	it("surfaces query errors via loadError", () => {
+		listQueryState.error = new Error("daemon offline");
+		const { result } = renderHook(() => useSpaceBots("space_1"));
+		expect(result.current.loadError).toMatch(/daemon offline/);
+	});
+});
+
 describe("useSpaceBots.addBot", () => {
 	beforeEach(() => {
+		resetListQuery();
 		mutateAsync.mockReset();
 		isLoading.value = false;
 	});

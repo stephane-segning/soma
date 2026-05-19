@@ -554,6 +554,22 @@ impl SomaHandle {
         Ok(members.into_iter().map(member_to_js).collect())
     }
 
+    /// List bot memberships within `space_id`. Wraps
+    /// [`DaemonHandle::list_space_bots`] — see that method for the
+    /// schema caveats (alias/scopes/status not yet stored).
+    #[napi]
+    pub async fn list_space_bots(
+        &self,
+        space_id: String,
+    ) -> napi::Result<Vec<SpaceMemberJs>> {
+        let handle = self.daemon_handle().await?;
+        let bots = handle
+            .list_space_bots(&space_id)
+            .await
+            .map_err(to_napi)?;
+        Ok(bots.into_iter().map(member_to_js).collect())
+    }
+
     // --- Daemon blobs ---------------------------------------------------
 
     #[napi]
