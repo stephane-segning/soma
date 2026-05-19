@@ -14,6 +14,7 @@ export function createStoryCommands(input: {
 			name: "Image",
 			description: "Insert an image from disk",
 			keywords: ["image", "photo", "media"],
+			section: "embed",
 			handler: async ({ editor, range }) => {
 				const file = await pickFile("image/*");
 				if (!file) return;
@@ -37,6 +38,7 @@ export function createStoryCommands(input: {
 			name: "File",
 			description: "Insert a file attachment",
 			keywords: ["file", "attachment", "pdf"],
+			section: "embed",
 			handler: async ({ editor, range }) => {
 				const file = await pickFile("*/*");
 				if (!file) return;
@@ -51,12 +53,14 @@ export function createStoryCommands(input: {
 			key: "insert-page-link",
 			name: "Insert page link",
 			description: "Insert a demo page link block",
+			section: "embed",
 			handler: ({ editor, range }) => insertAtRange(editor, range, { type: "pageLink", attrs: { pageId: "page_demo_456", title: "Design Notes", href: "/spaces/demo/pages/page_demo_456" } }),
 		},
 		{
 			key: "insert-text-rotate",
 			name: "Text rotate",
 			description: "Insert a rotating text component",
+			section: "advanced",
 			handler: ({ editor, range }) => insertAtRange(editor, range, {
 				type: "paragraph",
 				content: [{ type: "text", text: "Rotating words: " }, { type: "textRotate", attrs: { items: ["Design", "Build", "Ship"] } }],
@@ -66,6 +70,7 @@ export function createStoryCommands(input: {
 			key: "insert-carousel",
 			name: "Carousel",
 			description: "Insert a carousel block",
+			section: "embed",
 			handler: ({ editor, range }) => insertAtRange(editor, range, {
 				type: "carousel",
 				attrs: { items: [{ src: "https://placehold.co/640x360/png?text=Slide+1" }, { src: "https://placehold.co/640x360/png?text=Slide+2" }, { src: "https://placehold.co/640x360/png?text=Slide+3" }] },
@@ -75,6 +80,7 @@ export function createStoryCommands(input: {
 			key: "insert-accordion",
 			name: "Accordion",
 			description: "Insert an accordion block",
+			section: "advanced",
 			handler: ({ editor, range }) => insertAtRange(editor, range, {
 				type: "accordion",
 				attrs: { collapseType: "arrow", items: [{ title: "Accordion Item 1", content: "Add accordion content here." }, { title: "Accordion Item 2", content: "Second item details." }] },
