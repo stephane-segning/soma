@@ -16,7 +16,7 @@
  * we render only the first column (single vertical stack) and any
  * additional columns join the stack.
  */
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect } from "react";
 import { useT } from "../../i18n/use-t";
 import { cn } from "../../utils/cn";
 import { Panel } from "./panel";
@@ -67,18 +67,32 @@ export function PanelContainer({
 			: new Set<string>(collapsedIds ?? []);
 
 	// Split panels into expanded / collapsed, then clamp the expanded
-	// list to `maxExpanded`. Anything past the cap visually joins the
-	// collapsed strip — without us mutating `collapsedIds`, since this
-	// component is presentational and shouldn't fight the caller's
-	// state. If the caller wants to be smart about which panel evicts
-	// which, they update collapsedIds before re-rendering us.
+	// list to `maxExpanded`. The first `maxExpanded` "open" panels stay
+	// visible; anything past the cap is treated as overflow.
 	const allExpanded = panels.filter((panel) => !collapsedSet.has(panel.id));
 	const expanded = allExpanded.slice(0, maxExpanded);
 	const overflow = allExpanded.slice(maxExpanded);
-	const collapsed = [
-		...panels.filter((panel) => collapsedSet.has(panel.id)),
-		...overflow,
-	];
+
+	// When the caller's `collapsedIds` admits more open panels than the
+	// cap allows, we fire `onToggleCollapse` for each overflow panel so
+	// the caller's state catches up. Without this, the third+ "open"
+	// panel would just disappear into the strip silently — the user's
+	// expectation is "never more than two at once", which means the
+	// state should reflect the cap, not just the visible render.
+	//
+	// We key the effect by overflow panel ids so it only fires when the
+	// overflow set changes; if `onToggleCollapse` is unset the container
+	// just renders the cap visually (no state changes).
+	const overflowIdsKey = overflow.map((panel) => panel.id).join(",");
+	useEffect(() => {
+		if (!onToggleCollapse || overflow.length === 0) return;
+		for (const panel of overflow) onToggleCollapse(panel.id);
+		// `overflow` is recomputed every render but its contents only matter
+		// to this effect — depend on the id key so we don't loop.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [overflowIdsKey, onToggleCollapse]);
+
+	const collapsed = panels.filter((panel) => collapsedSet.has(panel.id));
 
 	return (
 		<div

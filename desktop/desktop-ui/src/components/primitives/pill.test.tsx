@@ -10,16 +10,18 @@ import { describe, expect, it } from "vitest";
 import { Pill } from "./pill";
 
 describe("Pill primitives", () => {
-	it("renders as a daisyUI badge with the sm size", () => {
+	it("renders as a daisyUI badge with the sm size + soft style", () => {
 		const { container } = render(<Pill>Hello</Pill>);
 		const span = container.firstChild as HTMLElement;
 		expect(span.className).toContain("badge");
 		expect(span.className).toContain("badge-sm");
+		expect(span.className).toContain("badge-soft");
 	});
 
-	it("applies the matching badge-* class for each tone", () => {
-		const cases: Array<{ tone: "neutral" | "info" | "success" | "warning" | "error"; expected: string }> = [
-			{ tone: "neutral", expected: "badge-ghost" },
+	it("applies the matching badge-* tone class for each non-neutral tone", () => {
+		// `neutral` intentionally has no tone modifier — daisyUI's soft
+		// badge default is already the neutral palette.
+		const cases: Array<{ tone: "info" | "success" | "warning" | "error"; expected: string }> = [
 			{ tone: "info", expected: "badge-info" },
 			{ tone: "success", expected: "badge-success" },
 			{ tone: "warning", expected: "badge-warning" },

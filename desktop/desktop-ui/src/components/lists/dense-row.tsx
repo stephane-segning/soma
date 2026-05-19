@@ -78,10 +78,17 @@ export function DenseRow({
 	return (
 		<div
 			className={cn(
+				// Note: we considered migrating to daisyUI 5's `list-row` here,
+				// but daisy's grid template assumes ordered slot children
+				// (one positional grid column per child element) while our
+				// API has named slots that are conditionally rendered. Keep
+				// the hand-rolled flex layout — it gives us the conditional
+				// slot freedom without the grid template fighting us.
 				"flex w-full items-center gap-3 rounded-md px-3 text-ui-sm",
 				tierClass,
+				// No `transition-colors` — row-list highlights snap (see MenuItem).
 				onClick &&
-					"cursor-pointer transition-colors hover:bg-base-200 focus-visible:bg-base-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+					"cursor-pointer hover:bg-base-200 focus-visible:bg-base-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
 				className,
 			)}
 			onClick={onClick}

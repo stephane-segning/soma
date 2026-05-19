@@ -403,8 +403,9 @@ function DocRow({
 	return (
 		<button
 			aria-selected={active}
+			// No `transition-colors` — row-list highlights snap (see MenuItem).
 			className={cn(
-				"flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-ui-sm transition-colors",
+				"flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-ui-sm",
 				active
 					? "bg-primary/10 text-primary"
 					: "hover:bg-base-200",

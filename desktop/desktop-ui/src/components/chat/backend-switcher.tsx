@@ -212,7 +212,10 @@ export function BackendSwitcher({
 							/>
 							<button
 								className={cn(
-									"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-ui-sm transition-colors hover:bg-base-200 hover:text-base-content",
+									// No `transition-colors` — row-list highlights must snap,
+									// see MenuItem for context. The "Add backend…" footer is
+									// part of the same list so it follows the same rule.
+									"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-ui-sm hover:bg-base-200 hover:text-base-content",
 									activeIndex === backends.length
 										? "bg-base-200 text-base-content"
 										: "text-base-content/80",

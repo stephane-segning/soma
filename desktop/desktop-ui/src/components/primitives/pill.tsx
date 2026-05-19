@@ -36,11 +36,14 @@ export type PillProps = {
 	"aria-label"?: string;
 };
 
-// Map our semantic tones onto daisyUI's badge tones. `neutral` reuses
-// daisyUI's default badge (no tone modifier) so it picks up the theme's
-// neutral palette rather than a hand-rolled bg/border combo.
+// Map our semantic tones onto daisyUI's `badge-soft` style — a softer
+// tinted surface (lighter bg + matching text colour) that reads as a
+// status chip rather than a button. daisyUI 5 ships this modifier so
+// we can drop the hand-mixed `bg-info/10` form. `neutral` falls back to
+// the plain (no-tone) soft badge so it inherits the theme's neutral
+// palette.
 const toneBadgeClass: Record<PillTone, string> = {
-	neutral: "badge-ghost",
+	neutral: "",
 	info: "badge-info",
 	success: "badge-success",
 	warning: "badge-warning",
@@ -69,10 +72,11 @@ export function Pill({
 		<span
 			className={cn(
 				// Lean on daisyUI's `.badge` primitive for the surface,
-				// `.badge-sm` for the smaller chip footprint, and the tone
-				// modifier picked above. We add `gap-1.5` for the dot spacing
-				// since daisyUI's default gap is tighter than we want.
-				"badge badge-sm gap-1.5",
+				// `.badge-sm` for the smaller chip footprint, `.badge-soft`
+				// for the softer tinted style, and the tone modifier picked
+				// above. We add `gap-1.5` for the dot spacing since daisyUI's
+				// default gap is tighter than we want.
+				"badge badge-sm badge-soft gap-1.5",
 				toneBadgeClass[tone],
 				className,
 			)}
