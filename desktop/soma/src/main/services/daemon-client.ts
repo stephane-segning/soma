@@ -17,6 +17,7 @@ import type {
 	StoredJoinRequest,
 	StoredPage,
 	StoredSpace,
+	StoredSpaceBot,
 	StoredSpaceMember,
 	UploadBlobInput,
 	UploadBlobResult,
@@ -253,11 +254,11 @@ export class DaemonClient {
 		return (res ?? []).map((member) => mapMember(member));
 	}
 
-	async listSpaceBots(spaceId: string): Promise<StoredSpaceMember[]> {
+	async listSpaceBots(spaceId: string): Promise<StoredSpaceBot[]> {
 		if (!spaceId) return [];
 		const handle = await this.handle();
 		const res = await handle.listSpaceBots(spaceId);
-		return (res ?? []).map((member) => mapMember(member));
+		return (res ?? []).map((bot) => mapBot(bot));
 	}
 
 	async listMyMemberships(): Promise<StoredSpaceMember[]> {
@@ -350,11 +351,16 @@ export class DaemonClient {
 		// the daemon's "no expiry" path.
 		const expiresAtSecs =
 			input.expiresAt === 0 ? 0 : Math.floor(input.expiresAt / 1000);
+		// Trim whitespace and drop empty aliases so the daemon never
+		// persists pure whitespace. The Rust side does the same — we
+		// normalise here so the napi wire is symmetric.
+		const alias = input.alias?.trim() ? input.alias.trim() : undefined;
 		const handle = await this.handle();
 		return !!(await handle.issueIssuerCapability({
 			spaceId: input.spaceId.trim(),
 			targetPeerId: input.targetPeerId.trim(),
 			expiresAt: expiresAtSecs,
+			alias,
 		}));
 	}
 
@@ -385,6 +391,20 @@ function mapMember(member: { spaceId: string; peerId: string; role: string; expi
 		peerId: member.peerId,
 		role: member.role,
 		expiresAt: Number(member.expiresAt ?? 0),
+	};
+}
+
+function mapBot(bot: {
+	spaceId: string;
+	peerId: string;
+	expiresAt: number;
+	alias?: string | null;
+}): StoredSpaceBot {
+	return {
+		spaceId: bot.spaceId,
+		peerId: bot.peerId,
+		expiresAt: Number(bot.expiresAt ?? 0),
+		alias: bot.alias ?? null,
 	};
 }
 

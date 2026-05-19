@@ -4,7 +4,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mutateAsync = vi.fn();
 const isLoading = { value: false };
 const listQueryState: {
-	data: Array<{ peerId: string; expiresAt: number }>;
+	data: Array<{
+		spaceId: string;
+		peerId: string;
+		expiresAt: number;
+		alias: string | null;
+	}>;
 	isLoading: boolean;
 	isFetching: boolean;
 	error: unknown;
@@ -47,10 +52,42 @@ describe("useSpaceBots list view", () => {
 		expect(result.current.loadError).toBeNull();
 	});
 
-	it("maps daemon member rows onto the @soma/ui Bot shape (peerId + placeholder alias + active status)", () => {
+	it("uses the operator-typed alias when the daemon row carries one", () => {
 		listQueryState.data = [
-			{ peerId: "12D3KooWAbcdef", expiresAt: 0 },
-			{ peerId: "12D3KooWzZ1234", expiresAt: 0 },
+			{
+				spaceId: "space_1",
+				peerId: "12D3KooWAbcdef",
+				expiresAt: 0,
+				alias: "scribe",
+			},
+		];
+
+		const { result } = renderHook(() => useSpaceBots("space_1"));
+
+		expect(result.current.bots).toEqual([
+			{
+				id: "12D3KooWAbcdef",
+				alias: "scribe",
+				peerId: "12D3KooWAbcdef",
+				status: "active",
+			},
+		]);
+	});
+
+	it("falls back to a peer-id-derived alias when the daemon row has a null alias (legacy rows)", () => {
+		listQueryState.data = [
+			{
+				spaceId: "space_1",
+				peerId: "12D3KooWAbcdef",
+				expiresAt: 0,
+				alias: null,
+			},
+			{
+				spaceId: "space_1",
+				peerId: "12D3KooWzZ1234",
+				expiresAt: 0,
+				alias: "   ", // whitespace-only counts as missing
+			},
 		];
 
 		const { result } = renderHook(() => useSpaceBots("space_1"));
@@ -115,14 +152,14 @@ describe("useSpaceBots.addBot", () => {
 		});
 	});
 
-	it("passes 0 through when the form's Never toggle leaves expiryDate null", async () => {
+	it("forwards spaceId, peerId, expiresAt=0, and the trimmed alias for the Never toggle", async () => {
 		mutateAsync.mockResolvedValue(undefined);
 		const { result } = renderHook(() => useSpaceBots("space_1"));
 
 		await act(async () => {
 			await result.current.addBot({
 				peerId: "12D3KooWPeer",
-				alias: "scribe",
+				alias: "  scribe  ",
 				scopeIds: ["scope_a"],
 				expiryDate: null,
 			});
@@ -132,7 +169,26 @@ describe("useSpaceBots.addBot", () => {
 			spaceId: "space_1",
 			targetPeerId: "12D3KooWPeer",
 			expiresAt: 0,
+			alias: "scribe",
 		});
+	});
+
+	it("sends alias=null when the form leaves the alias blank", async () => {
+		mutateAsync.mockResolvedValue(undefined);
+		const { result } = renderHook(() => useSpaceBots("space_1"));
+
+		await act(async () => {
+			await result.current.addBot({
+				peerId: "12D3KooWPeer",
+				alias: "   ",
+				scopeIds: [],
+				expiryDate: null,
+			});
+		});
+
+		expect(mutateAsync).toHaveBeenCalledWith(
+			expect.objectContaining({ alias: null }),
+		);
 	});
 
 	it("converts ISO expiryDate strings to epoch-ms before forwarding", async () => {
