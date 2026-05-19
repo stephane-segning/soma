@@ -5,21 +5,27 @@ const { Given, When, Then } = createBdd();
 
 // Storybook's iframe URL accepts `?id=<kebab-of-title>--<kebab-of-story>`.
 // The catalog landing page is `/?path=/docs/foundation-tokens--docs` or
-// similar; for direct story rendering we hit `/iframe.html?id=...` and
+// similar; for direct story rendering we hit `iframe.html?id=...` and
 // scope assertions to the storybook root.
 function storyId(title: string, storyName: string): string {
+	// Mirrors Storybook's internal id generator: kebab-case, ASCII-only,
+	// collapse repeats, trim leading/trailing hyphens.
 	const slug = (s: string) =>
 		s
 			.toLowerCase()
 			.replace(/\//g, "-")
 			.replace(/[^a-z0-9-]+/g, "-")
+			.replace(/-+/g, "-")
 			.replace(/(^-|-$)/g, "");
 	return `${slug(title)}--${slug(storyName)}`;
 }
 
 Given("the Storybook catalog is open", async ({ page }) => {
-	await page.goto("/");
-	await expect(page).toHaveTitle(/Storybook|@soma\/ui|Webpack App/);
+	// Relative path (no leading slash) preserves any subpath in
+	// `baseURL` — e.g. `https://soma.vaam.store/storybook/` stays intact
+	// when running against the published gh-pages mirror.
+	await page.goto("./");
+	await expect(page).toHaveTitle(/Storybook|@soma\/ui/);
 });
 
 When("I look at the catalog sidebar", async ({ page }) => {
@@ -39,7 +45,9 @@ When(
 	"I open the {string} story {string}",
 	async ({ page }, title: string, storyName: string) => {
 		const id = storyId(title, storyName);
-		await page.goto(`/iframe.html?id=${id}&viewMode=story`);
+		// Relative `iframe.html` — see the comment on `page.goto("./")`
+		// above for why we avoid leading-slash paths here.
+		await page.goto(`iframe.html?id=${id}&viewMode=story`);
 		// The iframe target renders the story directly into `#storybook-root`.
 		await expect(page.locator("#storybook-root")).toBeVisible({
 			timeout: 15_000,

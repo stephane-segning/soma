@@ -10,7 +10,17 @@ const testDir = defineBddConfig({
 	steps: ["steps/**/*.ts"],
 });
 
-const STORYBOOK_URL = process.env.E2E_BASE_URL ?? "http://127.0.0.1:6006";
+// Normalise to a trailing slash so relative `goto("./")` /
+// `goto("iframe.html?...")` calls in steps resolve against the full base —
+// crucial when targeting a deployed Storybook at a subpath (e.g.
+// `https://soma.vaam.store/storybook/`).
+function normaliseBaseUrl(input: string): string {
+	return input.endsWith("/") ? input : `${input}/`;
+}
+
+const STORYBOOK_URL = normaliseBaseUrl(
+	process.env.E2E_BASE_URL ?? "http://127.0.0.1:6006",
+);
 const STARTUP_TIMEOUT_MS = 120_000;
 
 export default defineConfig({
