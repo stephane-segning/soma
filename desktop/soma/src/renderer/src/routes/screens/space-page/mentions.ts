@@ -4,6 +4,15 @@ import * as documentsService from "../../../services/documents-service";
 import * as spacesService from "../../../services/spaces-service";
 import { UNTITLED_PAGE_TITLE } from "../page-title";
 
+/**
+ * Shortens a peer ID to a readable suffix used as a fallback label when a
+ * bot has no operator-assigned alias.  Mirrors the `bot-<peerSuffix>`
+ * placeholder generated server-side.
+ */
+function peerSuffix(peerId: string): string {
+	return peerId.length > 8 ? peerId.slice(-8) : peerId;
+}
+
 export function usePageMentionProviders(spaceId: string): MentionProvider[] {
 	return useMemo<MentionProvider[]>(() => {
 		const peerMention: MentionProvider = {
@@ -64,6 +73,47 @@ export function usePageMentionProviders(spaceId: string): MentionProvider[] {
 			},
 		};
 
-		return [peerMention, spaceMention, pageMention];
+		/**
+		 * Bot mention — trigger char `!`.
+		 *
+		 * Rationale for a separate char rather than an `@bot:` prefix:
+		 * `@` is already claimed by the members provider and tiptap
+		 * Suggestion matches on a single trigger character.  Routing on a
+		 * prefix would require either pre-filter logic in the members
+		 * provider or a custom `findSuggestion` override — both add
+		 * fragile state.  A dedicated `!` char keeps each provider
+		 * fully independent, matches the codebase's one-provider-per-char
+		 * pattern, and aligns with the UI copy (`!bot-alias` in the editor,
+		 * `@bot:alias` in chat where a richer composer can pre-parse the
+		 * prefix before dispatching to the picker).
+		 */
+		const botMention: MentionProvider = {
+			name: "botMention",
+			char: "!",
+			placeholder: "Mention a bot",
+			section: "bots",
+			items: async (query) => {
+				const bots = await spacesService.listSpaceBots(spaceId);
+				const trimmed = query.trim().toLowerCase();
+				return bots
+					.filter((bot) => {
+						if (!trimmed) return true;
+						const alias = (bot.alias ?? "").toLowerCase();
+						const suffix = peerSuffix(bot.peerId).toLowerCase();
+						return alias.includes(trimmed) || suffix.includes(trimmed);
+					})
+					.map((bot) => {
+						const label = bot.alias ?? `bot-${peerSuffix(bot.peerId)}`;
+						return {
+							id: bot.peerId,
+							label,
+							detail: peerSuffix(bot.peerId),
+							href: `/spaces/${spaceId}/settings/bots?peerId=${bot.peerId}`,
+						};
+					});
+			},
+		};
+
+		return [peerMention, spaceMention, pageMention, botMention];
 	}, [spaceId]);
 }
