@@ -40,7 +40,7 @@
 		"@tiptap/extension-drag-handle-react": "^3.18.0",
 		"@tiptap/extension-dropcursor": "^3.18.0",
 		"@tiptap/extension-heading": "^3.18.0",
-		"@tiptap/extension-highlight": "^3.18.0",
+		"@tiptap/extension-highlight": "~3.18.0",
 		"@tiptap/extension-horizontal-rule": "^3.18.0",
 		"@tiptap/extension-italic": "^3.18.0",
 		"@tiptap/extension-link": "^3.18.0",

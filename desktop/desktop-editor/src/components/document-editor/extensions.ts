@@ -70,7 +70,26 @@ export function createDocumentExtensions(input: CreateDocumentExtensionsInput) {
 		Strike,
 		Code,
 		Highlight.configure({ multicolor: false }),
-		Link.configure({
+		Link.extend({
+			addKeyboardShortcuts() {
+				return {
+					"Mod-k": () => {
+						const { from, to, empty } = this.editor.state.selection;
+						if (empty) return false;
+						const current = this.editor.getAttributes("link").href as string | undefined;
+						const next = window.prompt("Link URL", current ?? "");
+						if (next === null) return true;
+						const chain = this.editor.chain().focus().extendMarkRange("link");
+						if (next.trim().length === 0) {
+							chain.unsetLink().run();
+						} else {
+							chain.setLink({ href: next.trim() }).setTextSelection({ from, to }).run();
+						}
+						return true;
+					},
+				};
+			},
+		}).configure({
 			autolink: true,
 			openOnClick: true,
 			linkOnPaste: true,
