@@ -8,8 +8,9 @@
  * page, ⌘↵ opens it in a new tab.
  */
 import { usePagesQuery } from "@app/queries/pages";
+import { useAppDispatch, useAppSelector } from "@app/store/hooks";
+import { selectRecentPages } from "@app/store/recent-pages";
 import { tabsActions } from "@app/store/tabs";
-import { useAppDispatch } from "@app/store/hooks";
 import {
 	autoUpdate,
 	flip,
@@ -34,6 +35,7 @@ export function JumpToPageButton() {
 		pageId: string;
 	}>();
 	const pagesQuery = usePagesQuery(spaceId ?? "");
+	const allRecentPages = useAppSelector(selectRecentPages);
 	const navigate = useNavigate();
 	const dispatch = useAppDispatch();
 	const [open, setOpen] = useState(false);
@@ -60,6 +62,15 @@ export function JumpToPageButton() {
 			parentId: page.parentPageIds[0] ?? null,
 		}));
 	}, [pagesQuery.data, untitled]);
+
+	// Filter recent pages to this space only, newest-first (already sorted).
+	const recentIds = useMemo(
+		() =>
+			allRecentPages
+				.filter((entry) => entry.spaceId === spaceId)
+				.map((entry) => entry.pageId),
+		[allRecentPages, spaceId],
+	);
 
 	if (!spaceId) return null;
 
@@ -95,6 +106,7 @@ export function JumpToPageButton() {
 									}),
 								)
 							}
+							recentIds={recentIds}
 						/>
 					</div>
 				</FloatingPortal>

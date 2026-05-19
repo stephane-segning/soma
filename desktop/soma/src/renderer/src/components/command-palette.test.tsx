@@ -58,7 +58,10 @@ import { CommandPaletteShell } from "./command-palette";
 
 function makeStore(uiOverride?: { isCommandPaletteOpen: boolean }) {
 	return configureStore({
-		reducer: { ui: uiReducer },
+		reducer: {
+			ui: uiReducer,
+			recentPages: (state = { entries: [] }) => state,
+		},
 		preloadedState: uiOverride ? { ui: uiOverride } : undefined,
 	});
 }
