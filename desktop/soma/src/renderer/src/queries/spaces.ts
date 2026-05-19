@@ -82,8 +82,12 @@ function useIssueIssuerCapabilityMutation() {
 	return {
 		...state,
 		mutate,
-		mutateAsync: (input: { spaceId: string; targetPeerId: string; expiresAt: number }) =>
-			mutate(input).unwrap(),
+		mutateAsync: (input: {
+			spaceId: string;
+			targetPeerId: string;
+			expiresAt: number;
+			alias?: string | null;
+		}) => mutate(input).unwrap(),
 	};
 }
 

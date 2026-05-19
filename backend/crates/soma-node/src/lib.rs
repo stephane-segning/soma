@@ -92,6 +92,17 @@ pub struct DiscoveredSpaceJs {
     pub tags: Vec<String>,
 }
 
+/// Bot-shaped wire record for `list_space_bots`. `alias` flows from the
+/// issuer-capability row; renderer hydrates `bot-<peerSuffix>` only if
+/// the user never typed one in the Add form.
+#[napi(object)]
+pub struct SpaceBotJs {
+    pub space_id: String,
+    pub peer_id: String,
+    pub expires_at: i64,
+    pub alias: Option<String>,
+}
+
 #[napi(object)]
 pub struct CreateSpaceResultJs {
     pub space_id: String,
@@ -219,6 +230,9 @@ pub struct IssueIssuerCapabilityInputJs {
     pub space_id: String,
     pub target_peer_id: String,
     pub expires_at: i64,
+    /// Optional human alias for the Bots-tab list view. Empty / whitespace
+    /// strings are dropped at the daemon boundary.
+    pub alias: Option<String>,
 }
 
 // --- Plain napi mirror records for the agent handle surface --------------
@@ -554,20 +568,20 @@ impl SomaHandle {
         Ok(members.into_iter().map(member_to_js).collect())
     }
 
-    /// List bot memberships within `space_id`. Wraps
-    /// [`DaemonHandle::list_space_bots`] — see that method for the
-    /// schema caveats (alias/scopes/status not yet stored).
+    /// List bots within `space_id`. Wraps [`DaemonHandle::list_space_bots`].
+    /// Returns `SpaceBotJs` (peer + alias + expires_at); status/scopes
+    /// follow in later daemon work.
     #[napi]
     pub async fn list_space_bots(
         &self,
         space_id: String,
-    ) -> napi::Result<Vec<SpaceMemberJs>> {
+    ) -> napi::Result<Vec<SpaceBotJs>> {
         let handle = self.daemon_handle().await?;
         let bots = handle
             .list_space_bots(&space_id)
             .await
             .map_err(to_napi)?;
-        Ok(bots.into_iter().map(member_to_js).collect())
+        Ok(bots.into_iter().map(bot_to_js).collect())
     }
 
     // --- Daemon blobs ---------------------------------------------------
@@ -809,6 +823,7 @@ impl SomaHandle {
                 space_id: input.space_id,
                 target_peer_id: input.target_peer_id,
                 expires_at: input.expires_at,
+                alias: input.alias,
             })
             .await
             .map_err(to_napi)
@@ -925,6 +940,15 @@ fn member_to_js(m: daemon_types::SpaceMemberRecord) -> SpaceMemberJs {
         peer_id: m.peer_id,
         role: m.role,
         expires_at: m.expires_at,
+    }
+}
+
+fn bot_to_js(b: daemon_types::SpaceBotRecord) -> SpaceBotJs {
+    SpaceBotJs {
+        space_id: b.space_id,
+        peer_id: b.peer_id,
+        expires_at: b.expires_at,
+        alias: b.alias,
     }
 }
 

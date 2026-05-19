@@ -50,6 +50,18 @@ pub struct SpaceMemberRecord {
     pub expires_at: i64,
 }
 
+/// Bot-shaped read row for `DaemonHandle::list_space_bots`. The Bots tab
+/// in Space Settings reads this directly; `alias` is the human label
+/// the operator typed into the Add form, persisted alongside the
+/// issuer capability.
+#[derive(Debug, Clone)]
+pub struct SpaceBotRecord {
+    pub space_id: String,
+    pub peer_id: String,
+    pub expires_at: i64,
+    pub alias: Option<String>,
+}
+
 #[derive(Debug, Clone)]
 pub struct DiscoveredSpace {
     pub space_id: String,
@@ -193,6 +205,10 @@ pub struct IssueIssuerCapabilityInput {
     pub target_peer_id: String,
     /// Unix-seconds expiration. `0` means no explicit expiration.
     pub expires_at: i64,
+    /// Optional human alias used by the Bots-tab list view. Empty /
+    /// whitespace-only strings collapse to `None` at the daemon
+    /// boundary so the storage layer never holds blank rows.
+    pub alias: Option<String>,
 }
 
 /// Plain-typed snapshot of one entry on the daemon's broadcast event stream.

@@ -98,7 +98,38 @@ describe("DaemonClient.issueIssuerCapability", () => {
 			spaceId: "space_1",
 			targetPeerId: "peer_1",
 			expiresAt: 0,
+			alias: undefined,
 		});
+	});
+
+	it("forwards the trimmed alias when provided", async () => {
+		const client = makeClient();
+
+		await client.issueIssuerCapability({
+			spaceId: "space_1",
+			targetPeerId: "peer_1",
+			expiresAt: 0,
+			alias: "  scribe  ",
+		});
+
+		expect(issueIssuerCapability).toHaveBeenCalledWith(
+			expect.objectContaining({ alias: "scribe" }),
+		);
+	});
+
+	it("drops whitespace-only aliases at the boundary (matches Rust normalisation)", async () => {
+		const client = makeClient();
+
+		await client.issueIssuerCapability({
+			spaceId: "space_1",
+			targetPeerId: "peer_1",
+			expiresAt: 0,
+			alias: "   ",
+		});
+
+		expect(issueIssuerCapability).toHaveBeenCalledWith(
+			expect.objectContaining({ alias: undefined }),
+		);
 	});
 });
 
@@ -115,19 +146,19 @@ describe("DaemonClient.listSpaceBots", () => {
 		expect(listSpaceBots).not.toHaveBeenCalled();
 	});
 
-	it("forwards the spaceId to the napi handle and maps the result", async () => {
+	it("forwards the spaceId to the napi handle and maps the result (incl. alias)", async () => {
 		listSpaceBots.mockResolvedValue([
 			{
 				spaceId: "space_1",
 				peerId: "12D3KooWBot1",
-				role: "bot",
 				expiresAt: 0,
+				alias: "scribe",
 			},
 			{
 				spaceId: "space_1",
 				peerId: "12D3KooWBot2",
-				role: "bot",
 				expiresAt: 1_700_000_000,
+				alias: null,
 			},
 		]);
 
@@ -139,16 +170,26 @@ describe("DaemonClient.listSpaceBots", () => {
 			{
 				spaceId: "space_1",
 				peerId: "12D3KooWBot1",
-				role: "bot",
 				expiresAt: 0,
+				alias: "scribe",
 			},
 			{
 				spaceId: "space_1",
 				peerId: "12D3KooWBot2",
-				role: "bot",
 				expiresAt: 1_700_000_000,
+				alias: null,
 			},
 		]);
+	});
+
+	it("coerces missing alias on the wire to null", async () => {
+		listSpaceBots.mockResolvedValue([
+			{ spaceId: "space_1", peerId: "12D3KooWPeer", expiresAt: 0 },
+		] as unknown as never);
+
+		const client = makeClient();
+		const [bot] = await client.listSpaceBots("space_1");
+		expect(bot.alias).toBeNull();
 	});
 
 	it("tolerates a null/undefined response from the addon (maps to empty list)", async () => {

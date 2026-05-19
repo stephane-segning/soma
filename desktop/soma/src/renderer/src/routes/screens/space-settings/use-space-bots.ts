@@ -6,22 +6,25 @@
  *  - **bots list** — `useListSpaceBotsQuery` calls
  *    `spaces_list_bots` → `DaemonClient.listSpaceBots` → napi
  *    `SomaHandle.listSpaceBots` → `DaemonHandle::list_space_bots`,
- *    which filters memberships server-side to `role === "bot"`.
+ *    which reads from the issuer-capability store (same place the
+ *    add flow writes to).
  *  - **addBot** — calls `spaces_issue_issuer_capability` IPC →
  *    `DaemonClient.issueIssuerCapability` → napi
- *    `SomaHandle.issueIssuerCapability`. The form's `peerId` +
- *    `expiryDate` map onto `targetPeerId` + `expiresAt` (epoch-ms).
+ *    `SomaHandle.issueIssuerCapability`. The form's `peerId`,
+ *    `alias`, and `expiryDate` map onto `targetPeerId`, `alias`,
+ *    and `expiresAt` (epoch-ms).
  *
  * Open follow-ups (per ui-revamp-v0-cutover-status):
- *  - **alias** and **scopeIds** from the form are not yet propagated
- *    to the daemon — the daemon's capability schema doesn't store
- *    them today. We synthesise a placeholder alias from the peer-id
- *    so the UI has something to render.
+ *  - **scopeIds** from the form are still not propagated — the
+ *    daemon's capability schema doesn't yet carry granular scope
+ *    grants. The form still captures them so the local UX is
+ *    complete; they wait on the next schema bump.
  *  - **status** — there's no bot status event stream yet. Every
  *    listed bot is reported as `active`; a `pending`/`failed` split
  *    waits on daemon event plumbing.
  */
 import { useIssueIssuerCapabilityMutation, useSpaceBotsQuery } from "@app/queries/spaces";
+import type { SpaceBot } from "@app/services/spaces-service";
 import type { Bot, BotStatus } from "@soma/ui/components/lists/bot-list";
 import { useCallback, useMemo, useState } from "react";
 
@@ -74,11 +77,16 @@ export function useSpaceBots(spaceId: string | undefined): UseSpaceBotsResult {
 					throw new Error(message);
 				}
 			}
+			// Trim the alias and collapse empty strings to null so the daemon
+			// boundary never receives whitespace-only labels. The Rust side
+			// also normalises, but we keep the wire clean.
+			const alias = input.alias.trim() ? input.alias.trim() : null;
 			try {
 				await issue.mutateAsync({
 					spaceId,
 					targetPeerId: input.peerId,
 					expiresAt,
+					alias,
 				});
 			} catch (error) {
 				const message =
@@ -106,20 +114,25 @@ export function useSpaceBots(spaceId: string | undefined): UseSpaceBotsResult {
 }
 
 /**
- * Map a daemon `SpaceMember` row onto the `@soma/ui` `Bot` shape the
- * Bots tab renders. Without the capability-record schema extension
- * (cutover doc follow-up), every listed bot is treated as `active` —
- * the daemon doesn't yet emit per-bot status events. `alias` falls
- * back to a `bot:<peer-prefix>` placeholder so `@bot:<alias>` mentions
- * have *something* to anchor to until the schema lands.
+ * Map a daemon `SpaceBot` row onto the `@soma/ui` `Bot` shape the
+ * Bots tab renders.
+ *
+ * - `alias` comes from the operator-typed value in the Add form. If
+ *   the user left it blank (or the row predates the alias column),
+ *   we fall back to `bot-<lowercased-last-6-of-peerId>` so the
+ *   `@bot:<alias>` mention path always has something to anchor to.
+ * - `status` is hard-coded `active` until the bot status event stream
+ *   lands (cutover doc follow-up). `pending`/`failed` need daemon
+ *   event plumbing analogous to `agent-events`.
  */
-function toBot(member: { peerId: string; expiresAt: number }): Bot {
-	const peerId = member.peerId;
-	const aliasPrefix = peerId.slice(-6).toLowerCase() || "bot";
+function toBot(bot: SpaceBot): Bot {
+	const peerId = bot.peerId;
+	const fallbackAliasSuffix = peerId.slice(-6).toLowerCase() || "bot";
+	const alias = bot.alias?.trim() ? bot.alias.trim() : `bot-${fallbackAliasSuffix}`;
 	const status: BotStatus = "active";
 	return {
 		id: peerId,
-		alias: `bot-${aliasPrefix}`,
+		alias,
 		peerId,
 		status,
 	};

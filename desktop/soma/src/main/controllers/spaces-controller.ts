@@ -8,6 +8,7 @@ import type {
 	RevokeMembershipInput,
 	StoredJoinRequest,
 	StoredSpace,
+	StoredSpaceBot,
 	StoredSpaceMember,
 } from "../services/daemon-client";
 
@@ -49,7 +50,7 @@ export class SpacesController {
 		return this.daemon.listSpaceMembers(spaceId);
 	}
 
-	listBots(spaceId: string): Promise<StoredSpaceMember[]> {
+	listBots(spaceId: string): Promise<StoredSpaceBot[]> {
 		return this.daemon.listSpaceBots(spaceId);
 	}
 

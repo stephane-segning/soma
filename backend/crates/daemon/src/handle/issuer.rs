@@ -22,6 +22,7 @@ impl DaemonHandle {
             space_id,
             target_peer_id,
             expires_at,
+            alias,
         } = input;
 
         if space_id.trim().is_empty() {
@@ -46,6 +47,17 @@ impl DaemonHandle {
             Some(expires_at)
         };
 
+        // Collapse whitespace-only aliases into None so the storage layer
+        // never holds blank labels; trim everything else.
+        let alias = alias.and_then(|raw| {
+            let trimmed = raw.trim();
+            if trimmed.is_empty() {
+                None
+            } else {
+                Some(trimmed.to_string())
+            }
+        });
+
         issue_owned_issuer_capability_to_storage(
             self.state.repos.as_ref(),
             &self.state.signer,
@@ -53,6 +65,7 @@ impl DaemonHandle {
             &space_id,
             &target_peer_id,
             expires_at,
+            alias,
         )
         .await?;
         Ok(true)

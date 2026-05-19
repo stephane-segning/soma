@@ -18,6 +18,7 @@ pub async fn issue_issuer_capability_to_storage(
     delegate_peer_id: &PeerId,
     allowed_roles: Vec<SpaceRole>,
     expires_at_secs: Option<i64>,
+    alias: Option<String>,
 ) -> SomaResult<IssuerCapability> {
     let now = SystemTime::now();
     let now_ts = Timestamp::from(now);
@@ -56,6 +57,7 @@ pub async fn issue_issuer_capability_to_storage(
             issued_at: now_secs,
             expires_at: expires_at_secs,
             capability: Some(issuer_cap.encode_to_vec()),
+            alias,
         })
         .await?;
 
@@ -69,6 +71,7 @@ pub async fn issue_owned_issuer_capability_to_storage(
     space_id: &str,
     delegate_peer_id: &PeerId,
     expires_at_secs: Option<i64>,
+    alias: Option<String>,
 ) -> SomaResult<IssuerCapability> {
     let space = repos
         .membership_repo()
@@ -92,6 +95,7 @@ pub async fn issue_owned_issuer_capability_to_storage(
         delegate_peer_id,
         vec![SpaceRole::Member],
         expires_at_secs,
+        alias,
     )
     .await
 }

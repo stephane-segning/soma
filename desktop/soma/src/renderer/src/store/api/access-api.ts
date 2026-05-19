@@ -20,7 +20,7 @@ export const accessApi = spacesApi.injectEndpoints({
 				},
 			],
 		}),
-		listSpaceBots: builder.query<SpaceMember[], string>({
+		listSpaceBots: builder.query<spacesService.SpaceBot[], string>({
 			queryFn: async (spaceId) => {
 				try {
 					const data = await spacesService.listSpaceBots(spaceId);
@@ -29,9 +29,11 @@ export const accessApi = spacesApi.injectEndpoints({
 					return { error };
 				}
 			},
-			// Bot rows are members under the hood — share the `SpaceMembers`
-			// cache tag so capability issuance and member revocations both
-			// invalidate this query too.
+			// Bots live in the issuer-capability store rather than the
+			// membership table, but the renderer's cache invalidations
+			// (revokeMembership, issueIssuerCapability) target the
+			// `SpaceMembers` tag — sharing it keeps the Bots tab in sync
+			// with those flows without a second tag layer.
 			providesTags: (_result, _error, spaceId) => [
 				{
 					type: "SpaceMembers",

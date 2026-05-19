@@ -98,10 +98,18 @@ export async function listSpaceMembers(spaceId: string): Promise<SpaceMember[]> 
 	}).catch(() => []);
 }
 
+export type SpaceBot = {
+	spaceId: string;
+	peerId: string;
+	expiresAt: number;
+	/** Operator-typed alias from the Bots-tab Add form, or `null` if blank. */
+	alias: string | null;
+};
+
 /**
- * Bot-only flavor of {@link listSpaceMembers}. Calls the daemon's
- * `spaces_list_bots` IPC, which filters memberships server-side to
- * `role === "bot"`.
+ * Bot list flavor of {@link listSpaceMembers}. Calls the daemon's
+ * `spaces_list_bots` IPC, which reads from the issuer-capability store
+ * (the same place the Add flow writes to).
  *
  * Unlike `listSpaceMembers`, this *does not* swallow IPC errors — the
  * RTK Query wrapping this call in `accessApi.listSpaceBots` already
@@ -111,9 +119,9 @@ export async function listSpaceMembers(spaceId: string): Promise<SpaceMember[]> 
  * state, which is what the Bots tab is supposed to distinguish from a
  * truly bot-less space.
  */
-export async function listSpaceBots(spaceId: string): Promise<SpaceMember[]> {
+export async function listSpaceBots(spaceId: string): Promise<SpaceBot[]> {
 	if (!spaceId) return [];
-	return invoke<SpaceMember[]>("spaces_list_bots", {
+	return invoke<SpaceBot[]>("spaces_list_bots", {
 		spaceId,
 	});
 }
@@ -143,6 +151,8 @@ export type IssueIssuerCapabilityInput = {
 	targetPeerId: string;
 	/** Absolute expiry in milliseconds since the unix epoch. */
 	expiresAt: number;
+	/** Optional alias the operator typed into the Bots-tab Add form. */
+	alias?: string | null;
 };
 
 export async function issueIssuerCapability(

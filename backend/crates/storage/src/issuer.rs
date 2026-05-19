@@ -13,6 +13,10 @@ pub struct IssuerCapability {
     pub issued_at: i64,
     pub expires_at: Option<i64>,
     pub capability: Option<Vec<u8>>,
+    /// Human alias the operator typed into the Bots-tab add form. Used
+    /// purely for UI display + future `@bot:<alias>` mention resolution.
+    /// Authz still keys on `(space_id, delegate_peer_id)`.
+    pub alias: Option<String>,
 }
 
 #[async_trait]
@@ -48,14 +52,15 @@ impl IssuerRepository for SqlIssuerRepository {
         sqlx::query(
             r#"
             INSERT INTO issuer_capabilities (
-                space_id, issuer_peer_id, delegate_peer_id, issued_at, expires_at, capability
-            ) VALUES ($1, $2, $3, $4, $5, $6)
+                space_id, issuer_peer_id, delegate_peer_id, issued_at, expires_at, capability, alias
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7)
             ON CONFLICT(space_id, delegate_peer_id)
             DO UPDATE SET
                 issuer_peer_id = excluded.issuer_peer_id,
                 issued_at = excluded.issued_at,
                 expires_at = excluded.expires_at,
-                capability = excluded.capability
+                capability = excluded.capability,
+                alias = excluded.alias
             "#,
         )
         .bind(&cap.space_id)
@@ -64,6 +69,7 @@ impl IssuerRepository for SqlIssuerRepository {
         .bind(cap.issued_at)
         .bind(cap.expires_at)
         .bind(&cap.capability)
+        .bind(&cap.alias)
         .execute(&self.pool)
         .await
         .map_err(Error::service)?;
@@ -78,7 +84,7 @@ impl IssuerRepository for SqlIssuerRepository {
     ) -> SomaResult<Option<IssuerCapability>> {
         let row = sqlx::query(
             r#"
-            SELECT space_id, issuer_peer_id, delegate_peer_id, issued_at, expires_at, capability
+            SELECT space_id, issuer_peer_id, delegate_peer_id, issued_at, expires_at, capability, alias
             FROM issuer_capabilities
             WHERE space_id = $1 AND delegate_peer_id = $2
             "#,
@@ -95,7 +101,7 @@ impl IssuerRepository for SqlIssuerRepository {
     async fn list_by_space(&self, space_id: &str) -> SomaResult<Vec<IssuerCapability>> {
         let rows = sqlx::query(
             r#"
-            SELECT space_id, issuer_peer_id, delegate_peer_id, issued_at, expires_at, capability
+            SELECT space_id, issuer_peer_id, delegate_peer_id, issued_at, expires_at, capability, alias
             FROM issuer_capabilities
             WHERE space_id = $1
             ORDER BY issued_at DESC
@@ -148,6 +154,7 @@ fn map_row(row: sqlx::any::AnyRow) -> IssuerCapability {
         issued_at: row.get("issued_at"),
         expires_at: row.get("expires_at"),
         capability: row.get("capability"),
+        alias: row.get("alias"),
     }
 }
 

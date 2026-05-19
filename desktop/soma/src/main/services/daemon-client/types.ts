@@ -50,6 +50,13 @@ export type StoredSpaceMember = {
 	expiresAt: number;
 };
 
+export type StoredSpaceBot = {
+	spaceId: string;
+	peerId: string;
+	expiresAt: number;
+	alias: string | null;
+};
+
 export type JoinSpaceInput = {
 	spaceId: string;
 	targetPeerId: string;
@@ -98,6 +105,8 @@ export type IssueIssuerCapabilityInput = {
 	targetPeerId: string;
 	/** Absolute expiry in milliseconds since the unix epoch. */
 	expiresAt: number;
+	/** Optional human alias for the Bots-tab list view. */
+	alias?: string | null;
 };
 
 export type ListSpacesResult = {

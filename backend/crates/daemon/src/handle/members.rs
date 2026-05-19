@@ -1,20 +1,18 @@
 use soma_core::SomaResult;
 use soma_storage::membership::SpaceMembership;
 
-use super::{DaemonHandle, types::SpaceMemberRecord};
+use super::{DaemonHandle, types::{SpaceBotRecord, SpaceMemberRecord}};
 
-const BOT_ROLE: &str = "bot";
-
-/// Map an `IssuerCapability` row onto the same `SpaceMemberRecord` shape
-/// the membership-based queries return. `delegate_peer_id` is the bot;
-/// `expires_at: None` becomes `0` (the daemon's no-expiry sentinel, kept
-/// consistent with `to_member_record` below).
-fn issuer_to_bot_record(cap: soma_storage::issuer::IssuerCapability) -> SpaceMemberRecord {
-    SpaceMemberRecord {
+/// Map an `IssuerCapability` row onto `SpaceBotRecord`. `delegate_peer_id`
+/// is the bot; `expires_at: None` becomes `0` (the daemon's no-expiry
+/// sentinel, consistent with `to_member_record` below). `alias` flows
+/// straight through.
+fn issuer_to_bot_record(cap: soma_storage::issuer::IssuerCapability) -> SpaceBotRecord {
+    SpaceBotRecord {
         space_id: cap.space_id,
         peer_id: cap.delegate_peer_id,
-        role: BOT_ROLE.to_string(),
         expires_at: cap.expires_at.unwrap_or_default(),
+        alias: cap.alias,
     }
 }
 
@@ -48,17 +46,15 @@ impl DaemonHandle {
     /// reading from `issuer_repo` keeps the list view in sync with the
     /// add flow.
     ///
-    /// The capability record schema doesn't yet store bot metadata
-    /// (alias, scopes, status) — that's a follow-up tracked in the
-    /// cutover status doc. Until then, the renderer hydrates aliases
-    /// from the peer-id (UI-side concern) and treats every listed bot
-    /// as `active`. The wire shape (`SpaceMemberRecord`) stays identical
-    /// to `list_space_members` so the renderer can share the same
-    /// `mapMember` helper across both queries.
+    /// Returns `SpaceBotRecord` — a bot-specific shape with `alias`
+    /// (operator-typed label, nullable for legacy rows). `scopes` and
+    /// `status` are still pending capability-schema follow-ups
+    /// (cutover-status doc); until they land, the renderer hard-codes
+    /// `status = "active"`.
     pub async fn list_space_bots(
         &self,
         space_id: &str,
-    ) -> SomaResult<Vec<SpaceMemberRecord>> {
+    ) -> SomaResult<Vec<SpaceBotRecord>> {
         let caps = self
             .state
             .repos
