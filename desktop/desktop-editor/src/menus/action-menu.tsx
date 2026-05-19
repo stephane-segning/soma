@@ -1,10 +1,12 @@
+import { shift } from "@floating-ui/react";
 import { ContextMenu } from "@soma/ui/components/overlays/context-menu";
 import { useT } from "@soma/ui/i18n";
 import { cn } from "@soma/ui/utils/cn";
 import { DragHandle } from "@tiptap/extension-drag-handle-react";
+import type { Node as PMNode } from "@tiptap/pm/model";
 import type { Editor } from "@tiptap/react";
 import { AnimatePresence, motion } from "motion/react";
-import { forwardRef, type ReactNode, useCallback, useRef, useState } from "react";
+import { forwardRef, type ReactNode, useCallback, useMemo, useRef, useState } from "react";
 import { Move, Plus, RefreshCw, Star } from "react-feather";
 import { BLOCK_LABEL, readBlockKindFromNode, rotateBlock, type BlockKind } from "./block-rotation";
 import { createAddMenuItems } from "./action-menu/add-menu-items";
@@ -106,21 +108,50 @@ export function ActionMenu({
 	}, [editor, activeNode, onAskAIForNode]);
 
 	const addMenuItems = createAddMenuItems({ activeNode, editor, insertAt, onInsertFile, onInsertImage });
+
+	// Stable identity for every prop the DragHandle hands to its plugin —
+	// `@tiptap/extension-drag-handle-react` puts these in a useEffect
+	// dependency list, and a new function on each render unregisters and
+	// re-registers the ProseMirror plugin. The re-registration reconfigures
+	// the editor's plugin list, which resets the suggestion plugin's state
+	// (so the slash menu would vanish the instant the mouse moved).
+	const handleNodeChange = useCallback(
+		({ node, pos }: { node: PMNode | null; pos: number }) => {
+			if (!node || pos < 0) {
+				setActiveNode(null);
+				return;
+			}
+			setActiveNode({ pos, insertPos: pos + node.nodeSize, blockKind: readBlockKindFromNode(node) });
+		},
+		[],
+	);
+	const handleDragStart = useCallback(() => setIsDragging(true), []);
+	const handleDragEnd = useCallback(() => setIsDragging(false), []);
+	// `shift({ padding: 8 })` keeps the handle inside the viewport on
+	// narrow screens where the editor padding doesn't leave room for a
+	// `left-start` placement — without it the handle clips behind the
+	// window edge.
+	const computePositionConfig = useMemo(
+		() => ({
+			placement: "left-start" as const,
+			strategy: "fixed" as const,
+			middleware: [shift({ padding: 8 })],
+		}),
+		[],
+	);
+
 	if (!editor) return null;
 
 	return (
 		<>
 			<DragHandle
 				className="z-40"
-				computePositionConfig={{ placement: "left-start", strategy: "fixed" }}
+				computePositionConfig={computePositionConfig}
 				editor={editor}
 				nested={false}
-				onElementDragStart={() => setIsDragging(true)}
-				onElementDragEnd={() => setIsDragging(false)}
-				onNodeChange={({ node, pos }) => {
-					if (!node || pos < 0) return setActiveNode(null);
-					setActiveNode({ pos, insertPos: pos + node.nodeSize, blockKind: readBlockKindFromNode(node) });
-				}}
+				onElementDragStart={handleDragStart}
+				onElementDragEnd={handleDragEnd}
+				onNodeChange={handleNodeChange}
 			>
 				<AnimatePresence initial={false}>
 					{activeNode ? (

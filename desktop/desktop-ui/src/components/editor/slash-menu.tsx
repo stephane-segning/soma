@@ -129,6 +129,16 @@ export function SlashMenu({
 		setActiveIndex(0);
 	}, [flat]);
 
+	// Keep the active option visible when keyboard navigation moves past
+	// the visible viewport. `block: 'nearest'` avoids jarring scrolls when
+	// the row is already on-screen.
+	useEffect(() => {
+		const container = containerRef.current;
+		if (!container) return;
+		const active = container.querySelector<HTMLElement>('[role="option"][aria-selected="true"]');
+		active?.scrollIntoView({ block: "nearest" });
+	}, [activeIndex]);
+
 	useEffect(() => {
 		const onKeyDown = (event: KeyboardEvent) => {
 			if (captureScope === "container") {
