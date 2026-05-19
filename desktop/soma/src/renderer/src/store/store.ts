@@ -2,6 +2,7 @@ import { configureStore } from "@reduxjs/toolkit";
 import { setupListeners } from "@reduxjs/toolkit/query";
 import { api } from "./api";
 import { documentsReducer } from "./documents";
+import { recentPagesListenerMiddleware } from "./recent-pages-listener";
 import { recentPagesReducer } from "./recent-pages";
 import { tabsReducer } from "./tabs";
 import { uiReducer } from "./ui";
@@ -14,7 +15,10 @@ const store = configureStore({
 		documents: documentsReducer,
 		recentPages: recentPagesReducer,
 	},
-	middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(api.middleware),
+	middleware: (getDefaultMiddleware) =>
+		getDefaultMiddleware()
+			.prepend(recentPagesListenerMiddleware.middleware)
+			.concat(api.middleware),
 });
 
 type RootState = ReturnType<typeof store.getState>;

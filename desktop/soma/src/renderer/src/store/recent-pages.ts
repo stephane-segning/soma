@@ -38,7 +38,7 @@ function saveToStorage(entries: RecentPage[]): void {
 	try {
 		localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
 	} catch {
-		// localStorage unavailable — silently skip
+		// localStorage unavailable or quota exceeded — silently skip.
 	}
 }
 
@@ -56,20 +56,22 @@ const recentPagesSlice = createSlice({
 				spaceId: string;
 				pageId: string;
 				title: string;
+				openedAt: number;
 			}>,
 		) {
-			const { spaceId, pageId, title } = action.payload;
-			// Remove existing entry for this (spaceId, pageId) if present
+			const { spaceId, pageId, title, openedAt } = action.payload;
+			// Remove existing entry for this (spaceId, pageId) if present so the
+			// reopen promotes it to the head of the list (dedupe semantics).
 			const filtered = state.entries.filter(
 				(e) => !(e.spaceId === spaceId && e.pageId === pageId),
 			);
-			// Prepend the new entry
-			const next: RecentPage[] = [
-				{ spaceId, pageId, title, openedAt: Date.now() },
+			// Prepend the new entry and cap at MAX_RECENT. The reducer-side
+			// invariant is "entries are newest-first", so slicing keeps the
+			// newest and drops the oldest tail entry on overflow.
+			state.entries = [
+				{ spaceId, pageId, title, openedAt },
 				...filtered,
 			].slice(0, MAX_RECENT);
-			state.entries = next;
-			saveToStorage(next);
 		},
 	},
 });
@@ -77,10 +79,20 @@ const recentPagesSlice = createSlice({
 const recentPagesReducer = recentPagesSlice.reducer;
 const recentPagesActions = recentPagesSlice.actions;
 
+// Returns the raw entries array. The reducer already maintains
+// newest-first order via prepending, so no sort is needed here.
+// Returning the slice reference directly keeps `useAppSelector`
+// stable across unrelated store updates.
 function selectRecentPages(state: { recentPages: RecentPagesState }): RecentPage[] {
-	// Already stored newest-first; return a stable copy sorted by openedAt desc
-	return [...state.recentPages.entries].sort((a, b) => b.openedAt - a.openedAt);
+	return state.recentPages.entries;
 }
 
-export { MAX_RECENT, recentPagesActions, recentPagesReducer, selectRecentPages };
+export {
+	MAX_RECENT,
+	recentPagesActions,
+	recentPagesReducer,
+	saveToStorage,
+	selectRecentPages,
+	STORAGE_KEY,
+};
 export type { RecentPage, RecentPagesState };

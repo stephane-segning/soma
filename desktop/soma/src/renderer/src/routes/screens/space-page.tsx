@@ -40,6 +40,7 @@ function Component(): React.JSX.Element {
 				spaceId: data.spaceId,
 				pageId: data.pageId,
 				title: data.pageTitle,
+				openedAt: Date.now(),
 			}),
 		);
 	}, [dispatch, data.spaceId, data.pageId, data.pageTitle]);
