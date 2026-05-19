@@ -40,6 +40,13 @@ export type SelectionAIBarProps = {
 	 * with no action highlighted. Receives the raw prompt text.
 	 */
 	onCustomPrompt?: (prompt: string) => void;
+	/**
+	 * Optional per-invocation metadata forwarded into each action's
+	 * `run({ ..., metadata })` call. Callers use this to carry the
+	 * selection range (`from` / `to`) or other host-specific context
+	 * that the action body needs to mutate the document.
+	 */
+	metadata?: Record<string, unknown>;
 	className?: string;
 };
 
@@ -59,6 +66,7 @@ export function SelectionAIBar({
 	selectedText,
 	onClose,
 	onCustomPrompt,
+	metadata,
 	className,
 }: SelectionAIBarProps) {
 	const t = useT();
@@ -136,6 +144,7 @@ export function SelectionAIBar({
 						nodeType,
 						text: selectedText,
 						surface: "selection",
+						metadata,
 					});
 				} else if (onCustomPrompt && prompt.trim().length > 0) {
 					onCustomPrompt(prompt.trim());
@@ -198,6 +207,7 @@ export function SelectionAIBar({
 					sectionLabel={sectionLabel}
 					nodeType={nodeType}
 					selectedText={selectedText}
+					metadata={metadata}
 				/>
 			)}
 		</div>
@@ -211,6 +221,7 @@ function ActionList({
 	sectionLabel,
 	nodeType,
 	selectedText,
+	metadata,
 }: {
 	grouped: { category: NodeAIActionCategory; items: NodeAIAction[] }[];
 	activeIndex: number;
@@ -218,6 +229,7 @@ function ActionList({
 	sectionLabel: Record<NodeAIActionCategory, ReactNode>;
 	nodeType: string;
 	selectedText: string;
+	metadata?: Record<string, unknown>;
 }) {
 	let runningIndex = 0;
 	return (
@@ -246,6 +258,7 @@ function ActionList({
 										nodeType,
 										text: selectedText,
 										surface: "selection",
+										metadata,
 									})
 								}
 								onMouseEnter={() => setActiveIndex(ownIndex)}

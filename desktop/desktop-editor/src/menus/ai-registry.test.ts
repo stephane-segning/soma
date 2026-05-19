@@ -98,6 +98,30 @@ describe("createDefaultAIRegistry", () => {
 		expect(registry.resolve("horizontal-rule", "selection")).toEqual([]);
 	});
 
+	// --- node surface (drag-handle AI button, cutover 5e) ---
+
+	it("registers explain/expand/research on the `node` surface for every text-bearing type", () => {
+		const registry = createDefaultAIRegistry({ editor, onQuickAction });
+
+		for (const nodeType of TEXT_BEARING) {
+			const actions = registry.resolve(nodeType, "node").map((a) => a.id);
+			expect(actions).toEqual(["explain", "expand", "research"]);
+		}
+	});
+
+	it("returns no node-surface actions when no onQuickAction handler is supplied", () => {
+		const registry = createDefaultAIRegistry({ editor });
+		for (const nodeType of TEXT_BEARING) {
+			expect(registry.resolve(nodeType, "node")).toEqual([]);
+		}
+	});
+
+	it("does not register node-surface actions for non-text-bearing node types (image, horizontal-rule)", () => {
+		const registry = createDefaultAIRegistry({ editor, onQuickAction });
+		expect(registry.resolve("image", "node")).toEqual([]);
+		expect(registry.resolve("horizontal-rule", "node")).toEqual([]);
+	});
+
 	it("orders actions by their locked category (rewrite → transform → custom)", () => {
 		const registry = createDefaultAIRegistry({ editor, onQuickAction });
 		const cats = registry

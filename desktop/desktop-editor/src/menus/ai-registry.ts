@@ -74,7 +74,12 @@ export function createDefaultAIRegistry({
 			label: "Explain",
 			description: "Replace the selection with a plain-language explanation.",
 			category: "rewrite",
-			surfaces: ["selection"],
+			// Registered on both "selection" and "node" surfaces so that:
+			//   - The BubbleMenu's SelectionAIBar (selection surface) sees the action.
+			//   - The drag-handle AI button (node surface) also resolves it via
+			//     NodeAIRegistryExtension, and SelectionAIBar's internal
+			//     registry.resolve(nodeType, "selection") call still finds it.
+			surfaces: ["selection", "node"],
 			run: (ctx) => dispatchAndInsert("explain", ctx),
 		},
 		{
@@ -82,7 +87,7 @@ export function createDefaultAIRegistry({
 			label: "Expand",
 			description: "Continue the selection with additional detail.",
 			category: "transform",
-			surfaces: ["selection"],
+			surfaces: ["selection", "node"],
 			run: (ctx) => dispatchAndInsert("expand", ctx),
 		},
 		{
@@ -90,7 +95,7 @@ export function createDefaultAIRegistry({
 			label: "Research",
 			description: "Queue a research task. Result lands in chat.",
 			category: "custom",
-			surfaces: ["selection"],
+			surfaces: ["selection", "node"],
 			// Rejections propagate to the NodeAIRegistryExtension's
 			// `runActionSafely`, which routes them through `onActionError`
 			// (and falls back to `console.error`). Swallowing here would

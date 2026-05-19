@@ -33,3 +33,10 @@ export {
 	NodeAIRegistryExtension,
 	normalizeNodeName,
 } from "./extensions/node-ai-registry";
+
+export type {
+	NodeAITrigger,
+	QuickActionRequest,
+	QuickActionResponse,
+	QuickActionType,
+} from "./menus/contextual-menu";

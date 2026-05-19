@@ -1,9 +1,9 @@
 import { LimitPercentage } from "./limit-percentage";
 import { useLowlight } from "../hooks/lowlight";
-import { ContextualMenu, type QuickActionRequest, type QuickActionResponse } from "../menus/contextual-menu";
+import { ContextualMenu, type NodeAITrigger, type QuickActionRequest, type QuickActionResponse } from "../menus/contextual-menu";
 import type { JSONContent } from "@tiptap/core";
 import { EditorContent, useEditor } from "@tiptap/react";
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { defaultCommands } from "../commands/default-commands";
 import type { BlobFileUploadResult } from "../extensions/blob-file";
 import type { BlobImageUploadResult } from "../extensions/blob-image";
@@ -97,6 +97,16 @@ export function DocumentEditor({
 		(ext.options as NodeAIRegistryExtensionOptions).registry = aiRegistry;
 	}, [editor, aiRegistry]);
 
+	// Node-level AI trigger: set by ActionMenu when the drag-handle AI button
+	// is clicked, consumed by ContextualMenu to open the SelectionAIBar.
+	const [nodeAITrigger, setNodeAITrigger] = useState<NodeAITrigger | null>(null);
+	const handleAskAIForNode = useCallback((trigger: NodeAITrigger) => {
+		setNodeAITrigger(trigger);
+	}, []);
+	const handleNodeAIClose = useCallback(() => {
+		setNodeAITrigger(null);
+	}, []);
+
 	return (
 		<div className={className}>
 			<div className="relative">
@@ -104,9 +114,17 @@ export function DocumentEditor({
 					editor={editor}
 					onInsertFile={(targetEditor, insertPos) => insertFileFromPicker(targetEditor, insertPos, uploadFile)}
 					onInsertImage={(targetEditor, insertPos) => insertImageFromPicker(targetEditor, insertPos, uploadImage)}
+					onAskAIForNode={onQuickAction ? handleAskAIForNode : undefined}
 				/>
 				<EditorContent editor={editor} />
-				{editor && <ContextualMenu editor={editor} registry={aiRegistry} />}
+				{editor && (
+					<ContextualMenu
+						editor={editor}
+						registry={aiRegistry}
+						nodeAITrigger={nodeAITrigger}
+						onNodeAIClose={handleNodeAIClose}
+					/>
+				)}
 				{editor && limit && <LimitPercentage editor={editor} limit={limit} />}
 			</div>
 		</div>
