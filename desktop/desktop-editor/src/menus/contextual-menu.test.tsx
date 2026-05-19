@@ -101,10 +101,4 @@ describe("ContextualMenu — Highlight wiring", () => {
 		const highlight = activeEditor.isActive("highlight");
 		expect(highlight).toBe(true);
 	});
-
-	it("editor.isActive is queried with the string 'highlight'", () => {
-		const isActiveSpy = editor.isActive as ReturnType<typeof vi.fn>;
-		editor.isActive("highlight");
-		expect(isActiveSpy).toHaveBeenCalledWith("highlight");
-	});
 });
