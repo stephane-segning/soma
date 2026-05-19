@@ -60,8 +60,7 @@
 			"editorPlaceholder": "Start writing…"
 		},
 		"members": {
-			"title": "Members",
-			"subtitle": "Roster and roles will render here once wired to the daemon."
+			"title": "Members"
 		},
 		"settings": {
 			"title": "Space settings",
