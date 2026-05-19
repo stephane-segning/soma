@@ -5,6 +5,7 @@ import Code from "@tiptap/extension-code";
 import Document from "@tiptap/extension-document";
 import Dropcursor from "@tiptap/extension-dropcursor";
 import Heading from "@tiptap/extension-heading";
+import Highlight from "@tiptap/extension-highlight";
 import HorizontalRule from "@tiptap/extension-horizontal-rule";
 import Italic from "@tiptap/extension-italic";
 import Link from "@tiptap/extension-link";
@@ -68,6 +69,7 @@ export function createDocumentExtensions(input: CreateDocumentExtensionsInput) {
 		Underline,
 		Strike,
 		Code,
+		Highlight.configure({ multicolor: false }),
 		Link.configure({
 			autolink: true,
 			openOnClick: true,

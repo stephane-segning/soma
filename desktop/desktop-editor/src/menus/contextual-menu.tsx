@@ -79,8 +79,10 @@ export function ContextualMenu({
 							chain.setLink({ href: url }).run();
 						}
 					}}
+					highlight={editor.isActive("highlight")}
 					onToggleBold={() => editor.chain().focus().toggleBold().run()}
 					onToggleCode={() => editor.chain().focus().toggleCode().run()}
+					onToggleHighlight={() => editor.chain().focus().toggleHighlight().run()}
 					onToggleItalic={() => editor.chain().focus().toggleItalic().run()}
 					onToggleStrike={() => editor.chain().focus().toggleStrike().run()}
 					onToggleUnderline={() => editor.chain().focus().toggleUnderline().run()}

@@ -50,7 +50,7 @@ These can land independently of daemon work.
 ### Locked @soma/ui surfaces that ship inert in soma today
 
 - `SelectionBubble`'s **Comment** + **More** buttons — not wired (the menu component's props are optional; the buttons hide when their callbacks aren't passed).
-- `SelectionBubble`'s **Highlight** — needs `@tiptap/extension-highlight` added to the editor stack. The button is conditionally rendered via the `onToggleHighlight` callback, so dropping it in is one extension + one wire.
+- ~~`SelectionBubble`'s **Highlight**~~ — **landed** (`feat(editor): wire Highlight extension into SelectionBubble`). `@tiptap/extension-highlight` added to the extension stack (`multicolor: false`); `onToggleHighlight` and `highlight` active prop wired in `ContextualMenu`.
 - `BackendSwitcher` — exists in `@soma/ui`; the chat composer hasn't been touched to include it. Trivial drop-in when the ACP backend list is ready.
 
 ### Tooling
