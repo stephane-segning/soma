@@ -125,15 +125,24 @@ export function SlashMenu({
 
 	const [activeIndex, setActiveIndex] = useState(0);
 	const containerRef = useRef<HTMLDivElement | null>(null);
+	// Tracks whether the last activeIndex change came from keyboard nav.
+	// Mouse-hover also sets activeIndex (so the visible highlight follows
+	// the cursor), but in that case the row is already on-screen and
+	// scrollIntoView would cause the menu to *visibly jitter* under the
+	// mouse — looking like the items "scale" on hover. Keyboard nav, on
+	// the other hand, genuinely needs the scroll.
+	const keyboardNavRef = useRef(false);
 	// Reset when the result set changes so the highlight stays in-bounds.
 	useEffect(() => {
 		setActiveIndex(0);
 	}, [flat]);
 
-	// Keep the active option visible when keyboard navigation moves past
-	// the visible viewport. `block: 'nearest'` avoids jarring scrolls when
-	// the row is already on-screen.
+	// Keep the active option visible when *keyboard* navigation moves past
+	// the visible viewport. Mouse-hover already implies the row is in view,
+	// so we deliberately skip scrolling in that case.
 	useEffect(() => {
+		if (!keyboardNavRef.current) return;
+		keyboardNavRef.current = false;
 		const container = containerRef.current;
 		if (!container) return;
 		const active = container.querySelector<HTMLElement>('[role="option"][aria-selected="true"]');
@@ -151,11 +160,13 @@ export function SlashMenu({
 			}
 			if (event.key === "ArrowDown") {
 				event.preventDefault();
+				keyboardNavRef.current = true;
 				setActiveIndex((idx) =>
 					flat.length === 0 ? 0 : (idx + 1) % flat.length,
 				);
 			} else if (event.key === "ArrowUp") {
 				event.preventDefault();
+				keyboardNavRef.current = true;
 				setActiveIndex((idx) =>
 					flat.length === 0 ? 0 : (idx - 1 + flat.length) % flat.length,
 				);

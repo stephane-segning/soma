@@ -1,4 +1,4 @@
-import { shift } from "@floating-ui/react";
+import { offset, shift } from "@floating-ui/react";
 import { ContextMenu } from "@soma/ui/components/overlays/context-menu";
 import { useT } from "@soma/ui/i18n";
 import { cn } from "@soma/ui/utils/cn";
@@ -7,9 +7,10 @@ import type { Node as PMNode } from "@tiptap/pm/model";
 import type { Editor } from "@tiptap/react";
 import { AnimatePresence, motion } from "motion/react";
 import { forwardRef, type ReactNode, useCallback, useMemo, useRef, useState } from "react";
-import { Move, Plus, RefreshCw, Star } from "react-feather";
-import { BLOCK_LABEL, readBlockKindFromNode, rotateBlock, type BlockKind } from "./block-rotation";
+import { ChevronDown, ChevronUp, Move, Plus, RefreshCw, Star, Trash2, Type } from "react-feather";
+import { applyBlockKind, BLOCK_KIND_ORDER, BLOCK_LABEL, readBlockKindFromNode, type BlockKind } from "./block-rotation";
 import { createAddMenuItems } from "./action-menu/add-menu-items";
+import { deleteBlock, moveBlock } from "./action-menu/move-block";
 import { normalizeNodeName } from "../extensions/node-ai-registry";
 import type { NodeAITrigger } from "./contextual-menu";
 
@@ -40,7 +41,10 @@ export function ActionMenu({
 	const [isDragging, setIsDragging] = useState(false);
 	const [addMenuOpen, setAddMenuOpen] = useState(false);
 	const [addMenuPosition, setAddMenuPosition] = useState({ x: 0, y: 0 });
+	const [convertMenuOpen, setConvertMenuOpen] = useState(false);
+	const [convertMenuPosition, setConvertMenuPosition] = useState({ x: 0, y: 0 });
 	const addButtonRef = useRef<HTMLButtonElement | null>(null);
+	const convertButtonRef = useRef<HTMLButtonElement | null>(null);
 	const aiButtonRef = useRef<HTMLButtonElement | null>(null);
 
 	const t = useT();
@@ -109,6 +113,22 @@ export function ActionMenu({
 
 	const addMenuItems = createAddMenuItems({ activeNode, editor, insertAt, onInsertFile, onInsertImage });
 
+	// Convert-to picker — one row per block kind, mirrors the slash-menu
+	// transform commands. Clicking a row closes the picker and applies the
+	// transform via `applyBlockKind`. We compute the items only when the
+	// menu is open to avoid running the loop on every drag-handle render.
+	const convertMenuItems = activeNode && editor
+		? BLOCK_KIND_ORDER.map((kind) => ({
+				id: `convert-${kind}`,
+				label: t({ id: `block-kind.${kind}`, defaultMessage: BLOCK_LABEL[kind] }),
+				icon: kind === activeNode.blockKind ? <RefreshCw className="size-4" /> : undefined,
+				onSelect: () => {
+					editor.chain().focus().setTextSelection(activeNode.pos + 1).run();
+					applyBlockKind(editor, kind);
+				},
+			}))
+		: [];
+
 	// Stable identity for every prop the DragHandle hands to its plugin —
 	// `@tiptap/extension-drag-handle-react` puts these in a useEffect
 	// dependency list, and a new function on each render unregisters and
@@ -127,15 +147,16 @@ export function ActionMenu({
 	);
 	const handleDragStart = useCallback(() => setIsDragging(true), []);
 	const handleDragEnd = useCallback(() => setIsDragging(false), []);
-	// `shift({ padding: 8 })` keeps the handle inside the viewport on
-	// narrow screens where the editor padding doesn't leave room for a
-	// `left-start` placement — without it the handle clips behind the
-	// window edge.
+	// `offset(8)` keeps a small breathing gap between the handle and the
+	// block it anchors to. `shift({ padding: 8 })` keeps the handle inside
+	// the viewport on narrow screens where the editor padding doesn't
+	// leave room for a `left-start` placement — without it the handle
+	// clips behind the window edge.
 	const computePositionConfig = useMemo(
 		() => ({
 			placement: "left-start" as const,
 			strategy: "fixed" as const,
-			middleware: [shift({ padding: 8 })],
+			middleware: [offset(8), shift({ padding: 8 })],
 		}),
 		[],
 	);
@@ -178,26 +199,34 @@ export function ActionMenu({
 								<Plus aria-hidden className="size-3.5" />
 							</HandleButton>
 							<HandleButton
-								label={t({
-									id: "action-menu.rotate",
-									defaultMessage: "Change to {next}",
-									values: {
-										next: t({
-											id: `block-kind.${activeNode.blockKind}`,
-											defaultMessage: BLOCK_LABEL[activeNode.blockKind],
-										}),
-									},
-								})}
+								label={t({ id: "action-menu.convert", defaultMessage: "Convert to…" })}
 								onActivate={() => {
-									editor
-										.chain()
-										.focus()
-										.setTextSelection(activeNode.pos + 1)
-										.run();
-									rotateBlock(editor);
+									const rect = convertButtonRef.current?.getBoundingClientRect();
+									if (!rect) return;
+									setConvertMenuPosition({ x: rect.right + 8, y: rect.top });
+									setConvertMenuOpen(true);
 								}}
+								ref={convertButtonRef}
 							>
-								<RefreshCw aria-hidden className="size-3.5" />
+								<Type aria-hidden className="size-3.5" />
+							</HandleButton>
+							<HandleButton
+								label={t({ id: "action-menu.move-up", defaultMessage: "Move up" })}
+								onActivate={() => moveBlock(editor, activeNode.pos, "up")}
+							>
+								<ChevronUp aria-hidden className="size-3.5" />
+							</HandleButton>
+							<HandleButton
+								label={t({ id: "action-menu.move-down", defaultMessage: "Move down" })}
+								onActivate={() => moveBlock(editor, activeNode.pos, "down")}
+							>
+								<ChevronDown aria-hidden className="size-3.5" />
+							</HandleButton>
+							<HandleButton
+								label={t({ id: "action-menu.delete", defaultMessage: "Delete block" })}
+								onActivate={() => deleteBlock(editor, activeNode.pos)}
+							>
+								<Trash2 aria-hidden className="size-3.5" />
 							</HandleButton>
 							{onAskAIForNode ? (
 								<HandleButton
@@ -229,6 +258,12 @@ export function ActionMenu({
 				</AnimatePresence>
 			</DragHandle>
 			<ContextMenu open={addMenuOpen} position={addMenuPosition} items={addMenuItems} onClose={() => setAddMenuOpen(false)} />
+			<ContextMenu
+				items={convertMenuItems}
+				onClose={() => setConvertMenuOpen(false)}
+				open={convertMenuOpen}
+				position={convertMenuPosition}
+			/>
 		</>
 	);
 }
@@ -241,6 +276,17 @@ const HandleButton = forwardRef<
 		<button
 			aria-label={label}
 			className="inline-flex size-7 items-center justify-center rounded-md text-base-content/70 transition-colors hover:bg-base-200 hover:text-base-content focus-visible:bg-base-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+			draggable={false}
+			// `@tiptap/extension-drag-handle` sets `draggable=true` on the
+			// outer wrapper so it can intercept dragstart and initiate the
+			// node move. Without these handlers, click-and-drag on any of
+			// the action buttons (Add, Rotate, AI) would also start a drag
+			// — confusing UX. Cancel both the native drag attribute *and*
+			// the bubbled event so only the dedicated grip-handle triggers.
+			onDragStart={(event) => {
+				event.preventDefault();
+				event.stopPropagation();
+			}}
 			onClick={onActivate}
 			ref={ref}
 			title={label}

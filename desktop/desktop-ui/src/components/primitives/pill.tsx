@@ -62,7 +62,12 @@ export function Pill({
 	return (
 		<span
 			className={cn(
-				"inline-flex items-center gap-1.5 rounded-sm border px-1.5 py-0.5 text-ui-xs font-medium",
+				// Pills sit in the same visual family as the rest of the @soma/ui
+				// primitives: rounded-md radius (matches MenuItem rows and the
+				// `surface-card` utility), `text-ui-xs` size, soft border. They
+				// stay smaller than buttons by using xs padding and lighter font
+				// weight — the role is "chip", not "action".
+				"inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-ui-xs font-medium",
 				toneSurface[tone],
 				className,
 			)}

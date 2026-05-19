@@ -74,17 +74,26 @@ export function PolymorphButton({
 
 	return (
 		<motion.button
+			aria-busy={loading || undefined}
 			className={base}
 			type={type}
 			whileTap={{ scale: 0.98 }}
 			{...props}
 		>
-			{loading ? <span className="loading loading-spinner loading-xs" /> : null}
-			{leadingIcon}
+			{/* While `loading`, the spinner takes the place of any leading/
+			   trailing icon — rendering both at once made the button feel
+			   noisy and led to layout shift the moment loading flipped on.
+			   The label stays visible so the user can still read what the
+			   button is *trying* to do. */}
+			{loading ? (
+				<span aria-hidden className="loading loading-spinner loading-xs" />
+			) : (
+				leadingIcon
+			)}
 			{children ? (
 				<span className={cn(iconOnly && "sr-only")}>{children}</span>
 			) : null}
-			{trailingIcon}
+			{loading ? null : trailingIcon}
 		</motion.button>
 	);
 }

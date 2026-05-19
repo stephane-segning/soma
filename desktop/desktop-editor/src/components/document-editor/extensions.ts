@@ -18,7 +18,7 @@ import TaskItem from "@tiptap/extension-task-item";
 import TaskList from "@tiptap/extension-task-list";
 import Text from "@tiptap/extension-text";
 import Underline from "@tiptap/extension-underline";
-import { CharacterCount } from "@tiptap/extensions";
+import { CharacterCount, UndoRedo } from "@tiptap/extensions";
 import type { createLowlight } from "lowlight";
 import { AccordionNode } from "../../extensions/accordion";
 import { BlobFileNode, type BlobFileUploadResult } from "../../extensions/blob-file";
@@ -50,6 +50,9 @@ export function createDocumentExtensions(input: CreateDocumentExtensionsInput) {
 		CustomDocument,
 		Text,
 		CharacterCount.configure({ limit: input.limit }),
+		// Cmd+Z / Cmd+Shift+Z / Cmd+Y all live here. StarterKit ships this,
+		// but we pull individual extensions instead — easy to forget.
+		UndoRedo.configure({ depth: 200, newGroupDelay: 400 }),
 		Paragraph.extend({ draggable: true }),
 		Heading.extend({ draggable: true }).configure({ levels: [1, 2, 3] }),
 		Blockquote.extend({ draggable: true }),

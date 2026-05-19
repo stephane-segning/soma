@@ -45,3 +45,72 @@
 	border-radius: 9999px;
 	box-shadow: 0 0 0 1px color-mix(in oklab, #3b82f6 30%, transparent);
 }
+
+/* -----------------------------------------------------------------
+ * Task list items — Tiptap's TaskItem renders as
+ *   <li data-checked><label>...checkbox...</label><div><p>...</p></div></li>
+ * and by default both label and div are block-level, which stacks
+ * the checkbox above the text. Force a flex row so they sit on the
+ * same line, with the checkbox glued to the start and the text
+ * filling the remaining space.
+ * ----------------------------------------------------------------- */
+
+.ProseMirror ul[data-type="taskList"] {
+	list-style: none;
+	padding: 0;
+}
+
+.ProseMirror ul[data-type="taskList"] li {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.5rem;
+}
+
+.ProseMirror ul[data-type="taskList"] li > label {
+	display: inline-flex;
+	align-items: center;
+	flex-shrink: 0;
+	/* The Tiptap-default label is `user-select: none` already, but we
+	   force it again so a triple-click on the line doesn't drag-select
+	   the checkbox glyph. */
+	user-select: none;
+	margin-top: 0.4em; /* aligns with the first line of body text */
+}
+
+.ProseMirror ul[data-type="taskList"] li > div {
+	flex: 1 1 auto;
+	min-width: 0; /* lets long content wrap inside the flex item */
+}
+
+.ProseMirror ul[data-type="taskList"] li > div > p {
+	margin: 0;
+}
+
+/* -----------------------------------------------------------------
+ * Block drag feedback.
+ *
+ * The drag handle plugin (`@tiptap/extension-drag-handle`) selects the
+ * dragged node via `NodeSelection` on dragstart, which gives it the
+ * `.ProseMirror-selectednode` class until drop. We use that to dim
+ * the source block so the user sees what they grabbed and can read
+ * the (bright) drop cursor without losing track. Combined with the
+ * cloned drag image (rendered off-screen by the plugin and snapshotted
+ * by the browser as the floating ghost), this gives the four pieces of
+ * drag feedback we expect:
+ *   1. Bright drop cursor at the target gap (see .soma-drop-cursor)
+ *   2. Dim outline on the source block (this rule)
+ *   3. A floating ghost that follows the mouse (browser-native, fed
+ *      by the drag-handle plugin's cloned wrapper)
+ *   4. Grab/grabbing cursor on the drag icon (set by Tailwind class)
+ *
+ * True live reorder (the PM doc actually mutating during dragover) is
+ * a separate ProseMirror project and isn't in this pass.
+ * ----------------------------------------------------------------- */
+
+.ProseMirror .ProseMirror-selectednode {
+	opacity: 0.45;
+	outline: 1px dashed color-mix(in oklab, #3b82f6 60%, transparent);
+	outline-offset: 2px;
+	border-radius: 0.25rem;
+	transition: opacity 0.1s ease;
+}

@@ -311,8 +311,12 @@ export function TreePopover({
 										<span
 											className={cn(
 												"truncate text-ui-sm",
+												// Active row reads as bolder, not larger — font-weight
+												// rather than font-size or a color shift. The color
+												// stays in the base-content family so the row doesn't
+												// "jump out" from the rest of the tree.
 												item.data.id === currentId
-													? "text-primary"
+													? "font-semibold text-base-content"
 													: "text-base-content/90",
 											)}
 										>

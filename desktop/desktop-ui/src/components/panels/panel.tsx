@@ -43,7 +43,11 @@ export function Panel({
 	return (
 		<section
 			className={cn(
-				"flex min-h-0 flex-1 flex-col overflow-hidden bg-base-100",
+				// Floating-card layout: rounded edges, a soft shadow that gives
+				// a sense of depth without competing with the editor, and no
+				// outer divider lines (the gap between cards in the parent
+				// PanelContainer already separates them).
+				"flex min-h-0 flex-col overflow-hidden rounded-lg border border-base-300/70 bg-base-100 shadow-sm",
 				className,
 			)}
 		>

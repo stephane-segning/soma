@@ -64,16 +64,15 @@ export function PanelContainer({
 				id: "panel-container.aria-label",
 				defaultMessage: "Side panels",
 			})}
-			className={cn(
-				"flex min-h-0 w-full border-base-300 border-l bg-base-100",
-				className,
-			)}
+			className={cn("flex min-h-0 w-full bg-transparent", className)}
 		>
-			<div className="flex min-h-0 flex-1 flex-col divide-y divide-base-300">
-				{expanded.length === 0 ? (
-					<EmptyExpanded />
-				) : (
-					expanded.map((panel) => (
+			{/* Expanded panels render as a column of floating cards. When no
+			    panel is expanded we drop the whole left area so the right
+			    rail (collapsed strip) sits flush against the editor — no
+			    empty placeholder taking up space. */}
+			{expanded.length > 0 ? (
+				<div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-2">
+					{expanded.map((panel) => (
 						<Panel
 							actions={panel.actions}
 							footer={panel.footer}
@@ -90,16 +89,19 @@ export function PanelContainer({
 						>
 							{panel.content}
 						</Panel>
-					))
-				)}
-			</div>
+					))}
+				</div>
+			) : null}
 			{collapsed.length > 0 ? (
 				<aside
 					aria-label={t({
 						id: "panel-container.collapsed-strip",
 						defaultMessage: "Collapsed panels",
 					})}
-					className="flex w-9 shrink-0 flex-col items-center gap-1 border-base-300 border-l bg-base-100 py-2"
+					// The rail itself has no border — it's just a column of
+					// icon buttons sitting in transparent space. The floating
+					// cards on the left supply all the visual structure.
+					className="flex w-9 shrink-0 flex-col items-center gap-1 bg-transparent py-2"
 				>
 					{collapsed.map((panel) => (
 						<button
@@ -126,18 +128,6 @@ export function PanelContainer({
 					))}
 				</aside>
 			) : null}
-		</div>
-	);
-}
-
-function EmptyExpanded() {
-	const t = useT();
-	return (
-		<div className="flex flex-1 items-center justify-center px-4 py-8 text-base-content/50 text-ui-sm">
-			{t({
-				id: "panel-container.empty",
-				defaultMessage: "No panels open. Pick one from the strip to expand it.",
-			})}
 		</div>
 	);
 }
