@@ -2,7 +2,7 @@ use std::{str::FromStr, time::SystemTime};
 
 use libp2p::PeerId;
 use soma_core::SomaResult;
-use soma_membership::issue_owned_issuer_capability_to_storage;
+use soma_membership::{bot_status, issue_owned_issuer_capability_to_storage};
 
 use super::{
     DaemonHandle, invalid,
@@ -82,7 +82,7 @@ impl DaemonHandle {
                         soma_proto_build::daemon::BotStatusChangedEvent {
                             space_id: space_id.clone(),
                             delegate_peer_id: target_peer_id.to_string(),
-                            status: "active".to_string(),
+                            status: bot_status::ACTIVE.to_string(),
                         },
                     ),
                 ),

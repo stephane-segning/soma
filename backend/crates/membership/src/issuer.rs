@@ -8,6 +8,7 @@ use soma_core::{Error, SomaResult};
 use soma_proto_build::space::{IssuerCapability, SpaceId, SpaceRole};
 use soma_storage::RepositoryProvider;
 
+use crate::bot_status;
 use crate::time::epoch_seconds;
 
 pub async fn issue_issuer_capability_to_storage(
@@ -62,7 +63,7 @@ pub async fn issue_issuer_capability_to_storage(
             // libp2p handshake protocol lands, new issuances will
             // write `pending` here and flip to `active` only when
             // the delegate ACKs.
-            status: "active".to_string(),
+            status: bot_status::ACTIVE.to_string(),
         })
         .await?;
 

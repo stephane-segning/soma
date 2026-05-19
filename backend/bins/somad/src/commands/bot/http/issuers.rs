@@ -6,7 +6,7 @@ use base64::engine::general_purpose::STANDARD as B64;
 use libp2p::PeerId;
 use prost::Message;
 use serde::Deserialize;
-use soma_membership::{issue_issuer_capability_to_storage, parse_role_str};
+use soma_membership::{bot_status, issue_issuer_capability_to_storage, parse_role_str};
 use soma_proto_build::space::SpaceRole;
 use soma_storage::issuer::IssuerRepository;
 
@@ -109,7 +109,7 @@ pub(super) async fn import_handler(
             alias: None,
             // Imports come in fully formed — treat as `active` (the
             // caller asserts the capability is already valid).
-            status: "active".to_string(),
+            status: bot_status::ACTIVE.to_string(),
         })
         .await
         .map_err(internal_error("failed to import issuer capability"))?;
