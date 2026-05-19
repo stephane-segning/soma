@@ -10,7 +10,7 @@
  */
 import { render, screen } from "@testing-library/react";
 import { SomaIntlProvider } from "@soma/ui/i18n";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // --- Mock @app/queries/spaces before the component is imported ---
 
@@ -61,15 +61,21 @@ function Wrapper({ spaceId = "space_1" }: { spaceId?: string }) {
 }
 
 describe("BotsTab (renderer wrapper) — smoke render", () => {
-	it("mounts without throwing when there are no bots", () => {
+	beforeEach(() => {
 		spaceBotsQueryState.data = [];
+		spaceBotsQueryState.isLoading = false;
+		spaceBotsQueryState.isFetching = false;
+		spaceBotsQueryState.error = null;
+		vi.clearAllMocks();
+	});
+
+	it("mounts without throwing when there are no bots", () => {
 		render(<Wrapper />);
 		// Section heading is always rendered
 		expect(screen.getByText("Bots")).toBeTruthy();
 	});
 
 	it("renders the empty state BotList with Add bot CTA", () => {
-		spaceBotsQueryState.data = [];
 		render(<Wrapper />);
 		// @soma/ui BotList empty state renders "No bots in this space yet"
 		expect(screen.getByText(/no bots in this space yet/i)).toBeTruthy();
@@ -93,7 +99,6 @@ describe("BotsTab (renderer wrapper) — smoke render", () => {
 	});
 
 	it("renders the description paragraph", () => {
-		spaceBotsQueryState.data = [];
 		render(<Wrapper />);
 		expect(
 			screen.getByText(/bots are p2p peers granted scoped capabilities/i),

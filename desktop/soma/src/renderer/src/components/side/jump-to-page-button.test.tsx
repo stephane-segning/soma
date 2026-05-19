@@ -13,7 +13,7 @@ import { MemoryRouter, Route, Routes } from "react-router";
 import { SomaIntlProvider } from "@soma/ui/i18n";
 import { Provider } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // --- Mock @app/queries/pages before the component is imported ---
 
@@ -67,8 +67,13 @@ function Wrapper({ spaceId = "space_1", pageId = "page_1" }: { spaceId?: string;
 }
 
 describe("JumpToPageButton (renderer wrapper) — smoke render", () => {
-	it("mounts without throwing when the pages query returns an empty list", () => {
+	beforeEach(() => {
 		pagesQueryState.data = [];
+		pagesQueryState.isLoading = false;
+		pagesQueryState.error = null;
+	});
+
+	it("mounts without throwing when the pages query returns an empty list", () => {
 		render(<Wrapper />);
 		expect(screen.getByRole("button", { name: /jump to page/i })).toBeTruthy();
 	});
@@ -84,7 +89,6 @@ describe("JumpToPageButton (renderer wrapper) — smoke render", () => {
 
 	it("renders nothing when spaceId is absent from route params", () => {
 		// Component returns null when spaceId is missing
-		pagesQueryState.data = [];
 		const { container } = render(
 			<Provider store={makeStore()}>
 				<SomaIntlProvider>

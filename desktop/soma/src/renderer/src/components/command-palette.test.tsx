@@ -14,7 +14,7 @@ import { MemoryRouter } from "react-router";
 import { SomaIntlProvider } from "@soma/ui/i18n";
 import { Provider } from "react-redux";
 import { configureStore } from "@reduxjs/toolkit";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { uiReducer } from "@app/store/ui";
 
 // --- Mock queries before the component is imported ---
@@ -76,10 +76,18 @@ function Wrapper({ isOpen = false }: { isOpen?: boolean }) {
 }
 
 describe("CommandPaletteShell (renderer wrapper) — smoke render", () => {
+	beforeEach(() => {
+		spacesQueryState.data = { spaces: [] };
+		spacesQueryState.isLoading = false;
+		spacesQueryState.error = null;
+		searchQueryState.data = [];
+		searchQueryState.isLoading = false;
+		searchQueryState.error = null;
+	});
+
 	it("mounts without throwing when the palette is closed", () => {
 		// When closed, the @soma/ui CommandPalette renders nothing visible
-		const { container } = render(<Wrapper isOpen={false} />);
-		expect(container).toBeTruthy();
+		render(<Wrapper isOpen={false} />);
 		// No dialog should be visible
 		expect(screen.queryByRole("dialog")).toBeNull();
 	});
@@ -107,13 +115,15 @@ describe("CommandPaletteShell (renderer wrapper) — smoke render", () => {
 		expect(screen.getByRole("option", { name: /my space/i })).toBeTruthy();
 	});
 
-	it("renders 'No matches' empty state when no items match", () => {
-		spacesQueryState.data = { spaces: [] };
-		searchQueryState.data = [];
+	it("renders built-in commands even when spaces/search are empty", () => {
+		// With empty spaces + search data, the three built-in commands
+		// (Create or join space, Settings, Project site) must still render —
+		// they are hard-coded in the wrapper's items memo.
 		render(<Wrapper isOpen={true} />);
-		// Even with empty spaces/search, the built-in commands are present.
-		// The empty state text only appears when nothing matches, which won't
-		// happen here because commands are always present. Check the dialog exists.
-		expect(screen.getByRole("dialog")).toBeTruthy();
+		expect(
+			screen.getByRole("option", { name: /create or join space/i }),
+		).toBeTruthy();
+		expect(screen.getByRole("option", { name: /settings/i })).toBeTruthy();
+		expect(screen.getByRole("option", { name: /project site/i })).toBeTruthy();
 	});
 });

@@ -11,7 +11,7 @@
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { SomaIntlProvider } from "@soma/ui/i18n";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // --- Mock @app/queries/spaces before the component is imported ---
 
@@ -44,8 +44,13 @@ function Wrapper({ spaceId = "space_1" }: { spaceId?: string }) {
 }
 
 describe("SpacesRail (renderer wrapper) — smoke render", () => {
-	it("mounts without throwing when the spaces query returns no data", () => {
+	beforeEach(() => {
 		spacesQueryState.data = { spaces: [] };
+		spacesQueryState.isLoading = false;
+		spacesQueryState.error = null;
+	});
+
+	it("mounts without throwing when the spaces query returns no data", () => {
 		render(<Wrapper />);
 		// The @soma/ui SpacesRail renders a <nav> with aria-label="Spaces"
 		expect(screen.getByRole("navigation", { name: /spaces/i })).toBeTruthy();
@@ -74,7 +79,6 @@ describe("SpacesRail (renderer wrapper) — smoke render", () => {
 	});
 
 	it("renders a Create space button", () => {
-		spacesQueryState.data = { spaces: [] };
 		render(<Wrapper />);
 		expect(screen.getByRole("button", { name: /create space/i })).toBeTruthy();
 	});
