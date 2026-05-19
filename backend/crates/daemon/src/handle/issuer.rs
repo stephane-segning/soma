@@ -25,6 +25,7 @@ impl DaemonHandle {
             target_peer_id,
             expires_at,
             alias,
+            scopes,
         } = input;
 
         if space_id.trim().is_empty() {
@@ -69,6 +70,7 @@ impl DaemonHandle {
             expires_at,
             alias,
             bot_status::PENDING,
+            scopes,
         )
         .await?;
 

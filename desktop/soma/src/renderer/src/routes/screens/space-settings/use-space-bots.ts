@@ -15,10 +15,12 @@
  *    and `expiresAt` (epoch-ms).
  *
  * Open follow-ups (per ui-revamp-v0-cutover-status):
- *  - **scopeIds** from the form are still not propagated — the
- *    daemon's capability schema doesn't yet carry granular scope
- *    grants. The form still captures them so the local UX is
- *    complete; they wait on the next schema bump.
+ *  - **scopeIds** from the form are now propagated end-to-end through
+ *    storage → daemon → napi → IPC → RTK → this hook. They are stored
+ *    for forward-looking visibility; runtime authorisation enforcement
+ *    (checking scopes at action time) is NOT yet implemented — that is
+ *    a separate, larger PR involving the membership crate's
+ *    `validate_issuer_capability` path.
  *  - **status** — there's no bot status event stream yet. Every
  *    listed bot is reported as `active`; a `pending`/`failed` split
  *    waits on daemon event plumbing.
@@ -87,6 +89,7 @@ export function useSpaceBots(spaceId: string | undefined): UseSpaceBotsResult {
 					targetPeerId: input.peerId,
 					expiresAt,
 					alias,
+					scopes: input.scopeIds,
 				});
 			} catch (error) {
 				const message =

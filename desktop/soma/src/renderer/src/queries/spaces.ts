@@ -87,6 +87,7 @@ function useIssueIssuerCapabilityMutation() {
 			targetPeerId: string;
 			expiresAt: number;
 			alias?: string | null;
+			scopes?: string[];
 		}) => mutate(input).unwrap(),
 	};
 }

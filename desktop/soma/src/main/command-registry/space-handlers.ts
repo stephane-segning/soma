@@ -43,6 +43,7 @@ export function registerSpaceHandlers(ipc: IpcMain, context: CommandRegistryCont
 			targetPeerId: params?.targetPeerId ?? "",
 			expiresAt: Number(params?.expiresAt ?? 0),
 			alias: typeof params?.alias === "string" ? params.alias : undefined,
+			scopes: Array.isArray(params?.scopes) ? params.scopes : [],
 		});
 		if (accepted && params?.spaceId)
 			broadcastSpaceChanged(context, params.spaceId, "spaces_issue_issuer_capability");

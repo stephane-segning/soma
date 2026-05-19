@@ -114,6 +114,14 @@ export type SpaceBot = {
 	 * transitions lands in a follow-up).
 	 */
 	status: SpaceBotStatus;
+	/**
+	 * Operator-typed scope identifiers from the Bots-tab Add form.
+	 * Empty for pre-migration rows or when the user left the scopes blank.
+	 *
+	 * NOTE: scopes are stored + plumbed for forward-looking visibility
+	 * only — NOT enforced at runtime.
+	 */
+	scopes: string[];
 };
 
 /**
@@ -163,6 +171,13 @@ export type IssueIssuerCapabilityInput = {
 	expiresAt: number;
 	/** Optional alias the operator typed into the Bots-tab Add form. */
 	alias?: string | null;
+	/**
+	 * Operator-typed scope identifiers from the Bots-tab Add form.
+	 *
+	 * NOTE: scopes are stored + plumbed for forward-looking visibility
+	 * only — NOT enforced at runtime.
+	 */
+	scopes?: string[];
 };
 
 export async function issueIssuerCapability(

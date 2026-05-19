@@ -58,6 +58,13 @@ export type StoredSpaceBot = {
 	expiresAt: number;
 	alias: string | null;
 	status: StoredBotStatus;
+	/**
+	 * Operator-typed scope identifiers from the Bots-tab Add form.
+	 * Empty for pre-migration rows or when the user left the scopes blank.
+	 *
+	 * NOTE: scopes are stored + plumbed only — NOT enforced at runtime.
+	 */
+	scopes: string[];
 };
 
 export type JoinSpaceInput = {
@@ -110,6 +117,13 @@ export type IssueIssuerCapabilityInput = {
 	expiresAt: number;
 	/** Optional human alias for the Bots-tab list view. */
 	alias?: string | null;
+	/**
+	 * Operator-typed scope identifiers from the Bots-tab Add form.
+	 * Forwarded to the daemon as-is.
+	 *
+	 * NOTE: scopes are stored + plumbed only — NOT enforced at runtime.
+	 */
+	scopes?: string[];
 };
 
 export type ListSpacesResult = {

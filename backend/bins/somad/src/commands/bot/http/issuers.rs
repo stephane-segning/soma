@@ -74,6 +74,9 @@ pub(super) async fn issue_handler(
         // capability is already trusted, so persist as `active`
         // directly. Matches the existing import_handler behaviour.
         bot_status::ACTIVE,
+        // somad's server-to-server path carries no operator-typed scopes.
+        // Only the renderer's Bots tab captures them.
+        Vec::new(),
     )
     .await
     .map_err(internal_error("failed to issue issuer capability"))?;
@@ -114,6 +117,8 @@ pub(super) async fn import_handler(
             // Imports come in fully formed — treat as `active` (the
             // caller asserts the capability is already valid).
             status: bot_status::ACTIVE.to_string(),
+            // somad's import path carries no operator-typed scopes.
+            scopes: Vec::new(),
         })
         .await
         .map_err(internal_error("failed to import issuer capability"))?;

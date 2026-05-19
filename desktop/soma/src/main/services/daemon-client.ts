@@ -355,12 +355,14 @@ export class DaemonClient {
 		// persists pure whitespace. The Rust side does the same — we
 		// normalise here so the napi wire is symmetric.
 		const alias = input.alias?.trim() ? input.alias.trim() : undefined;
+		const scopes = input.scopes ?? [];
 		const handle = await this.handle();
 		return !!(await handle.issueIssuerCapability({
 			spaceId: input.spaceId.trim(),
 			targetPeerId: input.targetPeerId.trim(),
 			expiresAt: expiresAtSecs,
 			alias,
+			scopes,
 		}));
 	}
 
@@ -400,6 +402,7 @@ function mapBot(bot: {
 	expiresAt: number;
 	alias?: string | null;
 	status?: string | null;
+	scopes?: string[] | null;
 }): StoredSpaceBot {
 	return {
 		spaceId: bot.spaceId,
@@ -407,6 +410,7 @@ function mapBot(bot: {
 		expiresAt: Number(bot.expiresAt ?? 0),
 		alias: bot.alias ?? null,
 		status: normaliseStatus(bot.status),
+		scopes: bot.scopes ?? [],
 	};
 }
 

@@ -20,6 +20,7 @@ pub async fn issue_issuer_capability_to_storage(
     expires_at_secs: Option<i64>,
     alias: Option<String>,
     initial_status: &str,
+    scopes: Vec<String>,
 ) -> SomaResult<IssuerCapability> {
     let now = SystemTime::now();
     let now_ts = Timestamp::from(now);
@@ -65,6 +66,7 @@ pub async fn issue_issuer_capability_to_storage(
             // server-to-server import handler writes `bot_status::ACTIVE`
             // because it isn't going through the handshake.
             status: initial_status.to_string(),
+            scopes,
         })
         .await?;
 
@@ -80,6 +82,7 @@ pub async fn issue_owned_issuer_capability_to_storage(
     expires_at_secs: Option<i64>,
     alias: Option<String>,
     initial_status: &str,
+    scopes: Vec<String>,
 ) -> SomaResult<IssuerCapability> {
     let space = repos
         .membership_repo()
@@ -105,6 +108,7 @@ pub async fn issue_owned_issuer_capability_to_storage(
         expires_at_secs,
         alias,
         initial_status,
+        scopes,
     )
     .await
 }
