@@ -1,13 +1,11 @@
 import { defaultCommands, type EditorCommand } from "@soma/editor";
 import { useMemo } from "react";
+import { File, Image, Link2, Paperclip } from "react-feather";
 import * as documentsService from "../../../services/documents-service";
 import { UNTITLED_PAGE_TITLE } from "../page-title";
 import type { EditorLike } from "./types";
 import type { BlobFileAttrs, BlobImageAttrs } from "./uploads";
 import { pickFiles } from "./uploads";
-// File extension is .ts so we cannot inline JSX icons here without
-// renaming. Icons are optional on EditorCommand — leaving them
-// undefined renders an empty icon slot, which is fine for v0.
 
 type UsePageEditorCommandsInput = {
 	spaceId: string;
@@ -33,6 +31,7 @@ export function usePageEditorCommands({
 				description: "Create a nested page and insert a link",
 				keywords: ["page", "subpage", "nested"],
 				section: "action",
+				icon: <File className="size-3.5" />,
 				handler: async ({ editor, range }) => {
 					const created = await documentsService.ensurePage({
 						spaceId,
@@ -61,6 +60,7 @@ export function usePageEditorCommands({
 				description: "Insert an image from disk",
 				keywords: ["image", "photo", "picture"],
 				section: "embed",
+				icon: <Image className="size-3.5" />,
 				handler: async ({ editor, range }) => {
 					const files = await pickFiles({ accept: "image/*", multiple: true });
 					if (files.length === 0) return;
@@ -79,6 +79,7 @@ export function usePageEditorCommands({
 				description: "Insert a file from disk",
 				keywords: ["file", "attachment", "upload"],
 				section: "embed",
+				icon: <Paperclip className="size-3.5" />,
 				handler: async ({ editor, range }) => {
 					const files = await pickFiles({ multiple: true });
 					if (files.length === 0) return;
@@ -96,6 +97,7 @@ export function usePageEditorCommands({
 				description: "Insert a link to an existing page",
 				keywords: ["page", "link", "reference"],
 				section: "action",
+				icon: <Link2 className="size-3.5" />,
 				handler: async ({ editor, range }) => {
 					onOpenPagePicker(editor, { from: range.from, to: range.to });
 				},
