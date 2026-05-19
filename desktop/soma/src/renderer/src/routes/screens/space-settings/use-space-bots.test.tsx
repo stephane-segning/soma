@@ -114,6 +114,81 @@ describe("useSpaceBots list view", () => {
 		]);
 	});
 
+	it("client-side override flips stale 'active' rows to 'expired' when the wall clock has moved past expiresAt", () => {
+		// Snapshot in RTK still says `active` (Bots tab opened before the
+		// 60-second TTL elapsed). 5 seconds ago in epoch seconds:
+		const fiveSecondsAgo = Math.floor((Date.now() - 5_000) / 1000);
+		listQueryState.data = [
+			{
+				spaceId: "space_1",
+				peerId: "12D3KooWStaleBot",
+				expiresAt: fiveSecondsAgo,
+				alias: "stale",
+				status: "active",
+			},
+		];
+
+		const { result } = renderHook(() => useSpaceBots("space_1"));
+		expect(result.current.bots[0].status).toBe("expired");
+	});
+
+	it("client-side override is a no-op for active bots with future expiry", () => {
+		const oneHourFromNow = Math.floor((Date.now() + 60 * 60 * 1000) / 1000);
+		listQueryState.data = [
+			{
+				spaceId: "space_1",
+				peerId: "12D3KooWFreshBot",
+				expiresAt: oneHourFromNow,
+				alias: "fresh",
+				status: "active",
+			},
+		];
+
+		const { result } = renderHook(() => useSpaceBots("space_1"));
+		expect(result.current.bots[0].status).toBe("active");
+	});
+
+	it("client-side override is a no-op for the no-expiry sentinel (expiresAt=0)", () => {
+		listQueryState.data = [
+			{
+				spaceId: "space_1",
+				peerId: "12D3KooWPermBot",
+				expiresAt: 0,
+				alias: "permanent",
+				status: "active",
+			},
+		];
+
+		const { result } = renderHook(() => useSpaceBots("space_1"));
+		expect(result.current.bots[0].status).toBe("active");
+	});
+
+	it("client-side override does not touch pending or failed rows (the handshake protocol owns those)", () => {
+		const fiveSecondsAgo = Math.floor((Date.now() - 5_000) / 1000);
+		listQueryState.data = [
+			{
+				spaceId: "space_1",
+				peerId: "12D3KooWPendingBot",
+				expiresAt: fiveSecondsAgo,
+				alias: "handshaking",
+				status: "pending",
+			},
+			{
+				spaceId: "space_1",
+				peerId: "12D3KooWFailedBot",
+				expiresAt: fiveSecondsAgo,
+				alias: "rejected",
+				status: "failed",
+			},
+		];
+
+		const { result } = renderHook(() => useSpaceBots("space_1"));
+		expect(result.current.bots.map((b) => b.status)).toEqual([
+			"pending",
+			"failed",
+		]);
+	});
+
 	it("forwards daemon-side status states (expired/pending/failed) to the @soma/ui Bot rows", () => {
 		listQueryState.data = [
 			{

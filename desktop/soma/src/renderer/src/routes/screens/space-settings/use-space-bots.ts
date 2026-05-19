@@ -122,19 +122,39 @@ export function useSpaceBots(spaceId: string | undefined): UseSpaceBotsResult {
  *   we fall back to `bot-<lowercased-last-6-of-peerId>` so the
  *   `@bot:<alias>` mention path always has something to anchor to.
  * - `status` is forwarded from the daemon. `expired` is derived
- *   server-side from `expires_at`; `pending`/`failed` flow from the
- *   handshake protocol (foundation in this PR; transitions land in a
- *   follow-up).
+ *   server-side from `expires_at` on each `list_space_bots` call;
+ *   `pending`/`failed` flow from the handshake protocol (foundation
+ *   in this PR; transitions land in a follow-up).
+ *
+ * Client-side safety net: if the Bots tab is open across an expiry
+ * without any RTK cache invalidation, the snapshot we have here may
+ * still say `"active"` even though the wall clock has moved past
+ * `expiresAt`. Re-apply the same predicate the daemon uses so the row
+ * flips to `expired` without waiting for a refetch. Idempotent with
+ * the server-side derivation — both compute the same thing. The
+ * proper push-based fix is the bot-status event stream (next PR in
+ * the cutover-status thread).
  */
 function toBot(bot: SpaceBot): Bot {
 	const peerId = bot.peerId;
 	const fallbackAliasSuffix = peerId.slice(-6).toLowerCase() || "bot";
 	const alias = bot.alias?.trim() ? bot.alias.trim() : `bot-${fallbackAliasSuffix}`;
-	const status: BotStatus = bot.status;
+	const status: BotStatus = clientDerivedStatus(bot);
 	return {
 		id: peerId,
 		alias,
 		peerId,
 		status,
 	};
+}
+
+function clientDerivedStatus(bot: SpaceBot): BotStatus {
+	// `expiresAt` is daemon-side epoch seconds (matches the existing
+	// renderer convention everywhere else — see `space-members.tsx`,
+	// `use-membership-settings.tsx`, `use-space-access-settings.tsx`).
+	const expiresAtMs = bot.expiresAt > 0 ? bot.expiresAt * 1000 : 0;
+	if (bot.status === "active" && expiresAtMs > 0 && expiresAtMs <= Date.now()) {
+		return "expired";
+	}
+	return bot.status;
 }
