@@ -79,10 +79,24 @@ const SCOPE_GROUPS: ScopeGroup[] = [
 
 const PEER_ID_PATTERN = /^12D3Koo[\w]{20,}$/;
 
-export function BotsTab({ spaceId }: { spaceId: string | undefined }) {
+export function BotsTab({
+	spaceId,
+	highlightedPeerId,
+}: {
+	spaceId: string | undefined;
+	/**
+	 * Bot peer id to scroll into view and ring-highlight on first render
+	 * after a deep link (e.g. `?peerId=` set by a `!bot` mention click).
+	 * Resolved to a BotList row id by matching against `bot.peerId`.
+	 */
+	highlightedPeerId?: string;
+}) {
 	const { t } = useTranslation("common");
 	const space = useSpaceBots(spaceId);
 	const [showAdd, setShowAdd] = useState(false);
+	const highlightedBotId = highlightedPeerId
+		? space.bots.find((b) => b.peerId === highlightedPeerId)?.id
+		: undefined;
 
 	return (
 		<div className="flex flex-col gap-4">
@@ -131,6 +145,7 @@ export function BotsTab({ spaceId }: { spaceId: string | undefined }) {
 			{!showAdd ? (
 				<BotList
 					bots={space.bots}
+					highlightedId={highlightedBotId}
 					onAddBot={() => setShowAdd(true)}
 					onOverflow={() => undefined}
 					onRetry={(id) => {

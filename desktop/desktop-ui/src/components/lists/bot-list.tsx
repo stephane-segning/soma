@@ -13,7 +13,7 @@
  * the very first surface a user lands on in a new space points at the
  * v0 priority flow.
  */
-import { type MouseEvent, type ReactNode } from "react";
+import { type MouseEvent, type ReactNode, useEffect, useRef } from "react";
 import { AlertTriangle, Cpu, MoreHorizontal, RotateCw } from "react-feather";
 import { useT } from "../../i18n/use-t";
 import { cn } from "../../utils/cn";
@@ -51,6 +51,13 @@ export type BotListProps = {
 	 */
 	onOverflow?: (id: string, event: MouseEvent<HTMLButtonElement>) => void;
 	onAddBot?: () => void;
+	/**
+	 * Id of a bot to scroll into view and visually highlight. Used by
+	 * deep links (e.g. `?peerId=` from a bot mention) so the user lands
+	 * on the row that prompted the navigation rather than the top of
+	 * the list. The caller resolves peerId → id; matching is on `bot.id`.
+	 */
+	highlightedId?: string;
 	className?: string;
 };
 
@@ -60,6 +67,7 @@ export function BotList({
 	onRetry,
 	onOverflow,
 	onAddBot,
+	highlightedId,
 	className,
 }: BotListProps) {
 	const t = useT();
@@ -102,6 +110,7 @@ export function BotList({
 			{bots.map((bot) => (
 				<BotEntry
 					bot={bot}
+					highlighted={highlightedId === bot.id}
 					key={bot.id}
 					onOverflow={onOverflow}
 					onRetry={onRetry}
@@ -114,19 +123,32 @@ export function BotList({
 
 function BotEntry({
 	bot,
+	highlighted,
 	onSelect,
 	onRetry,
 	onOverflow,
 }: {
 	bot: Bot;
+	highlighted?: boolean;
 	onSelect?: (id: string) => void;
 	onRetry?: (id: string) => void;
 	onOverflow?: (id: string, event: MouseEvent<HTMLButtonElement>) => void;
 }) {
 	const t = useT();
 	const truncatedPeerId = useTruncatedPeerId(bot.peerId);
+	const rowRef = useRef<HTMLDivElement | null>(null);
+	useEffect(() => {
+		if (!highlighted) return;
+		rowRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+	}, [highlighted]);
 	return (
-		<div className="flex flex-col">
+		<div
+			className={cn(
+				"flex flex-col",
+				highlighted && "rounded-md ring-2 ring-primary ring-inset",
+			)}
+			ref={rowRef}
+		>
 			<DenseRow
 				leading={
 					<span className="grid size-7 place-items-center rounded-md bg-info/10 text-info">
