@@ -70,6 +70,10 @@ pub(super) async fn issue_handler(
         // surface that captures one. Pass None and let the row carry a
         // null alias in storage.
         None,
+        // No libp2p handshake on this path — the caller asserts the
+        // capability is already trusted, so persist as `active`
+        // directly. Matches the existing import_handler behaviour.
+        bot_status::ACTIVE,
     )
     .await
     .map_err(internal_error("failed to issue issuer capability"))?;

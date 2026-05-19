@@ -1,6 +1,8 @@
-use super::{JoinCodec, JoinDecisionAck, JoinDecisionCodec};
+use super::{IssuerCapabilityAck, IssuerOfferCodec, JoinCodec, JoinDecisionAck, JoinDecisionCodec};
 use crate::join::JoinDecider;
-use crate::protocol::{JOIN_DECISION_PROTOCOL, JOIN_PROTOCOL, MAX_JOIN_MESSAGE_BYTES};
+use crate::protocol::{
+    ISSUER_OFFER_PROTOCOL, JOIN_DECISION_PROTOCOL, JOIN_PROTOCOL, MAX_JOIN_MESSAGE_BYTES,
+};
 use futures::io::Cursor;
 use libp2p::request_response::Codec;
 use soma_proto_build::space;
@@ -102,6 +104,55 @@ async fn join_codec_rejects_oversized() {
         read_res.is_err(),
         "oversized message should be rejected on read"
     );
+}
+
+#[tokio::test]
+async fn issuer_offer_codec_roundtrip() {
+    let mut codec = IssuerOfferCodec;
+    let mut buf = Cursor::new(Vec::new());
+    let proto = ISSUER_OFFER_PROTOCOL.to_string();
+
+    let capability = space::IssuerCapability {
+        space_id: Some(space::SpaceId {
+            value: "space-bots".into(),
+        }),
+        issuer_peer_id: Some(space::PeerId {
+            value: "12D3KooWDelegate".into(),
+        }),
+        allowed_roles: vec![space::SpaceRole::Member as i32],
+        default_permissions: vec![],
+        issued_at: None,
+        expires_at: None,
+        max_member_expires_at: None,
+        max_issues_per_hour: 0,
+        owner_peer_id: Some(space::PeerId {
+            value: "12D3KooWOwner".into(),
+        }),
+        signed: None,
+    };
+
+    codec
+        .write_request(&proto, &mut buf, capability.clone())
+        .await
+        .expect("write");
+    buf.set_position(0);
+    let decoded = codec
+        .read_request(&proto, &mut buf)
+        .await
+        .expect("read back issuer capability");
+    assert_eq!(decoded.space_id.unwrap().value, "space-bots");
+    assert_eq!(decoded.issuer_peer_id.unwrap().value, "12D3KooWDelegate");
+
+    let mut buf2 = Cursor::new(Vec::new());
+    codec
+        .write_response(&proto, &mut buf2, IssuerCapabilityAck {})
+        .await
+        .expect("write ack");
+    buf2.set_position(0);
+    let _ = codec
+        .read_response(&proto, &mut buf2)
+        .await
+        .expect("read ack");
 }
 
 #[tokio::test]

@@ -81,6 +81,9 @@ pub(super) async fn handle_swarm_event(state: &mut RuntimeState, event: SwarmEve
         SwarmEvent::Behaviour(AppEvent::JoinDecision(event)) => {
             crate::runtime::join::handle_join_decision_event(state, event).await;
         }
+        SwarmEvent::Behaviour(AppEvent::IssuerOffer(event)) => {
+            crate::runtime::issuer::handle_issuer_offer_event(state, event).await;
+        }
         SwarmEvent::Behaviour(AppEvent::Blob(event)) => {
             crate::runtime::blob::handle_blob_event(state, event).await;
         }

@@ -4,8 +4,8 @@ use soma_peer::events::{PeerEventDispatcher, PeerEventHandler};
 
 use crate::state::DaemonState;
 use crate::handlers::{
-    IdentifyStoreHandler, JoinDecisionPersistenceHandler, JoinEventsHandler, ListenAddrHandler,
-    LoggingHandler, MailboxOutboxHandler,
+    IdentifyStoreHandler, IssuerEventsHandler, JoinDecisionPersistenceHandler, JoinEventsHandler,
+    ListenAddrHandler, LoggingHandler, MailboxOutboxHandler,
 };
 
 /// Build the dispatcher and spin up per-handler workers for backpressure isolation.
@@ -18,6 +18,7 @@ pub async fn build_dispatcher(state: Arc<DaemonState>) -> PeerEventDispatcher<Da
         Arc::new(JoinEventsHandler),
         Arc::new(JoinDecisionPersistenceHandler),
         Arc::new(IdentifyStoreHandler),
+        Arc::new(IssuerEventsHandler),
         Arc::new(MailboxOutboxHandler),
     ];
 

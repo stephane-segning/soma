@@ -1,6 +1,9 @@
-use crate::codec::{BlobCodec, JoinCodec, JoinDecisionAck, JoinDecisionCodec};
+use crate::codec::{
+    BlobCodec, IssuerCapabilityAck, IssuerOfferCodec, JoinCodec, JoinDecisionAck, JoinDecisionCodec,
+};
 use crate::protocol::{
-    AGENT_PROTOCOL, build_blob_behaviour, build_join_behaviour, build_join_decision_behaviour,
+    AGENT_PROTOCOL, build_blob_behaviour, build_issuer_offer_behaviour, build_join_behaviour,
+    build_join_decision_behaviour,
 };
 use libp2p::{
     identify, identity, mdns, ping, relay, rendezvous, request_response as reqres,
@@ -36,6 +39,7 @@ pub(crate) fn build_app_behaviour(
         relay_client,
         join: build_join_behaviour(),
         join_decision: build_join_decision_behaviour(),
+        issuer_offer: build_issuer_offer_behaviour(),
         blob: build_blob_behaviour(),
     }
 }
@@ -50,6 +54,7 @@ pub(crate) struct AppBehaviour {
     pub(crate) relay_client: relay::client::Behaviour,
     pub(crate) join: reqres::Behaviour<JoinCodec>,
     pub(crate) join_decision: reqres::Behaviour<JoinDecisionCodec>,
+    pub(crate) issuer_offer: reqres::Behaviour<IssuerOfferCodec>,
     pub(crate) blob: reqres::Behaviour<BlobCodec>,
 }
 
@@ -62,6 +67,7 @@ pub(crate) enum AppEvent {
     Relay(relay::client::Event),
     Join(reqres::Event<space::JoinRequest, space::JoinDecision>),
     JoinDecision(reqres::Event<space::JoinDecision, JoinDecisionAck>),
+    IssuerOffer(reqres::Event<space::IssuerCapability, IssuerCapabilityAck>),
     Blob(reqres::Event<BlobRequest, BlobResponse>),
 }
 
@@ -104,6 +110,12 @@ impl From<reqres::Event<space::JoinRequest, space::JoinDecision>> for AppEvent {
 impl From<reqres::Event<space::JoinDecision, JoinDecisionAck>> for AppEvent {
     fn from(event: reqres::Event<space::JoinDecision, JoinDecisionAck>) -> Self {
         AppEvent::JoinDecision(event)
+    }
+}
+
+impl From<reqres::Event<space::IssuerCapability, IssuerCapabilityAck>> for AppEvent {
+    fn from(event: reqres::Event<space::IssuerCapability, IssuerCapabilityAck>) -> Self {
+        AppEvent::IssuerOffer(event)
     }
 }
 

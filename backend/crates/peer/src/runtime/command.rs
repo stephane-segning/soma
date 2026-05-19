@@ -69,6 +69,26 @@ pub(super) async fn handle_command(state: &mut RuntimeState, cmd: PeerCommand) -
                     delivery_id,
                 });
         }
+        PeerCommand::SendIssuerOffer {
+            target,
+            addrs,
+            delivery_id,
+            space_id,
+            capability,
+        } => {
+            for addr in addrs {
+                state.swarm.add_peer_address(target, addr.clone());
+                let _ = state.swarm.dial(addr.clone());
+            }
+            let req_id = state
+                .swarm
+                .behaviour_mut()
+                .issuer_offer
+                .send_request(&target, capability);
+            state
+                .outbound_issuer_offers
+                .insert(req_id, (target, delivery_id, space_id));
+        }
         PeerCommand::FetchBlob {
             target,
             addrs,

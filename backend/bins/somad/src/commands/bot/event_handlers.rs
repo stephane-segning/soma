@@ -4,12 +4,14 @@ use soma_peer::events::PeerEventHandler;
 
 use crate::commands::bot::http::BotState;
 
+mod issuer_inbound;
 mod join_decision_apply;
 mod logging;
 mod mailbox_outbox;
 mod metrics;
 mod metrics_labels;
 
+use issuer_inbound::IssuerInboundHandler;
 use join_decision_apply::JoinDecisionApplyHandler;
 use logging::LoggingHandler;
 use mailbox_outbox::MailboxOutboxHandler;
@@ -21,6 +23,7 @@ pub fn build_handlers() -> Vec<Arc<dyn PeerEventHandler<BotState>>> {
         Arc::new(MetricsHandler),
         Arc::new(LoggingHandler),
         Arc::new(JoinDecisionApplyHandler),
+        Arc::new(IssuerInboundHandler),
         Arc::new(MailboxOutboxHandler),
     ]
 }
