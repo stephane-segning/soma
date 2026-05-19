@@ -1,5 +1,6 @@
 mod blob;
 mod command;
+mod issuer;
 mod join;
 mod swarm;
 
@@ -29,6 +30,12 @@ pub(crate) struct RuntimeState {
     pub(crate) requested_reservations: HashSet<PeerId>,
     pub(crate) outbound_join_requests: HashMap<reqres::OutboundRequestId, (PeerId, String, String)>,
     pub(crate) outbound_join_decisions: HashMap<reqres::OutboundRequestId, (PeerId, String)>,
+    /// Outstanding issuer offers, keyed by libp2p request id. Tuple is
+    /// `(target_peer, delivery_id, space_id)` — the delivery_id is the
+    /// daemon's per-issuance correlation id, used so the resulting
+    /// ack/failed event can be tied back to the persistent bot row.
+    pub(crate) outbound_issuer_offers:
+        HashMap<reqres::OutboundRequestId, (PeerId, String, String)>,
     pub(crate) blob_downloads: HashMap<(String, String), BlobDownloadState>,
     pub(crate) join_decider: Arc<dyn JoinDecider>,
     pub(crate) swarm: libp2p::Swarm<AppBehaviour>,
@@ -66,6 +73,7 @@ pub(crate) async fn run_swarm(
         requested_reservations: HashSet::new(),
         outbound_join_requests: HashMap::new(),
         outbound_join_decisions: HashMap::new(),
+        outbound_issuer_offers: HashMap::new(),
         blob_downloads: HashMap::new(),
         join_decider,
         swarm,

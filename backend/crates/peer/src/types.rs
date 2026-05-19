@@ -29,6 +29,17 @@ pub enum PeerCommand {
         delivery_id: String,
         decision: space::JoinDecision,
     },
+    /// Owner-side: send a signed issuer capability to `target` and wait
+    /// for the delegate's ACK. The delivery_id is the daemon's
+    /// per-issuance correlation id so the event handler can correlate
+    /// the ack/failure with the in-flight transition.
+    SendIssuerOffer {
+        target: PeerId,
+        addrs: Vec<Multiaddr>,
+        delivery_id: String,
+        space_id: String,
+        capability: space::IssuerCapability,
+    },
     /// Request to fetch a blob by CID. Results are delivered via events or handlers.
     FetchBlob {
         target: PeerId,
@@ -120,6 +131,28 @@ pub enum PeerEvent {
     JoinFailed {
         target: PeerId,
         error: String,
+    },
+    /// Owner-side: the delegate ACK'd the offer over libp2p. Daemon
+    /// transitions the bot's persistent status to `active`.
+    IssuerOfferAckReceived {
+        target: PeerId,
+        delivery_id: String,
+        space_id: String,
+    },
+    /// Owner-side: the libp2p send failed (timeout, no route to peer,
+    /// codec error, etc). Daemon transitions the bot's persistent
+    /// status to `failed`.
+    IssuerOfferDeliveryFailed {
+        target: PeerId,
+        delivery_id: String,
+        space_id: String,
+        error: String,
+    },
+    /// Delegate-side: an issuer offer arrived for this peer. Logged for
+    /// observability; the codec layer already auto-ACKs.
+    IssuerOfferReceived {
+        from: PeerId,
+        space_id: String,
     },
     /// Emitted when a blob tied to Yoopta content is stored locally.
     YooptaBlobAdded {

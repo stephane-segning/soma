@@ -37,6 +37,17 @@ pub trait IssuerRepository: Send + Sync {
     /// capabilities (not memberships), so this is the read path that
     /// matches the write path of `issue_issuer_capability`.
     async fn list_by_space(&self, space_id: &str) -> SomaResult<Vec<IssuerCapability>>;
+    /// Update only the `status` field on an existing issuer capability
+    /// row. Returns the number of rows affected (0 if the
+    /// `(space_id, delegate_peer_id)` row doesn't exist). Used by the
+    /// handshake handler to transition `pending → active|failed`
+    /// without re-issuing the underlying signed capability.
+    async fn update_status(
+        &self,
+        space_id: &str,
+        delegate_peer_id: &str,
+        status: &str,
+    ) -> SomaResult<u64>;
     async fn delete(&self, space_id: &str, delegate_peer_id: &str) -> SomaResult<u64>;
 }
 
@@ -120,6 +131,29 @@ impl IssuerRepository for SqlIssuerRepository {
         .map_err(Error::service)?;
 
         Ok(rows.into_iter().map(map_row).collect())
+    }
+
+    async fn update_status(
+        &self,
+        space_id: &str,
+        delegate_peer_id: &str,
+        status: &str,
+    ) -> SomaResult<u64> {
+        let res = sqlx::query(
+            r#"
+            UPDATE issuer_capabilities
+            SET status = $3
+            WHERE space_id = $1 AND delegate_peer_id = $2
+            "#,
+        )
+        .bind(space_id)
+        .bind(delegate_peer_id)
+        .bind(status)
+        .execute(&self.pool)
+        .await
+        .map_err(Error::service)?;
+
+        Ok(res.rows_affected())
     }
 
     async fn delete(&self, space_id: &str, delegate_peer_id: &str) -> SomaResult<u64> {

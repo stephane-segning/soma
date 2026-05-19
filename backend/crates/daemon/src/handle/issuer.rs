@@ -3,6 +3,8 @@ use std::{str::FromStr, time::SystemTime};
 use libp2p::PeerId;
 use soma_core::SomaResult;
 use soma_membership::{bot_status, issue_owned_issuer_capability_to_storage};
+use soma_peer::PeerCommand;
+use tracing::warn;
 
 use super::{
     DaemonHandle, invalid,
@@ -58,7 +60,7 @@ impl DaemonHandle {
             }
         });
 
-        issue_owned_issuer_capability_to_storage(
+        let issuer_cap = issue_owned_issuer_capability_to_storage(
             self.state.repos.as_ref(),
             &self.state.signer,
             &self.state.peer_id,
@@ -66,15 +68,13 @@ impl DaemonHandle {
             &target_peer_id,
             expires_at,
             alias,
+            bot_status::PENDING,
         )
         .await?;
 
-        // Fire the status-changed event so the renderer's Bots tab can
-        // refresh without waiting for a refetch. Today every issuance
-        // lands as `"active"` (matches the value the storage layer
-        // writes). Once the libp2p handshake protocol lands, the
-        // initial status will be `"pending"` and a follow-up event
-        // will fire on ACK with `"active"` / `"failed"`.
+        // Fire `pending` event so the renderer's Bots tab can show the
+        // row in the right initial state without waiting for the
+        // network handshake.
         self.state
             .publish(soma_proto_build::daemon::DaemonEvent {
                 event: Some(
@@ -82,12 +82,54 @@ impl DaemonHandle {
                         soma_proto_build::daemon::BotStatusChangedEvent {
                             space_id: space_id.clone(),
                             delegate_peer_id: target_peer_id.to_string(),
-                            status: bot_status::ACTIVE.to_string(),
+                            status: bot_status::PENDING.to_string(),
                         },
                     ),
                 ),
             })
             .await;
+
+        // Kick off the libp2p offer. The delivery_id is a per-issuance
+        // correlation string; only one offer is outstanding per
+        // (space, delegate) pair at a time, so the natural composite
+        // works without a separate id source.
+        let delivery_id = format!("{}|{}", space_id, target_peer_id);
+        let send = self.state.peer_commands.try_send(PeerCommand::SendIssuerOffer {
+            target: target_peer_id,
+            addrs: Vec::new(),
+            delivery_id,
+            space_id: space_id.clone(),
+            capability: issuer_cap,
+        });
+        if let Err(err) = send {
+            // Peer task isn't running. The capability is persisted as
+            // `pending` — operator can retry by re-issuing. We log and
+            // fire `failed` so the renderer reflects the broken state.
+            warn!(?err, "issuer offer dispatch failed (peer task unreachable)");
+            let _ = self
+                .state
+                .repos
+                .issuer_repo()
+                .update_status(
+                    &space_id,
+                    &target_peer_id.to_string(),
+                    bot_status::FAILED,
+                )
+                .await;
+            self.state
+                .publish(soma_proto_build::daemon::DaemonEvent {
+                    event: Some(
+                        soma_proto_build::daemon::daemon_event::Event::BotStatusChanged(
+                            soma_proto_build::daemon::BotStatusChangedEvent {
+                                space_id,
+                                delegate_peer_id: target_peer_id.to_string(),
+                                status: bot_status::FAILED.to_string(),
+                            },
+                        ),
+                    ),
+                })
+                .await;
+        }
 
         Ok(true)
     }

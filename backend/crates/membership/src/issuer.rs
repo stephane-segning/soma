@@ -8,7 +8,6 @@ use soma_core::{Error, SomaResult};
 use soma_proto_build::space::{IssuerCapability, SpaceId, SpaceRole};
 use soma_storage::RepositoryProvider;
 
-use crate::bot_status;
 use crate::time::epoch_seconds;
 
 pub async fn issue_issuer_capability_to_storage(
@@ -20,6 +19,7 @@ pub async fn issue_issuer_capability_to_storage(
     allowed_roles: Vec<SpaceRole>,
     expires_at_secs: Option<i64>,
     alias: Option<String>,
+    initial_status: &str,
 ) -> SomaResult<IssuerCapability> {
     let now = SystemTime::now();
     let now_ts = Timestamp::from(now);
@@ -59,11 +59,12 @@ pub async fn issue_issuer_capability_to_storage(
             expires_at: expires_at_secs,
             capability: Some(issuer_cap.encode_to_vec()),
             alias,
-            // Today every issuance lands as `active`. Once the
-            // libp2p handshake protocol lands, new issuances will
-            // write `pending` here and flip to `active` only when
-            // the delegate ACKs.
-            status: bot_status::ACTIVE.to_string(),
+            // Caller controls the initial status. The daemon's
+            // owner-side issuance path writes `bot_status::PENDING`
+            // and transitions on delegate ACK / timeout; somad's
+            // server-to-server import handler writes `bot_status::ACTIVE`
+            // because it isn't going through the handshake.
+            status: initial_status.to_string(),
         })
         .await?;
 
@@ -78,6 +79,7 @@ pub async fn issue_owned_issuer_capability_to_storage(
     delegate_peer_id: &PeerId,
     expires_at_secs: Option<i64>,
     alias: Option<String>,
+    initial_status: &str,
 ) -> SomaResult<IssuerCapability> {
     let space = repos
         .membership_repo()
@@ -102,6 +104,7 @@ pub async fn issue_owned_issuer_capability_to_storage(
         vec![SpaceRole::Member],
         expires_at_secs,
         alias,
+        initial_status,
     )
     .await
 }
