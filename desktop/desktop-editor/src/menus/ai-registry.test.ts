@@ -1,3 +1,4 @@
+// @vitest-environment node
 import type { Editor } from "@tiptap/react";
 import { beforeEach, describe, expect, it, type Mock, vi } from "vitest";
 
@@ -39,6 +40,11 @@ function makeEditor(): { editor: Editor; stub: ChainStub } {
 	};
 }
 
+// Kebab-case is intentional: the NodeAIRegistryExtension calls
+// `normalizeNodeName` on TipTap's camelCase node names (`bulletList`,
+// `codeBlock`, …) before resolving, so the registry contract — and the
+// stories in `@soma/ui` — both live in kebab-case. See
+// `src/extensions/node-ai-registry.ts:230`.
 const TEXT_BEARING = [
 	"paragraph",
 	"heading",
