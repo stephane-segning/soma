@@ -60,7 +60,7 @@ describe("botMention provider", () => {
 		expect(names).toContain("botMention");
 	});
 
-	it("maps alias to label and last-8-chars of peerId to detail", async () => {
+	it("maps alias to label and last-6-chars-lowercased of peerId to detail", async () => {
 		mockListSpaceBots.mockResolvedValue([
 			{
 				peerId: "12D3KooWScribe1",
@@ -80,7 +80,8 @@ describe("botMention provider", () => {
 		expect(items[0]).toMatchObject({
 			id: "12D3KooWScribe1",
 			label: "scribe",
-			detail: "WScribe1",
+			// Matches `toBot()` in use-space-bots.ts: last 6 chars, lowercased.
+			detail: "cribe1",
 			href: "/spaces/space-1/settings/bots?peerId=12D3KooWScribe1",
 		});
 	});
@@ -101,8 +102,36 @@ describe("botMention provider", () => {
 		const bot = getProvider(result.current, "botMention");
 		const items = await bot.items("");
 
-		expect(items[0].label).toBe("bot-ABC12345");
-		expect(items[0].detail).toBe("ABC12345");
+		expect(items[0].label).toBe("bot-c12345");
+		expect(items[0].detail).toBe("c12345");
+	});
+
+	it("treats blank/whitespace alias as missing and falls back to bot-<suffix>", async () => {
+		mockListSpaceBots.mockResolvedValue([
+			{
+				peerId: "12D3KooWBlankAlias1",
+				alias: "   ",
+				expiresAt: 0,
+				spaceId: "space-1",
+				status: "active",
+				scopes: [],
+			},
+			{
+				peerId: "12D3KooWEmptyAlias2",
+				alias: "",
+				expiresAt: 0,
+				spaceId: "space-1",
+				status: "active",
+				scopes: [],
+			},
+		]);
+
+		const { result } = renderHook(() => usePageMentionProviders("space-1"));
+		const bot = getProvider(result.current, "botMention");
+		const items = await bot.items("");
+
+		expect(items[0].label).toBe("bot-alias1");
+		expect(items[1].label).toBe("bot-alias2");
 	});
 
 	it("filters by alias substring (case-insensitive)", async () => {
