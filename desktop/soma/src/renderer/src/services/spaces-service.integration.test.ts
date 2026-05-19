@@ -75,11 +75,11 @@ describe("spaces service", () => {
 		expect(invoke).not.toHaveBeenCalled();
 	});
 
-	it("returns an empty bot list when IPC fails (matches listSpaceMembers contract)", async () => {
+	it("propagates IPC failures so the RTK Query wrapper can surface them as loadError", async () => {
 		invoke.mockRejectedValue(new Error("offline"));
 		const service = await import("./spaces-service");
 
-		await expect(service.listSpaceBots("space_1")).resolves.toEqual([]);
+		await expect(service.listSpaceBots("space_1")).rejects.toThrow(/offline/);
 	});
 
 	it("passes 0 through as the daemon's no-expiry sentinel", async () => {
