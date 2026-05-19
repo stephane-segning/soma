@@ -596,8 +596,10 @@ impl SomaHandle {
     }
 
     /// List bots within `space_id`. Wraps [`DaemonHandle::list_space_bots`].
-    /// Returns `SpaceBotJs` (peer + alias + expires_at); status/scopes
-    /// follow in later daemon work.
+    /// Returns `SpaceBotJs` (peer + alias + expires_at + status + scopes).
+    /// `status` is derived (`expired` from `expires_at`); `scopes` are
+    /// stored + plumbed for forward-looking visibility only — runtime
+    /// authorisation enforcement is NOT yet implemented.
     #[napi]
     pub async fn list_space_bots(
         &self,
