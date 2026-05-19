@@ -25,6 +25,25 @@
 //! capability retains its full pre-scope behaviour.  This prevents a silent
 //! regression for any bot that was issued before scopes existed.
 //!
+//! ## Limitation of empty-as-allow
+//!
+//! The "empty = allow" rule is pragmatic, not tight. It means an operator
+//! running on a much older DB (one that pre-dates #92 and was never written
+//! to by a post-#92 daemon) could in principle plant an empty-scopes row
+//! and have it treated as fully-scoped. We accept this for v0 because:
+//!
+//!   * the explicit goal of #98 is forward-looking enforcement, not
+//!     retroactive lockdown of in-place rows; and
+//!   * all post-#98 write paths (the renderer Bots tab, the daemon's own
+//!     issuance helpers, and somad's HTTP `issue`/`import` endpoints)
+//!     write an explicit scope, so legitimate new rows can no longer
+//!     land with an empty `scopes`.
+//!
+//! A tighter rule (e.g. "empty is only allowed for rows whose `issued_at`
+//! pre-dates a recorded migration timestamp") was considered and deferred —
+//! it requires schema work and a per-deployment migration marker. Track
+//! this in the cutover-status doc if/when we want to lock it down.
+//!
 //! # Long-term note (option A)
 //!
 //! v0 scope enforcement is *local-only*: scopes are read from the daemon's
