@@ -56,7 +56,7 @@ These can land independently of daemon work.
 ### Tooling
 
 - **`@soma/editor` typecheck broken on `main`** — `tsc --noEmit -p tsconfig.json` fails with `error TS2209: The project root is ambiguous`. Predates this revamp; surfaced because cutovers 5a–5e all touched the package. Workaround: typecheck via the soma renderer, which transitively type-checks the editor.
-- ~~**`@soma/editor` storybook** — broken per earlier session notes (path-resolution error). Wave-4-and-after work was verified via @soma/ui's storybook + soma's typecheck instead. Storybook stories for the editor exist (`document-editor.stories.tsx`, `node-ai-registry.stories.tsx`) and would be the cheapest way to add interactive smoke coverage once the build is healthy.~~ **Fixed in [#94](https://github.com/stephane-segning/soma/pull/94)** — a typo (`desktp-ui` → `desktop-ui`) in `.storybook/storybook.css` caused the PostCSS `@import` to fail. One-line fix; `pnpm --filter @soma/editor run build:storybook` now completes successfully (7.6 MB `storybook-static/`).
+- ~~**`@soma/editor` storybook** — broken per earlier session notes (path-resolution error). Wave-4-and-after work was verified via @soma/ui's storybook + soma's typecheck instead. Storybook stories for the editor exist (`document-editor.stories.tsx`, `node-ai-registry.stories.tsx`) and would be the cheapest way to add interactive smoke coverage once the build is healthy.~~ **Fixed in #94** — a typo (`desktp-ui` → `desktop-ui`) in `.storybook/storybook.css` caused the PostCSS `@import` to fail. Two-line fix; `pnpm --filter @soma/editor run build:storybook` now completes successfully (7.6 MB `storybook-static/`).
 
 ## The testing gap
 
