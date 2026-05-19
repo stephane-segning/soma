@@ -501,6 +501,13 @@ function mapDaemonEvent(event: DaemonEventJs): DaemonStreamEvent | null {
 				targetPeerId: event.targetPeerId,
 				error: event.error,
 			};
+		case "bot-status-changed":
+			return {
+				kind: "bot-status-changed",
+				spaceId: event.spaceId,
+				delegatePeerId: event.delegatePeerId,
+				status: event.status,
+			};
 		default:
 			return null;
 	}

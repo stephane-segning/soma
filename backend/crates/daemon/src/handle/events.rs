@@ -85,5 +85,12 @@ fn map_event(payload: daemon::daemon_event::Event) -> Option<DaemonEventRecord> 
             target_peer_id: e.target_peer_id,
             error: e.error,
         }),
+        daemon::daemon_event::Event::BotStatusChanged(e) => {
+            Some(DaemonEventRecord::BotStatusChanged {
+                space_id: e.space_id,
+                delegate_peer_id: e.delegate_peer_id,
+                status: e.status,
+            })
+        }
     }
 }

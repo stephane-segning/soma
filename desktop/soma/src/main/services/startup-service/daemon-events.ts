@@ -12,6 +12,11 @@ import type { AppLogger } from "../logger";
  *   so the editor refetches blob metadata.
  * - `join-decision` → `spaces-changed`, since approval mutates this peer's
  *   membership set.
+ * - `bot-status-changed` → `space-changed` for the affected space, so the
+ *   Bots-tab list query (under the `SpaceMembers/<spaceId>` cache tag)
+ *   refetches. This is the only push path for the bot state machine —
+ *   issuance fires it inline today, the future libp2p handshake protocol
+ *   will fire it again on ACK / timeout / explicit revoke.
  * - `join-submitted` / `join-failed` are operational-only and don't trigger
  *   a domain refresh; they're surfaced through logger.
  */
@@ -87,6 +92,20 @@ export class DaemonEventStreamBridge {
 				this.logger.log("warn", "daemon join request failed", {
 					targetPeerId: event.targetPeerId,
 					error: event.error,
+				});
+				return;
+			case "bot-status-changed":
+				this.domainEvents.broadcast({
+					kind: "space-changed",
+					source: "daemon",
+					atMs: Date.now(),
+					spaceId: event.spaceId,
+					reason: "bot-status-changed",
+				});
+				this.logger.log("debug", "bot status changed", {
+					spaceId: event.spaceId,
+					delegatePeerId: event.delegatePeerId,
+					status: event.status,
 				});
 				return;
 		}

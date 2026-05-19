@@ -148,6 +148,12 @@ export type DaemonStreamEvent =
 			mime: string;
 			size: number;
 			name: string;
+	  }
+	| {
+			kind: "bot-status-changed";
+			spaceId: string;
+			delegatePeerId: string;
+			status: string;
 	  };
 
 export type DaemonStreamHandlers = {

@@ -300,6 +300,9 @@ pub struct DaemonEventJs {
     pub reason: String,
     // JoinFailed
     pub error: String,
+    // BotStatusChanged
+    pub delegate_peer_id: String,
+    pub status: String,
 }
 
 impl DaemonEventJs {
@@ -350,6 +353,16 @@ impl DaemonEventJs {
                 js.target_peer_id = target_peer_id;
                 js.error = error;
             }
+            daemon_types::DaemonEventRecord::BotStatusChanged {
+                space_id,
+                delegate_peer_id,
+                status,
+            } => {
+                js.kind = "bot-status-changed".into();
+                js.space_id = space_id;
+                js.delegate_peer_id = delegate_peer_id;
+                js.status = status;
+            }
         }
         js
     }
@@ -369,6 +382,8 @@ impl DaemonEventJs {
             decision: 0,
             reason: String::new(),
             error: String::new(),
+            delegate_peer_id: String::new(),
+            status: String::new(),
         }
     }
 }

@@ -192,6 +192,16 @@ message DocumentBlobAddedEvent {
   string name = 6;
 }
 
+// Emitted when the state machine for a bot (delegated issuer capability)
+// transitions. `status` mirrors the values written to
+// `issuer_capabilities.status` plus the derived `"expired"` — see the
+// bot-status thread in `ui-revamp-v0-cutover-status.md`.
+message BotStatusChangedEvent {
+  string space_id = 1;
+  string delegate_peer_id = 2;
+  string status = 3;
+}
+
 message UploadBlobRequest {
   string space_id = 1;
   bytes data = 2;
@@ -332,6 +342,8 @@ message DaemonEvent {
     JoinFailedEvent join_failed = 3;
     // Blob uploaded with document association.
     DocumentBlobAddedEvent document_blob_added = 5;
+    // Bot state machine transitioned (issued / handshake / expired).
+    BotStatusChangedEvent bot_status_changed = 6;
   }
 }
 

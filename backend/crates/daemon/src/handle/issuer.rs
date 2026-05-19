@@ -68,6 +68,27 @@ impl DaemonHandle {
             alias,
         )
         .await?;
+
+        // Fire the status-changed event so the renderer's Bots tab can
+        // refresh without waiting for a refetch. Today every issuance
+        // lands as `"active"` (matches the value the storage layer
+        // writes). Once the libp2p handshake protocol lands, the
+        // initial status will be `"pending"` and a follow-up event
+        // will fire on ACK with `"active"` / `"failed"`.
+        self.state
+            .publish(soma_proto_build::daemon::DaemonEvent {
+                event: Some(
+                    soma_proto_build::daemon::daemon_event::Event::BotStatusChanged(
+                        soma_proto_build::daemon::BotStatusChangedEvent {
+                            space_id: space_id.clone(),
+                            delegate_peer_id: target_peer_id.to_string(),
+                            status: "active".to_string(),
+                        },
+                    ),
+                ),
+            })
+            .await;
+
         Ok(true)
     }
 }
