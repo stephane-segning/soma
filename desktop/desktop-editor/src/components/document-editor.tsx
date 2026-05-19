@@ -66,6 +66,7 @@ export function DocumentEditor({
 		extensions,
 		content: initialContent ?? undefined,
 		immediatelyRender: false,
+		autofocus: "end",
 		editorProps: {
 			attributes: {
 				class: [

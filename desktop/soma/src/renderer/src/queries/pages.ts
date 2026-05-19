@@ -1,6 +1,7 @@
 import { api, type PageRecord } from "@app/store/api";
 import { useCallback } from "react";
 import { useNavigate } from "react-router";
+import { UNTITLED_PAGE_TITLE } from "../routes/screens/page-title";
 
 const usePagesQuery = (spaceId: string) =>
 	api.useListPagesQuery(spaceId, {
@@ -26,7 +27,7 @@ function useCreatePage(spaceId: string) {
 		async (parentPageIds: string[], nav = true) => {
 			const created = await ensurePage.mutateAsync({
 				spaceId,
-				title: "Untitled",
+				title: UNTITLED_PAGE_TITLE,
 				parentPageIds,
 			});
 
