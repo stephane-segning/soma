@@ -38,4 +38,34 @@ describe("spaces service", () => {
 
 		await expect(service.revokeMembership({ spaceId: "space_1", subjectPeerId: "peer_1" })).resolves.toBe(false);
 	});
+
+	it("forwards issueIssuerCapability arguments to IPC unchanged (boundary is daemon-client, not service)", async () => {
+		invoke.mockResolvedValue(true);
+		const service = await import("./spaces-service");
+
+		await service.issueIssuerCapability({
+			spaceId: "space_1",
+			targetPeerId: "peer_1",
+			expiresAt: 1_700_000_000_000,
+		});
+
+		expect(invoke).toHaveBeenCalledWith("spaces_issue_issuer_capability", {
+			spaceId: "space_1",
+			targetPeerId: "peer_1",
+			expiresAt: 1_700_000_000_000,
+		});
+	});
+
+	it("passes 0 through as the daemon's no-expiry sentinel", async () => {
+		invoke.mockResolvedValue(true);
+		const service = await import("./spaces-service");
+
+		await service.issueIssuerCapability({
+			spaceId: "space_1",
+			targetPeerId: "peer_1",
+			expiresAt: 0,
+		});
+
+		expect(invoke).toHaveBeenCalledWith("spaces_issue_issuer_capability", expect.objectContaining({ expiresAt: 0 }));
+	});
 });

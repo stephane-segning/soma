@@ -25,5 +25,11 @@ artifacts
 
 storybook-static
 
+# Vitest / Playwright outputs
+coverage
+playwright-report
+test-results
+.features-gen
+
 # Local Claude Code agent state (per-checkout, not source).
 .claude/
