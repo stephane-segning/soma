@@ -250,4 +250,12 @@ pub enum DaemonEventRecord {
         target_peer_id: String,
         error: String,
     },
+    /// A bot's status changed (issued / handshake completed / expired
+    /// / failed). The renderer's Bots tab subscribes and refreshes
+    /// the list query for `space_id`.
+    BotStatusChanged {
+        space_id: String,
+        delegate_peer_id: String,
+        status: String,
+    },
 }

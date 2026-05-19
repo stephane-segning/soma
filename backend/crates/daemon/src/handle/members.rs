@@ -1,6 +1,7 @@
 use std::time::SystemTime;
 
 use soma_core::SomaResult;
+use soma_membership::bot_status;
 use soma_storage::membership::SpaceMembership;
 
 use super::{DaemonHandle, types::{SpaceBotRecord, SpaceMemberRecord}};
@@ -19,11 +20,12 @@ fn issuer_to_bot_record(
     now_secs: i64,
 ) -> SpaceBotRecord {
     let expires_at = cap.expires_at.unwrap_or_default();
-    let derived_status = if cap.status == "active" && expires_at != 0 && expires_at <= now_secs {
-        "expired".to_string()
-    } else {
-        cap.status
-    };
+    let derived_status =
+        if cap.status == bot_status::ACTIVE && expires_at != 0 && expires_at <= now_secs {
+            bot_status::EXPIRED.to_string()
+        } else {
+            cap.status
+        };
     SpaceBotRecord {
         space_id: cap.space_id,
         peer_id: cap.delegate_peer_id,
