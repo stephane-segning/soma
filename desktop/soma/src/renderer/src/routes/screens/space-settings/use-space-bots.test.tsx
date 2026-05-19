@@ -398,11 +398,12 @@ describe("useSpaceBots.addBot", () => {
 });
 
 describe("useSpaceBots.retryBot", () => {
-	const failedBot = {
-		id: "12D3KooWFailedBot",
-		alias: "rejected",
+	const failedRow: FakeBotRow = {
+		spaceId: "space_1",
 		peerId: "12D3KooWFailedBot",
-		status: "failed" as const,
+		expiresAt: 0,
+		alias: "rejected",
+		status: "failed",
 	};
 
 	beforeEach(() => {
@@ -412,11 +413,12 @@ describe("useSpaceBots.retryBot", () => {
 	});
 
 	it("calls mutateAsync with the bot's peerId, trimmed alias, and expiresAt=0", async () => {
+		listQueryState.data = [failedRow];
 		mutateAsync.mockResolvedValue(undefined);
 		const { result } = renderHook(() => useSpaceBots("space_1"));
 
 		await act(async () => {
-			await result.current.retryBot(failedBot);
+			await result.current.retryBot(result.current.bots[0]);
 		});
 
 		expect(mutateAsync).toHaveBeenCalledWith({
@@ -427,12 +429,19 @@ describe("useSpaceBots.retryBot", () => {
 		});
 	});
 
-	it("sends alias=null when the bot alias is whitespace-only", async () => {
+	it("sends alias=null when the daemon row has no alias (avoids promoting the UI fallback)", async () => {
+		// Daemon stored no alias for this row, so `toBot` synthesises a
+		// `bot-<suffix>` UI fallback. Retry must NOT persist that fallback —
+		// it should look the row up by peerId and forward the true null.
+		listQueryState.data = [{ ...failedRow, alias: null }];
 		mutateAsync.mockResolvedValue(undefined);
 		const { result } = renderHook(() => useSpaceBots("space_1"));
 
+		// Sanity-check that the UI mapping did inject the fallback alias.
+		expect(result.current.bots[0]?.alias).toMatch(/^bot-/);
+
 		await act(async () => {
-			await result.current.retryBot({ ...failedBot, alias: "   " });
+			await result.current.retryBot(result.current.bots[0]);
 		});
 
 		expect(mutateAsync).toHaveBeenCalledWith(
@@ -440,10 +449,44 @@ describe("useSpaceBots.retryBot", () => {
 		);
 	});
 
+	it("sends alias=null when the daemon row alias is whitespace-only", async () => {
+		listQueryState.data = [{ ...failedRow, alias: "   " }];
+		mutateAsync.mockResolvedValue(undefined);
+		const { result } = renderHook(() => useSpaceBots("space_1"));
+
+		await act(async () => {
+			await result.current.retryBot(result.current.bots[0]);
+		});
+
+		expect(mutateAsync).toHaveBeenCalledWith(
+			expect.objectContaining({ alias: null }),
+		);
+	});
+
+	it("surfaces a generic errorReason on failed rows so the Retry button renders", () => {
+		listQueryState.data = [failedRow];
+		const { result } = renderHook(() => useSpaceBots("space_1"));
+
+		expect(result.current.bots[0]?.errorReason).toBeTruthy();
+	});
+
+	it("does not attach an errorReason to non-failed rows", () => {
+		listQueryState.data = [{ ...failedRow, status: "active" }];
+		const { result } = renderHook(() => useSpaceBots("space_1"));
+
+		expect(result.current.bots[0]?.errorReason).toBeUndefined();
+	});
+
 	it("rejects and surfaces addError when no space is selected", async () => {
+		const stubBot = {
+			id: "12D3KooWFailedBot",
+			alias: "rejected",
+			peerId: "12D3KooWFailedBot",
+			status: "failed" as const,
+		};
 		const { result } = renderHook(() => useSpaceBots(undefined));
 
-		await expect(result.current.retryBot(failedBot)).rejects.toThrow(
+		await expect(result.current.retryBot(stubBot)).rejects.toThrow(
 			/No space is selected/,
 		);
 
@@ -455,12 +498,13 @@ describe("useSpaceBots.retryBot", () => {
 	});
 
 	it("surfaces mutation rejection in addError", async () => {
+		listQueryState.data = [failedRow];
 		mutateAsync.mockRejectedValue(new Error("handshake timeout"));
 		const { result } = renderHook(() => useSpaceBots("space_1"));
 
-		await expect(result.current.retryBot(failedBot)).rejects.toThrow(
-			/handshake timeout/,
-		);
+		await expect(
+			result.current.retryBot(result.current.bots[0]),
+		).rejects.toThrow(/handshake timeout/);
 
 		await waitFor(() => {
 			expect(result.current.addError).toMatch(/handshake timeout/);
