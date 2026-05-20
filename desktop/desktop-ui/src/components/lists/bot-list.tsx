@@ -108,12 +108,11 @@ export function BotList({
 	return (
 		<ul
 			className={cn(
-				// daisyUI 5 list aesthetic: card-style surface, rounded
-				// corners, subtle border. The list-row primitive doesn't fit
-				// DenseRow's named-slot API, but we can still wrap the rows
-				// in `<ul class="list">` so daisy's surface tokens carry the
-				// look. Visual outcome matches daisy's docs list demos.
-				"list rounded-md border border-base-300 bg-base-100",
+				// daisyUI 5's `list` already ships row dividers — a wrapper
+				// border + rounded corners on top of that just gives us
+				// awkwardly rounded corners on the first/last child. Plain
+				// `list bg-base-100` is the right surface.
+				"list bg-base-100",
 				className,
 			)}
 		>

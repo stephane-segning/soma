@@ -1,20 +1,31 @@
 /**
- * PanelContainer — the right-area host that stacks panels and exposes
- * a collapsed-icon strip on the right edge.
+ * PanelContainer — the right-area host that lays panels into stable
+ * positions across two side-by-side columns.
  *
  * Locked by [PRD §3](../../../../../docs/src/architecture/prd/ui-revamp-v0.md)
  * and [refs main §1](../../../../../docs/src/architecture/prd/ui-revamp-v0-refs.md).
  *
- * The container is **presentational**: caller owns the list of panels
- * + which are collapsed. Panels stack vertically; collapsed panels
- * render as a vertical icon strip on the right edge so the user can
- * expand them with one click without losing them in a menu.
+ * **Layout policy (locked by user testing after rounds 3–6):**
  *
- * Drag-to-split is **not** in v0 (see scaffold §8 open question 3 —
- * keyboard-only split target for v0.1). The `columns` prop exists
- * so callers can pre-arrange a horizontal split if needed; for v0
- * we render only the first column (single vertical stack) and any
- * additional columns join the stack.
+ * Each panel has a stable position determined by its index in the
+ * `panels` prop. Odd-indexed panels (1st, 3rd, 5th, …) stack in the
+ * left column; even-indexed panels (2nd, 4th, 6th, …) stack in the
+ * right column. Each column independently flex-cols its expanded
+ * panels:
+ *
+ *   - 1 panel in a column → it takes 100 % of the column height.
+ *   - 2 panels in a column → 50 / 50 split, etc.
+ *
+ * Truly-collapsed panels render as icons in a thin right rail (the
+ * "strip"). Clicking an icon expands the panel back into its assigned
+ * column slot. There is **no cap**, **no overflow**, and **no auto-
+ * eviction** — every open panel renders in its assigned position, so
+ * the user always knows where a given panel will appear.
+ *
+ * The container is otherwise presentational: caller owns `panels` and
+ * `collapsedIds`. Earlier revisions used a maxExpanded cap with
+ * various auto-evict policies — those were removed because the user
+ * couldn't predict which panel would show up where.
  */
 import { type ReactNode } from "react";
 import { useT } from "../../i18n/use-t";
@@ -39,16 +50,6 @@ export type PanelContainerProps = {
 	collapsedIds?: ReadonlySet<string> | readonly string[];
 	onToggleCollapse?: (id: string) => void;
 	onClosePanel?: (id: string) => void;
-	/**
-	 * Maximum number of expanded panels rendered at once. Defaults to 2.
-	 * Extra panels past the cap render as if collapsed (their icons
-	 * appear in the strip) so the visible stack always fills the
-	 * available height cleanly — 1 panel = full height, 2 panels =
-	 * 50/50. Callers that want a different policy (e.g. evict the
-	 * focused panel when opening a third) can listen on
-	 * `onToggleCollapse` and rearrange `collapsedIds` themselves.
-	 */
-	maxExpanded?: number;
 	className?: string;
 };
 
@@ -57,7 +58,6 @@ export function PanelContainer({
 	collapsedIds,
 	onToggleCollapse,
 	onClosePanel,
-	maxExpanded = 2,
 	className,
 }: PanelContainerProps) {
 	const t = useT();
@@ -66,47 +66,43 @@ export function PanelContainer({
 			? collapsedIds
 			: new Set<string>(collapsedIds ?? []);
 
-	// Split panels into expanded / collapsed, then clamp the expanded
-	// list to `maxExpanded`. The first `maxExpanded` "open" panels stay
-	// visible; anything past the cap is treated as overflow and shows
-	// in the strip alongside truly-collapsed panels.
-	const allExpanded = panels.filter((panel) => !collapsedSet.has(panel.id));
-	const expanded = allExpanded.slice(0, maxExpanded);
-	const overflow = allExpanded.slice(maxExpanded);
-	const collapsed = panels.filter((panel) => collapsedSet.has(panel.id));
-	// Strip shows truly-collapsed first, then any overflow. Overflow
-	// icons look identical to collapsed ones — clicking either brings
-	// the panel into view (and our smart handler below evicts the
-	// oldest visible if needed to honour the cap).
-	const stripPanels = [...collapsed, ...overflow];
-
-	// Smart click handler for strip icons. We split on the two possible
-	// states:
-	//   1. The panel is in `collapsedSet` → user wants to expand it.
-	//      If the cap is already full, evict the oldest visible first.
-	//   2. The panel is overflow (not in `collapsedSet` but past the
-	//      cap) → user wants to surface it. Collapse enough of the
-	//      currently-visible panels (oldest first) until the clicked
-	//      one slides into the visible slots.
-	// We batch multiple `onToggleCollapse` calls inside the same event
-	// handler — React composes them via functional setState so the
-	// caller ends up with the correct final state in a single re-render.
-	const handleStripClick = (id: string): void => {
-		if (!onToggleCollapse) return;
-		if (collapsedSet.has(id)) {
-			if (allExpanded.length >= maxExpanded && expanded.length > 0) {
-				onToggleCollapse(expanded[0].id);
-			}
-			onToggleCollapse(id);
+	// Split panels by parity of their declaration index — index 0 → col 1
+	// ("odd position" = first/3rd/5th panel in 1-based user-facing terms),
+	// index 1 → col 2. Each column then keeps only the panels that are
+	// not collapsed. Collapsed panels go to the strip.
+	const columnOne: PanelDescriptor[] = [];
+	const columnTwo: PanelDescriptor[] = [];
+	const collapsed: PanelDescriptor[] = [];
+	panels.forEach((panel, index) => {
+		if (collapsedSet.has(panel.id)) {
+			collapsed.push(panel);
 			return;
 		}
-		const clickedIndex = allExpanded.findIndex((panel) => panel.id === id);
-		if (clickedIndex < 0) return;
-		const numToEvict = clickedIndex - maxExpanded + 1;
-		for (let i = 0; i < numToEvict && i < expanded.length; i++) {
-			onToggleCollapse(expanded[i].id);
-		}
-	};
+		if (index % 2 === 0) columnOne.push(panel);
+		else columnTwo.push(panel);
+	});
+
+	const expandedCount = columnOne.length + columnTwo.length;
+
+	const renderColumn = (column: PanelDescriptor[]) => (
+		<div className="flex min-h-0 flex-1 flex-col gap-2">
+			{column.map((panel) => (
+				<Panel
+					actions={panel.actions}
+					className="min-h-0 flex-1"
+					footer={panel.footer}
+					key={panel.id}
+					onClose={onClosePanel ? () => onClosePanel(panel.id) : undefined}
+					onCollapse={
+						onToggleCollapse ? () => onToggleCollapse(panel.id) : undefined
+					}
+					title={panel.title}
+				>
+					{panel.content}
+				</Panel>
+			))}
+		</div>
+	);
 
 	return (
 		<div
@@ -116,36 +112,18 @@ export function PanelContainer({
 			})}
 			className={cn("flex min-h-0 w-full bg-transparent", className)}
 		>
-			{/* Expanded panels render as a column of floating cards. When no
-			    panel is expanded we drop the whole left area so the right
-			    rail (collapsed strip) sits flush against the editor — no
-			    empty placeholder taking up space. Each card uses `flex-1`
-			    so the stack always fills the available height: 1 panel
-			    takes 100%, 2 panels split 50/50. */}
-			{expanded.length > 0 ? (
-				<div className="flex min-h-0 flex-1 flex-col gap-2 p-2">
-					{expanded.map((panel) => (
-						<Panel
-							actions={panel.actions}
-							className="min-h-0 flex-1"
-							footer={panel.footer}
-							key={panel.id}
-							onClose={
-								onClosePanel ? () => onClosePanel(panel.id) : undefined
-							}
-							onCollapse={
-								onToggleCollapse
-									? () => onToggleCollapse(panel.id)
-									: undefined
-							}
-							title={panel.title}
-						>
-							{panel.content}
-						</Panel>
-					))}
+			{/* Two-column grid of floating panel cards. When no panel is
+			    expanded the entire grid collapses so only the right rail
+			    (collapsed strip) is visible. Each column is independent —
+			    a column with 1 panel fills its height entirely; with 2 it
+			    splits 50/50, etc. */}
+			{expandedCount > 0 ? (
+				<div className="flex min-h-0 flex-1 gap-2 p-2">
+					{columnOne.length > 0 ? renderColumn(columnOne) : null}
+					{columnTwo.length > 0 ? renderColumn(columnTwo) : null}
 				</div>
 			) : null}
-			{stripPanels.length > 0 ? (
+			{collapsed.length > 0 ? (
 				<aside
 					aria-label={t({
 						id: "panel-container.collapsed-strip",
@@ -156,7 +134,7 @@ export function PanelContainer({
 					// cards on the left supply all the visual structure.
 					className="flex w-9 shrink-0 flex-col items-center gap-1 bg-transparent py-2"
 				>
-					{stripPanels.map((panel) => (
+					{collapsed.map((panel) => (
 						<button
 							aria-label={
 								typeof panel.title === "string"
@@ -168,7 +146,11 @@ export function PanelContainer({
 							}
 							className="grid size-7 place-items-center rounded-md text-base-content/70 hover:bg-base-200 hover:text-base-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
 							key={panel.id}
-							onClick={() => handleStripClick(panel.id)}
+							onClick={
+								onToggleCollapse
+									? () => onToggleCollapse(panel.id)
+									: undefined
+							}
 							title={typeof panel.title === "string" ? panel.title : undefined}
 							type="button"
 						>
