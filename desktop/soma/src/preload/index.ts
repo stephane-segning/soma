@@ -31,6 +31,15 @@ const api = {
 			ipcRenderer.removeListener("agent_event", listener);
 		};
 	},
+	onDeepLink: (handler: (url: string) => void) => {
+		const listener = (_event: IpcRendererEvent, payload: unknown) => {
+			if (typeof payload === "string") handler(payload);
+		};
+		ipcRenderer.on("app:deep-link", listener);
+		return () => {
+			ipcRenderer.removeListener("app:deep-link", listener);
+		};
+	},
 	dbStorage: {
 		getItem: (key: string) => ipcRenderer.sendSync("db_storage_get", key) as string | null,
 		setItem: (key: string, value: string) =>
@@ -42,19 +51,17 @@ const api = {
 		clear: () => ipcRenderer.sendSync("db_storage_clear"),
 		keys: () => ipcRenderer.sendSync("db_storage_keys") as string[],
 	},
+	// Window controls now go through `bridge.invoke("window_control", …)` via
+	// `@soma/sdk`'s `windowControls.dispatch(action)`; the legacy namespace
+	// is retained only as a redirect for any caller still importing
+	// `bridge.windowControls.*` directly.
 	windowControls: {
 		minimize: () =>
-			ipcRenderer.invoke("window:control", {
-				action: "minimize",
-			}),
+			ipcRenderer.invoke("window_control", { args: { action: "minimize" } }),
 		toggleMaximize: () =>
-			ipcRenderer.invoke("window:control", {
-				action: "toggleMaximize",
-			}),
+			ipcRenderer.invoke("window_control", { args: { action: "toggleMaximize" } }),
 		close: () =>
-			ipcRenderer.invoke("window:control", {
-				action: "close",
-			}),
+			ipcRenderer.invoke("window_control", { args: { action: "close" } }),
 	},
 };
 

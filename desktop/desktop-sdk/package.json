@@ -9,6 +9,7 @@
 		"./transport": "./src/transport/index.ts",
 		"./transport/tauri": "./src/transport/tauri.ts",
 		"./transport/http": "./src/transport/http.ts",
+		"./transport/electron": "./src/transport/electron.ts",
 		"./bindings": "./src/bindings/index.ts"
 	},
 	"scripts": {
