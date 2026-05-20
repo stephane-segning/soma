@@ -9,7 +9,7 @@
 		"build": "tsc && vite build",
 		"preview": "vite preview",
 		"tauri": "tauri",
-		"tauri:dev": "tauri dev",
+		"tauri:dev": "tauri dev --features devtools",
 		"tauri:build": "tauri build",
 		"format": "biome format --write .",
 		"lint": "biome check --write .",
@@ -43,7 +43,7 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.3.13",
-		"@tailwindcss/postcss": "^4.1.18",
+		"@tailwindcss/postcss": "^4.3.0",
 		"@tailwindcss/typography": "^0.5.19",
 		"@tauri-apps/cli": "^2",
 		"@types/react": "^19.2.10",
@@ -51,7 +51,7 @@
 		"@vitejs/plugin-react": "^5.1.2",
 		"daisyui": "^5.5.16",
 		"tailwind-scrollbar": "^4.0.2",
-		"tailwindcss": "^4.1.18",
+		"tailwindcss": "^4.3.0",
 		"typescript": "~5.8.3",
 		"vite": "npm:rolldown-vite@latest"
 	}

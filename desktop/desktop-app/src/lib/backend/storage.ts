@@ -11,9 +11,9 @@
  * 3. Persist every write back to the backend on a microtask so a fresh
  *    process starts up with the same state.
  *
- * If the backend write fails, the renderer still has the value in
- * `localStorage` and surfaces a warning — same eventual-consistency
- * envelope the renderer already tolerates.
+ * The companion `settings` namespace exposes async `get`/`set` for
+ * app-wide preferences (e.g. `agent.config`); those don't go through the
+ * sync-cache because the renderer code already treats them as async.
  */
 
 import { call } from "./client";
@@ -29,7 +29,6 @@ function warn(action: string, key: string, err: unknown): void {
 }
 
 export const dbStorage = {
-	/** Pull every backend-owned key into `localStorage`. Idempotent. */
 	async hydrate(): Promise<void> {
 		try {
 			const keys = await call<string[]>("db_storage_keys");
@@ -77,4 +76,10 @@ export const dbStorage = {
 		}
 		return out;
 	},
+};
+
+export const settings = {
+	get: <T = unknown>(key: string) => call<T | null>("settings_get", { args: { key } }),
+	set: (key: string, value: unknown) => call<void>("settings_set", { args: { key, value } }),
+	all: () => call<Record<string, unknown>>("settings_get_all"),
 };

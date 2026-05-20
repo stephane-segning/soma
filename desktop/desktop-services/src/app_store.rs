@@ -11,6 +11,13 @@
 //!   "reactDb": { "<key>": "<string value>" }
 //! }
 //! ```
+//!
+//! Every mutation calls `Store::save()` so the JSON file is durable on
+//! disk before the call returns — `tauri-plugin-store` only writes to disk
+//! when `save()` is invoked (or auto-save is configured at plugin init),
+//! and we'd rather pay the small fs cost per mutation than risk silent
+//! data loss on shutdown. Lookups use the plugin's dot-notation, so we
+//! never clone the parent map just to read one field.
 
 use desktop_core::error::{DesktopError, DesktopResult};
 use serde_json::Value;
@@ -40,8 +47,12 @@ impl<R: Runtime> Clone for AppStore<R> {
 
 impl<R: Runtime> AppStore<R> {
     pub fn open<M: tauri::Manager<R>>(app: &M) -> DesktopResult<Self> {
-        let store = app.store(STORE_PATH).map_err(|e| DesktopError::other(e))?;
+        let store = app.store(STORE_PATH).map_err(DesktopError::other)?;
         Ok(Self { inner: store })
+    }
+
+    fn persist(&self) -> DesktopResult<()> {
+        self.inner.save().map_err(DesktopError::other)
     }
 
     // --- settings ----------------------------------------------------------
@@ -53,48 +64,54 @@ impl<R: Runtime> AppStore<R> {
         }
     }
 
-    pub fn set_settings(&self, value: serde_json::Map<String, Value>) {
+    pub fn set_settings(&self, value: serde_json::Map<String, Value>) -> DesktopResult<()> {
         self.inner.set(KEY_SETTINGS, Value::Object(value));
+        self.persist()
     }
 
+    /// Lookup a single setting via the plugin's dot-notation — avoids
+    /// cloning the whole settings map.
     pub fn setting(&self, key: &str) -> Option<Value> {
-        self.settings().remove(key)
+        self.inner.get(format!("{KEY_SETTINGS}.{key}"))
     }
 
-    pub fn set_setting(&self, key: &str, value: Value) {
+    pub fn set_setting(&self, key: &str, value: Value) -> DesktopResult<()> {
         let mut current = self.settings();
         current.insert(key.to_string(), value);
-        self.set_settings(current);
+        self.inner.set(KEY_SETTINGS, Value::Object(current));
+        self.persist()
     }
 
     // --- react-db key/value ------------------------------------------------
 
     pub fn react_db_get(&self, key: &str) -> Option<String> {
-        match self.inner.get(KEY_REACT_DB) {
-            Some(Value::Object(map)) => map.get(key).and_then(|v| v.as_str().map(str::to_owned)),
-            _ => None,
-        }
+        self.inner
+            .get(format!("{KEY_REACT_DB}.{key}"))
+            .and_then(|v| v.as_str().map(str::to_owned))
     }
 
-    pub fn react_db_set(&self, key: &str, value: String) {
+    pub fn react_db_set(&self, key: &str, value: String) -> DesktopResult<()> {
         let mut current = match self.inner.get(KEY_REACT_DB) {
             Some(Value::Object(map)) => map,
             _ => serde_json::Map::new(),
         };
         current.insert(key.to_string(), Value::String(value));
         self.inner.set(KEY_REACT_DB, Value::Object(current));
+        self.persist()
     }
 
-    pub fn react_db_remove(&self, key: &str) {
+    pub fn react_db_remove(&self, key: &str) -> DesktopResult<()> {
         let Some(Value::Object(mut map)) = self.inner.get(KEY_REACT_DB) else {
-            return;
+            return Ok(());
         };
         map.remove(key);
         self.inner.set(KEY_REACT_DB, Value::Object(map));
+        self.persist()
     }
 
-    pub fn react_db_clear(&self) {
+    pub fn react_db_clear(&self) -> DesktopResult<()> {
         self.inner.set(KEY_REACT_DB, Value::Object(serde_json::Map::new()));
+        self.persist()
     }
 
     pub fn react_db_keys(&self) -> Vec<String> {

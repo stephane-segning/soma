@@ -11,8 +11,9 @@ import { call } from "./client";
 import { daemon } from "./daemon";
 import { documents, pages } from "./documents";
 import { events } from "./events";
+import { search } from "./search";
 import { spaces } from "./spaces";
-import { dbStorage } from "./storage";
+import { dbStorage, settings } from "./storage";
 import { windowControls } from "./window";
 
 export { BackendError } from "./client";
@@ -26,6 +27,8 @@ export const backend = {
 	documents,
 	events,
 	pages,
+	search,
+	settings,
 	spaces,
 	windowControls,
 	/** Escape hatch — prefer the grouped methods above when possible. */

@@ -1,6 +1,7 @@
 //! Document + page surface. Mirrors `controllers/documents-controller.ts`
 //! and the document/page subset of `command-registry/document-handlers.ts`
-//! from the Electron app.
+//! from the Electron app. Command names follow the renderer's convention
+//! (`documents_*`).
 
 use desktop_core::error::{DesktopError, DesktopResult};
 use serde::{Deserialize, Serialize};
@@ -39,7 +40,11 @@ pub struct UpsertDocumentArgs {
     pub content_json: String,
     #[serde(default)]
     pub published: bool,
-    pub updated_at_ms: i64,
+    /// Optional — when omitted we fill in wall-clock time so the daemon's
+    /// `published`/`updated_at` invariants hold without forcing every
+    /// caller to send a timestamp.
+    #[serde(default)]
+    pub updated_at_ms: Option<i64>,
 }
 
 #[derive(Debug, Serialize)]
@@ -75,8 +80,10 @@ pub struct EnsurePageArgs {
     pub title: String,
     #[serde(default)]
     pub parent_page_ids: Vec<String>,
-    pub created_at_ms: i64,
-    pub updated_at_ms: i64,
+    #[serde(default)]
+    pub created_at_ms: Option<i64>,
+    #[serde(default)]
+    pub updated_at_ms: Option<i64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -99,10 +106,18 @@ fn err(e: impl std::fmt::Display) -> DesktopError {
     DesktopError::Daemon { message: e.to_string() }
 }
 
+fn now_ms() -> i64 {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis() as i64)
+        .unwrap_or(0)
+}
+
 // --- Documents --------------------------------------------------------------
 
 #[tauri::command]
-pub async fn upsert_document(state: State<'_, AppState>, args: UpsertDocumentArgs) -> DesktopResult<()> {
+pub async fn documents_upsert(state: State<'_, AppState>, args: UpsertDocumentArgs) -> DesktopResult<()> {
     let handle = state.daemon.handle().await?;
     handle
         .upsert_document(dt::UpsertDocumentInput {
@@ -110,14 +125,14 @@ pub async fn upsert_document(state: State<'_, AppState>, args: UpsertDocumentArg
             document_id: args.document_id,
             content_json: args.content_json,
             published: args.published,
-            updated_at_ms: args.updated_at_ms,
+            updated_at_ms: args.updated_at_ms.unwrap_or_else(now_ms),
         })
         .await
         .map_err(err)
 }
 
 #[tauri::command]
-pub async fn get_document(
+pub async fn documents_get(
     state: State<'_, AppState>,
     space_id: String,
     document_id: String,
@@ -130,16 +145,17 @@ pub async fn get_document(
 // --- Pages ------------------------------------------------------------------
 
 #[tauri::command]
-pub async fn ensure_page(state: State<'_, AppState>, args: EnsurePageArgs) -> DesktopResult<StoredPage> {
+pub async fn documents_ensure_page(state: State<'_, AppState>, args: EnsurePageArgs) -> DesktopResult<StoredPage> {
     let handle = state.daemon.handle().await?;
+    let now = now_ms();
     let page = handle
         .ensure_page(dt::EnsurePageInput {
             space_id: args.space_id,
             page_id: args.page_id,
             title: args.title,
             parent_page_ids: args.parent_page_ids,
-            created_at_ms: args.created_at_ms,
-            updated_at_ms: args.updated_at_ms,
+            created_at_ms: args.created_at_ms.unwrap_or(now),
+            updated_at_ms: args.updated_at_ms.unwrap_or(now),
         })
         .await
         .map_err(err)?;
@@ -147,14 +163,14 @@ pub async fn ensure_page(state: State<'_, AppState>, args: EnsurePageArgs) -> De
 }
 
 #[tauri::command]
-pub async fn list_pages(state: State<'_, AppState>, space_id: String) -> DesktopResult<Vec<StoredPage>> {
+pub async fn documents_list_pages(state: State<'_, AppState>, space_id: String) -> DesktopResult<Vec<StoredPage>> {
     let handle = state.daemon.handle().await?;
     let pages = handle.list_pages(&space_id).await.map_err(err)?;
     Ok(pages.into_iter().map(StoredPage::from).collect())
 }
 
 #[tauri::command]
-pub async fn update_page_title(
+pub async fn documents_update_page_title(
     state: State<'_, AppState>,
     args: UpdatePageTitleArgs,
 ) -> DesktopResult<Option<StoredPage>> {
@@ -167,7 +183,7 @@ pub async fn update_page_title(
 }
 
 #[tauri::command]
-pub async fn set_page_parents(
+pub async fn documents_set_page_parents(
     state: State<'_, AppState>,
     args: SetPageParentsArgs,
 ) -> DesktopResult<Option<StoredPage>> {

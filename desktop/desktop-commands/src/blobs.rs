@@ -1,10 +1,5 @@
 //! Blob upload / read surface. Mirrors `controllers/blobs-controller.ts`
 //! plus `command-registry/blob-handlers.ts`.
-//!
-//! The renderer ships raw bytes once via the staged-upload flow; the actual
-//! daemon write happens here. `read_blob` is unused by the renderer (it
-//! prefers the `soma-blob://` scheme), but it's exposed for parity + for
-//! tests.
 
 use desktop_core::error::{DesktopError, DesktopResult};
 use desktop_services::upload_payload_store::{StagedUpload, UploadPayloadStore};
@@ -22,8 +17,6 @@ pub struct UploadBlobArgs {
     pub doc_id: Option<String>,
     pub mime: String,
     pub name: String,
-    /// Raw bytes from the renderer. Tauri serializes `Vec<u8>` over JSON as a
-    /// number array — same shape the old preload bridge sent.
     pub bytes: Vec<u8>,
 }
 
@@ -61,7 +54,7 @@ fn err(e: impl std::fmt::Display) -> DesktopError {
 }
 
 #[tauri::command]
-pub async fn upload_blob(state: State<'_, AppState>, args: UploadBlobArgs) -> DesktopResult<UploadBlobResult> {
+pub async fn blobs_upload(state: State<'_, AppState>, args: UploadBlobArgs) -> DesktopResult<UploadBlobResult> {
     let handle = state.daemon.handle().await?;
     let res = handle
         .upload_blob(dt::UploadBlobInput {
@@ -77,7 +70,7 @@ pub async fn upload_blob(state: State<'_, AppState>, args: UploadBlobArgs) -> De
 }
 
 #[tauri::command]
-pub async fn read_blob(state: State<'_, AppState>, space_id: String, cid: String) -> DesktopResult<Option<Vec<u8>>> {
+pub async fn blobs_read(state: State<'_, AppState>, space_id: String, cid: String) -> DesktopResult<Option<Vec<u8>>> {
     let handle = state.daemon.handle().await?;
     let res = handle.read_blob(&space_id, &cid).await.map_err(err)?;
     Ok(res.map(|r| r.data))
@@ -87,7 +80,10 @@ pub async fn read_blob(state: State<'_, AppState>, space_id: String, cid: String
 /// documents controller can pull it on the daemon side without re-sending
 /// bytes over IPC. Mirrors the staging step in the old TS controller.
 #[tauri::command]
-pub async fn stage_upload<R: tauri::Runtime>(app: tauri::AppHandle<R>, args: StageUploadArgs) -> DesktopResult<StagedUpload> {
+pub async fn blobs_stage_upload<R: tauri::Runtime>(
+    app: tauri::AppHandle<R>,
+    args: StageUploadArgs,
+) -> DesktopResult<StagedUpload> {
     let user_data = app
         .path()
         .app_data_dir()

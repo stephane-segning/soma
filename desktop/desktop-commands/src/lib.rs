@@ -3,14 +3,15 @@
 //! the daemon-client translation layer is gone (the binary links
 //! `soma-daemon` directly).
 //!
-//! The binary (`desktop-app`) enumerates the commands in its
-//! `tauri::generate_handler![…]` call — keeping that list in the binary
-//! avoids needing a `generate_handler!` macro export with public macros.
+//! Command names follow `<domain>_<verb>` (`spaces_list`,
+//! `documents_ensure_page`, …) to match the renderer's existing IPC
+//! contract and HTTP-route style we expect to use for the future BFF.
 
 pub mod agent;
 pub mod blobs;
 pub mod daemon;
 pub mod documents;
+pub mod search;
 pub mod settings_storage;
 pub mod spaces;
 pub mod state;

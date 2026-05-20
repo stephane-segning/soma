@@ -44,8 +44,10 @@ export type ListSpacesResult = {
 };
 
 export type CreateSpaceArgs = {
-	spaceId: string;
-	displayName: string;
+	/** Optional — daemon generates a CUID when omitted/empty. */
+	spaceId?: string;
+	/** Optional — daemon defaults are used when omitted/empty. */
+	displayName?: string;
 };
 
 export type JoinSpaceArgs = {
@@ -74,6 +76,39 @@ export type DecideJoinResult = {
 	approved: boolean;
 };
 
+export type StoredSpaceBot = {
+	spaceId: string;
+	peerId: string;
+	expiresAt: number;
+	alias: string | null;
+	status: string;
+	scopes: string[];
+};
+
+export type StoredJoinRequest = {
+	requestId: string;
+	spaceId: string;
+	subjectPeerId: string;
+	displayName: string;
+	deviceName: string;
+	requestedRole: number;
+	createdAt: number;
+};
+
+export type RevokeMemberArgs = {
+	spaceId: string;
+	subjectPeerId: string;
+	reason?: string;
+};
+
+export type IssueIssuerCapabilityArgs = {
+	spaceId: string;
+	targetPeerId: string;
+	expiresAt: number;
+	alias?: string | null;
+	scopes?: string[];
+};
+
 // --- Documents + pages ------------------------------------------------------
 
 export type StoredDocument = {
@@ -89,7 +124,8 @@ export type UpsertDocumentArgs = {
 	documentId: string;
 	contentJson: string;
 	published?: boolean;
-	updatedAtMs: number;
+	/** Optional — defaults to wall-clock when omitted. */
+	updatedAtMs?: number;
 };
 
 export type StoredPage = {
@@ -106,8 +142,10 @@ export type EnsurePageArgs = {
 	pageId: string;
 	title?: string;
 	parentPageIds?: string[];
-	createdAtMs: number;
-	updatedAtMs: number;
+	/** Optional — defaults to wall-clock when omitted. */
+	createdAtMs?: number;
+	/** Optional — defaults to wall-clock when omitted. */
+	updatedAtMs?: number;
 };
 
 export type UpdatePageTitleArgs = {

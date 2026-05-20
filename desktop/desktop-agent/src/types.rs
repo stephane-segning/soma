@@ -35,7 +35,11 @@ pub struct ChatMessage {
 pub struct ChatOptions {
     pub model: Option<String>,
     pub temperature: Option<f32>,
+    /// Accept either `maxTokens` (current convention) or `max_tokens`
+    /// (the OpenAI-native field name the renderer still uses today).
+    #[serde(alias = "max_tokens")]
     pub max_tokens: Option<u32>,
+    #[serde(alias = "workspace_id")]
     pub space_id: Option<String>,
 }
 

@@ -50,38 +50,15 @@ impl<R: Runtime> Drop for Splash<R> {
     }
 }
 
-/// Minimal percent-encoder — keeps the printable ASCII characters the
-/// splash HTML actually uses and percent-encodes everything else. Avoids
-/// pulling a full URL crate just to bake a `data:` URL.
+/// Percent-encode for `data:` URLs. Only the RFC 3986 unreserved set is
+/// safe to leave verbatim — anything else, especially `#` (which would
+/// start a fragment and silently truncate the rest of the splash HTML),
+/// must be encoded.
 fn urlencode(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     for byte in s.bytes() {
         match byte {
-            b'A'..=b'Z'
-            | b'a'..=b'z'
-            | b'0'..=b'9'
-            | b'-'
-            | b'_'
-            | b'.'
-            | b'~'
-            | b'!'
-            | b'*'
-            | b'\''
-            | b'('
-            | b')'
-            | b';'
-            | b':'
-            | b'@'
-            | b'&'
-            | b'='
-            | b'+'
-            | b'$'
-            | b','
-            | b'/'
-            | b'?'
-            | b'#'
-            | b'['
-            | b']' => out.push(byte as char),
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => out.push(byte as char),
             _ => {
                 out.push('%');
                 out.push_str(&format!("{byte:02X}"));

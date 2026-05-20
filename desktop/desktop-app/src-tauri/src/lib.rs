@@ -9,7 +9,7 @@ mod startup;
 
 use std::sync::{Arc, OnceLock};
 
-use desktop_agent::events::{RuntimeEventStream, self as agent_events};
+use desktop_agent::events::{self as agent_events, RuntimeEventStream};
 use desktop_agent::runtime::AgentRuntime;
 use desktop_agent::service::AgentService;
 use desktop_commands::AppState;
@@ -35,7 +35,7 @@ pub struct BootState {
 }
 
 /// Long-running streams (daemon event bridge, agent runtime event poll).
-/// Stopped explicitly on `WindowEvent::Destroyed` so we don't race the
+/// Stopped explicitly on `RunEvent::ExitRequested` so we don't race the
 /// daemon's own shutdown.
 struct BridgeState {
     daemon_bridge: tokio::sync::Mutex<Option<EventBridge>>,
@@ -58,8 +58,6 @@ pub fn run() {
 
     let mut builder = tauri::Builder::default();
 
-    // Single-instance plugin must be registered *first* — it short-circuits
-    // duplicate launches and forwards their argv to the running process.
     #[cfg(desktop)]
     {
         builder = builder.plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
@@ -91,7 +89,6 @@ pub fn run() {
             .plugin(tauri_plugin_updater::Builder::default().build());
     }
 
-    // soma-blob:// URI scheme handler.
     let reader_holder = Arc::clone(&blob_reader_holder);
     builder = builder.register_asynchronous_uri_scheme_protocol("soma-blob", move |_ctx, request, responder| {
         let reader = reader_holder.get().cloned();
@@ -101,7 +98,7 @@ pub fn run() {
         });
     });
 
-    builder
+    let app = builder
         .setup(move |app| {
             let user_data_dir = app.path().app_data_dir().expect("app_data_dir must resolve");
             let logs_dir = app
@@ -129,9 +126,6 @@ pub fn run() {
                 agent_stream: tokio::sync::Mutex::new(None),
             });
 
-            // Async boot: start daemon → start agent → wire event streams →
-            // close splash → reveal main window. Each step is best-effort;
-            // failures are logged but don't abort boot.
             let app_handle = app.handle().clone();
             let daemon_for_setup = Arc::clone(&daemon);
             let agent_runtime_for_setup = Arc::clone(&agent_runtime);
@@ -167,58 +161,81 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             app_info,
+            // Storage / settings.
             desktop_commands::settings_storage::db_storage_get,
             desktop_commands::settings_storage::db_storage_set,
             desktop_commands::settings_storage::db_storage_remove,
             desktop_commands::settings_storage::db_storage_clear,
             desktop_commands::settings_storage::db_storage_keys,
+            desktop_commands::settings_storage::settings_get,
+            desktop_commands::settings_storage::settings_set,
             desktop_commands::settings_storage::settings_get_all,
+            // Window controls.
+            desktop_commands::window::window_control,
             desktop_commands::window::window_minimize,
             desktop_commands::window::window_toggle_maximize,
             desktop_commands::window::window_close,
+            // Daemon status / lifecycle.
             desktop_commands::daemon::daemon_status,
             desktop_commands::daemon::daemon_ready,
-            desktop_commands::spaces::list_spaces,
-            desktop_commands::spaces::create_space,
-            desktop_commands::spaces::get_space,
-            desktop_commands::spaces::update_space,
-            desktop_commands::spaces::delete_space,
-            desktop_commands::spaces::list_space_members,
-            desktop_commands::spaces::list_my_memberships,
-            desktop_commands::spaces::join_space,
-            desktop_commands::spaces::decide_join,
-            desktop_commands::documents::upsert_document,
-            desktop_commands::documents::get_document,
-            desktop_commands::documents::ensure_page,
-            desktop_commands::documents::list_pages,
-            desktop_commands::documents::update_page_title,
-            desktop_commands::documents::set_page_parents,
-            desktop_commands::blobs::upload_blob,
-            desktop_commands::blobs::read_blob,
-            desktop_commands::blobs::stage_upload,
+            desktop_commands::daemon::daemon_control,
+            // Spaces / membership / joins / bots.
+            desktop_commands::spaces::spaces_list,
+            desktop_commands::spaces::spaces_create,
+            desktop_commands::spaces::spaces_get,
+            desktop_commands::spaces::spaces_update,
+            desktop_commands::spaces::spaces_delete,
+            desktop_commands::spaces::spaces_list_members,
+            desktop_commands::spaces::spaces_list_my_memberships,
+            desktop_commands::spaces::spaces_list_bots,
+            desktop_commands::spaces::spaces_join,
+            desktop_commands::spaces::spaces_decide_join,
+            desktop_commands::spaces::spaces_list_join_requests,
+            desktop_commands::spaces::spaces_revoke_member,
+            desktop_commands::spaces::spaces_issue_issuer_capability,
+            // Documents + pages.
+            desktop_commands::documents::documents_upsert,
+            desktop_commands::documents::documents_get,
+            desktop_commands::documents::documents_ensure_page,
+            desktop_commands::documents::documents_list_pages,
+            desktop_commands::documents::documents_update_page_title,
+            desktop_commands::documents::documents_set_page_parents,
+            // Blobs.
+            desktop_commands::blobs::blobs_upload,
+            desktop_commands::blobs::blobs_read,
+            desktop_commands::blobs::blobs_stage_upload,
+            // Agent.
             desktop_commands::agent::agent_chat_stream,
             desktop_commands::agent::agent_list_models,
             desktop_commands::agent::agent_rerank,
             desktop_commands::agent::agent_resolve_drift,
             desktop_commands::agent::agent_enqueue_background_task,
             desktop_commands::agent::agent_list_background_tasks,
+            // Search (placeholder until daemon exposes one).
+            desktop_commands::search::search,
         ])
-        .on_window_event(|window, event| {
-            if let tauri::WindowEvent::Destroyed = event {
-                if window.label() != MAIN_WINDOW_LABEL {
-                    return;
-                }
-                let app = window.app_handle();
-                shutdown_runtimes(app);
-            }
-        })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application");
+
+    // Shutdown via `RunEvent::ExitRequested` so we run on app quit (not on
+    // every window destroy). This is critical on macOS where the app
+    // outlives its windows: closing the main window must not tear down
+    // the daemon runtimes if the user is going to re-open from the dock.
+    app.run(|handle, event| {
+        if let tauri::RunEvent::ExitRequested { api, .. } = event {
+            api.prevent_exit();
+            let handle = handle.clone();
+            tauri::async_runtime::spawn(async move {
+                shutdown_runtimes(&handle).await;
+                handle.exit(0);
+            });
+        }
+    });
 }
 
 /// Boot-time helper: subscribe to the daemon firehose + start the agent
-/// event poll. Stashes each stream under `BridgeState` so `shutdown_runtimes`
-/// can stop them in order.
+/// event poll. Stashes each stream under `BridgeState` so
+/// `shutdown_runtimes` can stop them in order.
 async fn start_event_streams<R: tauri::Runtime>(
     app_handle: &tauri::AppHandle<R>,
     daemon: &Arc<DaemonRuntime>,
@@ -248,32 +265,26 @@ fn reveal_main_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     }
 }
 
-fn shutdown_runtimes<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
+async fn shutdown_runtimes<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     let state = app.state::<AppState>();
     let daemon = Arc::clone(&state.daemon);
     let agent = Arc::clone(&state.agent);
 
     if let Some(bridges) = app.try_state::<BridgeState>() {
-        if let Ok(mut guard) = bridges.daemon_bridge.try_lock() {
-            if let Some(bridge) = guard.take() {
-                bridge.stop();
-            }
+        if let Some(bridge) = bridges.daemon_bridge.lock().await.take() {
+            bridge.stop();
         }
-        if let Ok(mut guard) = bridges.agent_stream.try_lock() {
-            if let Some(stream) = guard.take() {
-                stream.stop();
-            }
+        if let Some(stream) = bridges.agent_stream.lock().await.take() {
+            stream.stop();
         }
     }
 
-    tauri::async_runtime::block_on(async move {
-        if let Err(err) = daemon.shutdown().await {
-            tracing::warn!(?err, "daemon shutdown raised; exiting anyway");
-        }
-        if let Err(err) = agent.shutdown().await {
-            tracing::warn!(?err, "agent shutdown raised; exiting anyway");
-        }
-    });
+    if let Err(err) = daemon.shutdown().await {
+        tracing::warn!(?err, "daemon shutdown raised; exiting anyway");
+    }
+    if let Err(err) = agent.shutdown().await {
+        tracing::warn!(?err, "agent shutdown raised; exiting anyway");
+    }
 }
 
 async fn handle_blob_request(
