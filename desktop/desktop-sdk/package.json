@@ -1,0 +1,33 @@
+{
+	"name": "@soma/sdk",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"description": "Typed client SDK for the Soma backend. One API surface, two transports (Tauri commands today, HTTP/SSE BFF in the future).",
+	"exports": {
+		".": "./src/index.ts",
+		"./transport": "./src/transport/index.ts",
+		"./transport/tauri": "./src/transport/tauri.ts",
+		"./transport/http": "./src/transport/http.ts",
+		"./bindings": "./src/bindings/index.ts"
+	},
+	"scripts": {
+		"format": "biome format --write .",
+		"lint": "biome check --write .",
+		"typecheck": "tsc --noEmit"
+	},
+	"peerDependencies": {
+		"@tauri-apps/api": "^2"
+	},
+	"peerDependenciesMeta": {
+		"@tauri-apps/api": {
+			"optional": true
+		}
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.3.13",
+		"@tauri-apps/api": "^2",
+		"@types/node": "^25.1.0",
+		"typescript": "^5.9.3"
+	}
+}

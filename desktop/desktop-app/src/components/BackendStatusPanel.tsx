@@ -4,8 +4,9 @@
  * domain/agent event streams. End-to-end demo for the new `BackendApi`.
  */
 
+import type { AgentRuntimeEvent, DaemonStatus, DomainEvent, StoredSpace } from "@soma/sdk";
 import { useEffect, useState } from "react";
-import { type AgentRuntimeEvent, backend, type DaemonStatus, type DomainEvent, type StoredSpace } from "../lib/backend";
+import { backend } from "../lib/backend";
 
 type Ready =
 	| { phase: "booting" }
@@ -31,7 +32,7 @@ export function BackendStatusPanel(): React.JSX.Element {
 					if (ready) {
 						const [status, spacesPage] = await Promise.all([
 							backend.daemon.status(),
-							backend.spaces.list({ limit: 25 }),
+							backend.spaces.list({ q: null, limit: 25 }),
 						]);
 						if (!cancelled) setState({ phase: "ready", status, spaces: spacesPage.spaces });
 						return;

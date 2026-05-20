@@ -85,7 +85,11 @@ pub fn build_specta() -> Builder<Wry> {
 #[cfg(debug_assertions)]
 pub fn export_bindings(builder: &Builder<Wry>) -> Result<(), Box<dyn std::error::Error>> {
     use specta_typescript::Typescript;
-    builder.export(Typescript::default(), "../src/lib/bindings/index.ts").map_err(Into::into)
+    // The SDK owns the generated file — desktop-app just consumes
+    // `@soma/sdk` like any other workspace package.
+    builder
+        .export(Typescript::default(), "../../desktop-sdk/src/bindings/index.ts")
+        .map_err(Into::into)
 }
 
 #[cfg(not(debug_assertions))]
