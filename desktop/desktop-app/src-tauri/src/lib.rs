@@ -7,14 +7,15 @@
 use std::sync::Arc;
 
 use desktop_agent::runtime::AgentRuntime;
+use desktop_commands::AppState;
 use desktop_daemon::runtime::{DaemonRuntime, DaemonRuntimeOptions};
 use desktop_services::logger::{self, LoggerGuards, LoggerOptions};
 use tauri::Manager;
 
-/// Process-wide state, mirrors the Inversify container.
-pub struct AppState {
-    pub daemon: Arc<DaemonRuntime>,
-    pub agent: Arc<AgentRuntime>,
+/// Boot-only state — only the logger guards live here. Daemon / agent
+/// references live inside `AppState` so commands can reach them via
+/// `tauri::State`.
+pub struct BootState {
     pub logger_guards: LoggerGuards,
 }
 
@@ -82,11 +83,8 @@ pub fn run() {
                 });
             }
 
-            app.manage(AppState {
-                daemon,
-                agent,
-                logger_guards,
-            });
+            app.manage(AppState::new(daemon, agent));
+            app.manage(BootState { logger_guards });
 
             #[cfg(desktop)]
             {
@@ -108,6 +106,30 @@ pub fn run() {
             desktop_commands::window::window_minimize,
             desktop_commands::window::window_toggle_maximize,
             desktop_commands::window::window_close,
+            // Daemon status.
+            desktop_commands::daemon::daemon_status,
+            desktop_commands::daemon::daemon_ready,
+            // Spaces / membership / joins.
+            desktop_commands::spaces::list_spaces,
+            desktop_commands::spaces::create_space,
+            desktop_commands::spaces::get_space,
+            desktop_commands::spaces::update_space,
+            desktop_commands::spaces::delete_space,
+            desktop_commands::spaces::list_space_members,
+            desktop_commands::spaces::list_my_memberships,
+            desktop_commands::spaces::join_space,
+            desktop_commands::spaces::decide_join,
+            // Documents + pages.
+            desktop_commands::documents::upsert_document,
+            desktop_commands::documents::get_document,
+            desktop_commands::documents::ensure_page,
+            desktop_commands::documents::list_pages,
+            desktop_commands::documents::update_page_title,
+            desktop_commands::documents::set_page_parents,
+            // Blobs.
+            desktop_commands::blobs::upload_blob,
+            desktop_commands::blobs::read_blob,
+            desktop_commands::blobs::stage_upload,
         ])
         .on_window_event(|window, event| {
             // Intercept window-close → graceful shutdown of the embedded runtimes,

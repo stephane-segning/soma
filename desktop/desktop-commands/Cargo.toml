@@ -12,6 +12,7 @@ desktop-core = { workspace = true }
 desktop-services = { workspace = true }
 desktop-daemon = { workspace = true }
 desktop-agent = { workspace = true }
+soma-daemon = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true }

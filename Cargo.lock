@@ -1680,6 +1680,7 @@ dependencies = [
  "desktop-services",
  "serde",
  "serde_json",
+ "soma-daemon",
  "tauri",
  "tokio",
  "tracing",

@@ -1,0 +1,180 @@
+//! Document + page surface. Mirrors `controllers/documents-controller.ts`
+//! and the document/page subset of `command-registry/document-handlers.ts`
+//! from the Electron app.
+
+use desktop_core::error::{DesktopError, DesktopResult};
+use serde::{Deserialize, Serialize};
+use soma_daemon::handle_types as dt;
+use tauri::State;
+
+use crate::state::AppState;
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StoredDocument {
+    pub space_id: String,
+    pub document_id: String,
+    pub content_json: String,
+    pub published: bool,
+    pub updated_at_ms: i64,
+}
+
+impl From<dt::DocumentRecord> for StoredDocument {
+    fn from(r: dt::DocumentRecord) -> Self {
+        Self {
+            space_id: r.space_id,
+            document_id: r.document_id,
+            content_json: r.content_json,
+            published: r.published,
+            updated_at_ms: r.updated_at_ms,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpsertDocumentArgs {
+    pub space_id: String,
+    pub document_id: String,
+    pub content_json: String,
+    #[serde(default)]
+    pub published: bool,
+    pub updated_at_ms: i64,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StoredPage {
+    pub space_id: String,
+    pub page_id: String,
+    pub title: String,
+    pub parent_page_ids: Vec<String>,
+    pub created_at_ms: i64,
+    pub updated_at_ms: i64,
+}
+
+impl From<dt::PageRecord> for StoredPage {
+    fn from(r: dt::PageRecord) -> Self {
+        Self {
+            space_id: r.space_id,
+            page_id: r.page_id,
+            title: r.title,
+            parent_page_ids: r.parent_page_ids,
+            created_at_ms: r.created_at_ms,
+            updated_at_ms: r.updated_at_ms,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EnsurePageArgs {
+    pub space_id: String,
+    pub page_id: String,
+    #[serde(default)]
+    pub title: String,
+    #[serde(default)]
+    pub parent_page_ids: Vec<String>,
+    pub created_at_ms: i64,
+    pub updated_at_ms: i64,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdatePageTitleArgs {
+    pub space_id: String,
+    pub page_id: String,
+    pub title: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SetPageParentsArgs {
+    pub space_id: String,
+    pub page_id: String,
+    pub parent_page_ids: Vec<String>,
+}
+
+fn err(e: impl std::fmt::Display) -> DesktopError {
+    DesktopError::Daemon { message: e.to_string() }
+}
+
+// --- Documents --------------------------------------------------------------
+
+#[tauri::command]
+pub async fn upsert_document(state: State<'_, AppState>, args: UpsertDocumentArgs) -> DesktopResult<()> {
+    let handle = state.daemon.handle().await?;
+    handle
+        .upsert_document(dt::UpsertDocumentInput {
+            space_id: args.space_id,
+            document_id: args.document_id,
+            content_json: args.content_json,
+            published: args.published,
+            updated_at_ms: args.updated_at_ms,
+        })
+        .await
+        .map_err(err)
+}
+
+#[tauri::command]
+pub async fn get_document(
+    state: State<'_, AppState>,
+    space_id: String,
+    document_id: String,
+) -> DesktopResult<Option<StoredDocument>> {
+    let handle = state.daemon.handle().await?;
+    let record = handle.get_document(&space_id, &document_id).await.map_err(err)?;
+    Ok(record.map(StoredDocument::from))
+}
+
+// --- Pages ------------------------------------------------------------------
+
+#[tauri::command]
+pub async fn ensure_page(state: State<'_, AppState>, args: EnsurePageArgs) -> DesktopResult<StoredPage> {
+    let handle = state.daemon.handle().await?;
+    let page = handle
+        .ensure_page(dt::EnsurePageInput {
+            space_id: args.space_id,
+            page_id: args.page_id,
+            title: args.title,
+            parent_page_ids: args.parent_page_ids,
+            created_at_ms: args.created_at_ms,
+            updated_at_ms: args.updated_at_ms,
+        })
+        .await
+        .map_err(err)?;
+    Ok(page.into())
+}
+
+#[tauri::command]
+pub async fn list_pages(state: State<'_, AppState>, space_id: String) -> DesktopResult<Vec<StoredPage>> {
+    let handle = state.daemon.handle().await?;
+    let pages = handle.list_pages(&space_id).await.map_err(err)?;
+    Ok(pages.into_iter().map(StoredPage::from).collect())
+}
+
+#[tauri::command]
+pub async fn update_page_title(
+    state: State<'_, AppState>,
+    args: UpdatePageTitleArgs,
+) -> DesktopResult<Option<StoredPage>> {
+    let handle = state.daemon.handle().await?;
+    let page = handle
+        .update_page_title(&args.space_id, &args.page_id, &args.title)
+        .await
+        .map_err(err)?;
+    Ok(page.map(StoredPage::from))
+}
+
+#[tauri::command]
+pub async fn set_page_parents(
+    state: State<'_, AppState>,
+    args: SetPageParentsArgs,
+) -> DesktopResult<Option<StoredPage>> {
+    let handle = state.daemon.handle().await?;
+    let page = handle
+        .set_page_parents(&args.space_id, &args.page_id, &args.parent_page_ids)
+        .await
+        .map_err(err)?;
+    Ok(page.map(StoredPage::from))
+}
