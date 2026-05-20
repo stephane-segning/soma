@@ -2,7 +2,7 @@
  * Shared bits for the DesktopShell stories. Built on top of the same
  * daisyUI + Tailwind-native primitives as the rest of the @soma/ui
  * library (no `text-body / text-ui-sm`, no hand-rolled card chrome —
- * lean on `.btn`, `.list`, `.kbd`, `.badge`).
+ * lean on `.btn`, `.list list-dense`, `.kbd`, `.badge`).
  */
 import { Info, Menu } from "react-feather";
 
@@ -16,8 +16,8 @@ export function ShellHeader({
 	toggleRight: () => void;
 }) {
 	return (
-		<div className="flex items-center justify-between px-3 py-2">
-			<div className="flex items-center gap-2">
+		<div className="flex items-center justify-between px-2 py-1.5">
+			<div className="flex items-center gap-1">
 				<button
 					aria-label="Toggle navigation"
 					className="btn btn-ghost btn-square btn-xs"
@@ -42,17 +42,19 @@ export function ShellHeader({
 
 export function NavigationPanel({ count = 3 }: { count?: number }) {
 	return (
-		<div className="p-2">
-			<p className="px-2 pb-1 font-semibold text-base-content/80 text-xs uppercase tracking-wide">
-				Navigation
-			</p>
-			<ul className="list bg-base-100">
+		<div className="flex h-full flex-col">
+			<div className="flex h-7 items-center border-base-300 border-b px-2">
+				<p className="font-medium text-[11px] text-base-content/70 uppercase tracking-wide">
+					Navigation
+				</p>
+			</div>
+			<ul className="list flex-1 list-dense bg-base-100">
 				{Array.from({ length: count }, (_, idx) => (
-					<li className="list-row" key={`nav-${idx}`}>
-						<span className="grid size-5 place-items-center rounded-md bg-base-200 text-base-content/60 text-xs">
+					<li className="list-row hover:bg-base-200" key={`nav-${idx}`}>
+						<span className="grid size-4 place-items-center rounded bg-base-200 text-[10px] text-base-content/60">
 							{idx + 1}
 						</span>
-						<span className="list-col-grow truncate text-sm">Section {idx + 1}</span>
+						<span className="list-col-grow truncate">Section {idx + 1}</span>
 					</li>
 				))}
 			</ul>
@@ -62,18 +64,22 @@ export function NavigationPanel({ count = 3 }: { count?: number }) {
 
 export function InfoPanel({ count = 1 }: { count?: number }) {
 	return (
-		<div className="space-y-2 p-2 text-sm">
-			<p className="px-2 font-semibold text-base-content/80 text-xs uppercase tracking-wide">
-				Info
-			</p>
-			<div className="rounded-md bg-base-200 p-3 text-base-content/70 text-xs">
-				Main column scrolls independently while sidebars stay fixed.
+		<div className="flex h-full flex-col">
+			<div className="flex h-7 items-center border-base-300 border-b px-2">
+				<p className="font-medium text-[11px] text-base-content/70 uppercase tracking-wide">
+					Info
+				</p>
 			</div>
-			{Array.from({ length: count }, (_, idx) => (
-				<div className="px-2" key={`info-${idx}`}>
-					Random {idx + 1}
+			<div className="space-y-2 p-2 text-sm">
+				<div className="rounded bg-base-200 p-2 text-[12px] text-base-content/70">
+					Main column scrolls independently while sidebars stay fixed.
 				</div>
-			))}
+				{Array.from({ length: count }, (_, idx) => (
+					<div className="text-[12px] text-base-content/70" key={`info-${idx}`}>
+						Random {idx + 1}
+					</div>
+				))}
+			</div>
 		</div>
 	);
 }

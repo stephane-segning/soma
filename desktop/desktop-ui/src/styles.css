@@ -33,6 +33,44 @@
 }
 
 /* -----------------------------------------------------------------
+ * Dense list modifier.
+ *
+ * daisyUI 5 ships `.list-row` with `padding: 1rem` and `gap: 1rem`,
+ * which is fine for a marketing card grid but absurd for the kind of
+ * row-dense surfaces Soma actually needs (file lists, sidebars,
+ * member rolls, agendas). The default leaves a 56-60px row height —
+ * something like Finder or VS Code's explorer wants ~24-28px.
+ *
+ * `.list-dense` is a parent modifier on the `<ul class="list">` that
+ * tightens its descendant `.list-row` padding, gap, and font size
+ * without losing the daisy grid behaviour (`list-col-grow`) or the
+ * inter-row divider. It also drops the row corner-rounding, since
+ * dense rows live inside sidebars / panels that already provide their
+ * own surface — internal pill-shaped rows clash with that.
+ *
+ * Usage:
+ *   <ul class="list list-dense bg-base-100">
+ *     <DenseRow ... />
+ *   </ul>
+ *
+ * The plain `.list` aesthetic remains available for surfaces that
+ * actually want the airy daisy default (marketing pages, etc.).
+ * ----------------------------------------------------------------- */
+
+.list-dense .list-row {
+	padding: 0.25rem 0.5rem;
+	gap: 0.5rem;
+	border-radius: 0;
+	font-size: 0.8125rem; /* 13px */
+}
+
+.list-dense .list-row::after {
+	/* daisy insets the divider by `--radius-box` so it tucks under the
+	 * row corner-radius. With radius 0 we want the divider edge-to-edge. */
+	inset-inline: 0;
+}
+
+/* -----------------------------------------------------------------
  * Drop cursor — ProseMirror injects a thin absolutely-positioned div
  * via the dropcursor plugin. The Tiptap extension forwards `width`
  * and `color`, but no border-radius / shadow. We round the ends and

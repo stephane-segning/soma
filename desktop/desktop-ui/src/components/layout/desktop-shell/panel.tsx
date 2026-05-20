@@ -15,6 +15,13 @@ type ShellPanelProps = {
 	onResizeStop: (nextWidth: number) => void;
 };
 
+/**
+ * One of the shell's two side rails. The visible divider lives on the
+ * `ResizeHandle` (a hairline), not on this wrapper — earlier revisions
+ * added a `border-l` / `border-r` here too, which gave us two stacked
+ * dividers per side. Now the rail itself is borderless; the only line
+ * between rail and main content is the handle.
+ */
 export function ShellPanel({
 	content,
 	open,
@@ -24,7 +31,6 @@ export function ShellPanel({
 }: ShellPanelProps) {
 	if (!content) return null;
 
-	const borderClass = side === "left" ? "border-r" : "border-l";
 	const enable = side === "left" ? { right: true } : { left: true };
 	const handleComponent =
 		side === "left" ? { right: <ResizeHandle /> } : { left: <ResizeHandle /> };
@@ -43,11 +49,9 @@ export function ShellPanel({
 					}
 					size={{ width, height: "100%" }}
 				>
-					<div
-						className={`scrollbar-none relative h-full overflow-auto border-base-300 ${borderClass}`}
-					>
-						<aside className="h-full">{content}</aside>
-					</div>
+					<aside className="scrollbar-none relative h-full overflow-auto bg-base-100">
+						{content}
+					</aside>
 				</Resizable>
 			) : null}
 		</div>

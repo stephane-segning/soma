@@ -17,9 +17,9 @@ import { type MouseEvent, type ReactNode, useEffect, useRef } from "react";
 import { AlertTriangle, Cpu, MoreHorizontal, RotateCw } from "react-feather";
 import { useT } from "../../i18n/use-t";
 import { cn } from "../../utils/cn";
-import { DenseRow } from "./dense-row";
 import { Empty } from "../primitives/empty";
 import { Pill } from "../primitives/pill";
+import { DenseRow } from "./dense-row";
 
 export type BotStatus = "pending" | "active" | "failed" | "expired";
 
@@ -108,11 +108,11 @@ export function BotList({
 	return (
 		<ul
 			className={cn(
-				// daisyUI 5's `list` already ships row dividers — a wrapper
-				// border + rounded corners on top of that just gives us
-				// awkwardly rounded corners on the first/last child. Plain
-				// `list bg-base-100` is the right surface.
-				"list bg-base-100",
+				// daisyUI 5's `.list` ships row dividers; `list-dense` (our
+				// own modifier, see styles.css) tightens daisy's airy 1rem
+				// padding down to ~5-10px so this list reads as DENSE — file
+				// browser / sidebar density, not marketing-card density.
+				"list list-dense bg-base-100",
 				className,
 			)}
 		>
@@ -153,20 +153,35 @@ function BotEntry({
 	return (
 		<>
 			<DenseRow
-				ref={rowRef}
+				actions={
+					onOverflow ? (
+						<button
+							aria-haspopup="menu"
+							aria-label={t({
+								id: "bot-list.more",
+								defaultMessage: "More options",
+							})}
+							className="grid size-5 place-items-center rounded text-base-content/55 hover:bg-base-200 hover:text-base-content"
+							onClick={(event) => onOverflow(bot.id, event)}
+							type="button"
+						>
+							<MoreHorizontal aria-hidden className="size-3.5" />
+						</button>
+					) : undefined
+				}
 				className={highlighted ? "ring-2 ring-primary ring-inset" : undefined}
 				leading={
-					<span className="grid size-7 place-items-center rounded-md bg-info/10 text-info">
-						<Cpu aria-hidden className="size-3.5" />
+					<span className="grid size-5 place-items-center rounded bg-info/10 text-info">
+						<Cpu aria-hidden className="size-3" />
 					</span>
 				}
 				meta={
-					<span className="flex flex-col items-end gap-0.5">
-						<span className="font-mono text-base-content/60 text-xs">
+					<span className="flex flex-col items-end gap-0 leading-tight">
+						<span className="font-mono text-[11px] text-base-content/55">
 							{truncatedPeerId}
 						</span>
 						{bot.lastAcked ? (
-							<span className="text-base-content/40 text-xs">
+							<span className="text-[10px] text-base-content/40">
 								{t({
 									id: "bot-list.last-acked",
 									defaultMessage: "Last acked {value}",
@@ -188,24 +203,8 @@ function BotEntry({
 						</span>
 					</span>
 				}
+				ref={rowRef}
 				status={<StatusPill status={bot.status} />}
-				actions={
-					onOverflow ? (
-						<button
-							aria-haspopup="menu"
-							aria-label={t({
-								id: "bot-list.more",
-								defaultMessage: "More options",
-							})}
-							className="grid size-7 place-items-center rounded-md text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content"
-							onClick={(event) => onOverflow(bot.id, event)}
-							type="button"
-						>
-							<MoreHorizontal aria-hidden className="size-4" />
-						</button>
-					) : undefined
-				}
-				
 			/>
 			{bot.status === "failed" && bot.errorReason ? (
 				<FailureRow
@@ -271,7 +270,10 @@ function FailureRow({
 	// gets the same divider treatment as the surrounding DenseRow rows.
 	return (
 		<li className="flex items-start gap-2 bg-error/5 px-3 py-2 text-sm">
-			<AlertTriangle aria-hidden className="mt-0.5 size-4 shrink-0 text-error" />
+			<AlertTriangle
+				aria-hidden
+				className="mt-0.5 size-4 shrink-0 text-error"
+			/>
 			<span className="min-w-0 flex-1 text-error">{message}</span>
 			{onRetry ? (
 				<button

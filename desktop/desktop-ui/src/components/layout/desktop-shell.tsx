@@ -67,7 +67,12 @@ export function DesktopShell(props: DesktopShellProps) {
 				)}
 			>
 				{headerNode ? (
-					<div className={cn("flex flex-col", props.headerClassName)}>
+					<div
+						className={cn(
+							"flex flex-col border-base-300 border-b bg-base-100",
+							props.headerClassName,
+						)}
+					>
 						{headerNode}
 					</div>
 				) : null}

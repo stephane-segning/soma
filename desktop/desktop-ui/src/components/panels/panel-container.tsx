@@ -5,29 +5,32 @@
  * Locked by [PRD §3](../../../../../docs/src/architecture/prd/ui-revamp-v0.md)
  * and [refs main §1](../../../../../docs/src/architecture/prd/ui-revamp-v0-refs.md).
  *
- * **Layout policy (locked by user testing after rounds 3–6):**
+ * **Layout policy (locked by user testing):**
  *
  * Each panel has a stable position determined by its index in the
- * `panels` prop. Odd-indexed panels (1st, 3rd, 5th, …) stack in the
- * left column; even-indexed panels (2nd, 4th, 6th, …) stack in the
- * right column. Each column independently flex-cols its expanded
- * panels:
+ * `panels` prop. Odd-indexed panels (1st, 3rd, 5th …) stack in the
+ * first column; even-indexed (2nd, 4th, …) in the second. Each column
+ * independently flex-cols its expanded panels:
  *
- *   - 1 panel in a column → it takes 100 % of the column height.
+ *   - 1 panel in a column → 100 % of column height.
  *   - 2 panels in a column → 50 / 50 split, etc.
  *
- * Truly-collapsed panels render as icons in a thin right rail (the
- * "strip"). Clicking an icon expands the panel back into its assigned
- * column slot. There is **no cap**, **no overflow**, and **no auto-
- * eviction** — every open panel renders in its assigned position, so
- * the user always knows where a given panel will appear.
+ * Truly-collapsed panels render as icons in a thin strip on the right
+ * edge of the container, sharing the same surface as the columns.
+ * Clicking an icon expands the panel back into its assigned slot.
  *
- * The container is otherwise presentational: caller owns `panels` and
- * `collapsedIds`. Earlier revisions used a maxExpanded cap with
- * various auto-evict policies — those were removed because the user
- * couldn't predict which panel would show up where.
+ * **Flush layout, not floating cards.** The earlier revision rendered
+ * each panel as a rounded card with `gap-2 p-2` between them, which
+ * left visible whitespace gutters around every panel — the "floating"
+ * look the user called out. This revision drops the gaps and the card
+ * chrome: panels share the rail's surface; the only visible structure
+ * between them is a 1px hairline (`divide-x` between columns,
+ * `border-b` between stacked panels in `Panel`).
+ *
+ * There is no cap, no overflow, no auto-eviction. Every open panel
+ * renders in its assigned position.
  */
-import { type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { useT } from "../../i18n/use-t";
 import { cn } from "../../utils/cn";
 import { Panel } from "./panel";
@@ -66,10 +69,6 @@ export function PanelContainer({
 			? collapsedIds
 			: new Set<string>(collapsedIds ?? []);
 
-	// Split panels by parity of their declaration index — index 0 → col 1
-	// ("odd position" = first/3rd/5th panel in 1-based user-facing terms),
-	// index 1 → col 2. Each column then keeps only the panels that are
-	// not collapsed. Collapsed panels go to the strip.
 	const columnOne: PanelDescriptor[] = [];
 	const columnTwo: PanelDescriptor[] = [];
 	const collapsed: PanelDescriptor[] = [];
@@ -84,20 +83,23 @@ export function PanelContainer({
 
 	const expandedCount = columnOne.length + columnTwo.length;
 
-	// Each column is a fixed 20rem (320px) wide. The container's total
-	// width grows naturally with the number of visible columns — 1
-	// column = 20rem, 2 columns = ~40rem + the gap. Fixed-per-column
-	// is what gives every panel the same readable width regardless of
-	// how many other panels are open, which is the contract the user
-	// asked for. Callers who want a flexible-width column can drop
-	// `w-80` via className override on the columns slot, but the
-	// default favours legibility over filling space.
+	// Each column is a fixed 18rem (288px) wide. The container's total
+	// width grows naturally with the number of visible columns. Within
+	// a column, stacked panels are separated by the header's own
+	// `border-b` (so the seam between panels is a single hairline,
+	// continuous with every other divider in the shell).
 	const renderColumn = (column: PanelDescriptor[]) => (
-		<div className="flex min-h-0 w-80 shrink-0 flex-col gap-2">
-			{column.map((panel) => (
+		<div className="flex min-h-0 w-72 shrink-0 flex-col">
+			{column.map((panel, index) => (
 				<Panel
 					actions={panel.actions}
-					className="min-h-0 flex-1"
+					className={cn(
+						"min-h-0 flex-1",
+						// Hairline between stacked panels. The first panel in the
+						// column already sits flush against the shell's top divider,
+						// so we only add the top border on subsequent panels.
+						index > 0 && "border-base-300 border-t",
+					)}
 					footer={panel.footer}
 					key={panel.id}
 					onClose={onClosePanel ? () => onClosePanel(panel.id) : undefined}
@@ -118,15 +120,13 @@ export function PanelContainer({
 				id: "panel-container.aria-label",
 				defaultMessage: "Side panels",
 			})}
-			className={cn("flex min-h-0 w-full bg-transparent", className)}
+			className={cn("flex min-h-0 w-full bg-base-100", className)}
 		>
-			{/* Two-column grid of floating panel cards. When no panel is
-			    expanded the entire grid collapses so only the right rail
-			    (collapsed strip) is visible. Each column is independent —
-			    a column with 1 panel fills its height entirely; with 2 it
-			    splits 50/50, etc. */}
 			{expandedCount > 0 ? (
-				<div className="flex min-h-0 gap-2 p-2">
+				// Each visible column is separated from its neighbour by a 1px
+				// hairline (`divide-x`), matching the shell's resize-handle
+				// divider weight so the right rail reads as a single surface.
+				<div className="flex min-h-0 flex-1 divide-x divide-base-300">
 					{columnOne.length > 0 ? renderColumn(columnOne) : null}
 					{columnTwo.length > 0 ? renderColumn(columnTwo) : null}
 				</div>
@@ -137,10 +137,12 @@ export function PanelContainer({
 						id: "panel-container.collapsed-strip",
 						defaultMessage: "Collapsed panels",
 					})}
-					// The rail itself has no border — it's just a column of
-					// icon buttons sitting in transparent space. The floating
-					// cards on the left supply all the visual structure.
-					className="flex w-9 shrink-0 flex-col items-center gap-1 bg-transparent py-2"
+					// The strip shares the rail surface (no separate background)
+					// and is divided from the columns by the same hairline.
+					className={cn(
+						"flex w-8 shrink-0 flex-col items-center gap-0.5 bg-base-100 py-1",
+						expandedCount > 0 && "border-base-300 border-l",
+					)}
 				>
 					{collapsed.map((panel) => (
 						<button
@@ -152,12 +154,10 @@ export function PanelContainer({
 											defaultMessage: "Expand panel",
 										})
 							}
-							className="grid size-7 place-items-center rounded-md text-base-content/70 hover:bg-base-200 hover:text-base-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+							className="grid size-6 place-items-center rounded text-base-content/60 hover:bg-base-200 hover:text-base-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
 							key={panel.id}
 							onClick={
-								onToggleCollapse
-									? () => onToggleCollapse(panel.id)
-									: undefined
+								onToggleCollapse ? () => onToggleCollapse(panel.id) : undefined
 							}
 							title={typeof panel.title === "string" ? panel.title : undefined}
 							type="button"

@@ -8,10 +8,15 @@
  *
  * Layout uses daisyUI 5's `list-row` class — children are arranged as
  * positional grid columns, with `list-col-grow` marking the column
- * that should consume remaining space. Daisy provides the padding
- * and inter-row dividers; we don't override either. This component
- * MUST be rendered inside a `<ul class="list">` so daisy's selectors
- * apply (see `BotList` for the canonical wrapper).
+ * that should consume remaining space.
+ *
+ * **Density.** DenseRow MUST be rendered inside a
+ * `<ul class="list list-dense …">`. The `list-dense` modifier (defined
+ * in styles.css) tightens daisy's default `1rem` row padding down to
+ * ~4-8px and drops the per-row rounding. Without it you get a "list"
+ * but not a *dense* one — that mismatch is exactly what users called
+ * out, hence the modifier exists. `BotList` adds it automatically; new
+ * callers should too.
  *
  * Slot order, left to right:
  *
@@ -20,7 +25,12 @@
  * Overflow actions are **always visible** — never hover-only — per
  * ADR-0005 §9.
  */
-import { forwardRef, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
+import {
+	forwardRef,
+	type KeyboardEvent,
+	type MouseEvent,
+	type ReactNode,
+} from "react";
 import { cn } from "../../utils/cn";
 
 export type DenseRowProps = {
@@ -47,59 +57,82 @@ export type DenseRowProps = {
 	"aria-label"?: string;
 };
 
-export const DenseRow = forwardRef<HTMLLIElement, DenseRowProps>(function DenseRow(
-	{ leading, primary, sub, status, meta, actions, onClick, className, ...rest },
-	ref,
-) {
-	return (
-		<li
-			ref={ref}
-			className={cn(
-				"list-row",
-				// No `transition-colors` — row-list highlights snap (see MenuItem).
-				onClick &&
-					"cursor-pointer hover:bg-base-200 focus-visible:bg-base-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-				className,
-			)}
-			onClick={onClick}
-			onKeyDown={
-				onClick
-					? (event) => {
-							if (event.key === "Enter" || event.key === " ") {
-								event.preventDefault();
-								onClick(event);
+export const DenseRow = forwardRef<HTMLLIElement, DenseRowProps>(
+	function DenseRow(
+		{
+			leading,
+			primary,
+			sub,
+			status,
+			meta,
+			actions,
+			onClick,
+			className,
+			...rest
+		},
+		ref,
+	) {
+		return (
+			<li
+				className={cn(
+					"list-row",
+					// No `transition-colors` — row-list highlights snap (see MenuItem).
+					onClick &&
+						"cursor-pointer hover:bg-base-200 focus-visible:bg-base-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+					className,
+				)}
+				onClick={onClick}
+				onKeyDown={
+					onClick
+						? (event) => {
+								if (event.key === "Enter" || event.key === " ") {
+									event.preventDefault();
+									onClick(event);
+								}
 							}
-						}
-					: undefined
-			}
-			role={onClick ? "button" : undefined}
-			tabIndex={onClick ? 0 : undefined}
-			{...rest}
-		>
-			{leading != null ? <span>{leading}</span> : null}
-			{/* The primary + sub wrapper carries `list-col-grow` so it consumes
-			    the remaining horizontal space regardless of which other slots
-			    are rendered. Without that, daisy's `list-row` defaults to the
-			    second positional child growing, which breaks when `leading`
-			    is omitted (primary would then be 1st child and not grow). */}
-			<div className="list-col-grow flex min-w-0 flex-col">
-				<div className="truncate text-sm text-base-content/90">{primary}</div>
-				{sub ? (
-					<div className="truncate text-xs text-base-content/60">{sub}</div>
+						: undefined
+				}
+				ref={ref}
+				role={onClick ? "button" : undefined}
+				tabIndex={onClick ? 0 : undefined}
+				{...rest}
+			>
+				{leading != null ? (
+					<span className="flex items-center text-base-content/70">
+						{leading}
+					</span>
 				) : null}
-			</div>
-			{status ? <span>{status}</span> : null}
-			{meta ? <span className="text-xs text-base-content/60">{meta}</span> : null}
-			{actions ? (
-				// Stop propagation so action buttons don't also fire the row's
-				// onClick / keyboard handlers when the row is interactive.
-				<span
-					onClick={(event) => event.stopPropagation()}
-					onKeyDown={(event) => event.stopPropagation()}
-				>
-					{actions}
-				</span>
-			) : null}
-		</li>
-	);
-});
+				{/* The primary + sub wrapper carries `list-col-grow` so it consumes
+				    the remaining horizontal space regardless of which other slots
+				    are rendered. Without that, daisy's `list-row` defaults to the
+				    second positional child growing, which breaks when `leading`
+				    is omitted (primary would then be 1st child and not grow). */}
+				<div className="flex min-w-0 list-col-grow flex-col leading-tight">
+					<div className="truncate text-base-content/90">{primary}</div>
+					{sub ? (
+						<div className="truncate text-[11px] text-base-content/55">
+							{sub}
+						</div>
+					) : null}
+				</div>
+				{status ? <span className="flex items-center">{status}</span> : null}
+				{meta ? (
+					<span className="flex items-center text-[11px] text-base-content/55">
+						{meta}
+					</span>
+				) : null}
+				{actions ? (
+					// Stop propagation so action buttons don't also fire the row's
+					// onClick / keyboard handlers when the row is interactive.
+					<span
+						className="flex items-center"
+						onClick={(event) => event.stopPropagation()}
+						onKeyDown={(event) => event.stopPropagation()}
+					>
+						{actions}
+					</span>
+				) : null}
+			</li>
+		);
+	},
+);

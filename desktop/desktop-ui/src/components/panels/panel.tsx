@@ -8,6 +8,14 @@
  * are uniform in chrome so chat, history, sub-pages, agenda, etc. all
  * read as siblings.
  *
+ * **Flush, not floating.** Earlier revisions wrapped each panel in a
+ * rounded-lg card with its own border + shadow + `bg-base-100`, which
+ * gave the right rail that "stack of post-it notes" look the user
+ * called out as ugly. We don't do that anymore: panels render as flush
+ * regions sharing the rail's surface, separated from each other by a
+ * 1px hairline and from the world by the rail's own divider on the
+ * resize handle. No rounded corners. No shadows. No nested card chrome.
+ *
  * Collapse → the parent `PanelContainer` renders an icon strip on the
  * right edge; the Panel itself is not visible in collapsed state. This
  * component handles the **expanded** rendering only.
@@ -43,16 +51,12 @@ export function Panel({
 	return (
 		<section
 			className={cn(
-				// Floating-card layout: rounded edges, a soft shadow that gives
-				// a sense of depth without competing with the editor, and no
-				// outer divider lines (the gap between cards in the parent
-				// PanelContainer already separates them).
-				"flex min-h-0 flex-col overflow-hidden rounded-lg border border-base-300/70 bg-base-100 shadow-sm",
+				"flex min-h-0 flex-col overflow-hidden bg-base-100",
 				className,
 			)}
 		>
-			<header className="flex items-center gap-2 border-base-300 border-b px-3 py-2">
-				<h2 className="min-w-0 flex-1 truncate font-medium text-base-content/90 text-sm">
+			<header className="flex h-7 items-center gap-1 border-base-300 border-b px-2">
+				<h2 className="min-w-0 flex-1 truncate font-medium text-[11px] text-base-content/70 uppercase tracking-wide">
 					{title}
 				</h2>
 				{actions ? (
@@ -66,7 +70,7 @@ export function Panel({
 						})}
 						onClick={onCollapse}
 					>
-						<Minus aria-hidden className="size-3.5" />
+						<Minus aria-hidden className="size-3" />
 					</HeaderIconButton>
 				) : null}
 				{onClose ? (
@@ -77,13 +81,13 @@ export function Panel({
 						})}
 						onClick={onClose}
 					>
-						<X aria-hidden className="size-3.5" />
+						<X aria-hidden className="size-3" />
 					</HeaderIconButton>
 				) : null}
 			</header>
 			<div className="min-h-0 flex-1 overflow-auto">{children}</div>
 			{footer ? (
-				<footer className="border-base-300 border-t bg-base-100 px-3 py-2 text-sm">
+				<footer className="border-base-300 border-t bg-base-100 px-2 py-1 text-base-content/80 text-xs">
 					{footer}
 				</footer>
 			) : null}
@@ -103,7 +107,7 @@ function HeaderIconButton({
 	return (
 		<button
 			aria-label={ariaLabel}
-			className="grid size-6 shrink-0 place-items-center rounded-md text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+			className="grid size-5 shrink-0 place-items-center rounded text-base-content/50 hover:bg-base-200 hover:text-base-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
 			onClick={onClick}
 			title={ariaLabel}
 			type="button"

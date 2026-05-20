@@ -87,6 +87,15 @@ visual language coherent.
    API is named-slot, daisy's is positional — only the surface
    migrates).
 
+   **Density override (`.list-dense`).** daisy's `.list-row` defaults
+   to `padding: 1rem` and `gap: 1rem`, which lands at ~56-60 px row
+   height — appropriate for marketing surfaces, not for sidebars / file
+   browsers / panel contents. Always pair `.list` with our
+   `.list-dense` modifier (defined in `styles.css`) on dense surfaces;
+   it tightens the row padding to ~5×10 px and drops the per-row
+   corner-rounding. `DenseRow` documents this requirement in its
+   header; `BotList` applies it automatically.
+
 2. **Tailwind utilities only — no custom `text-*` tokens.** We
    removed `text-body / text-ui-sm / text-ui-xs`. Use `text-sm` for
    body + dense rows, `text-xs` for caps / hint text. Adding custom
@@ -131,8 +140,8 @@ source for the full prop surface.
 | `Kbd` | [`components/primitives/kbd.tsx`](../../../desktop/desktop-ui/src/components/primitives/kbd.tsx) | daisyUI `<kbd class="kbd">` with size variants + chord helper. Accepts string / array / ReactNode. |
 | `Pill` | [`components/primitives/pill.tsx`](../../../desktop/desktop-ui/src/components/primitives/pill.tsx) | daisyUI `.badge badge-soft` + optional dot (`true` / `"pulse"`) for status chips. |
 | `MenuShell` / `MenuItem` / `MenuSectionLabel` | [`components/overlays/menu-shell.tsx`](../../../desktop/desktop-ui/src/components/overlays/menu-shell.tsx) | Shared shell for popover menus (slash, context, AI bar action list, add-block menu). Rows snap on hover — no transition. |
-| `DenseRow` | [`components/lists/dense-row.tsx`](../../../desktop/desktop-ui/src/components/lists/dense-row.tsx) | daisy `<li class="list-row">` with named slots (`leading` / `primary` + `sub` / `status` / `meta` / `actions`). Must be inside `<ul class="list">`. |
-| `PanelContainer` | [`components/panels/panel-container.tsx`](../../../desktop/desktop-ui/src/components/panels/panel-container.tsx) | Stable-position 2-column layout: odd-index panels → col 1, even → col 2. Each column = fixed `w-80`. Collapsed icons in the right rail. |
+| `DenseRow` | [`components/lists/dense-row.tsx`](../../../desktop/desktop-ui/src/components/lists/dense-row.tsx) | daisy `<li class="list-row">` with named slots (`leading` / `primary` + `sub` / `status` / `meta` / `actions`). Must be inside `<ul class="list list-dense">` — without `list-dense` the row picks up daisy's airy 1 rem padding and stops looking dense. |
+| `PanelContainer` | [`components/panels/panel-container.tsx`](../../../desktop/desktop-ui/src/components/panels/panel-container.tsx) | Stable-position 2-column layout: odd-index panels → col 1, even → col 2. Each column is `w-72` (288 px), flush against the next — no cards, no gutters. Collapsed icons in a thin strip on the right edge of the rail. |
 | `BackendSwitcher` | [`components/chat/backend-switcher.tsx`](../../../desktop/desktop-ui/src/components/chat/backend-switcher.tsx) | Full `@floating-ui/react` dropdown for picking the active ACP backend in the composer. Replaces the deleted `AiModelSelector`. |
 | `BotList` | [`components/lists/bot-list.tsx`](../../../desktop/desktop-ui/src/components/lists/bot-list.tsx) | `<ul class="list bg-base-100">` of `DenseRow`s, one per bot, with `FailureRow` as a sibling `<li>` for failed bots. |
 | `SelectionBubble` / `SelectionAIBar` | [`components/editor/`](../../../desktop/desktop-ui/src/components/editor/) | Floating editor toolbars. SelectionAIBar dismisses on Escape + click-outside (caught a stale-popup bug). |
@@ -247,9 +256,10 @@ locked `^x.y.z`, so only patches flow in until a coordinated bump.
 
 - `DesktopShell` is a full-screen wrapper with optional left/right sidebars, header/footer slots, and overlay layer.
 - Sidebars are resizable via `re-resizable`; pass `initialLeftWidth`/`initialRightWidth` and `onLeftResizeStop`/`onRightResizeStop` to persist widths (see `PersistentWidths` story).
+- **Hairline dividers, no floating cards.** The shell uses single-pixel dividers (`border-base-300`) for every seam: header → body, sidebar → main, panel → panel, columns → strip. The `ResizeHandle` is itself a 1 px hairline whose colour shifts to the primary accent on hover — there's no widening pill anymore. Panels inside `PanelContainer` render as flush regions sharing the rail's surface (no rounded corners, no shadows, no per-card gutters). Earlier "stack of post-it notes" floating-card chrome was deliberately removed.
 - The main column enforces `overflow-auto` with `max-h-full`, so long content scrolls while sidebars stay fixed.
 - Header is a render-prop: receives `toggleLeft`, `toggleRight`, and open state so apps can control toggles (e.g., menu/info buttons).
-- The right column is typically a `PanelContainer` — the 2-column stable-position layout for side panels (Chat / Bots / Page history / Agenda / …). Odd-index panels stack in column 1, even-index in column 2; each column independently flex-cols its expanded panels. No cap, no overflow, no auto-evict. Collapsed panels show as icons in a thin right rail.
+- The right column is typically a `PanelContainer` — the 2-column stable-position layout for side panels (Chat / Bots / Page history / Agenda / …). Odd-index panels stack in column 1, even-index in column 2; each `w-72` column sits flush against the next, separated by a 1 px `divide-x` hairline. Stacked panels in a column are separated by the next panel header's own `border-t`. No cap, no overflow, no auto-evict. Collapsed panels show as icons in a thin strip on the right edge.
 - The `Desktop / Shell → Soma App` Storybook scene composes the full library — use it as the canary preview for any chrome-level change.
 
 ### Window drag regions (Electron)
