@@ -10,18 +10,21 @@ use desktop_services::upload_payload_store::StagedUpload;
 use tauri::{Manager, State};
 
 #[tauri::command]
+#[specta::specta]
 pub async fn blobs_upload(state: State<'_, AppState>, args: UploadBlobArgs) -> DesktopResult<UploadBlobResult> {
     api::upload(state.inner(), args).await
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn blobs_read(state: State<'_, AppState>, space_id: String, cid: String) -> DesktopResult<Option<Vec<u8>>> {
     api::read(state.inner(), space_id, cid).await
 }
 
 #[tauri::command]
-pub async fn blobs_stage_upload<R: tauri::Runtime>(
-    app: tauri::AppHandle<R>,
+#[specta::specta]
+pub async fn blobs_stage_upload(
+    app: tauri::AppHandle,
     args: StageUploadArgs,
 ) -> DesktopResult<StagedUpload> {
     let user_data_dir = app

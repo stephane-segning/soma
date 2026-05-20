@@ -2,18 +2,22 @@
 //! `command-registry/window-log-handlers.ts`. Renderer call sites use
 //! `window:control` with an `action` discriminator; we accept the same
 //! shape so the cutover doesn't need a rename.
+//!
+//! Commands are monomorphic on the default `tauri::Wry` runtime (i.e.
+//! they take `AppHandle` without an `<R: Runtime>` parameter) so
+//! `tauri-specta` can collect them without generic-inference errors.
 
 use desktop_core::error::{DesktopError, DesktopResult};
 use serde::Deserialize;
-use tauri::Runtime;
+use specta::Type;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct WindowControlArgs {
     pub action: WindowControlAction,
 }
 
-#[derive(Debug, Clone, Copy, Deserialize)]
+#[derive(Debug, Clone, Copy, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub enum WindowControlAction {
     Minimize,
@@ -21,13 +25,14 @@ pub enum WindowControlAction {
     Close,
 }
 
-fn window<R: Runtime>(app: &tauri::AppHandle<R>) -> DesktopResult<tauri::WebviewWindow<R>> {
+fn window(app: &tauri::AppHandle) -> DesktopResult<tauri::WebviewWindow> {
     use tauri::Manager;
     app.get_webview_window("main").ok_or_else(|| DesktopError::other("no main window"))
 }
 
-#[tauri::command(rename_all = "snake_case")]
-pub async fn window_control<R: Runtime>(app: tauri::AppHandle<R>, args: WindowControlArgs) -> DesktopResult<()> {
+#[tauri::command]
+#[specta::specta]
+pub async fn window_control(app: tauri::AppHandle, args: WindowControlArgs) -> DesktopResult<()> {
     let win = window(&app)?;
     match args.action {
         WindowControlAction::Minimize => win.minimize().map_err(DesktopError::other),
@@ -43,14 +48,15 @@ pub async fn window_control<R: Runtime>(app: tauri::AppHandle<R>, args: WindowCo
     }
 }
 
-// Convenience aliases for callers that prefer one-shot commands.
 #[tauri::command]
-pub async fn window_minimize<R: Runtime>(app: tauri::AppHandle<R>) -> DesktopResult<()> {
+#[specta::specta]
+pub async fn window_minimize(app: tauri::AppHandle) -> DesktopResult<()> {
     window(&app)?.minimize().map_err(DesktopError::other)
 }
 
 #[tauri::command]
-pub async fn window_toggle_maximize<R: Runtime>(app: tauri::AppHandle<R>) -> DesktopResult<()> {
+#[specta::specta]
+pub async fn window_toggle_maximize(app: tauri::AppHandle) -> DesktopResult<()> {
     let win = window(&app)?;
     let maxed = win.is_maximized().map_err(DesktopError::other)?;
     if maxed {
@@ -61,6 +67,7 @@ pub async fn window_toggle_maximize<R: Runtime>(app: tauri::AppHandle<R>) -> Des
 }
 
 #[tauri::command]
-pub async fn window_close<R: Runtime>(app: tauri::AppHandle<R>) -> DesktopResult<()> {
+#[specta::specta]
+pub async fn window_close(app: tauri::AppHandle) -> DesktopResult<()> {
     window(&app)?.close().map_err(DesktopError::other)
 }

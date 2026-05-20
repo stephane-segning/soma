@@ -4,18 +4,20 @@
 
 use desktop_core::error::{DesktopError, DesktopResult};
 use serde::{Deserialize, Serialize};
+use specta::Type;
 use soma_daemon::handle_types as dt;
 
 use crate::state::AppState;
 
 // --- DTOs --------------------------------------------------------------------
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct StoredSpace {
     pub space_id: String,
     pub display_name: String,
     pub owner_peer_id: String,
+    #[specta(type = i32)]
     pub created_at: i64,
 }
 
@@ -30,7 +32,7 @@ impl From<dt::SpaceRecord> for StoredSpace {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ListSpacesResult {
     pub spaces: Vec<StoredSpace>,
@@ -39,7 +41,7 @@ pub struct ListSpacesResult {
     pub next_offset: Option<u32>,
 }
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ListSpacesArgs {
     pub q: Option<String>,
@@ -49,7 +51,7 @@ pub struct ListSpacesArgs {
     pub offset: u32,
 }
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateSpaceArgs {
     #[serde(default)]
@@ -58,19 +60,20 @@ pub struct CreateSpaceArgs {
     pub display_name: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateSpaceArgs {
     pub space_id: String,
     pub display_name: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct StoredSpaceMember {
     pub space_id: String,
     pub peer_id: String,
     pub role: String,
+    #[specta(type = i32)]
     pub expires_at: i64,
 }
 
@@ -85,11 +88,12 @@ impl From<dt::SpaceMemberRecord> for StoredSpaceMember {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct StoredSpaceBot {
     pub space_id: String,
     pub peer_id: String,
+    #[specta(type = i32)]
     pub expires_at: i64,
     pub alias: Option<String>,
     pub status: String,
@@ -109,7 +113,7 @@ impl From<dt::SpaceBotRecord> for StoredSpaceBot {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct StoredJoinRequest {
     pub request_id: String,
@@ -118,6 +122,7 @@ pub struct StoredJoinRequest {
     pub display_name: String,
     pub device_name: String,
     pub requested_role: i32,
+    #[specta(type = i32)]
     pub created_at: i64,
 }
 
@@ -135,7 +140,7 @@ impl From<dt::JoinRequestRecord> for StoredJoinRequest {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct JoinSpaceArgs {
     pub space_id: String,
@@ -147,13 +152,13 @@ pub struct JoinSpaceArgs {
     pub device_name: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct JoinSpaceResult {
     pub request_id: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct DecideJoinArgs {
     pub request_id: String,
@@ -164,7 +169,7 @@ pub struct DecideJoinArgs {
     pub reason: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct DecideJoinResult {
     pub decision_id: String,
@@ -188,7 +193,7 @@ impl From<dt::JoinDecisionRecord> for DecideJoinResult {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct RevokeMemberArgs {
     pub space_id: String,
@@ -197,11 +202,12 @@ pub struct RevokeMemberArgs {
     pub reason: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct IssueIssuerCapabilityArgs {
     pub space_id: String,
     pub target_peer_id: String,
+    #[specta(type = i32)]
     pub expires_at: i64,
     #[serde(default)]
     pub alias: Option<String>,

@@ -17,5 +17,6 @@ cuid2 = { workspace = true }
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
+specta = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }

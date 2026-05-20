@@ -8,11 +8,12 @@ use std::path::PathBuf;
 use desktop_core::error::{DesktopError, DesktopResult};
 use desktop_services::upload_payload_store::{StagedUpload, UploadPayloadStore};
 use serde::{Deserialize, Serialize};
+use specta::Type;
 use soma_daemon::handle_types as dt;
 
 use crate::state::AppState;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct UploadBlobArgs {
     pub space_id: String,
@@ -23,10 +24,11 @@ pub struct UploadBlobArgs {
     pub bytes: Vec<u8>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct UploadBlobResult {
     pub cid: String,
+    #[specta(type = i32)]
     pub size: u64,
     pub mime: String,
     pub name: String,
@@ -43,7 +45,7 @@ impl From<dt::UploadBlobResult> for UploadBlobResult {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct StageUploadArgs {
     pub bytes: Vec<u8>,

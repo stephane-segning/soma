@@ -5,6 +5,7 @@
 // business logic lives in the `desktop-*` library crates.
 
 mod agent_config_source;
+mod bindings;
 mod startup;
 
 use std::sync::{Arc, OnceLock};
@@ -42,18 +43,36 @@ struct BridgeState {
     agent_stream: tokio::sync::Mutex<Option<RuntimeEventStream>>,
 }
 
+#[derive(serde::Serialize, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct AppInfo {
+    pub name: String,
+    pub version: String,
+    pub tauri: String,
+}
+
 #[tauri::command]
-fn app_info(app: tauri::AppHandle) -> serde_json::Value {
+#[specta::specta]
+fn app_info(app: tauri::AppHandle) -> AppInfo {
     let info = app.package_info();
-    serde_json::json!({
-        "name": info.name,
-        "version": info.version.to_string(),
-        "tauri": tauri::VERSION,
-    })
+    AppInfo {
+        name: info.name.clone(),
+        version: info.version.to_string(),
+        tauri: tauri::VERSION.into(),
+    }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // tauri-specta first: collects every #[tauri::command] + side-channel
+    // types, replaces `tauri::generate_handler!`, and (in dev) emits
+    // `src/lib/bindings/index.ts` so the SDK's type definitions are always
+    // in lockstep with the Rust handler signatures.
+    let specta = bindings::build_specta();
+    if let Err(err) = bindings::export_bindings(&specta) {
+        tracing::warn!(?err, "tauri-specta bindings export failed");
+    }
+
     let blob_reader_holder: Arc<OnceLock<SharedBlobReader>> = Arc::new(OnceLock::new());
 
     let mut builder = tauri::Builder::default();
@@ -162,61 +181,7 @@ pub fn run() {
             }
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![
-            app_info,
-            // Storage / settings.
-            desktop_commands::settings_storage::db_storage_get,
-            desktop_commands::settings_storage::db_storage_set,
-            desktop_commands::settings_storage::db_storage_remove,
-            desktop_commands::settings_storage::db_storage_clear,
-            desktop_commands::settings_storage::db_storage_keys,
-            desktop_commands::settings_storage::settings_get,
-            desktop_commands::settings_storage::settings_set,
-            desktop_commands::settings_storage::settings_get_all,
-            // Window controls.
-            desktop_commands::window::window_control,
-            desktop_commands::window::window_minimize,
-            desktop_commands::window::window_toggle_maximize,
-            desktop_commands::window::window_close,
-            // Daemon status / lifecycle.
-            desktop_commands::daemon::daemon_status,
-            desktop_commands::daemon::daemon_ready,
-            desktop_commands::daemon::daemon_control,
-            // Spaces / membership / joins / bots.
-            desktop_commands::spaces::spaces_list,
-            desktop_commands::spaces::spaces_create,
-            desktop_commands::spaces::spaces_get,
-            desktop_commands::spaces::spaces_update,
-            desktop_commands::spaces::spaces_delete,
-            desktop_commands::spaces::spaces_list_members,
-            desktop_commands::spaces::spaces_list_my_memberships,
-            desktop_commands::spaces::spaces_list_bots,
-            desktop_commands::spaces::spaces_join,
-            desktop_commands::spaces::spaces_decide_join,
-            desktop_commands::spaces::spaces_list_join_requests,
-            desktop_commands::spaces::spaces_revoke_member,
-            desktop_commands::spaces::spaces_issue_issuer_capability,
-            // Documents + pages.
-            desktop_commands::documents::documents_upsert,
-            desktop_commands::documents::documents_get,
-            desktop_commands::documents::documents_ensure_page,
-            desktop_commands::documents::documents_list_pages,
-            desktop_commands::documents::documents_update_page_title,
-            desktop_commands::documents::documents_set_page_parents,
-            // Blobs.
-            desktop_commands::blobs::blobs_upload,
-            desktop_commands::blobs::blobs_read,
-            desktop_commands::blobs::blobs_stage_upload,
-            // Agent.
-            desktop_commands::agent::agent_chat_stream,
-            desktop_commands::agent::agent_list_models,
-            desktop_commands::agent::agent_rerank,
-            desktop_commands::agent::agent_resolve_drift,
-            desktop_commands::agent::agent_enqueue_background_task,
-            desktop_commands::agent::agent_list_background_tasks,
-            // Search (placeholder until daemon exposes one).
-            desktop_commands::search::search,
-        ])
+        .invoke_handler(specta.invoke_handler())
         .build(tauri::generate_context!())
         .expect("error while building tauri application");
 

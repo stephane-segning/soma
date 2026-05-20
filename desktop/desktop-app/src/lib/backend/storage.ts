@@ -78,8 +78,21 @@ export const dbStorage = {
 	},
 };
 
+/**
+ * App-wide settings. Values are JSON-encoded on the wire (`valueJson`) so
+ * the Rust DTOs stay specta-friendly. The shim does the encode/decode for
+ * the caller — `settings.get(key)` returns the parsed value, not a string.
+ */
 export const settings = {
-	get: <T = unknown>(key: string) => call<T | null>("settings_get", { args: { key } }),
-	set: (key: string, value: unknown) => call<void>("settings_set", { args: { key, value } }),
-	all: () => call<Record<string, unknown>>("settings_get_all"),
+	async get<T = unknown>(key: string): Promise<T | null> {
+		const raw = await call<string | null>("settings_get", { args: { key } });
+		return raw === null ? null : (JSON.parse(raw) as T);
+	},
+	set(key: string, value: unknown): Promise<void> {
+		return call<void>("settings_set", { args: { key, valueJson: JSON.stringify(value) } });
+	},
+	async all<T = Record<string, unknown>>(): Promise<T> {
+		const raw = await call<string>("settings_get_all");
+		return JSON.parse(raw) as T;
+	},
 };

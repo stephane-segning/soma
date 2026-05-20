@@ -4,19 +4,21 @@
 
 use desktop_core::error::{DesktopError, DesktopResult};
 use serde::{Deserialize, Serialize};
+use specta::Type;
 use soma_daemon::handle_types as dt;
 
 use crate::state::AppState;
 
 // --- DTOs --------------------------------------------------------------------
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct StoredDocument {
     pub space_id: String,
     pub document_id: String,
     pub content_json: String,
     pub published: bool,
+    #[specta(type = i32)]
     pub updated_at_ms: i64,
 }
 
@@ -32,7 +34,7 @@ impl From<dt::DocumentRecord> for StoredDocument {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct UpsertDocumentArgs {
     pub space_id: String,
@@ -41,17 +43,20 @@ pub struct UpsertDocumentArgs {
     #[serde(default)]
     pub published: bool,
     #[serde(default)]
+    #[specta(type = Option<i32>)]
     pub updated_at_ms: Option<i64>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct StoredPage {
     pub space_id: String,
     pub page_id: String,
     pub title: String,
     pub parent_page_ids: Vec<String>,
+    #[specta(type = i32)]
     pub created_at_ms: i64,
+    #[specta(type = i32)]
     pub updated_at_ms: i64,
 }
 
@@ -68,7 +73,7 @@ impl From<dt::PageRecord> for StoredPage {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct EnsurePageArgs {
     pub space_id: String,
@@ -78,12 +83,14 @@ pub struct EnsurePageArgs {
     #[serde(default)]
     pub parent_page_ids: Vec<String>,
     #[serde(default)]
+    #[specta(type = Option<i32>)]
     pub created_at_ms: Option<i64>,
     #[serde(default)]
+    #[specta(type = Option<i32>)]
     pub updated_at_ms: Option<i64>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdatePageTitleArgs {
     pub space_id: String,
@@ -91,7 +98,7 @@ pub struct UpdatePageTitleArgs {
     pub title: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct SetPageParentsArgs {
     pub space_id: String,

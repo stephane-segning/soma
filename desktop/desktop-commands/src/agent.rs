@@ -13,21 +13,25 @@ use desktop_agent::ChatResponse;
 use tauri::State;
 
 #[tauri::command]
+#[specta::specta]
 pub async fn agent_chat_stream(state: State<'_, AppState>, args: ChatStreamArgs) -> DesktopResult<ChatResponse> {
     api::chat_stream(state.inner(), args).await
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn agent_list_models(state: State<'_, AppState>, space_id: Option<String>) -> DesktopResult<Vec<AgentModel>> {
     api::list_models(state.inner(), space_id).await
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn agent_rerank(state: State<'_, AppState>, args: RerankParams) -> DesktopResult<Vec<RerankResult>> {
     api::rerank(state.inner(), args).await
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn agent_resolve_drift(
     state: State<'_, AppState>,
     args: ResolveDriftParams,
@@ -36,6 +40,7 @@ pub async fn agent_resolve_drift(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn agent_enqueue_background_task(
     state: State<'_, AppState>,
     args: EnqueueBackgroundTaskParams,
@@ -44,6 +49,7 @@ pub async fn agent_enqueue_background_task(
 }
 
 #[tauri::command]
+#[specta::specta]
 pub async fn agent_list_background_tasks(
     state: State<'_, AppState>,
     args: Option<ListBackgroundTasksParams>,

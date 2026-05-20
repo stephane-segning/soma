@@ -9,6 +9,7 @@
 mod normalize;
 
 use serde::{Deserialize, Serialize};
+use specta::Type;
 use std::collections::HashMap;
 
 pub use normalize::normalize_runtime_config;
@@ -17,13 +18,14 @@ use crate::types::AgentProvider;
 
 pub const AGENT_CONFIG_SETTINGS_KEY: &str = "agent.config";
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase", default)]
 pub struct AgentModelCapabilities {
     pub chat: Option<bool>,
     pub embed: Option<bool>,
     pub tool: Option<bool>,
     pub image: Option<bool>,
+    #[specta(type = Option<i32>)]
     pub updated_at_ms: Option<i64>,
 }
 
@@ -37,7 +39,7 @@ impl AgentModelCapabilities {
     }
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase", default)]
 pub struct AgentWorkspaceRuntimeConfig {
     pub chat_model: Option<String>,
@@ -53,7 +55,7 @@ impl AgentWorkspaceRuntimeConfig {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct AgentRuntimeConfig {
     pub provider: AgentProvider,
@@ -62,7 +64,9 @@ pub struct AgentRuntimeConfig {
     pub open_ai_api_key: String,
     pub open_ai_chat_model: String,
     pub open_ai_embed_model: String,
+    #[specta(type = i32)]
     pub poll_interval_ms: u64,
+    #[specta(type = i32)]
     pub request_timeout_ms: u64,
     #[serde(default)]
     pub model_capabilities: HashMap<String, AgentModelCapabilities>,

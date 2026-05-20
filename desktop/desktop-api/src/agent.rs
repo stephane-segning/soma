@@ -10,10 +10,11 @@ use desktop_agent::{
 };
 use desktop_core::error::DesktopResult;
 use serde::Deserialize;
+use specta::Type;
 
 use crate::state::AppState;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Type)]
 pub struct ChatStreamArgs {
     #[serde(default)]
     pub messages: Vec<ChatMessage>,

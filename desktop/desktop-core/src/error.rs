@@ -3,9 +3,10 @@
 //! side of a `#[tauri::command]`.
 
 use serde::Serialize;
+use specta::Type;
 use thiserror::Error;
 
-#[derive(Debug, Error, Serialize)]
+#[derive(Debug, Error, Serialize, Type)]
 #[serde(tag = "kind", rename_all = "kebab-case")]
 pub enum DesktopError {
     #[error("io: {message}")]

@@ -12,12 +12,13 @@ use desktop_services::events::DomainEventsBroadcaster;
 use serde::Serialize;
 use soma_daemon::DaemonHandle;
 use soma_daemon::handle_types::DaemonEventRecord;
+use specta::Type;
 use tauri::Runtime;
 use tokio::task::JoinHandle;
 
 /// Renderer-facing payload. Tagged on `kind` to match the discriminated
 /// union the renderer's `@soma/desktop-db` parser accepts.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Type)]
 #[serde(tag = "kind", rename_all = "kebab-case")]
 pub enum DomainEvent {
     #[serde(rename_all = "camelCase")]
@@ -26,6 +27,7 @@ pub enum DomainEvent {
         doc_id: String,
         cid: String,
         mime: String,
+        #[specta(type = i32)]
         size: i64,
         name: String,
     },

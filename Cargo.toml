@@ -79,6 +79,13 @@ tauri-plugin-window-state = { version = "2" }
 cuid2 = "0.1"
 zip = { version = "5", default-features = false, features = ["deflate"] }
 
+# TypeScript codegen — single source of truth for the @soma/sdk types is the
+# Rust DTOs in desktop-api. specta derives the runtime metadata; tauri-specta
+# walks the Tauri command graph; specta-typescript emits the .ts file.
+specta = { version = "=2.0.0-rc.25", features = ["derive", "serde_json"] }
+specta-typescript = "=0.0.12"
+tauri-specta = { version = "=2.0.0-rc.25", features = ["derive", "typescript"] }
+
 napi = { version = "3", default-features = false, features = ["napi8", "tokio_rt", "async", "anyhow"] }
 napi-derive = { version = "3" }
 napi-build = { version = "2" }

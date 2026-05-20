@@ -2,10 +2,11 @@
 
 use desktop_core::error::DesktopResult;
 use serde::{Deserialize, Serialize};
+use specta::Type;
 
 use crate::state::AppState;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct DaemonStatus {
     pub peer_id: String,
@@ -25,13 +26,13 @@ pub async fn ready(state: &AppState) -> DesktopResult<bool> {
     Ok(state.daemon.handle().await.is_ok())
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ControlArgs {
     pub action: ControlAction,
 }
 
-#[derive(Debug, Clone, Copy, Deserialize)]
+#[derive(Debug, Clone, Copy, Deserialize, Type)]
 #[serde(rename_all = "kebab-case")]
 pub enum ControlAction {
     Start,
@@ -39,7 +40,7 @@ pub enum ControlAction {
     Restart,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ControlResult {
     pub running: bool,

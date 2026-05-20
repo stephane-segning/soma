@@ -5,6 +5,7 @@ use desktop_api::search::{self as api, SearchResult};
 use desktop_core::error::DesktopResult;
 
 #[tauri::command]
+#[specta::specta]
 pub async fn search(query: Option<String>) -> DesktopResult<Vec<SearchResult>> {
     api::query(query).await
 }

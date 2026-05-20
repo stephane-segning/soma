@@ -4,8 +4,9 @@
 
 use desktop_core::error::DesktopResult;
 use serde::Serialize;
+use specta::Type;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct SearchResult {
     pub kind: String,

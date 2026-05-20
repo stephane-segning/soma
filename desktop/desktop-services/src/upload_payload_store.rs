@@ -12,15 +12,18 @@ use std::path::{Path, PathBuf};
 
 use desktop_core::error::{DesktopError, DesktopResult};
 use serde::Serialize;
+use specta::Type;
 use tokio::fs;
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct StagedUpload {
     pub payload_path: PathBuf,
+    #[specta(type = i32)]
     pub byte_length: u64,
     pub mime: String,
     pub file_name: Option<String>,
+    #[specta(type = i32)]
     pub created_at_ms: i64,
 }
 
