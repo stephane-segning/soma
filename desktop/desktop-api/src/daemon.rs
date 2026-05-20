@@ -40,22 +40,40 @@ pub struct DaemonStatus {
 const EMBEDDED_SOCKET_PATH: &str = "<embedded:tauri>";
 
 pub async fn status(state: &AppState) -> DesktopResult<DaemonStatus> {
-    let handle = state.daemon.handle().await?;
-    let s = handle.status().await;
-    Ok(DaemonStatus {
-        reachable: true,
-        socket_path: EMBEDDED_SOCKET_PATH.to_string(),
-        peer_id: Some(s.peer_id),
-        listen_addrs: s.listen_addrs,
-        error: None,
-        socket: Some(DaemonSocketInfo {
-            exists: true,
-            uid: None,
-            gid: None,
-            mode: None,
-            owned_by_current_user: Some(true),
+    // Both shells contract for a *structured* "unavailable" snapshot
+    // rather than an error result — see the Electron handler which
+    // returns `{ reachable: false, error: "..." }` instead of throwing.
+    // The renderer settings panel keys off `reachable` + `error`, so a
+    // rejection here would drop the UI to a null state and silently
+    // diverge from the Electron path (this was the cross-shell parity
+    // gap flagged by review on PR #115).
+    match state.daemon.handle().await {
+        Ok(handle) => {
+            let s = handle.status().await;
+            Ok(DaemonStatus {
+                reachable: true,
+                socket_path: EMBEDDED_SOCKET_PATH.to_string(),
+                peer_id: Some(s.peer_id),
+                listen_addrs: s.listen_addrs,
+                error: None,
+                socket: Some(DaemonSocketInfo {
+                    exists: true,
+                    uid: None,
+                    gid: None,
+                    mode: None,
+                    owned_by_current_user: Some(true),
+                }),
+            })
+        }
+        Err(err) => Ok(DaemonStatus {
+            reachable: false,
+            socket_path: EMBEDDED_SOCKET_PATH.to_string(),
+            peer_id: None,
+            listen_addrs: Vec::new(),
+            error: Some(err.to_string()),
+            socket: None,
         }),
-    })
+    }
 }
 
 pub async fn ready(state: &AppState) -> DesktopResult<bool> {
@@ -79,8 +97,12 @@ pub enum ControlAction {
 #[derive(Debug, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ControlResult {
-    /// `true` when the lifecycle action completed and the runtime is
-    /// (still) reachable. Mirrors the Electron-side `ok` boolean.
+    /// `true` when the lifecycle action completed successfully. Any
+    /// underlying start/stop failure short-circuits via `?` before we
+    /// reach the result construction, so by the time this is built the
+    /// action has succeeded — even for `Stop`, where the post-action
+    /// runtime is intentionally unreachable. Mirrors the Electron-side
+    /// `ok` boolean.
     pub ok: bool,
     pub action: ControlAction,
     /// Status snapshot taken right after the action ran, so renderer
@@ -119,7 +141,12 @@ pub async fn control(state: &AppState, args: ControlArgs) -> DesktopResult<Contr
         }
     };
     Ok(ControlResult {
-        ok: running,
+        // Any failure in the lifecycle calls above propagates via `?`,
+        // so reaching this point means the requested action succeeded —
+        // including `Stop`, where the post-action runtime is *expected*
+        // to be unreachable. Tying `ok` to `running` mis-reports a
+        // successful stop as a failure in the renderer.
+        ok: true,
         action: args.action,
         status: snapshot,
         message: None,
