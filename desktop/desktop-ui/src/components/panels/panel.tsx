@@ -8,13 +8,15 @@
  * are uniform in chrome so chat, history, sub-pages, agenda, etc. all
  * read as siblings.
  *
- * **Flush, not floating.** Earlier revisions wrapped each panel in a
- * rounded-lg card with its own border + shadow + `bg-base-100`, which
- * gave the right rail that "stack of post-it notes" look the user
- * called out as ugly. We don't do that anymore: panels render as flush
- * regions sharing the rail's surface, separated from each other by a
- * 1px hairline and from the world by the rail's own divider on the
- * resize handle. No rounded corners. No shadows. No nested card chrome.
+ * **Floating-card chrome.** Each panel renders as its own rounded
+ * card with a 1px border and a soft shadow. This is the contract the
+ * user explicitly asked for: the per-panel separation has to read at
+ * a glance, even before the user reads any label. A previous revision
+ * tried collapsing panels into a flush surface with hairlines — that
+ * was reverted because the seam between panels got lost on busy rails.
+ *
+ * The left sidebar (Pages) uses the **same** chrome so the whole shell
+ * reads as a row of consistent floating panels.
  *
  * Collapse → the parent `PanelContainer` renders an icon strip on the
  * right edge; the Panel itself is not visible in collapsed state. This
@@ -51,11 +53,13 @@ export function Panel({
 	return (
 		<section
 			className={cn(
-				"flex min-h-0 flex-col overflow-hidden bg-base-100",
+				// Floating-card layout: rounded edges, a soft shadow that gives
+				// a sense of depth without competing with the editor.
+				"flex min-h-0 flex-col overflow-hidden rounded-lg border border-base-300/70 bg-base-100 shadow-sm",
 				className,
 			)}
 		>
-			<header className="flex h-7 items-center gap-1 border-base-300 border-b px-2">
+			<header className="flex h-8 items-center gap-1 border-base-300 border-b px-2">
 				<h2 className="min-w-0 flex-1 truncate font-medium text-[11px] text-base-content/70 uppercase tracking-wide">
 					{title}
 				</h2>
@@ -87,7 +91,7 @@ export function Panel({
 			</header>
 			<div className="min-h-0 flex-1 overflow-auto">{children}</div>
 			{footer ? (
-				<footer className="border-base-300 border-t bg-base-100 px-2 py-1 text-base-content/80 text-xs">
+				<footer className="border-base-300 border-t bg-base-100 px-2 py-1 text-xs text-base-content/80">
 					{footer}
 				</footer>
 			) : null}

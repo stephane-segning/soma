@@ -49,7 +49,7 @@ export function ShellPanel({
 					}
 					size={{ width, height: "100%" }}
 				>
-					<aside className="scrollbar-none relative h-full overflow-auto bg-base-100">
+					<aside className="scrollbar-none relative h-full overflow-auto">
 						{content}
 					</aside>
 				</Resizable>

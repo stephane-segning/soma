@@ -31,6 +31,7 @@ import {
 import { BackendSwitcher } from "../../components/chat/backend-switcher";
 import { DesktopShell } from "../../components/layout/desktop-shell";
 import { type Bot, BotList } from "../../components/lists/bot-list";
+import { Panel } from "../../components/panels/panel";
 import {
 	PanelContainer,
 	type PanelDescriptor,
@@ -126,6 +127,13 @@ export function SomaAppRender() {
 
 	return (
 		<DesktopShell
+			// `bg-base-200` on the shell + transparent rails means the cards
+			// inside the rails (left sidebar, right panels) read as
+			// "floating" — the gray frame shows through the `p-2` gutters
+			// around each card. The main editor area is restored to
+			// `bg-base-100` via `mainClassName` so the document still
+			// renders on a white page.
+			className="bg-base-200"
 			header={() => (
 				<AppHeader
 					activeBackend={activeBackend}
@@ -135,6 +143,7 @@ export function SomaAppRender() {
 			initialLeftWidth={220}
 			initialRightWidth={620}
 			leftColumn={<Sidebar activePage={activePage} onSelect={setActivePage} />}
+			mainClassName="bg-base-100"
 			rightColumn={
 				<PanelContainer
 					className="h-full"
@@ -199,36 +208,44 @@ function Sidebar({
 	onSelect: (id: string) => void;
 }) {
 	return (
-		<div className="flex h-full flex-col bg-base-100">
-			<div className="flex h-7 items-center justify-between border-base-300 border-b px-2">
-				<span className="font-medium text-[11px] text-base-content/70 uppercase tracking-wide">
-					Pages
-				</span>
-				<button
-					aria-label="New page"
-					className="grid size-5 place-items-center rounded text-base-content/55 hover:bg-base-200 hover:text-base-content"
-					type="button"
-				>
-					<Plus className="size-3" />
-				</button>
-			</div>
-			<ul className="list flex-1 list-dense bg-base-100">
-				{PAGES.map((page) => (
-					<li
-						aria-selected={page.id === activePage}
-						className={`cursor-pointer list-row hover:bg-base-200 ${
-							page.id === activePage
-								? "bg-base-200 font-medium text-base-content"
-								: ""
-						}`}
-						key={page.id}
-						onClick={() => onSelect(page.id)}
+		// Same `p-2` outer gutter as `PanelContainer` uses on the right, so
+		// the floating card on the left lines up vertically with the cards
+		// on the right and the editor area sits between them with even
+		// breathing room. The card itself comes from `<Panel>` — identical
+		// chrome to a right-rail panel, so the shell reads as a single row
+		// of consistent floating panels.
+		<div className="flex h-full min-h-0 p-2">
+			<Panel
+				actions={
+					<button
+						aria-label="New page"
+						className="grid size-5 place-items-center rounded text-base-content/55 hover:bg-base-200 hover:text-base-content"
+						type="button"
 					>
-						<span aria-hidden>{page.emoji}</span>
-						<span className="list-col-grow truncate">{page.title}</span>
-					</li>
-				))}
-			</ul>
+						<Plus className="size-3" />
+					</button>
+				}
+				className="min-h-0 w-full"
+				title="Pages"
+			>
+				<ul className="list list-dense bg-base-100">
+					{PAGES.map((page) => (
+						<li
+							aria-selected={page.id === activePage}
+							className={`cursor-pointer list-row hover:bg-base-200 ${
+								page.id === activePage
+									? "bg-base-200 font-medium text-base-content"
+									: ""
+							}`}
+							key={page.id}
+							onClick={() => onSelect(page.id)}
+						>
+							<span aria-hidden>{page.emoji}</span>
+							<span className="list-col-grow truncate">{page.title}</span>
+						</li>
+					))}
+				</ul>
+			</Panel>
 		</div>
 	);
 }
