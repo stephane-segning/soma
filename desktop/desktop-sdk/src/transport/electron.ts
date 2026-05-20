@@ -54,13 +54,19 @@ export function electronTransport(opts: ElectronTransportOptions = {}): Transpor
 
 		subscribe<T>(channel: string, handler: (payload: T) => void): () => void {
 			const bridge = lookup();
-			if (!bridge) return () => undefined;
+			if (!bridge) {
+				console.warn(`[electronTransport] subscribe '${channel}' skipped: bridge unavailable`);
+				return () => undefined;
+			}
 			const sub = preloadSubscriber(bridge, channel);
 			if (!sub) {
 				console.warn(`[electronTransport] no preload subscriber for channel '${channel}'`);
 				return () => undefined;
 			}
-			return sub(handler as (event: unknown) => void);
+			// Preserve `this` so bridge implementations backed by a class /
+			// internal state behave correctly — `bridge.onDomainEvent` may
+			// be a method, not a closure.
+			return sub.call(bridge, handler as (event: unknown) => void);
 		},
 	};
 }

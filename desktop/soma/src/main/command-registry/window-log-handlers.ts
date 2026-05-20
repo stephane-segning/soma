@@ -2,10 +2,16 @@ import { BrowserWindow, type IpcMain } from "electron";
 import type { CommandRegistryContext } from "./types";
 
 export function registerWindowLogHandlers(ipc: IpcMain, context: CommandRegistryContext): void {
-	ipc.handle("window:control", (event, params) => {
+	// `window_control` matches the Tauri-side command name from `@soma/sdk`
+	// so the same renderer call (`backend.windowControls.dispatch(...)`)
+	// works under either shell. Payload is `{ args: { action } }` — the
+	// shape `tauri::command` collects when the Rust signature is
+	// `pub async fn window_control(args: WindowControlArgs)`.
+	ipc.handle("window_control", (event, params) => {
 		const window = BrowserWindow.fromWebContents(event.sender);
 		if (!window) return;
-		switch (params?.action) {
+		const action = params?.args?.action ?? params?.action;
+		switch (action) {
 			case "minimize":
 				return context.windows.minimize(window);
 			case "toggleMaximize":
