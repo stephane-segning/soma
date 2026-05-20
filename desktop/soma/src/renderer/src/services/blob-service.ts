@@ -1,3 +1,14 @@
+/**
+ * Renderer-side blob service. Thin adapter over `@soma/sdk`'s
+ * `backend.blobs.stage(...)` — no IPC channel names live here anymore.
+ *
+ * The SDK returns the raw Tauri/Electron shape (`size`, `name`); this module
+ * does the rename to the renderer's preferred `byteLength` / `fileName` and
+ * stamps the local `createdAtMs` clock that consumers expect.
+ */
+
+import { backend } from "../lib/ipc";
+
 export type StagedBlob = {
 	cid: string;
 	mime: string;
@@ -16,8 +27,6 @@ export type StagedBlob = {
 	}[];
 };
 
-import { invoke } from "../lib/ipc";
-
 export async function stageBlob(input: {
 	bytes: Uint8Array;
 	mime: string;
@@ -25,22 +34,7 @@ export async function stageBlob(input: {
 	spaceId: string;
 	docId?: string;
 }): Promise<StagedBlob> {
-	const response = await invoke<{
-		cid: string;
-		size: number;
-		mime: string;
-		name: string;
-		url: string;
-		variants?: {
-			cid: string;
-			size: number;
-			mime: string;
-			name: string;
-			url: string;
-			width?: number;
-			height?: number;
-		}[];
-	}>("blobs_stage", {
+	const response = await backend.blobs.stage({
 		spaceId: input.spaceId,
 		docId: input.docId,
 		bytes: Array.from(input.bytes),
