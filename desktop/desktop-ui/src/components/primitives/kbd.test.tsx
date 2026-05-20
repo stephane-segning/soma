@@ -28,6 +28,38 @@ describe("Kbd", () => {
 		expect(container.textContent).toBe("⌘+K");
 	});
 
+	it("auto-splits a concatenated unicode-glyph string into separate caps", () => {
+		// Real call sites pass shortcuts like "⌘⇧F" or "⌘,". Without
+		// auto-splitting these would render as a single keycap labelled
+		// "⌘⇧F" — what the user reported as "⌘," appearing in the command
+		// palette.
+		const { container } = render(<Kbd>⌘⇧F</Kbd>);
+		const kbds = container.querySelectorAll("kbd");
+		expect(kbds.length).toBe(3);
+		expect(kbds[0].textContent).toBe("⌘");
+		expect(kbds[1].textContent).toBe("⇧");
+		expect(kbds[2].textContent).toBe("F");
+		expect(container.textContent).toBe("⌘+⇧+F");
+	});
+
+	it("splits a `+`-separated multi-char shortcut", () => {
+		// "Ctrl+Shift+Del" should render three named keys, not split into
+		// individual letters.
+		const { container } = render(<Kbd>Ctrl+Shift+Del</Kbd>);
+		const kbds = container.querySelectorAll("kbd");
+		expect(kbds.length).toBe(3);
+		expect(kbds[0].textContent).toBe("Ctrl");
+		expect(kbds[1].textContent).toBe("Shift");
+		expect(kbds[2].textContent).toBe("Del");
+	});
+
+	it("renders a single-character string as one cap", () => {
+		const { container } = render(<Kbd>K</Kbd>);
+		const kbds = container.querySelectorAll("kbd");
+		expect(kbds.length).toBe(1);
+		expect(kbds[0].textContent).toBe("K");
+	});
+
 	it("maps sizes to daisy modifiers", () => {
 		const sizes = [
 			{ size: "xs" as const, expected: "kbd-xs" },

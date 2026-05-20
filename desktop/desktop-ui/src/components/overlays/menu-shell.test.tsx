@@ -41,7 +41,9 @@ describe("MenuItem", () => {
 		expect(button.className).toContain("py-1.5");
 		expect(button.className).toContain("text-sm");
 		expect(button.textContent).toContain("Open");
-		expect(button.textContent).toContain("⌘O");
+		// Kbd auto-splits a 2-char glyph string into separate caps with a
+		// bare `+` between, so the concatenated text reads "⌘+O".
+		expect(button.textContent).toContain("⌘+O");
 	});
 
 	it("applies active styling when active=true", () => {
