@@ -180,7 +180,7 @@ export function MentionPicker({
 		return (
 			<div
 				className={cn(
-					"glass-panel shadow-elevated w-72 p-2 text-base-content/60 text-ui-sm",
+					"glass-panel shadow-elevated w-72 p-2 text-base-content/60 text-sm",
 					className,
 				)}
 				ref={containerRef}
@@ -205,7 +205,7 @@ export function MentionPicker({
 		>
 			{filtered.map(({ section, items }) => (
 				<div className="flex flex-col gap-0.5" key={section.kind}>
-					<div className="px-2 pt-1 text-base-content/50 text-ui-xs uppercase tracking-wide">
+					<div className="px-2 pt-1 text-base-content/50 text-xs uppercase tracking-wide">
 						{sectionLabel[section.kind]}
 					</div>
 					{items.map((item) => {
@@ -217,7 +217,7 @@ export function MentionPicker({
 								aria-selected={isActive}
 								// No `transition-colors` — row-list highlights snap.
 								className={cn(
-									"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-ui-sm",
+									"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm",
 									isActive
 										? section.kind === "bots"
 											? "bg-info/15 text-info"
@@ -241,7 +241,7 @@ export function MentionPicker({
 								</span>
 								<span className="min-w-0 flex-1 truncate">{item.label}</span>
 								{item.meta ? (
-									<span className="shrink-0 text-base-content/50 text-ui-xs">
+									<span className="shrink-0 text-base-content/50 text-xs">
 										{item.meta}
 									</span>
 								) : null}

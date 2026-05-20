@@ -76,8 +76,8 @@ function Demo() {
 	const actions = registry.resolve(nodeType, surface);
 
 	return (
-		<div className="flex max-w-2xl flex-col gap-4 text-ui-sm">
-			<div className="flex gap-3 text-ui-sm">
+		<div className="flex max-w-2xl flex-col gap-4 text-sm">
+			<div className="flex gap-3 text-sm">
 				<label className="flex items-center gap-2">
 					<span className="text-base-content/60">Node:</span>
 					<select
@@ -109,7 +109,7 @@ function Demo() {
 			</div>
 
 			<div className="rounded-md border border-base-300 p-3">
-				<div className="mb-2 text-base-content/60 text-ui-xs uppercase">
+				<div className="mb-2 text-base-content/60 text-xs uppercase">
 					Resolved actions
 				</div>
 				{actions.length === 0 ? (
@@ -119,14 +119,14 @@ function Demo() {
 						{actions.map((action) => (
 							<li className="flex items-center justify-between" key={action.id}>
 								<span>
-									<span className="font-mono text-ui-xs text-base-content/60">
+									<span className="font-mono text-xs text-base-content/60">
 										{action.category}
 									</span>
 									{" · "}
 									{action.label}
 								</span>
 								<button
-									className="rounded-md bg-primary px-2 py-0.5 text-primary-content text-ui-xs"
+									className="rounded-md bg-primary px-2 py-0.5 text-primary-content text-xs"
 									onClick={() =>
 										action.run({
 											nodeType,
@@ -145,13 +145,13 @@ function Demo() {
 			</div>
 
 			<div className="rounded-md border border-base-300 p-3">
-				<div className="mb-2 text-base-content/60 text-ui-xs uppercase">
+				<div className="mb-2 text-base-content/60 text-xs uppercase">
 					Invocation log
 				</div>
 				{log.length === 0 ? (
 					<div className="text-base-content/60">No actions invoked yet.</div>
 				) : (
-					<ul className="flex flex-col gap-0.5 font-mono text-ui-xs">
+					<ul className="flex flex-col gap-0.5 font-mono text-xs">
 						{log.map((entry, idx) => (
 							// biome-ignore lint/suspicious/noArrayIndexKey: log is append-only
 							<li key={idx}>{entry}</li>

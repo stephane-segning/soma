@@ -67,15 +67,15 @@ function Demo() {
 	const visibleActions = storage?.resolveActions() ?? [];
 
 	return (
-		<div className="flex max-w-3xl flex-col gap-3 text-ui-sm">
+		<div className="flex max-w-3xl flex-col gap-3 text-sm">
 			<div className="rounded-md border border-base-300 bg-base-100 p-3">
 				<EditorContent editor={editor} />
 			</div>
-			<div className="rounded-md border border-base-300 p-3 text-ui-sm">
-				<div className="mb-1 text-base-content/60 text-ui-xs uppercase">
+			<div className="rounded-md border border-base-300 p-3 text-sm">
+				<div className="mb-1 text-base-content/60 text-xs uppercase">
 					Resolved context
 				</div>
-				<pre className="m-0 whitespace-pre-wrap font-mono text-base-content/80 text-ui-xs">
+				<pre className="m-0 whitespace-pre-wrap font-mono text-base-content/80 text-xs">
 					{ctx
 						? JSON.stringify(
 								{
@@ -89,8 +89,8 @@ function Demo() {
 						: "(no editor)"}
 				</pre>
 			</div>
-			<div className="rounded-md border border-base-300 p-3 text-ui-sm">
-				<div className="mb-1 text-base-content/60 text-ui-xs uppercase">
+			<div className="rounded-md border border-base-300 p-3 text-sm">
+				<div className="mb-1 text-base-content/60 text-xs uppercase">
 					Actions for current surface
 				</div>
 				{visibleActions.length === 0 ? (
@@ -105,14 +105,14 @@ function Demo() {
 								key={action.id}
 							>
 								<span>
-									<span className="font-mono text-ui-xs">
+									<span className="font-mono text-xs">
 										{action.category}
 									</span>
 									{" · "}
 									{action.label}
 								</span>
 								<button
-									className="rounded-md bg-primary px-2 py-0.5 text-primary-content text-ui-xs"
+									className="rounded-md bg-primary px-2 py-0.5 text-primary-content text-xs"
 									onClick={() =>
 										editor?.commands.dispatchAIAction(action.id)
 									}
@@ -125,8 +125,8 @@ function Demo() {
 					</ul>
 				)}
 			</div>
-			<div className="rounded-md border border-base-300 p-3 text-ui-sm">
-				<div className="mb-1 text-base-content/60 text-ui-xs uppercase">
+			<div className="rounded-md border border-base-300 p-3 text-sm">
+				<div className="mb-1 text-base-content/60 text-xs uppercase">
 					Invocation log
 				</div>
 				{log.length === 0 ? (
@@ -134,7 +134,7 @@ function Demo() {
 						No actions dispatched yet.
 					</div>
 				) : (
-					<ul className="flex flex-col gap-0.5 font-mono text-ui-xs">
+					<ul className="flex flex-col gap-0.5 font-mono text-xs">
 						{log.map((entry, idx) => (
 							// biome-ignore lint/suspicious/noArrayIndexKey: append-only log
 							<li key={idx}>{entry}</li>

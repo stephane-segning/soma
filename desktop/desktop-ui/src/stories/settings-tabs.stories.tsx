@@ -41,10 +41,10 @@ function Demo({ initial = "general" }: { initial?: string }) {
 					tabs={TABS}
 				/>
 			</div>
-			<section className="rounded-md border border-base-300 bg-base-100 p-4 text-base-content/70 text-ui-sm">
+			<section className="rounded-md border border-base-300 bg-base-100 p-4 text-base-content/70 text-sm">
 				<span className="text-base-content">{active}</span>
 				{" — placeholder content for this tab. Real consumers render a "}
-				<code className="font-mono text-ui-xs">surface-card</code>
+				<code className="font-mono text-xs">surface-card</code>
 				{" stack here."}
 			</section>
 		</div>

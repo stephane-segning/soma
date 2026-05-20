@@ -80,7 +80,7 @@ export const MenuItem = forwardRef<HTMLButtonElement, MenuItemProps>(function Me
 			// of scaling. Snap the highlight instantly instead; the cursor
 			// motion itself supplies all the feedback we need.
 			className={cn(
-				"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-ui-sm",
+				"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm",
 				disabled && "cursor-not-allowed opacity-50",
 				!disabled && active && !isDanger && "bg-base-200 text-base-content",
 				!disabled && active && isDanger && "bg-error text-error-content",
@@ -100,7 +100,7 @@ export const MenuItem = forwardRef<HTMLButtonElement, MenuItemProps>(function Me
 			) : null}
 			<span className="min-w-0 flex-1 truncate">{label}</span>
 			{shortcut != null ? (
-				<span className="shrink-0 font-mono text-base-content/40 text-ui-xs">{shortcut}</span>
+				<span className="shrink-0 font-mono text-base-content/40 text-xs">{shortcut}</span>
 			) : null}
 		</button>
 	);
@@ -111,7 +111,7 @@ export const MenuItem = forwardRef<HTMLButtonElement, MenuItemProps>(function Me
  */
 export function MenuSectionLabel({ children }: { children: ReactNode }) {
 	return (
-		<div className="px-2 pt-1 text-base-content/50 text-ui-xs uppercase tracking-wide">
+		<div className="px-2 pt-1 text-base-content/50 text-xs uppercase tracking-wide">
 			{children}
 		</div>
 	);

@@ -84,7 +84,7 @@ export function DenseRow({
 				// API has named slots that are conditionally rendered. Keep
 				// the hand-rolled flex layout — it gives us the conditional
 				// slot freedom without the grid template fighting us.
-				"flex w-full items-center gap-3 rounded-md px-3 text-ui-sm",
+				"flex w-full items-center gap-3 rounded-md px-3 text-sm",
 				tierClass,
 				// No `transition-colors` — row-list highlights snap (see MenuItem).
 				onClick &&
@@ -112,16 +112,16 @@ export function DenseRow({
 				</div>
 			) : null}
 			<div className="flex min-w-0 flex-1 flex-col gap-0.5">
-				<div className="truncate text-body text-base-content/90">{primary}</div>
+				<div className="truncate text-sm text-base-content/90">{primary}</div>
 				{sub ? (
-					<div className="truncate text-ui-xs text-base-content/60">
+					<div className="truncate text-xs text-base-content/60">
 						{sub}
 					</div>
 				) : null}
 			</div>
 			{status ? <div className="shrink-0">{status}</div> : null}
 			{meta ? (
-				<div className="shrink-0 text-ui-xs text-base-content/60">{meta}</div>
+				<div className="shrink-0 text-xs text-base-content/60">{meta}</div>
 			) : null}
 			{actions ? (
 				// Stop propagation so action buttons don't also fire the row's

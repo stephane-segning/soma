@@ -150,7 +150,7 @@ export function SelectionBubble(props: SelectionBubbleProps) {
 			>
 				<span
 					aria-hidden
-					className="inline-block font-semibold text-ui-xs line-through"
+					className="inline-block font-semibold text-xs line-through"
 				>
 					S
 				</span>
@@ -211,7 +211,7 @@ export function SelectionBubble(props: SelectionBubbleProps) {
 							id: "selection-bubble.ask-ai",
 							defaultMessage: "Ask AI",
 						})}
-						className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-info text-ui-xs transition-colors hover:bg-info/10"
+						className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-info text-xs transition-colors hover:bg-info/10"
 						onClick={props.onAskAI}
 						type="button"
 					>
@@ -294,7 +294,7 @@ function BlockStyleSelect({
 				id: "selection-bubble.block-style",
 				defaultMessage: "Block style",
 			})}
-			className="rounded-md bg-transparent px-1.5 py-0.5 text-base-content/80 text-ui-xs transition-colors hover:bg-base-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+			className="rounded-md bg-transparent px-1.5 py-0.5 text-base-content/80 text-xs transition-colors hover:bg-base-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
 			onChange={(event) => onChange?.(event.target.value)}
 			value={active?.id ?? ""}
 		>
@@ -354,7 +354,7 @@ function LinkInputMode({
 		>
 			<Link2 aria-hidden className="ml-1 size-3.5 text-base-content/60" />
 			<input
-				className="min-w-0 bg-transparent px-1 py-0.5 text-body outline-none placeholder:text-base-content/40"
+				className="min-w-0 bg-transparent px-1 py-0.5 text-sm outline-none placeholder:text-base-content/40"
 				onChange={(event) => setValue(event.target.value)}
 				onKeyDown={(event) => {
 					if (event.key === "Escape") {

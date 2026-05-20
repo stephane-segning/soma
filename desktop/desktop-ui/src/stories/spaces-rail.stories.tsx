@@ -31,7 +31,7 @@ function Demo() {
 				onCreate={() => undefined}
 				onSelect={setActiveId}
 			/>
-			<div className="flex-1 p-6 text-ui-sm text-base-content/70">
+			<div className="flex-1 p-6 text-sm text-base-content/70">
 				Active space:{" "}
 				<code className="font-mono">{activeId}</code>
 			</div>
@@ -51,7 +51,7 @@ export const NoActiveSpace: Story = {
 				onCreate={() => undefined}
 				onSelect={() => undefined}
 			/>
-			<div className="flex-1 p-6 text-ui-sm text-base-content/70">
+			<div className="flex-1 p-6 text-sm text-base-content/70">
 				Initial state — no space active yet.
 			</div>
 		</div>
@@ -66,7 +66,7 @@ export const NoCreateButton: Story = {
 				items={ITEMS.slice(0, 2)}
 				onSelect={() => undefined}
 			/>
-			<div className="flex-1 p-6 text-ui-sm text-base-content/70">
+			<div className="flex-1 p-6 text-sm text-base-content/70">
 				The `+` button is optional; omit `onCreate` to hide it (e.g. for
 				users without permission to create spaces).
 			</div>

@@ -50,8 +50,8 @@ function StreamDemo() {
 	}
 
 	return (
-		<div className="flex max-w-2xl flex-col gap-3 text-ui-sm">
-			<div className="rounded-md border border-base-300 bg-base-100 p-3 text-body">
+		<div className="flex max-w-2xl flex-col gap-3 text-sm">
+			<div className="rounded-md border border-base-300 bg-base-100 p-3 text-sm">
 				<p className="text-base-content/90">
 					Paragraph before the AI region.{" "}
 					<InlineAIStream
@@ -63,7 +63,7 @@ function StreamDemo() {
 					Paragraph after.
 				</p>
 			</div>
-			<div className="flex items-center gap-2 text-base-content/60 text-ui-xs">
+			<div className="flex items-center gap-2 text-base-content/60 text-xs">
 				<button
 					className="rounded-md border border-base-300 px-2 py-1 text-base-content/80"
 					onClick={restart}
@@ -86,7 +86,7 @@ export const Streaming: Story = {
 
 export const PendingOnly: Story = {
 	render: () => (
-		<div className="max-w-2xl text-base-content/90 text-body">
+		<div className="max-w-2xl text-base-content/90 text-sm">
 			<p>
 				Paragraph before. <InlineAIStream pending text="" /> Paragraph after.
 			</p>
@@ -96,7 +96,7 @@ export const PendingOnly: Story = {
 
 export const Complete: Story = {
 	render: () => (
-		<div className="max-w-2xl text-base-content/90 text-body">
+		<div className="max-w-2xl text-base-content/90 text-sm">
 			<p>
 				Paragraph before. <InlineAIStream streaming={false} text={FULL_TEXT} />{" "}
 				Paragraph after.

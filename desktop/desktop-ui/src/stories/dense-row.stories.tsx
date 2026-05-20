@@ -13,7 +13,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 const Avatar = ({ initials }: { initials: string }) => (
-	<div className="grid size-7 place-items-center rounded-full bg-primary/15 font-medium text-primary text-ui-xs">
+	<div className="grid size-7 place-items-center rounded-full bg-primary/15 font-medium text-primary text-xs">
 		{initials}
 	</div>
 );

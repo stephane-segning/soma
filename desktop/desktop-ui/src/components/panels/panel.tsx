@@ -52,7 +52,7 @@ export function Panel({
 			)}
 		>
 			<header className="flex items-center gap-2 border-base-300 border-b px-3 py-2">
-				<h2 className="min-w-0 flex-1 truncate font-medium text-base-content/90 text-ui-sm">
+				<h2 className="min-w-0 flex-1 truncate font-medium text-base-content/90 text-sm">
 					{title}
 				</h2>
 				{actions ? (
@@ -83,7 +83,7 @@ export function Panel({
 			</header>
 			<div className="min-h-0 flex-1 overflow-auto">{children}</div>
 			{footer ? (
-				<footer className="border-base-300 border-t bg-base-100 px-3 py-2 text-ui-sm">
+				<footer className="border-base-300 border-t bg-base-100 px-3 py-2 text-sm">
 					{footer}
 				</footer>
 			) : null}

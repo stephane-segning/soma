@@ -97,13 +97,13 @@ function Demo() {
 	return (
 		<div className="flex h-screen flex-col items-center justify-center gap-3 bg-base-100 p-6">
 			<button
-				className="rounded-md border border-base-300 bg-base-100 px-3 py-1.5 text-ui-sm"
+				className="rounded-md border border-base-300 bg-base-100 px-3 py-1.5 text-sm"
 				onClick={() => setOpen((v) => !v)}
 				type="button"
 			>
 				{open ? "Close palette" : "Open palette (⌘K)"}
 			</button>
-			<div className="text-base-content/60 text-ui-xs">
+			<div className="text-base-content/60 text-xs">
 				Last picked: <code className="font-mono">{picked ?? "—"}</code>
 			</div>
 			<CommandPalette

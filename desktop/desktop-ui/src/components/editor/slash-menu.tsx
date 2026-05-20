@@ -192,7 +192,7 @@ export function SlashMenu({
 			<MenuShell className={className} ref={containerRef} role="listbox" width="w-80">
 				<button
 					aria-selected="true"
-					className="flex items-center gap-2 rounded-md bg-info/10 px-2 py-1.5 text-left text-info text-ui-sm"
+					className="flex items-center gap-2 rounded-md bg-info/10 px-2 py-1.5 text-left text-info text-sm"
 					onClick={() => onAIPrompt(query.trim())}
 					role="option"
 					type="button"
@@ -205,7 +205,7 @@ export function SlashMenu({
 							values: { prompt: query.trim() },
 						})}
 					</span>
-					<span className="text-info/60 text-ui-xs">↵</span>
+					<span className="text-info/60 text-xs">↵</span>
 				</button>
 			</MenuShell>
 		);
@@ -213,7 +213,7 @@ export function SlashMenu({
 
 	if (flat.length === 0) {
 		return (
-			<MenuShell className={cn("text-base-content/60 text-ui-sm", className)} ref={containerRef} width="w-80">
+			<MenuShell className={cn("text-base-content/60 text-sm", className)} ref={containerRef} width="w-80">
 				<div className="px-2 py-1.5">
 					{t({ id: "slash-menu.empty", defaultMessage: "No matches" })}
 				</div>

@@ -39,7 +39,7 @@ describe("MenuItem", () => {
 		expect(button.className).toContain("rounded-md");
 		expect(button.className).toContain("px-2");
 		expect(button.className).toContain("py-1.5");
-		expect(button.className).toContain("text-ui-sm");
+		expect(button.className).toContain("text-sm");
 		expect(button.textContent).toContain("Open");
 		expect(button.textContent).toContain("⌘O");
 	});
@@ -72,7 +72,7 @@ describe("MenuSectionLabel", () => {
 		const { container } = render(<MenuSectionLabel>Text</MenuSectionLabel>);
 		const label = container.firstChild as HTMLElement;
 		expect(label.className).toContain("uppercase");
-		expect(label.className).toContain("text-ui-xs");
+		expect(label.className).toContain("text-xs");
 		expect(label.textContent).toBe("Text");
 	});
 });

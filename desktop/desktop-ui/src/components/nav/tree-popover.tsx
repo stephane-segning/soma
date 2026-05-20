@@ -310,7 +310,7 @@ export function TreePopover({
 										/>
 										<span
 											className={cn(
-												"truncate text-ui-sm",
+												"truncate text-sm",
 												// Active row reads as bolder, not larger — font-weight
 												// rather than font-size or a color shift. The color
 												// stays in the base-content family so the row doesn't
@@ -364,7 +364,7 @@ function SearchInput({
 			<Search aria-hidden className="size-4 shrink-0 text-base-content/60" />
 			<input
 				aria-label={placeholder}
-				className="min-w-0 flex-1 bg-transparent text-body outline-none placeholder:text-base-content/40"
+				className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-base-content/40"
 				onChange={(event) => onChange(event.target.value)}
 				placeholder={placeholder}
 				type="text"
@@ -377,7 +377,7 @@ function SearchInput({
 function Section({ title, children }: { title: string; children: ReactNode }) {
 	return (
 		<div className="flex flex-col gap-0.5">
-			<div className="px-2 pt-1 text-base-content/50 text-ui-xs uppercase tracking-wide">
+			<div className="px-2 pt-1 text-base-content/50 text-xs uppercase tracking-wide">
 				{title}
 			</div>
 			{children}
@@ -405,7 +405,7 @@ function DocRow({
 			aria-selected={active}
 			// No `transition-colors` — row-list highlights snap (see MenuItem).
 			className={cn(
-				"flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-ui-sm",
+				"flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-sm",
 				active
 					? "bg-primary/10 text-primary"
 					: "hover:bg-base-200",
@@ -438,7 +438,7 @@ function FilteredList({
 	const t = useT();
 	if (docs.length === 0) {
 		return (
-			<div className="px-2 py-2 text-base-content/60 text-ui-sm">
+			<div className="px-2 py-2 text-base-content/60 text-sm">
 				{t({
 					id: "tree-popover.no-matches",
 					defaultMessage: "No matches",
@@ -466,7 +466,7 @@ function KeyboardHintsFooter({
 }) {
 	const t = useT();
 	return (
-		<div className="flex flex-wrap items-center gap-1 border-base-300 border-t pt-2 text-base-content/50 text-ui-xs">
+		<div className="flex flex-wrap items-center gap-1 border-base-300 border-t pt-2 text-base-content/50 text-xs">
 			<HintChip
 				keys="↑↓"
 				label={t({
@@ -504,7 +504,7 @@ function KeyboardHintsFooter({
 function HintChip({ keys, label }: { keys: string; label: string }) {
 	return (
 		<span className="inline-flex items-center gap-1 rounded-sm bg-base-200 px-1.5 py-0.5">
-			<kbd className="font-mono text-ui-xs">{keys}</kbd>
+			<kbd className="font-mono text-xs">{keys}</kbd>
 			<span>{label}</span>
 		</span>
 	);
