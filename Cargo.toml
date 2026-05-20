@@ -20,6 +20,13 @@ members = [
     "backend/crates/agentd",
     "backend/bins/somad",
     "desktop/desktop-icons",
+    "desktop/desktop-core",
+    "desktop/desktop-services",
+    "desktop/desktop-daemon",
+    "desktop/desktop-agent",
+    "desktop/desktop-api",
+    "desktop/desktop-commands",
+    "desktop/desktop-app/src-tauri",
     "xtask"
 ]
 
@@ -43,6 +50,41 @@ soma-metrics = { path = "backend/crates/metrics" }
 soma-proto-build = { path = "backend/crates/proto-build" }
 soma-daemon = { path = "backend/crates/daemon" }
 soma-agentd = { path = "backend/crates/agentd" }
+
+# Desktop Rust crates that compose into the Tauri shell.
+desktop-core = { path = "desktop/desktop-core" }
+desktop-services = { path = "desktop/desktop-services" }
+desktop-daemon = { path = "desktop/desktop-daemon" }
+desktop-agent = { path = "desktop/desktop-agent" }
+desktop-api = { path = "desktop/desktop-api" }
+desktop-commands = { path = "desktop/desktop-commands" }
+
+# Tauri + ecosystem (consumed by desktop-* crates and the desktop-app binary).
+tauri = { version = "2" }
+tauri-build = { version = "2" }
+tauri-plugin-deep-link = { version = "2" }
+tauri-plugin-dialog = { version = "2" }
+tauri-plugin-fs = { version = "2" }
+tauri-plugin-log = { version = "2" }
+tauri-plugin-opener = { version = "2" }
+tauri-plugin-os = { version = "2" }
+tauri-plugin-process = { version = "2" }
+tauri-plugin-shell = { version = "2" }
+tauri-plugin-single-instance = { version = "2" }
+tauri-plugin-store = { version = "2" }
+tauri-plugin-updater = { version = "2" }
+tauri-plugin-window-state = { version = "2" }
+
+# Desktop-side third-party deps not otherwise needed by the backend workspace.
+cuid2 = "0.1"
+zip = { version = "5", default-features = false, features = ["deflate"] }
+
+# TypeScript codegen — single source of truth for the @soma/sdk types is the
+# Rust DTOs in desktop-api. specta derives the runtime metadata; tauri-specta
+# walks the Tauri command graph; specta-typescript emits the .ts file.
+specta = { version = "=2.0.0-rc.25", features = ["derive", "serde_json"] }
+specta-typescript = "=0.0.12"
+tauri-specta = { version = "=2.0.0-rc.25", features = ["derive", "typescript"] }
 
 napi = { version = "3", default-features = false, features = ["napi8", "tokio_rt", "async", "anyhow"] }
 napi-derive = { version = "3" }

@@ -29,6 +29,20 @@ jobs:
       - name: Setup protoc
         uses: ./.github/actions/setup-protoc
 
+      # Tauri 2 brings in wry → webkit2gtk → soup; these libs aren't on the
+      # default ubuntu-latest image. See https://tauri.app/start/prerequisites/
+      - name: Install Tauri Linux prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libsoup-3.0-dev \
+            libjavascriptcoregtk-4.1-dev
+
       - name: Cache cargo target
         uses: actions/cache@v4
         with:

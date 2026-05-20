@@ -1,0 +1,22 @@
+[package]
+name = "desktop-agent"
+description = "Owns the in-process soma-agentd handle plus the OpenAI-compatible chat/embed/rerank client used by the renderer."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+authors.workspace = true
+
+[dependencies]
+desktop-core = { workspace = true }
+soma-agentd = { workspace = true }
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+base64 = { workspace = true }
+cuid2 = { workspace = true }
+reqwest = { workspace = true, features = ["json", "rustls-tls"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+specta = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
