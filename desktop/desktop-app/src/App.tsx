@@ -1,7 +1,8 @@
 import { DocumentEditor, type JSONContent } from "@soma/editor";
-import { invoke } from "@tauri-apps/api/core";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { BackendStatusPanel } from "./components/BackendStatusPanel";
+import { backend } from "./lib/backend";
 
 const STARTER_CONTENT: JSONContent = {
 	type: "doc",
@@ -14,10 +15,7 @@ const STARTER_CONTENT: JSONContent = {
 		{
 			type: "paragraph",
 			content: [
-				{
-					type: "text",
-					text: "This is the smoke-test page. Place the caret here, press ",
-				},
+				{ type: "text", text: "This is the smoke-test page. Place the caret here, press " },
 				{ type: "text", marks: [{ type: "code" }], text: "Enter" },
 				{
 					type: "text",
@@ -60,17 +58,14 @@ const STARTER_CONTENT: JSONContent = {
 	],
 };
 
-type AppInfo = { name: string; version: string; tauri: string };
-
 function App() {
 	const { t, i18n } = useTranslation();
 	const [doc, setDoc] = useState<JSONContent>(STARTER_CONTENT);
-	const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
 
 	useEffect(() => {
-		invoke<AppInfo>("app_info")
-			.then(setAppInfo)
-			.catch((err) => console.warn("app_info failed", err));
+		// One-time hydrate of the dbStorage cache so synchronous reads land
+		// the persisted values from the previous launch.
+		void backend.dbStorage.hydrate();
 	}, []);
 
 	return (
@@ -79,15 +74,6 @@ function App() {
 				<div>
 					<h1 className="font-semibold text-2xl">{t("app.title")}</h1>
 					<p className="text-sm opacity-70">{t("app.subtitle")}</p>
-					{appInfo && (
-						<p className="mt-1 text-xs opacity-50">
-							{t("app.runtime", {
-								name: appInfo.name,
-								version: appInfo.version,
-								tauri: appInfo.tauri,
-							})}
-						</p>
-					)}
 				</div>
 				<label className="flex items-center gap-2 text-xs">
 					<span className="opacity-70">{t("editor.language_switch")}</span>
@@ -102,7 +88,9 @@ function App() {
 				</label>
 			</header>
 
-			<p className="mb-4 text-sm opacity-70">{t("editor.hint")}</p>
+			<BackendStatusPanel />
+
+			<p className="mt-8 mb-4 text-sm opacity-70">{t("editor.hint")}</p>
 
 			<div className="rounded-lg border border-base-300 bg-base-200/40 p-6">
 				<DocumentEditor initialContent={doc} onChange={setDoc} placeholder={t("editor.placeholder")} />
