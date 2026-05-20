@@ -1633,7 +1633,10 @@ version = "0.1.2"
 dependencies = [
  "anyhow",
  "async-trait",
+ "base64 0.22.1",
+ "cuid2",
  "desktop-core",
+ "reqwest 0.12.28",
  "serde",
  "serde_json",
  "soma-agentd",
@@ -1646,6 +1649,7 @@ name = "desktop-app"
 version = "0.1.2"
 dependencies = [
  "anyhow",
+ "async-trait",
  "desktop-agent",
  "desktop-commands",
  "desktop-core",
@@ -1707,6 +1711,7 @@ dependencies = [
  "serde",
  "serde_json",
  "soma-daemon",
+ "tauri",
  "tokio",
  "tracing",
 ]

@@ -24,6 +24,7 @@ desktop-daemon = { workspace = true }
 desktop-agent = { workspace = true }
 desktop-commands = { workspace = true }
 
+async-trait = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true }

@@ -7,6 +7,7 @@
 //! `tauri::generate_handler![…]` call — keeping that list in the binary
 //! avoids needing a `generate_handler!` macro export with public macros.
 
+pub mod agent;
 pub mod blobs;
 pub mod daemon;
 pub mod documents;
