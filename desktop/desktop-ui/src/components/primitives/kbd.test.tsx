@@ -79,4 +79,33 @@ describe("Kbd", () => {
 		expect(cls).not.toMatch(/kbd-(xs|sm|lg|xl)/);
 		expect(cls).toContain("kbd");
 	});
+
+	it("renders named keys (Esc, Enter, Tab, F1-F12) as one keycap, not grapheme-split", () => {
+		// Without the named-key allowlist, "Esc" would split into E+S+C.
+		// Same for Tab, Enter, Backspace, F1-F12, etc.
+		const named = ["Esc", "Escape", "Enter", "Tab", "Backspace", "Delete", "F11"];
+		for (const name of named) {
+			const { container } = render(<Kbd>{name}</Kbd>);
+			const kbds = container.querySelectorAll("kbd");
+			expect(kbds.length, `expected one keycap for ${name}`).toBe(1);
+			expect(kbds[0].textContent).toBe(name);
+		}
+	});
+
+	it("named-key matching is case-insensitive", () => {
+		// "esc", "ESC", "Esc" should all collapse to one keycap.
+		for (const variant of ["esc", "ESC", "Esc"]) {
+			const { container } = render(<Kbd>{variant}</Kbd>);
+			expect(container.querySelectorAll("kbd").length).toBe(1);
+		}
+	});
+
+	it("renders single-glyph arrows as one keycap (not grapheme-split into garbage)", () => {
+		// "↑" is one BMP code point; should render as one keycap as before.
+		// We add coverage so a future change can't regress it.
+		const { container } = render(<Kbd>↑</Kbd>);
+		const kbds = container.querySelectorAll("kbd");
+		expect(kbds.length).toBe(1);
+		expect(kbds[0].textContent).toBe("↑");
+	});
 });

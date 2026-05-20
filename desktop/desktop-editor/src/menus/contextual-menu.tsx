@@ -79,6 +79,34 @@ export function ContextualMenu({
 	// finish its exit animation after the parent clears its prop, and avoids
 	// any null-dereference window during the unmount transition.
 	const [nodeTrigger, setNodeTrigger] = useState<NodeAITrigger | null>(null);
+	// Controls whether the SelectionBubble shows its link-input mode.
+	// Driven both by the bubble's own link button (via the callback we
+	// pass below) AND by the editor's `Cmd+K` shortcut, which dispatches
+	// a `soma:request-link-input` CustomEvent on the editor's DOM root.
+	const [linkInputOpen, setLinkInputOpen] = useState(false);
+
+	// Listen for the `Cmd+K` shortcut. The Link extension in
+	// `extensions.ts` fires this event so the React surface can open
+	// the same `LinkInputMode` the bubble already renders — without
+	// inventing a separate prompt UI (which used to be `window.prompt`,
+	// broken under Electron).
+	useEffect(() => {
+		const dom = editor.view.dom;
+		const handler = () => setLinkInputOpen(true);
+		dom.addEventListener("soma:request-link-input", handler);
+		return () => {
+			dom.removeEventListener("soma:request-link-input", handler);
+		};
+	}, [editor]);
+
+	// When the underlying selection moves to a range with no text (the
+	// bubble is going to unmount anyway), reset link mode so the next
+	// selection starts in format mode, not link mode.
+	useEffect(() => {
+		if (editor.state.selection.empty && linkInputOpen) {
+			setLinkInputOpen(false);
+		}
+	});
 
 	// When an external node AI trigger arrives (from the drag-handle AI button),
 	// open the node-level AI bar. Opening the node bar also closes any open
@@ -119,9 +147,11 @@ export function ContextualMenu({
 					bold={editor.isActive("bold")}
 					code={editor.isActive("code")}
 					italic={editor.isActive("italic")}
+					linkInputOpen={linkInputOpen}
 					linkUrl={linkUrl}
 					onAskAI={registry ? openAI : undefined}
 					onChangeBlockStyle={(id) => applyBlockKind(editor, id as BlockKind)}
+					onLinkInputOpenChange={setLinkInputOpen}
 					onSetLink={(url) => {
 						const chain = editor.chain().focus().extendMarkRange("link");
 						if (url === null) {

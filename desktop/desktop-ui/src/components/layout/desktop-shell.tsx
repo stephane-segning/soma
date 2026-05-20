@@ -133,16 +133,29 @@ export function DesktopShell(props: DesktopShellProps) {
 						side="left"
 						width={state.leftWidth}
 					/>
-					{/* Main column is positioned `relative` so the `mainTopLeft`
-					    and `mainTopRight` floating slots can absolutely-position
-					    against it — when either rail opens/resizes, this column
-					    changes width and the slot rides along automatically. */}
+					{/* Main column. Two-layer structure: the OUTER `<main>` is
+					    `relative` and `overflow-hidden`; the INNER scroll
+					    container holds the scrollable children. The
+					    `mainTopLeft` / `mainTopRight` slots are absolutely
+					    positioned against the outer `<main>`, *outside* the
+					    scrollable inner — so they stay pinned to the visible
+					    top corners no matter how far the user scrolls.
+					    Previous revisions nested the overlays inside the same
+					    element that owned `overflow-auto`, which made the
+					    chip bars disappear once the doc was scrolled
+					    (eliminating the only affordance to re-open collapsed
+					    panels). The `<main>` element still owns the
+					    `mainClassName` so callers can theme the surface as
+					    before. */}
 					<main
 						className={cn(
-							"relative max-h-full min-h-0 flex-1 overflow-auto",
+							"relative max-h-full min-h-0 flex-1 overflow-hidden",
 							props.mainClassName,
 						)}
 					>
+						<div className="h-full w-full overflow-auto">
+							{props.children}
+						</div>
 						{props.mainTopLeft ? (
 							<div className="pointer-events-none absolute top-2 left-2 z-10">
 								<div className="pointer-events-auto">{props.mainTopLeft}</div>
@@ -153,7 +166,6 @@ export function DesktopShell(props: DesktopShellProps) {
 								<div className="pointer-events-auto">{props.mainTopRight}</div>
 							</div>
 						) : null}
-						{props.children}
 					</main>
 					<ShellPanel
 						content={props.rightColumn}

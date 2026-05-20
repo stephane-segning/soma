@@ -3,6 +3,7 @@ import {
 	autoUpdate,
 	flip,
 	FloatingPortal,
+	hide,
 	offset,
 	shift,
 	useFloating,
@@ -43,9 +44,24 @@ export function CommandList({
 	onDismiss: () => void;
 }): React.JSX.Element | null {
 	const arrowRef = useRef<HTMLDivElement | null>(null);
+	// `lastValidRect` survives across autoUpdate cycles. When TipTap
+	// transiently can't compute a caret rect (fast edits, selection
+	// being recomputed), `props.clientRect()` returns `null` — without
+	// the cache the previous code fell back to `new DOMRect()` which
+	// teleports the menu to viewport (0, 0). Returning the last known
+	// rect keeps the menu pinned to the trigger character; the `hide`
+	// middleware below additionally `visibility: hidden`s the menu
+	// when even that fallback is unavailable (very first frame, etc.).
+	const lastValidRectRef = useRef<DOMRect | null>(null);
 	const { refs, floatingStyles, middlewareData, placement, update } = useFloating({
 		placement: "bottom-start",
-		middleware: [offset(8), flip(), shift({ padding: 8 }), arrow({ element: arrowRef })],
+		middleware: [
+			offset(8),
+			flip(),
+			shift({ padding: 8 }),
+			arrow({ element: arrowRef }),
+			hide({ strategy: "referenceHidden" }),
+		],
 		whileElementsMounted: autoUpdate,
 		strategy: "fixed",
 	});
@@ -61,13 +77,33 @@ export function CommandList({
 		// position — so reading fresh each call makes the menu follow the
 		// `/` character through page scroll instead of sticking at the
 		// position it had when it opened.
+		//
+		// When `clientRect()` returns `null` (TipTap can't produce a
+		// caret rect this frame), reuse the last known rect so the menu
+		// stays anchored to where the trigger character was. The `hide`
+		// middleware below hides the menu if we genuinely have no rect
+		// at all.
 		const virtualEl: VirtualElement = {
-			getBoundingClientRect: () => clientRect() ?? new DOMRect(),
+			getBoundingClientRect: () => {
+				const rect = clientRect();
+				if (rect) {
+					lastValidRectRef.current = rect;
+					return rect;
+				}
+				return lastValidRectRef.current ?? new DOMRect(-10000, -10000, 0, 0);
+			},
 			contextElement,
 		};
 		refs.setPositionReference(virtualEl);
 		update();
 	}, [props.clientRect, props.editor, refs, update]);
+
+	// `hide` middleware reports `referenceHidden = true` when the
+	// reference (caret) is off-screen or otherwise not visible. We hide
+	// the menu via `visibility` (not display) so floating-ui keeps
+	// computing position and we re-appear seamlessly when the caret
+	// comes back into view.
+	const referenceHidden = middlewareData.hide?.referenceHidden ?? false;
 
 	const slashItems = useMemo<SlashMenuItem[]>(
 		() =>
@@ -105,7 +141,15 @@ export function CommandList({
 
 	return (
 		<FloatingPortal>
-			<div ref={refs.setFloating} style={floatingStyles} className="z-50">
+			<div
+				ref={refs.setFloating}
+				style={{
+					...floatingStyles,
+					visibility: referenceHidden ? "hidden" : floatingStyles.visibility,
+					pointerEvents: referenceHidden ? "none" : floatingStyles.pointerEvents,
+				}}
+				className="z-50"
+			>
 				<SlashMenu
 					captureScope="window"
 					items={slashItems}

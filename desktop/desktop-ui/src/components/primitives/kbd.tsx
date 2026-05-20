@@ -40,14 +40,59 @@ export type KbdProps = {
 };
 
 /**
+ * Names that always render as a single keycap, even when the input
+ * contains multiple characters with no `+` separator. Without this,
+ * `<Kbd>Esc</Kbd>` would split into `E + S + C` (codex flagged this
+ * after named labels started flowing through the primitive).
+ *
+ * Matching is case-insensitive. The set covers the keys that actually
+ * appear as labels in our menus, plus the arrow glyphs (which would
+ * otherwise be grapheme-split into `↑ + ↓`).
+ */
+const SINGLE_KEYCAP_NAMES = new Set<string>([
+	"esc",
+	"escape",
+	"enter",
+	"return",
+	"tab",
+	"space",
+	"backspace",
+	"delete",
+	"del",
+	"home",
+	"end",
+	"pageup",
+	"pagedown",
+	"up",
+	"down",
+	"left",
+	"right",
+	"f1",
+	"f2",
+	"f3",
+	"f4",
+	"f5",
+	"f6",
+	"f7",
+	"f8",
+	"f9",
+	"f10",
+	"f11",
+	"f12",
+]);
+
+/**
  * Parse a string shortcut into individual key tokens.
  *
- * - Contains `+` → split on `+`, useful for multi-char names like
- *   `Ctrl+Shift+Del`.
- * - Otherwise treat each grapheme as its own key, useful for
- *   concatenated mac glyphs like `⌘⇧F` or `⌘,`. `Array.from(str)`
- *   yields code points which is correct for the modifier symbols we
- *   use (all live in the BMP).
+ * - Contains `+` → split on `+` (multi-char names like `Ctrl+Shift+Del`).
+ * - Matches a known named-key in `SINGLE_KEYCAP_NAMES` → render whole
+ *   as one keycap (so `Esc` stays `Esc`, not `E+S+C`).
+ * - Otherwise, when length > 1, grapheme-split (mac glyph chords like
+ *   `⌘⇧F`). Single graphemes render as one keycap.
+ *
+ * Arrow glyphs (`↑↓←→`) and other non-ASCII single graphemes round-trip
+ * correctly because `Array.from` over a length-1 string yields a
+ * single-element array.
  */
 function parseShortcut(input: string): string[] {
 	if (input.includes("+")) {
@@ -55,6 +100,9 @@ function parseShortcut(input: string): string[] {
 			.split("+")
 			.map((part) => part.trim())
 			.filter((part) => part.length > 0);
+	}
+	if (SINGLE_KEYCAP_NAMES.has(input.toLowerCase())) {
+		return [input];
 	}
 	return Array.from(input);
 }

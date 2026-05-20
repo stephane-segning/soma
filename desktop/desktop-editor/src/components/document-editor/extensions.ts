@@ -76,18 +76,35 @@ export function createDocumentExtensions(input: CreateDocumentExtensionsInput) {
 		Link.extend({
 			addKeyboardShortcuts() {
 				return {
+					/**
+					 * `Cmd+K` / `Ctrl+K` opens the link input.
+					 *
+					 * Previous revisions called `window.prompt` here, which:
+					 *   (a) doesn't exist in Electron renderer windows, so the
+					 *       shortcut silently did nothing in production;
+					 *   (b) skipped the bare-URL normalisation
+					 *       (`example.com` → `https://example.com`) that
+					 *       `LinkInputMode` in `SelectionBubble` already does.
+					 *
+					 * Now: dispatch a `CustomEvent` on the editor's DOM root.
+					 * The React surface (`ContextualMenu`) listens for it and
+					 * opens the existing `SelectionBubble` link input — which
+					 * lives inside a TipTap `BubbleMenu` so it's already
+					 * anchored to the selection rect. That reuses the input
+					 * UI, the URL normalisation, and the cancel/Escape flow
+					 * with no duplication.
+					 *
+					 * On empty selection, return `true` to *consume* the
+					 * chord so the host's `Cmd+K` (browser omnibox focus,
+					 * etc.) doesn't fire and pull focus away from the
+					 * editor.
+					 */
 					"Mod-k": () => {
-						const { from, to, empty } = this.editor.state.selection;
-						if (empty) return false;
-						const current = this.editor.getAttributes("link").href as string | undefined;
-						const next = window.prompt("Link URL", current ?? "");
-						if (next === null) return true;
-						const chain = this.editor.chain().focus().extendMarkRange("link");
-						if (next.trim().length === 0) {
-							chain.unsetLink().run();
-						} else {
-							chain.setLink({ href: next.trim() }).setTextSelection({ from, to }).run();
-						}
+						const { empty } = this.editor.state.selection;
+						if (empty) return true;
+						this.editor.view.dom.dispatchEvent(
+							new CustomEvent("soma:request-link-input", { bubbles: true }),
+						);
 						return true;
 					},
 				};

@@ -123,6 +123,13 @@ export function ActionMenu({
 				label: t({ id: `block-kind.${kind}`, defaultMessage: BLOCK_LABEL[kind] }),
 				icon: kind === activeNode.blockKind ? <RefreshCw className="size-4" /> : undefined,
 				onSelect: () => {
+					// No-op when the chosen kind is already the active kind.
+					// `applyBlockKind` uses `toggle*` commands for lists / quote
+					// / code, so re-clicking the active row would strip the
+					// formatting back toward paragraph — surprising behaviour
+					// that codex flagged. Selecting the active row simply
+					// closes the menu now.
+					if (kind === activeNode.blockKind) return;
 					editor.chain().focus().setTextSelection(activeNode.pos + 1).run();
 					applyBlockKind(editor, kind);
 				},
