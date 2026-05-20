@@ -204,7 +204,19 @@ export type ControlArgs = {
 };
 
 export type ControlResult = {
-	running: boolean,
+	/**
+	 *  `true` when the lifecycle action completed and the runtime is
+	 *  (still) reachable. Mirrors the Electron-side `ok` boolean.
+	 */
+	ok: boolean,
+	action: ControlAction,
+	/**
+	 *  Status snapshot taken right after the action ran, so renderer
+	 *  consumers don't need a follow-up `status()` round-trip.
+	 */
+	status: DaemonStatus,
+	/**  Optional human-readable note. `None` on success. */
+	message: string | null,
 };
 
 export type CreateSpaceArgs = {
@@ -212,9 +224,37 @@ export type CreateSpaceArgs = {
 	displayName?: string | null,
 };
 
+/**
+ *  Socket-introspection details. The Tauri shell embeds the daemon
+ *  in-process, so the renderer-facing socket card has nothing to inspect
+ *  and these fields stay `None`. The Electron shell populates them from
+ *  the on-disk Unix socket. Kept here so the SDK type carries the
+ *  richer shape both shells share.
+ */
+export type DaemonSocketInfo = {
+	exists: boolean,
+	uid: number | null,
+	gid: number | null,
+	mode: number | null,
+	ownedByCurrentUser: boolean | null,
+};
+
 export type DaemonStatus = {
-	peerId: string,
+	/**
+	 *  `true` when the renderer can talk to the runtime. Always `true`
+	 *  on the Tauri side once `state.daemon.handle()` succeeds.
+	 */
+	reachable: boolean,
+	/**
+	 *  Identifier for the daemon transport. `<embedded:tauri>` on the
+	 *  Tauri shell; the Unix socket path on the Electron shell.
+	 */
+	socketPath: string,
+	peerId: string | null,
 	listenAddrs: string[],
+	/**  Populated when `status()` failed to talk to the runtime. */
+	error: string | null,
+	socket: DaemonSocketInfo | null,
 };
 
 export type DecideJoinArgs = {

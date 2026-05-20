@@ -1,35 +1,32 @@
-import { invoke } from "../lib/ipc";
+/**
+ * Renderer-side daemon service. Thin adapter over `@soma/sdk`'s
+ * `backend.daemon.*` surface — no IPC channel names live here anymore.
+ *
+ * The SDK's `DaemonStatus` / `ControlResult` (declared in
+ * `desktop-sdk/src/bindings/index.ts`, generated from the Rust source in
+ * `desktop-api/src/daemon.rs`) is the single wire contract both shells
+ * implement; the Electron handler in
+ * `main/command-registry/daemon-handlers.ts` produces exactly the same
+ * shape.
+ */
 
-export type DaemonRuntimeStatus = {
-	reachable: boolean;
-	socketPath: string;
-	peerId?: string;
-	listenAddrs: string[];
-	error?: string;
-	socket?: {
-		exists: boolean;
-		uid?: number;
-		gid?: number;
-		mode?: number;
-		ownedByCurrentUser?: boolean;
-	};
-};
+import type {
+	ControlAction as SdkControlAction,
+	ControlResult as SdkControlResult,
+	DaemonSocketInfo as SdkDaemonSocketInfo,
+	DaemonStatus as SdkDaemonStatus,
+} from "@soma/sdk";
+import { backend } from "../lib/ipc";
 
-export type DaemonControlAction = "start" | "stop" | "restart";
-
-export type DaemonControlResult = {
-	ok: boolean;
-	action: DaemonControlAction;
-	status: DaemonRuntimeStatus;
-	message?: string;
-};
+export type DaemonRuntimeStatus = SdkDaemonStatus;
+export type DaemonSocketInfo = SdkDaemonSocketInfo;
+export type DaemonControlAction = SdkControlAction;
+export type DaemonControlResult = SdkControlResult;
 
 export function getDaemonStatus(): Promise<DaemonRuntimeStatus> {
-	return invoke<DaemonRuntimeStatus>("daemon_status");
+	return backend.daemon.status();
 }
 
 export function controlDaemon(action: DaemonControlAction): Promise<DaemonControlResult> {
-	return invoke<DaemonControlResult>("daemon_control", {
-		action,
-	});
+	return backend.daemon.control(action);
 }
