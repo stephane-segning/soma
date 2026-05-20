@@ -61,7 +61,7 @@ export const spacesApi = settingsApi.injectEndpoints({
 			void,
 			{
 				spaceId: string;
-				displayName?: string;
+				displayName: string;
 			}
 		>({
 			queryFn: async (input) => {
