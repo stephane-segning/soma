@@ -44,10 +44,14 @@ export async function listSpaces(params?: {
 	offset?: number;
 	query?: string;
 }): Promise<ListSpacesResult> {
+	// `limit` / `offset` are intentionally omitted when the caller doesn't
+	// supply them so the backend applies its own default page size (50).
+	// Sending `limit: 0` would *bypass* that default — the Rust handler
+	// clamps `0` to `1` and returns a single space.
 	return backend.spaces.list({
 		q: params?.query ?? null,
-		limit: params?.limit ?? 0,
-		offset: params?.offset ?? 0,
+		...(params?.limit !== undefined ? { limit: params.limit } : {}),
+		...(params?.offset !== undefined ? { offset: params.offset } : {}),
 	});
 }
 
@@ -106,10 +110,16 @@ export async function issueIssuerCapability(input: IssueIssuerCapabilityInput): 
 	return backend.spaces.issueIssuerCapability(input);
 }
 
-export async function updateSpace(input: { spaceId: string; displayName?: string }): Promise<Space> {
+/**
+ * Rename a space. `displayName` is **required** — the SDK + daemon
+ * treat this as a full update of that field, so silently defaulting a
+ * missing name to `""` would wipe the existing one. Partial updates
+ * that only touch other fields belong on a future `patch` endpoint.
+ */
+export async function updateSpace(input: { spaceId: string; displayName: string }): Promise<Space> {
 	return backend.spaces.update({
 		spaceId: input.spaceId,
-		displayName: input.displayName ?? "",
+		displayName: input.displayName,
 	});
 }
 
