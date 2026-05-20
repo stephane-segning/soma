@@ -1,3 +1,12 @@
+/**
+ * PanelContainer stories — exercise the rail-side host on its own.
+ *
+ * The chip bar (the collapsed-panel switcher) is **not** part of
+ * PanelContainer anymore; it lives in main's top-corner via
+ * `<DesktopShell mainTopRight={…}>`. To keep these stories
+ * self-contained, we render a minimal local chip bar so the user can
+ * toggle panels open/closed and see the container react.
+ */
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { Calendar, Clock, FileText, List, MessageSquare } from "react-feather";
@@ -6,6 +15,7 @@ import {
 	PanelContainer,
 	type PanelDescriptor,
 } from "../components/panels/panel-container";
+import { PanelChipBar } from "../components/panels/panel-chip-bar";
 
 const meta = {
 	title: "Panels/PanelContainer",
@@ -95,63 +105,67 @@ const PANELS: PanelDescriptor[] = [
 	},
 ];
 
-function Demo({
-	initialCollapsed = ["subpages", "tasks"],
-}: {
-	initialCollapsed?: string[];
-}) {
-	const [collapsed, setCollapsed] = useState<Set<string>>(
-		() => new Set(initialCollapsed),
+function Demo({ initialExpanded = ["chat"] }: { initialExpanded?: string[] }) {
+	const [expanded, setExpanded] = useState<Set<string>>(
+		() => new Set(initialExpanded),
 	);
-	const [openIds, setOpenIds] = useState<Set<string>>(
-		() => new Set(PANELS.map((p) => p.id)),
-	);
-	const visiblePanels = PANELS.filter((p) => openIds.has(p.id));
 	return (
-		<div className="flex h-screen bg-base-200">
-			<div className="flex flex-1 items-center justify-center text-base-content/40 text-sm">
-				Editor column…
-			</div>
-			<PanelContainer
-				className="shrink-0"
-				collapsedIds={collapsed}
-				onClosePanel={(id) =>
-					setOpenIds((prev) => {
-						const next = new Set(prev);
-						next.delete(id);
-						return next;
-					})
-				}
-				onToggleCollapse={(id) =>
-					setCollapsed((prev) => {
-						const next = new Set(prev);
-						if (next.has(id)) {
-							next.delete(id);
-						} else {
-							next.add(id);
+		<div className="relative flex h-screen bg-base-200">
+			<div className="relative flex-1">
+				<div className="flex h-full items-center justify-center text-base-content/40 text-sm">
+					Mock editor column
+				</div>
+				<div className="absolute top-2 right-2">
+					<PanelChipBar
+						expandedIds={expanded}
+						onExpand={(id) =>
+							setExpanded((prev) => {
+								const next = new Set(prev);
+								next.add(id);
+								return next;
+							})
 						}
-						return next;
-					})
-				}
-				panels={visiblePanels}
-			/>
+						panels={PANELS}
+						placement="top-right"
+					/>
+				</div>
+			</div>
+			{expanded.size > 0 ? (
+				<aside className="w-80 shrink-0">
+					<PanelContainer
+						expandedIds={expanded}
+						onCollapse={(id) =>
+							setExpanded((prev) => {
+								const next = new Set(prev);
+								next.delete(id);
+								return next;
+							})
+						}
+						panels={PANELS}
+					/>
+				</aside>
+			) : null}
 		</div>
 	);
 }
 
-export const Default: Story = {
-	render: () => <Demo />,
+export const SingleExpanded: Story = {
+	render: () => <Demo initialExpanded={["chat"]} />,
+};
+
+export const TwoExpanded: Story = {
+	render: () => <Demo initialExpanded={["chat", "history"]} />,
 };
 
 export const AllCollapsed: Story = {
-	render: () => <Demo initialCollapsed={PANELS.map((p) => p.id)} />,
+	render: () => <Demo initialExpanded={[]} />,
 };
 
-export const NoneCollapsed: Story = {
-	render: () => <Demo initialCollapsed={[]} />,
+export const AllExpanded: Story = {
+	render: () => <Demo initialExpanded={PANELS.map((p) => p.id)} />,
 };
 
 export const DarkTheme: Story = {
 	parameters: { theme: "luxury" },
-	render: () => <Demo />,
+	render: () => <Demo initialExpanded={["chat", "bots"]} />,
 };

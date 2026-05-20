@@ -1,51 +1,50 @@
 /**
- * PanelContainer — the right-area host that lays panels into stable
- * positions across two side-by-side columns.
+ * PanelContainer — the rail-side host that renders the **expanded**
+ * panels of a side rail (left or right).
  *
  * Locked by [PRD §3](../../../../../docs/src/architecture/prd/ui-revamp-v0.md)
  * and [refs main §1](../../../../../docs/src/architecture/prd/ui-revamp-v0-refs.md).
  *
- * **Layout policy (locked by user testing):**
+ * **What it does, and what it doesn't.** PanelContainer is now a thin
+ * composition over `PanelStack`. It receives the full panel inventory
+ * and the set of currently-expanded ids, filters the inventory to the
+ * expanded subset, and stacks those panels at 100 % of the rail width.
  *
- * Each panel has a stable position determined by its index in the
- * `panels` prop. Odd-indexed panels (1st, 3rd, 5th …) stack in the
- * first column; even-indexed (2nd, 4th, …) in the second. Each column
- * independently flex-cols its expanded panels:
+ * It does NOT host the chip strip / icon rail anymore. The bar of
+ * collapsed-panel icons lives in the **main column** (top-right or
+ * top-left, via `DesktopShell`'s `mainTopLeft` / `mainTopRight`
+ * slots), as a `PanelChipBar`. Co-locating expanded + collapsed UI in
+ * one component was the original sin behind the "right rail floating"
+ * + "rail can't auto-shrink" pair of bugs.
  *
- *   - 1 panel in a column → 100 % of column height.
- *   - 2 panels in a column → 50 / 50 split, etc.
+ * **Width.** 100 % of the host rail. No `w-72` cap, no multi-column,
+ * no horizontal scroll. The card cap is whatever the user dragged the
+ * rail to.
  *
- * Truly-collapsed panels render as icons in a thin strip on the right
- * edge of the container. Clicking an icon expands the panel back into
- * its assigned slot.
+ * **Mount/unmount.** The convention is for the caller to render
+ * `<PanelContainer />` only when at least one panel is expanded — and
+ * to leave `ShellPanel`'s `content` prop `null` otherwise so the rail
+ * unmounts entirely (returning width to 0). If you pass an empty
+ * `expandedIds`, this component renders `null`, which lets the rail's
+ * `<aside>` collapse without an explicit guard.
  *
- * **Floating-card aesthetic.** Each panel renders as its own rounded
- * card (chrome lives in `Panel`); the container provides a `p-2 gap-2`
- * gutter so the cards visibly separate. The user explicitly asked for
- * this — a flush-hairline alternative was tried and reverted because
- * the seam between panels got lost on busy rails. The left sidebar
- * in the SomaApp story uses the same Panel chrome so the whole shell
- * reads as a coherent row of floating cards.
- *
- * **Strip pinning.** The icon strip sits in its own `shrink-0` column
- * and the columns container uses `min-w-0 overflow-x-auto`, so when
- * the rail is narrowed past the columns' natural width the *columns*
- * scroll horizontally — the strip stays visible at the right edge.
- * Before this, narrowing the rail pushed the strip off-screen, which
- * was the second half of the bug the user reported.
- *
- * There is no cap, no overflow eviction. Every open panel renders in
- * its assigned position.
+ * **Build-time left/right placement.** The caller maintains two panel
+ * inventories — one for the left rail, one for the right — and renders
+ * two `<PanelContainer>` + two `<PanelChipBar>` pairs. Moving a panel
+ * from left to right is a one-line array shift at build time.
  */
+import { useMemo } from "react";
 import type { ReactNode } from "react";
-import { useT } from "../../i18n/use-t";
 import { cn } from "../../utils/cn";
-import { Panel } from "./panel";
+import { PanelStack } from "./panel-stack";
 
 export type PanelDescriptor = {
 	id: string;
 	title: ReactNode;
-	/** Icon shown when the panel is collapsed to the strip. */
+	/** Icon used by the matching `PanelChipBar`. Required even though
+	 *  PanelContainer doesn't render it directly — having every
+	 *  descriptor carry its icon lets the caller pass the same array to
+	 *  both PanelContainer and PanelChipBar without massaging the shape. */
 	icon: ReactNode;
 	/** Header actions (rendered to the right of the title). */
 	actions?: ReactNode;
@@ -55,118 +54,45 @@ export type PanelDescriptor = {
 };
 
 export type PanelContainerProps = {
-	panels: PanelDescriptor[];
-	/** Set of panel ids currently collapsed to the icon strip. */
-	collapsedIds?: ReadonlySet<string> | readonly string[];
-	onToggleCollapse?: (id: string) => void;
-	onClosePanel?: (id: string) => void;
+	/** The full panel inventory for this rail (expanded + collapsed). */
+	panels: ReadonlyArray<PanelDescriptor>;
+	/**
+	 * Set of panel ids currently expanded (visible as cards). Panels
+	 * not in this set are considered collapsed and skipped here — they
+	 * live in the matching `PanelChipBar` instead.
+	 */
+	expandedIds?: ReadonlySet<string> | readonly string[];
+	/** Fired when the user clicks the `−` button on a panel header. */
+	onCollapse?: (id: string) => void;
+	/** Fired when the user clicks the `×` button on a panel header. */
+	onClose?: (id: string) => void;
 	className?: string;
 };
 
 export function PanelContainer({
 	panels,
-	collapsedIds,
-	onToggleCollapse,
-	onClosePanel,
+	expandedIds,
+	onCollapse,
+	onClose,
 	className,
 }: PanelContainerProps) {
-	const t = useT();
-	const collapsedSet =
-		collapsedIds instanceof Set
-			? collapsedIds
-			: new Set<string>(collapsedIds ?? []);
-
-	const columnOne: PanelDescriptor[] = [];
-	const columnTwo: PanelDescriptor[] = [];
-	const collapsed: PanelDescriptor[] = [];
-	panels.forEach((panel, index) => {
-		if (collapsedSet.has(panel.id)) {
-			collapsed.push(panel);
-			return;
-		}
-		if (index % 2 === 0) columnOne.push(panel);
-		else columnTwo.push(panel);
-	});
-
-	const expandedCount = columnOne.length + columnTwo.length;
-
-	// Each column is a fixed 18rem (288px) wide. When the rail is wider
-	// than the columns need, they sit at natural width with a gap. When
-	// the rail is narrower, the columns container scrolls horizontally
-	// inside its `min-w-0 overflow-x-auto` shell so the strip never
-	// disappears off the right edge.
-	const renderColumn = (column: PanelDescriptor[]) => (
-		<div className="flex min-h-0 w-72 shrink-0 flex-col gap-2">
-			{column.map((panel) => (
-				<Panel
-					actions={panel.actions}
-					className="min-h-0 flex-1"
-					footer={panel.footer}
-					key={panel.id}
-					onClose={onClosePanel ? () => onClosePanel(panel.id) : undefined}
-					onCollapse={
-						onToggleCollapse ? () => onToggleCollapse(panel.id) : undefined
-					}
-					title={panel.title}
-				>
-					{panel.content}
-				</Panel>
-			))}
-		</div>
+	const expandedSet = useMemo(
+		() =>
+			expandedIds instanceof Set
+				? expandedIds
+				: new Set<string>(expandedIds ?? []),
+		[expandedIds],
 	);
 
+	const visible = panels.filter((panel) => expandedSet.has(panel.id));
+	if (visible.length === 0) return null;
+
 	return (
-		<div
-			aria-label={t({
-				id: "panel-container.aria-label",
-				defaultMessage: "Side panels",
-			})}
-			className={cn("flex min-h-0 w-full bg-transparent", className)}
-		>
-			{/* Columns container takes the remaining width and scrolls
-			    horizontally if the rail is narrower than the natural column
-			    width. `min-w-0` is what unlocks the scroll: a flex item
-			    defaults to `min-width: auto` which would push its content
-			    out and overflow the parent. */}
-			{expandedCount > 0 ? (
-				<div className="flex min-h-0 min-w-0 flex-1 gap-2 overflow-x-auto p-2">
-					{columnOne.length > 0 ? renderColumn(columnOne) : null}
-					{columnTwo.length > 0 ? renderColumn(columnTwo) : null}
-				</div>
-			) : null}
-			{collapsed.length > 0 ? (
-				<aside
-					aria-label={t({
-						id: "panel-container.collapsed-strip",
-						defaultMessage: "Collapsed panels",
-					})}
-					// `shrink-0` keeps the strip visible no matter how narrow the
-					// rail gets — the columns area absorbs the squeeze instead.
-					className="flex w-8 shrink-0 flex-col items-center gap-1 py-2"
-				>
-					{collapsed.map((panel) => (
-						<button
-							aria-label={
-								typeof panel.title === "string"
-									? panel.title
-									: t({
-											id: "panel-container.expand",
-											defaultMessage: "Expand panel",
-										})
-							}
-							className="grid size-7 place-items-center rounded text-base-content/60 hover:bg-base-200 hover:text-base-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-							key={panel.id}
-							onClick={
-								onToggleCollapse ? () => onToggleCollapse(panel.id) : undefined
-							}
-							title={typeof panel.title === "string" ? panel.title : undefined}
-							type="button"
-						>
-							{panel.icon}
-						</button>
-					))}
-				</aside>
-			) : null}
-		</div>
+		<PanelStack
+			className={cn("w-full", className)}
+			onClose={onClose}
+			onCollapse={onCollapse}
+			panels={visible}
+		/>
 	);
 }

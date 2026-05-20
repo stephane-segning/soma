@@ -1,28 +1,36 @@
 /**
- * Resize handle — a single hairline divider between the side panel and
- * the main content. The visible line is always 1px (the same weight as
- * any other shell divider); on hover the line shifts to the primary
- * accent so the user gets a "this is grabbable" affordance without the
- * line itself getting fatter or animating.
+ * Resize handle — invisible at rest, only a small primary-tinted pill
+ * fades in on hover.
  *
- * The hit area is wider than the line: a 7px-wide invisible strip
- * straddles the divider so users don't have to pixel-hunt with the
- * cursor. `cursor-col-resize` is set on the wrapper so the cursor
- * changes the moment it enters the hit area, not just when it lands
- * exactly on the line.
+ * With the floating-card aesthetic in `Panel` + `PanelContainer`, any
+ * always-visible vertical divider reads as a stray line cutting through
+ * the gutter between cards. The previous revision painted a 1 px
+ * `bg-base-300` hairline that was always on — the user called it out
+ * as breaking the UI on rails full of cards.
  *
- * Earlier revisions rendered a 1.5px-to-2.5px-wide pill in the middle
- * of the divider that grew on hover — that "rubber band" effect is
- * what the user called out as ugly. We don't do that anymore.
+ * Now:
+ *   - **Resting state.** Nothing visible. Just a transparent 8 px-wide
+ *     hit area with `cursor-col-resize`, so the cursor still changes
+ *     when it enters the seam.
+ *   - **Hover.** A 2 px-wide × 40 px-tall pill in `bg-primary/50` fades
+ *     in via opacity (no transform — opacity only, so the affordance
+ *     can't be mistaken for the kind of hover-zoom we've spent two PRs
+ *     hunting down).
+ *   - **Active drag.** Pill solidifies to `bg-primary`.
+ *
+ * The visible pill is `pointer-events-none` so the parent hit area
+ * keeps owning the mouse events.
  */
 export function ResizeHandle() {
 	return (
 		<div
 			aria-hidden
-			className="group relative -mx-[3px] h-full w-[7px] cursor-col-resize"
+			className="group relative -mx-1 h-full w-2 cursor-col-resize"
 			role="none"
 		>
-			<span className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-base-300 group-hover:bg-primary/60 group-active:bg-primary" />
+			<span
+				className="pointer-events-none absolute top-1/2 left-1/2 h-10 w-0.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/50 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-active:bg-primary group-active:opacity-100"
+			/>
 		</div>
 	);
 }

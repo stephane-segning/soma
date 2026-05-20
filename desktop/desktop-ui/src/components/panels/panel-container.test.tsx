@@ -1,10 +1,11 @@
 /**
- * PanelContainer layout contract — stable two-column positions.
+ * PanelContainer contract — renders the expanded subset of the panel
+ * inventory as a vertical full-width stack.
  *
- * Each panel's position is determined by its index in `panels`. Odd
- * positions (1st, 3rd, 5th …) → column 1; even positions (2nd, 4th …)
- * → column 2. Collapsed panels live in the right rail. There is no
- * cap; every open panel renders in its assigned column.
+ * The chip strip moved out (it now lives in `PanelChipBar`, dropped
+ * into `DesktopShell`'s top-corner slots), so PanelContainer is now a
+ * thin composition over `PanelStack`. Tests focus on the filter +
+ * stack contract.
  */
 import { fireEvent, render } from "@testing-library/react";
 import { useState } from "react";
@@ -23,23 +24,22 @@ function makePanels(count: number): PanelDescriptor[] {
 
 function Harness({
 	panelCount,
-	initiallyCollapsed = [],
+	initialExpanded,
 }: {
 	panelCount: number;
-	initiallyCollapsed?: string[];
+	initialExpanded: string[];
 }) {
-	const [collapsed, setCollapsed] = useState<Set<string>>(
-		() => new Set(initiallyCollapsed),
+	const [expanded, setExpanded] = useState<Set<string>>(
+		() => new Set(initialExpanded),
 	);
 	return (
 		<SomaIntlProvider>
 			<PanelContainer
-				collapsedIds={collapsed}
-				onToggleCollapse={(id) => {
-					setCollapsed((prev) => {
+				expandedIds={expanded}
+				onCollapse={(id) => {
+					setExpanded((prev) => {
 						const next = new Set(prev);
-						if (next.has(id)) next.delete(id);
-						else next.add(id);
+						next.delete(id);
 						return next;
 					});
 				}}
@@ -49,67 +49,62 @@ function Harness({
 	);
 }
 
-function cardTitles(container: HTMLElement): string[] {
+function panelTitles(container: HTMLElement): string[] {
 	return Array.from(container.querySelectorAll("section h2")).map(
 		(h) => h.textContent ?? "",
 	);
 }
 
-describe("PanelContainer two-column stable positions", () => {
-	it("renders all open panels — no cap, no overflow", () => {
-		const { container } = render(<Harness panelCount={5} />);
-		expect(container.querySelectorAll("section").length).toBe(5);
-	});
-
-	it("places odd-position panels in column 1 and even-position in column 2", () => {
-		const { container } = render(<Harness panelCount={5} />);
-		const columns = container.querySelectorAll("[aria-label='Side panels'] > div > div");
-		// 2 columns rendered (both have at least one open panel).
-		expect(columns.length).toBe(2);
-		const col1Titles = Array.from(columns[0].querySelectorAll("section h2")).map(
-			(h) => h.textContent,
-		);
-		const col2Titles = Array.from(columns[1].querySelectorAll("section h2")).map(
-			(h) => h.textContent,
-		);
-		// Panel 0, 2, 4 → col 1 ; Panel 1, 3 → col 2.
-		expect(col1Titles).toEqual(["Panel 0", "Panel 2", "Panel 4"]);
-		expect(col2Titles).toEqual(["Panel 1", "Panel 3"]);
-	});
-
-	it("when no panel is expanded, only the strip renders (no empty placeholder)", () => {
+describe("PanelContainer", () => {
+	it("renders only the panels whose ids are in expandedIds", () => {
 		const { container } = render(
-			<Harness initiallyCollapsed={["p0", "p1", "p2"]} panelCount={3} />,
+			<Harness initialExpanded={["p0", "p2", "p4"]} panelCount={5} />,
+		);
+		expect(panelTitles(container)).toEqual(["Panel 0", "Panel 2", "Panel 4"]);
+	});
+
+	it("returns null when no panels are expanded (no DOM)", () => {
+		const { container } = render(
+			<Harness initialExpanded={[]} panelCount={3} />,
 		);
 		expect(container.querySelectorAll("section").length).toBe(0);
-		expect(container.querySelector("aside")).not.toBeNull();
 	});
 
-	it("toggling a collapsed icon expands the panel into its assigned column", () => {
+	it("preserves the panels' inventory order, not the order of expansion", () => {
+		// Even if the expanded set was populated in a different order than
+		// the inventory, the stack reflects inventory order.
 		const { container } = render(
-			<Harness initiallyCollapsed={["p0", "p1", "p2"]} panelCount={3} />,
+			<Harness initialExpanded={["p2", "p0", "p1"]} panelCount={3} />,
 		);
-		expect(cardTitles(container)).toEqual([]);
-
-		// Click the second strip icon (Panel 1, an even-index/column-2 panel).
-		const stripButtons = container.querySelectorAll("aside button");
-		fireEvent.click(stripButtons[1]);
-
-		// Panel 1 lives in column 2; column 1 is now empty.
-		const titles = cardTitles(container);
-		expect(titles).toEqual(["Panel 1"]);
-		// 2 collapsed icons remain in the strip (p0, p2).
-		expect(container.querySelectorAll("aside button").length).toBe(2);
+		expect(panelTitles(container)).toEqual(["Panel 0", "Panel 1", "Panel 2"]);
 	});
 
-	it("a column with only one open panel takes the full height (flex-1)", () => {
-		// Easier asserted by checking the Panel section has min-h-0 flex-1
-		// classes; we trust the flex layout for the actual heights.
+	it("clicking a panel's collapse button removes it from the expanded set", () => {
 		const { container } = render(
-			<Harness initiallyCollapsed={["p1", "p2"]} panelCount={3} />,
+			<Harness initialExpanded={["p0", "p1"]} panelCount={2} />,
 		);
-		const card = container.querySelector("section");
-		expect(card?.className).toContain("flex-1");
-		expect(card?.className).toContain("min-h-0");
+		expect(panelTitles(container)).toEqual(["Panel 0", "Panel 1"]);
+
+		// Each panel header carries a single `−` collapse button (aria-label
+		// "Collapse panel" via i18n).
+		const collapseButtons = container.querySelectorAll(
+			"[aria-label='Collapse panel']",
+		);
+		expect(collapseButtons.length).toBe(2);
+
+		fireEvent.click(collapseButtons[0]);
+		expect(panelTitles(container)).toEqual(["Panel 1"]);
+	});
+
+	it("each rendered panel card has flex-1 + min-h-0 so heights split evenly", () => {
+		const { container } = render(
+			<Harness initialExpanded={["p0", "p1"]} panelCount={2} />,
+		);
+		const cards = container.querySelectorAll("section");
+		expect(cards.length).toBe(2);
+		for (const card of cards) {
+			expect(card.className).toContain("flex-1");
+			expect(card.className).toContain("min-h-0");
+		}
 	});
 });

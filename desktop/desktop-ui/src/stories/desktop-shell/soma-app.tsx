@@ -1,29 +1,33 @@
 /**
- * Flagship DesktopShell example — what the actual Soma renderer looks
- * like when every primitive in @soma/ui is composed together.
+ * Flagship DesktopShell example — what the real Soma renderer looks
+ * like once every primitive in @soma/ui is composed together.
  *
- * The point of this story isn't to test DesktopShell in isolation
- * (the other variants do that with abstract content). It's to show
- * how the *real* app screen is assembled: pages list in the left
- * column, an editor-style document in the centre, a PanelContainer
- * with bots + history in the right column, daisy components carrying
- * the chrome.
+ * Demonstrates the **chip-bar + rail** model:
+ *   - Two floating `PanelChipBar`s sit in main's top-left and
+ *     top-right corners. They show icons for **collapsed** panels.
+ *   - When a chip is clicked, the corresponding panel expands into
+ *     its rail (left or right) and disappears from the chip bar.
+ *   - When a panel's `−` button is clicked, the panel collapses
+ *     back into the chip bar.
+ *   - If every panel is collapsed, the rail unmounts entirely and
+ *     main reclaims that width.
  *
- * Density discipline: every list uses `list list-dense` (see
- * `styles.css`). Without `list-dense` the daisy `.list-row` default
- * lands at ~56-60px row height, which doesn't look like any desktop
- * app a real user would tolerate.
+ * Moving a panel from the left rail to the right rail (or vice-
+ * versa) is a one-line shift between `LEFT_PANELS` and `RIGHT_PANELS`
+ * at build time. There is no runtime drag-and-drop.
  *
- * If something in this preview looks wrong it's almost always wrong
- * in the renderer too — treat this as the visual-regression canary
- * for the whole shell.
+ * Treat this story as the visual-regression canary for the whole
+ * shell — if something looks off here, it's almost always off in the
+ * actual renderer too.
  */
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import {
 	Calendar,
 	Clock,
 	Cpu,
 	FileText,
+	Hash,
+	List,
 	MessageSquare,
 	Plus,
 	Search,
@@ -31,7 +35,7 @@ import {
 import { BackendSwitcher } from "../../components/chat/backend-switcher";
 import { DesktopShell } from "../../components/layout/desktop-shell";
 import { type Bot, BotList } from "../../components/lists/bot-list";
-import { Panel } from "../../components/panels/panel";
+import { PanelChipBar } from "../../components/panels/panel-chip-bar";
 import {
 	PanelContainer,
 	type PanelDescriptor,
@@ -93,46 +97,113 @@ const BACKENDS = [
 
 export function SomaAppRender() {
 	const [activePage, setActivePage] = useState("p2");
-	const [collapsed, setCollapsed] = useState<Set<string>>(
-		new Set(["panel-agenda"]),
-	);
 	const [activeBackend, setActiveBackend] = useState(BACKENDS[0].id);
 
-	const panels: PanelDescriptor[] = [
+	// Build-time inventories — moving a panel between sides is just a
+	// shift between these two arrays.
+	const LEFT_PANELS: PanelDescriptor[] = [
 		{
-			id: "panel-chat",
+			id: "pages",
+			title: "Pages",
+			icon: <Hash className="size-3.5" />,
+			actions: (
+				<button
+					aria-label="New page"
+					className="grid size-5 place-items-center rounded text-base-content/55 hover:bg-base-200 hover:text-base-content"
+					type="button"
+				>
+					<Plus className="size-3" />
+				</button>
+			),
+			content: <PagesPanel activeId={activePage} onSelect={setActivePage} />,
+		},
+		{
+			id: "outline",
+			title: "Outline",
+			icon: <List className="size-3.5" />,
+			content: <OutlinePanel />,
+		},
+	];
+
+	const RIGHT_PANELS: PanelDescriptor[] = [
+		{
+			id: "chat",
 			title: "Chat",
 			icon: <MessageSquare className="size-3.5" />,
 			content: <ChatPanel />,
 		},
 		{
-			id: "panel-bots",
+			id: "bots",
 			title: "Bots",
 			icon: <Cpu className="size-3.5" />,
 			content: <BotList bots={BOTS} />,
 		},
 		{
-			id: "panel-history",
+			id: "history",
 			title: "Page history",
 			icon: <Clock className="size-3.5" />,
 			content: <HistoryPanel />,
 		},
 		{
-			id: "panel-agenda",
+			id: "agenda",
 			title: "Agenda",
 			icon: <Calendar className="size-3.5" />,
 			content: <AgendaPanel />,
 		},
 	];
 
+	// Default-expanded state matches what a returning user would see:
+	// Pages on the left, Chat on the right.
+	const [leftExpanded, setLeftExpanded] = useState<Set<string>>(
+		() => new Set(["pages"]),
+	);
+	const [rightExpanded, setRightExpanded] = useState<Set<string>>(
+		() => new Set(["chat"]),
+	);
+
+	const expandLeft = useCallback(
+		(id: string) =>
+			setLeftExpanded((prev) => {
+				const next = new Set(prev);
+				next.add(id);
+				return next;
+			}),
+		[],
+	);
+	const collapseLeft = useCallback(
+		(id: string) =>
+			setLeftExpanded((prev) => {
+				const next = new Set(prev);
+				next.delete(id);
+				return next;
+			}),
+		[],
+	);
+	const expandRight = useCallback(
+		(id: string) =>
+			setRightExpanded((prev) => {
+				const next = new Set(prev);
+				next.add(id);
+				return next;
+			}),
+		[],
+	);
+	const collapseRight = useCallback(
+		(id: string) =>
+			setRightExpanded((prev) => {
+				const next = new Set(prev);
+				next.delete(id);
+				return next;
+			}),
+		[],
+	);
+
+	const leftHasExpanded = leftExpanded.size > 0;
+	const rightHasExpanded = rightExpanded.size > 0;
+
 	return (
 		<DesktopShell
-			// `bg-base-200` on the shell + transparent rails means the cards
-			// inside the rails (left sidebar, right panels) read as
-			// "floating" — the gray frame shows through the `p-2` gutters
-			// around each card. The main editor area is restored to
-			// `bg-base-100` via `mainClassName` so the document still
-			// renders on a white page.
+			// Shell frame is tinted base-200 so the bg-base-100 cards float.
 			className="bg-base-200"
 			header={() => (
 				<AppHeader
@@ -140,24 +211,42 @@ export function SomaAppRender() {
 					onChangeBackend={setActiveBackend}
 				/>
 			)}
-			initialLeftWidth={220}
-			initialRightWidth={620}
-			leftColumn={<Sidebar activePage={activePage} onSelect={setActivePage} />}
+			initialLeftWidth={240}
+			initialRightWidth={320}
+			leftColumn={
+				leftHasExpanded ? (
+					<PanelContainer
+						expandedIds={leftExpanded}
+						onCollapse={collapseLeft}
+						panels={LEFT_PANELS}
+					/>
+				) : null
+			}
 			mainClassName="bg-base-100"
-			rightColumn={
-				<PanelContainer
-					className="h-full"
-					collapsedIds={collapsed}
-					onToggleCollapse={(id) =>
-						setCollapsed((prev) => {
-							const next = new Set(prev);
-							if (next.has(id)) next.delete(id);
-							else next.add(id);
-							return next;
-						})
-					}
-					panels={panels}
+			mainTopLeft={
+				<PanelChipBar
+					expandedIds={leftExpanded}
+					onExpand={expandLeft}
+					panels={LEFT_PANELS}
+					placement="top-left"
 				/>
+			}
+			mainTopRight={
+				<PanelChipBar
+					expandedIds={rightExpanded}
+					onExpand={expandRight}
+					panels={RIGHT_PANELS}
+					placement="top-right"
+				/>
+			}
+			rightColumn={
+				rightHasExpanded ? (
+					<PanelContainer
+						expandedIds={rightExpanded}
+						onCollapse={collapseRight}
+						panels={RIGHT_PANELS}
+					/>
+				) : null
 			}
 		>
 			<EditorMock
@@ -200,53 +289,55 @@ function AppHeader({
 	);
 }
 
-function Sidebar({
-	activePage,
+function PagesPanel({
+	activeId,
 	onSelect,
 }: {
-	activePage: string;
+	activeId: string;
 	onSelect: (id: string) => void;
 }) {
 	return (
-		// Same `p-2` outer gutter as `PanelContainer` uses on the right, so
-		// the floating card on the left lines up vertically with the cards
-		// on the right and the editor area sits between them with even
-		// breathing room. The card itself comes from `<Panel>` — identical
-		// chrome to a right-rail panel, so the shell reads as a single row
-		// of consistent floating panels.
-		<div className="flex h-full min-h-0 p-2">
-			<Panel
-				actions={
-					<button
-						aria-label="New page"
-						className="grid size-5 place-items-center rounded text-base-content/55 hover:bg-base-200 hover:text-base-content"
-						type="button"
+		<ul className="list list-dense bg-base-100">
+			{PAGES.map((page) => (
+				<li
+					aria-selected={page.id === activeId}
+					className={`cursor-pointer list-row hover:bg-base-200 ${
+						page.id === activeId
+							? "bg-base-200 font-medium text-base-content"
+							: ""
+					}`}
+					key={page.id}
+					onClick={() => onSelect(page.id)}
+				>
+					<span aria-hidden>{page.emoji}</span>
+					<span className="list-col-grow truncate">{page.title}</span>
+				</li>
+			))}
+		</ul>
+	);
+}
+
+function OutlinePanel() {
+	const headings = [
+		{ level: 1, text: "Wave 3 cutover" },
+		{ level: 2, text: "Capability ladder" },
+		{ level: 2, text: "Rollback rehearsal" },
+		{ level: 2, text: "Comms plan" },
+	];
+	return (
+		<ul className="list list-dense bg-base-100">
+			{headings.map((h, idx) => (
+				<li className="list-row hover:bg-base-200" key={`${h.level}-${idx}`}>
+					<span
+						className="text-base-content/40 text-[10px]"
+						style={{ paddingInlineStart: (h.level - 1) * 12 }}
 					>
-						<Plus className="size-3" />
-					</button>
-				}
-				className="min-h-0 w-full"
-				title="Pages"
-			>
-				<ul className="list list-dense bg-base-100">
-					{PAGES.map((page) => (
-						<li
-							aria-selected={page.id === activePage}
-							className={`cursor-pointer list-row hover:bg-base-200 ${
-								page.id === activePage
-									? "bg-base-200 font-medium text-base-content"
-									: ""
-							}`}
-							key={page.id}
-							onClick={() => onSelect(page.id)}
-						>
-							<span aria-hidden>{page.emoji}</span>
-							<span className="list-col-grow truncate">{page.title}</span>
-						</li>
-					))}
-				</ul>
-			</Panel>
-		</div>
+						H{h.level}
+					</span>
+					<span className="list-col-grow truncate">{h.text}</span>
+				</li>
+			))}
+		</ul>
 	);
 }
 
@@ -268,10 +359,11 @@ function EditorMock({ title }: { title: string }) {
 				the live version.
 			</p>
 			<p className="mb-6 text-sm leading-relaxed">
-				Keyboard shortcuts in @soma/ui render through the{" "}
-				<Kbd size="xs">Kbd</Kbd> primitive, so chords like{" "}
-				<Kbd size="xs">⌘+B</Kbd> for bold and <Kbd size="xs">⌘+⇧+K</Kbd> for the
-				link prompt look identical wherever they appear.
+				The floating chip bars at the top-left and top-right of this column
+				control the side rails. Click an icon to expand a panel into its rail
+				(the rail will appear with its persisted width); click the{" "}
+				<Kbd size="xs">−</Kbd> on a panel header to collapse it back into the
+				chip bar.
 			</p>
 
 			<h2 className="mb-3 font-semibold text-lg">Tasks</h2>
@@ -299,24 +391,18 @@ function EditorMock({ title }: { title: string }) {
 					</span>
 				</li>
 				<li className="flex items-start gap-2">
-					<input
-						className="checkbox checkbox-xs mt-0.5"
-						readOnly
-						type="checkbox"
-					/>
+					<input className="checkbox checkbox-xs mt-0.5" readOnly type="checkbox" />
 					<span>Add a kbd primitive everyone can use</span>
 				</li>
 			</ul>
 
 			<pre className="not-prose overflow-x-auto rounded-md bg-neutral p-4 text-neutral-content text-xs">
-				<code>{`// daisyUI list-row in DenseRow, with our list-dense modifier
-<ul class="list list-dense bg-base-100">
-  <li class="list-row">
-    <span>📦</span>
-    <span class="list-col-grow">Wave 3 cutover</span>
-    <kbd class="kbd kbd-xs">⌘</kbd>
-  </li>
-</ul>`}</code>
+				<code>{`<DesktopShell
+  mainTopLeft={<PanelChipBar panels={leftPanels} expandedIds={…} />}
+  mainTopRight={<PanelChipBar panels={rightPanels} expandedIds={…} />}
+  leftColumn={left.size > 0 ? <PanelContainer …/> : null}
+  rightColumn={right.size > 0 ? <PanelContainer …/> : null}
+/>`}</code>
 			</pre>
 		</div>
 	);
@@ -339,8 +425,9 @@ function ChatPanel() {
 						Assistant
 					</span>
 					<p className="text-base-content/80">
-						Editor polish PR ships Cmd+K link insertion, the bright drop cursor,
-						and a unified MenuShell primitive across slash / context / AI bar.
+						Editor polish PR ships Cmd+K link insertion, the bright drop
+						cursor, and a unified MenuShell primitive across slash / context /
+						AI bar.
 					</p>
 				</div>
 			</div>
