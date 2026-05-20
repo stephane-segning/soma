@@ -39,6 +39,56 @@ export type StageBlobResult = {
 	}[];
 };
 
+/**
+ * Args for the upload-outbox's "stage a payload to disk" step.
+ *
+ * Mirrors {@link B.StageUploadArgs} shape but is declared by hand here
+ * because the Electron handler (`blobs_stage_payload`) lives under a
+ * different command name than the Tauri `blobs_stage_upload` binding —
+ * see TODO on {@link Blobs.stagePayload} below.
+ */
+export type StagePayloadArgs = {
+	bytes: number[];
+	mime: string;
+	fileName?: string;
+};
+
+export type StagePayloadResult = {
+	payloadPath: string;
+	byteLength: number;
+	mime: string;
+	fileName?: string;
+	createdAtMs: number;
+};
+
+/** Args for "consume a previously-staged payload and stage it as a blob". */
+export type StageFromPayloadArgs = {
+	spaceId: string;
+	docId?: string;
+	payloadPath: string;
+	mime: string;
+	fileName?: string;
+};
+
+export type StageFromPayloadVariant = {
+	cid: string;
+	size: number;
+	mime: string;
+	name: string;
+	url: string;
+	width?: number;
+	height?: number;
+};
+
+export type StageFromPayloadResult = {
+	cid: string;
+	size: number;
+	mime: string;
+	name: string;
+	url: string;
+	variants?: StageFromPayloadVariant[];
+};
+
 export function blobs(t: Transport) {
 	return {
 		upload: (args: B.UploadBlobArgs) => t.invoke<B.UploadBlobResult>("blobs_upload", { args }),
@@ -54,5 +104,17 @@ export function blobs(t: Transport) {
 		 * unwrap. Either way the call shape here stays the same.
 		 */
 		stage: (args: StageBlobArgs) => t.invoke<StageBlobResult>("blobs_stage", { args }),
+
+		// TODO(tauri): the two methods below currently only resolve against
+		// the Electron transport — there are no `blobs_stage_payload` /
+		// `blobs_stage_from_payload` commands on the Tauri side yet. They
+		// back the upload-outbox's two-step (stage-to-disk, then upload)
+		// flow and will need matching Tauri presenters before the Tauri
+		// shell can drive the outbox. The `{ args: … }` envelope is
+		// unwrapped by `electronTransport`, so the existing flat-payload
+		// Electron handlers keep working unchanged.
+		stagePayload: (args: StagePayloadArgs) => t.invoke<StagePayloadResult>("blobs_stage_payload", { args }),
+		stageFromPayload: (args: StageFromPayloadArgs) =>
+			t.invoke<StageFromPayloadResult>("blobs_stage_from_payload", { args }),
 	};
 }
