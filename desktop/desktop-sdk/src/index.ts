@@ -11,6 +11,16 @@
  * ```
  */
 
+// Documents-drafts types live in the SDK proper until the Tauri presenter
+// lands and specta starts emitting them into `bindings/`.
+export type {
+	DraftRecord,
+	GetDraftArgs,
+	QueueDaemonSyncArgs,
+	SyncPublishedDocumentArgs,
+	SyncPublishedDocumentResult,
+	UpsertDraftArgs,
+} from "./api/documents";
 // Practice module types live in the SDK proper until the Tauri presenter
 // lands and specta starts emitting them into `bindings/`.
 export type {

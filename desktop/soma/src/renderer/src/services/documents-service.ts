@@ -1,27 +1,20 @@
 /**
- * Documents service. Page / document commands migrate to `@soma/sdk`;
- * the *draft* commands (`documents_get_draft`, `documents_upsert_draft`,
- * `documents_queue_daemon_sync`, `documents_sync_published`) stay on
- * the raw `invoke()` helper for now because they target Electron-only
- * controllers that don't have a Tauri counterpart yet.
+ * Documents service. Page / document commands route through `@soma/sdk`
+ * (`backend.pages.*` / `backend.documents.*`). The draft commands are
+ * SDK-typed but still resolve against the Electron transport only —
+ * the Tauri presenter doesn't implement `documents_get_draft`,
+ * `documents_upsert_draft`, `documents_queue_daemon_sync`, or
+ * `documents_sync_published` yet.
  */
 
 import { createId } from "@paralleldrive/cuid2";
-import type { StoredPage } from "@soma/sdk";
-import { backend, invoke } from "../lib/ipc";
-
-type DraftRecord = {
-	spaceId: string;
-	documentId: string;
-	contentJson: string;
-	published: 0 | 1;
-	updatedAtMs: number;
-};
+import type { DraftRecord, StoredPage } from "@soma/sdk";
+import { backend } from "../lib/ipc";
 
 export type PageRecord = StoredPage;
 
 export async function getDraft(input: { spaceId: string; documentId: string }): Promise<DraftRecord | null> {
-	return invoke<DraftRecord | null>("documents_get_draft", input).catch(() => null);
+	return backend.documents.getDraft(input).catch(() => null);
 }
 
 export async function upsertDraft(input: {
@@ -30,7 +23,7 @@ export async function upsertDraft(input: {
 	contentJson: string;
 	published: boolean;
 }): Promise<{ ok: true }> {
-	await invoke("documents_upsert_draft", input);
+	await backend.documents.upsertDraft(input);
 	return { ok: true };
 }
 
@@ -41,7 +34,7 @@ export async function queueDaemonSync(input: {
 	updatedAtMs: number;
 	published?: boolean;
 }): Promise<{ ok: true }> {
-	await invoke("documents_queue_daemon_sync", input);
+	await backend.documents.queueDaemonSync(input);
 	return { ok: true };
 }
 
@@ -51,7 +44,7 @@ export async function syncPublishedDocument(input: {
 	contentJson: string;
 	updatedAtMs: number;
 }): Promise<{ ok: true; uploaded: number }> {
-	const result = await invoke<{ uploaded: number }>("documents_sync_published", input).catch(() => ({ uploaded: 0 }));
+	const result = await backend.documents.syncPublishedDocument(input).catch(() => ({ uploaded: 0 }));
 	return { ok: true, uploaded: result.uploaded };
 }
 
