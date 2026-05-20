@@ -1,5 +1,5 @@
 import { uploadJobsCollection } from "@app/lib/db";
-import { invoke } from "@app/lib/ipc";
+import { backend } from "@app/lib/ipc";
 import { createId } from "@paralleldrive/cuid2";
 import { createUploadJobRecord, isUploadJobRecord, type UploadJobRecord } from "@soma/desktop-db";
 
@@ -21,9 +21,7 @@ function decodeBase64Payload(base64: string): Uint8Array {
 }
 
 export async function queueUploadJob(input: QueueUploadInput): Promise<string> {
-	const stagedPayload = await invoke<{
-		payloadPath: string;
-	}>("blobs_stage_payload", {
+	const stagedPayload = await backend.blobs.stagePayload({
 		bytes: Array.from(input.bytes),
 		mime: input.mime,
 		fileName: input.fileName,
@@ -93,9 +91,7 @@ async function processJob(record: UploadJobRecord): Promise<void> {
 	let payloadPath = record.payloadPath;
 
 	if (!payloadPath && record.bytesBase64) {
-		const stagedPayload = await invoke<{
-			payloadPath: string;
-		}>("blobs_stage_payload", {
+		const stagedPayload = await backend.blobs.stagePayload({
 			bytes: Array.from(decodeBase64Payload(record.bytesBase64)),
 			mime: record.mime,
 			fileName: record.fileName,
@@ -126,22 +122,7 @@ async function processJob(record: UploadJobRecord): Promise<void> {
 	});
 
 	try {
-		const staged = await invoke<{
-			cid: string;
-			size: number;
-			mime: string;
-			name: string;
-			url: string;
-			variants?: {
-				cid: string;
-				size: number;
-				mime: string;
-				name: string;
-				url: string;
-				width?: number;
-				height?: number;
-			}[];
-		}>("blobs_stage_from_payload", {
+		const staged = await backend.blobs.stageFromPayload({
 			spaceId: record.spaceId,
 			docId: record.docId,
 			payloadPath,
