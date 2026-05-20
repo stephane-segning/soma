@@ -51,8 +51,11 @@ export function Taskbar({
 					const isActive = app.id === activeAppId;
 					return (
 						<motion.button
+							// No `transition-colors` — row-style highlights snap instantly
+							// per the MenuItem/MenuShell convention (see ../../utils/cn for the
+							// tailwind-merge story that made the bg-fade read as zoom).
 							className={cn(
-								"relative flex items-center gap-2 rounded-xl px-3 py-2 text-sm transition-colors",
+								"relative flex items-center gap-2 rounded-md px-3 py-2 text-sm",
 								isActive ? "bg-base-200" : "hover:bg-base-200",
 							)}
 							key={app.id}
@@ -60,7 +63,7 @@ export function Taskbar({
 							onClick={() => onSelectApp?.(app.id)}
 							type="button"
 						>
-							<span className="grid h-8 w-8 place-items-center rounded-lg bg-base-300/60 text-base-content/80">
+							<span className="grid h-8 w-8 place-items-center rounded-md bg-base-200 text-base-content/80">
 								{app.icon ?? <Square size={14} />}
 							</span>
 							<div className="min-w-[120px] text-left">
