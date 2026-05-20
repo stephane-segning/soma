@@ -68,6 +68,7 @@ tauri-plugin-opener = { version = "2" }
 tauri-plugin-os = { version = "2" }
 tauri-plugin-process = { version = "2" }
 tauri-plugin-shell = { version = "2" }
+tauri-plugin-single-instance = { version = "2" }
 tauri-plugin-store = { version = "2" }
 tauri-plugin-updater = { version = "2" }
 tauri-plugin-window-state = { version = "2" }

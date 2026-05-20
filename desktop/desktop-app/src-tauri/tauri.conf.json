@@ -12,11 +12,16 @@
 	"app": {
 		"windows": [
 			{
+				"label": "main",
 				"title": "Soma (Tauri spike)",
 				"width": 1280,
 				"height": 800,
 				"minWidth": 720,
-				"minHeight": 480
+				"minHeight": 480,
+				"decorations": false,
+				"titleBarStyle": "Overlay",
+				"hiddenTitle": true,
+				"visible": false
 			}
 		],
 		"security": {
