@@ -113,7 +113,7 @@ function Demo({
 				Editor column…
 			</div>
 			<PanelContainer
-				className="w-96 shrink-0"
+				className="shrink-0"
 				collapsedIds={collapsed}
 				onClosePanel={(id) =>
 					setOpenIds((prev) => {

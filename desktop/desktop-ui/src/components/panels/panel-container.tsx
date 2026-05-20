@@ -84,8 +84,16 @@ export function PanelContainer({
 
 	const expandedCount = columnOne.length + columnTwo.length;
 
+	// Each column is a fixed 20rem (320px) wide. The container's total
+	// width grows naturally with the number of visible columns — 1
+	// column = 20rem, 2 columns = ~40rem + the gap. Fixed-per-column
+	// is what gives every panel the same readable width regardless of
+	// how many other panels are open, which is the contract the user
+	// asked for. Callers who want a flexible-width column can drop
+	// `w-80` via className override on the columns slot, but the
+	// default favours legibility over filling space.
 	const renderColumn = (column: PanelDescriptor[]) => (
-		<div className="flex min-h-0 flex-1 flex-col gap-2">
+		<div className="flex min-h-0 w-80 shrink-0 flex-col gap-2">
 			{column.map((panel) => (
 				<Panel
 					actions={panel.actions}
@@ -118,7 +126,7 @@ export function PanelContainer({
 			    a column with 1 panel fills its height entirely; with 2 it
 			    splits 50/50, etc. */}
 			{expandedCount > 0 ? (
-				<div className="flex min-h-0 flex-1 gap-2 p-2">
+				<div className="flex min-h-0 gap-2 p-2">
 					{columnOne.length > 0 ? renderColumn(columnOne) : null}
 					{columnTwo.length > 0 ? renderColumn(columnTwo) : null}
 				</div>
