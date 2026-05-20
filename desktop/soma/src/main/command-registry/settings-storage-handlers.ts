@@ -2,9 +2,29 @@ import type { IpcMain } from "electron";
 import type { CommandRegistryContext } from "./types";
 
 export function registerSettingsStorageHandlers(ipc: IpcMain, context: CommandRegistryContext): void {
-	ipc.handle("settings_get", (_event, params) => context.settings.get(params?.key));
+	// Settings values cross the IPC boundary as JSON-encoded strings so
+	// the wire schema stays specta-friendly on the Tauri side. The
+	// Electron `SettingsController` stores raw JS values, so this layer
+	// does the encode/decode dance. Callers that still send raw values
+	// (`{ key, value }`) keep working as a back-compat fallback.
+	ipc.handle("settings_get", (_event, params) => {
+		const key = typeof params?.key === "string" ? params.key : "";
+		if (!key) return null;
+		const value = context.settings.get(key);
+		if (value === undefined || value === null) return null;
+		try {
+			return JSON.stringify(value);
+		} catch (error) {
+			console.warn("settings_get: failed to serialise value", { key, error });
+			return null;
+		}
+	});
+
 	ipc.handle("settings_set", (_event, params) => {
-		context.settings.set(params?.key, params?.value);
+		const key = typeof params?.key === "string" ? params.key : "";
+		if (!key) return;
+		const value = decodeSettingValue(params);
+		context.settings.set(key, value);
 	});
 
 	ipc.on("db_storage_get", (event, key) => {
@@ -29,4 +49,16 @@ export function registerSettingsStorageHandlers(ipc: IpcMain, context: CommandRe
 	ipc.on("db_storage_keys", (event) => {
 		event.returnValue = context.dbStorage.keys();
 	});
+}
+
+function decodeSettingValue(params: { value?: unknown; valueJson?: unknown } | undefined): unknown {
+	if (typeof params?.valueJson === "string") {
+		try {
+			return JSON.parse(params.valueJson);
+		} catch (error) {
+			console.warn("settings_set: invalid JSON value", { error });
+			return undefined;
+		}
+	}
+	return params?.value;
 }
