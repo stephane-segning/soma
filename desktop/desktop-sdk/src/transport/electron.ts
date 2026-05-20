@@ -46,7 +46,7 @@ export function electronTransport(opts: ElectronTransportOptions = {}): Transpor
 			const bridge = lookup();
 			if (!bridge?.invoke) throw toBackendError({ kind: "other", message: "Electron preload bridge unavailable" });
 			try {
-				return (await bridge.invoke<T>(command, args)) as T;
+				return (await bridge.invoke<T>(command, unwrapArgsEnvelope(args))) as T;
 			} catch (err) {
 				throw toBackendError(err);
 			}
@@ -69,6 +69,23 @@ export function electronTransport(opts: ElectronTransportOptions = {}): Transpor
 			return sub.call(bridge, handler as (event: unknown) => void);
 		},
 	};
+}
+
+/**
+ * The SDK's `api/*` modules wrap struct-style command args in `{ args: … }`
+ * because the Tauri presenter's `pub async fn cmd(args: Args)` signature
+ * expects exactly that shape. The Electron handlers in `command-registry/*`
+ * receive the payload directly (flat). This helper unwraps the envelope so
+ * one SDK call shape works against both shells without per-handler edits.
+ *
+ * Only collapses when `args` is the *only* key in the payload — calls
+ * that pass `{ spaceId, documentId, … }` (multi-field, no `args`) stay
+ * untouched.
+ */
+function unwrapArgsEnvelope(payload: Record<string, unknown>): unknown {
+	const keys = Object.keys(payload);
+	if (keys.length === 1 && keys[0] === "args") return payload.args;
+	return payload;
 }
 
 function preloadSubscriber(
