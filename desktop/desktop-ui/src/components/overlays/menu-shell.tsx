@@ -18,6 +18,7 @@ import {
 	type ReactNode,
 } from "react";
 import { cn } from "../../utils/cn";
+import { Kbd } from "../primitives/kbd";
 
 export type MenuShellProps = HTMLAttributes<HTMLDivElement> & {
 	/**
@@ -100,7 +101,12 @@ export const MenuItem = forwardRef<HTMLButtonElement, MenuItemProps>(function Me
 			) : null}
 			<span className="min-w-0 flex-1 truncate">{label}</span>
 			{shortcut != null ? (
-				<span className="shrink-0 font-mono text-base-content/40 text-xs">{shortcut}</span>
+				// Render the shortcut hint through `Kbd` so every menu's
+				// shortcut text shares the same key-cap visual instead of
+				// each surface inventing its own font-mono styling.
+				<Kbd className="shrink-0" size="xs">
+					{shortcut}
+				</Kbd>
 			) : null}
 		</button>
 	);

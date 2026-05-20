@@ -151,14 +151,10 @@ function BotEntry({
 		rowRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
 	}, [highlighted]);
 	return (
-		<li
-			className={cn(
-				"flex flex-col",
-				highlighted && "rounded-md ring-2 ring-primary ring-inset",
-			)}
-			ref={rowRef}
-		>
+		<>
 			<DenseRow
+				ref={rowRef}
+				className={highlighted ? "ring-2 ring-primary ring-inset" : undefined}
 				leading={
 					<span className="grid size-7 place-items-center rounded-md bg-info/10 text-info">
 						<Cpu aria-hidden className="size-3.5" />
@@ -209,7 +205,7 @@ function BotEntry({
 						</button>
 					) : undefined
 				}
-				tier="avatar"
+				
 			/>
 			{bot.status === "failed" && bot.errorReason ? (
 				<FailureRow
@@ -217,7 +213,7 @@ function BotEntry({
 					onRetry={onRetry ? () => onRetry(bot.id) : undefined}
 				/>
 			) : null}
-		</li>
+		</>
 	);
 }
 
@@ -271,13 +267,15 @@ function FailureRow({
 	onRetry?: () => void;
 }) {
 	const t = useT();
+	// Renders as its own <li> sibling under the parent <ul class="list"> so it
+	// gets the same divider treatment as the surrounding DenseRow rows.
 	return (
-		<div className="flex items-start gap-2 bg-error/5 px-3 py-2 text-sm">
+		<li className="flex items-start gap-2 bg-error/5 px-3 py-2 text-sm">
 			<AlertTriangle aria-hidden className="mt-0.5 size-4 shrink-0 text-error" />
 			<span className="min-w-0 flex-1 text-error">{message}</span>
 			{onRetry ? (
 				<button
-					className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-error transition-colors hover:bg-error/10"
+					className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-error hover:bg-error/10"
 					onClick={onRetry}
 					type="button"
 				>
@@ -285,7 +283,7 @@ function FailureRow({
 					{t({ id: "bot-list.retry", defaultMessage: "Retry" })}
 				</button>
 			) : null}
-		</div>
+		</li>
 	);
 }
 

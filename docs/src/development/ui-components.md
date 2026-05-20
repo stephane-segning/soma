@@ -10,7 +10,7 @@ The token sweep + foundation primitives ship before any component work. Every ne
 
 Defined in [`@soma/ui` styles.css](../../../desktop/desktop-ui/src/styles.css):
 
-- **Font sizes**: `text-body` (0.875rem / 14px), `text-ui-sm` (0.8125rem / 13px), `text-ui-xs` (0.6875rem / 11px). Line-heights paired with each size: `1.5` for body, `1.2` for UI chrome.
+- **Font sizes**: Use Tailwind's native `text-sm` (14px) for body + dense UI rows and `text-xs` (12px) for caps / hint text. The earlier `text-body / text-ui-sm / text-ui-xs` custom tokens were removed — they targeted exact 14 / 13 / 11px sizes from a density audit, but tailwind-merge silently dropped them when combined with `text-{color}` classes (the active-row "zoom on hover" bug). The 1px bumps on the densest surfaces are acceptable in exchange for the simpler model.
 - **Row height tiers**: `row-text` (2rem / 32px — text-only / icon-leading), `row-avatar` (2.5rem / 40px — avatar-leading rows), `row-card` (3.25rem / 52px — two-line content). `row-text` does **not** fit a 40px avatar — use `row-avatar` in that case.
 - **Single shadow token**: `--shadow-elevated` is the only allowed box-shadow, reserved for modal + popup window surfaces. **Shadows are off by default everywhere** — surfaces opt in via the `shadow-elevated` class.
 - **Surface utilities**: `surface-card` (border-only resting surface), `glass-panel` (translucent + backdrop blur, **no shadow**). Floating overlays that genuinely need depth (modal, command-palette, bubble-toolbar, context-menu, toast) add `shadow-elevated` explicitly. The `*-legacy` variants preserve pre-revamp depth and are deleted after cutover completes — see the scaffold doc §5.

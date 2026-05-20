@@ -38,6 +38,7 @@ import {
 } from "react";
 import { useT } from "../../i18n/use-t";
 import { cn } from "../../utils/cn";
+import { Kbd } from "../primitives/kbd";
 
 export type TreeDoc = {
 	id: string;
@@ -503,8 +504,8 @@ function KeyboardHintsFooter({
 
 function HintChip({ keys, label }: { keys: string; label: string }) {
 	return (
-		<span className="inline-flex items-center gap-1 rounded-sm bg-base-200 px-1.5 py-0.5">
-			<kbd className="font-mono text-xs">{keys}</kbd>
+		<span className="inline-flex items-center gap-1.5 px-1.5 py-0.5">
+			<Kbd size="xs">{keys}</Kbd>
 			<span>{label}</span>
 		</span>
 	);

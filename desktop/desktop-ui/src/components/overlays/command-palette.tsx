@@ -26,6 +26,7 @@ import { Search } from "react-feather";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useT } from "../../i18n/use-t";
 import { cn } from "../../utils/cn";
+import { Kbd } from "../primitives/kbd";
 import { OverlayPortal } from "./overlay-portal";
 
 export type CommandPaletteSectionKind =
@@ -309,9 +310,9 @@ export function CommandPalette({
 														) : null}
 													</span>
 													{item.shortcut ? (
-														<span className="shrink-0 font-mono text-base-content/40 text-xs">
+														<Kbd className="shrink-0" size="xs">
 															{item.shortcut}
-														</span>
+														</Kbd>
 													) : null}
 												</button>
 											);
@@ -368,8 +369,8 @@ function KeyboardHintsFooter() {
 
 function HintChip({ keys, label }: { keys: string; label: string }) {
 	return (
-		<span className="inline-flex items-center gap-1 rounded-sm bg-base-200 px-1.5 py-0.5">
-			<kbd className="font-mono text-xs">{keys}</kbd>
+		<span className="inline-flex items-center gap-1.5 px-1.5 py-0.5">
+			<Kbd size="xs">{keys}</Kbd>
 			<span>{label}</span>
 		</span>
 	);
