@@ -17,5 +17,6 @@ export * from "./bindings";
 export { BackendError, type BackendErrorKind, toBackendError } from "./errors";
 export { type Backend, createBackend } from "./facade";
 export type { Transport } from "./transport";
+export { type ElectronPreloadBridge, type ElectronTransportOptions, electronTransport } from "./transport/electron";
 export { type HttpTransportOptions, httpTransport } from "./transport/http";
 export { tauriTransport } from "./transport/tauri";

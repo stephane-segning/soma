@@ -1,10 +1,9 @@
 import { applyRemoteMailboxPolicy } from "@app/lib/document-mailbox";
+import { backend } from "@app/lib/ipc";
 import { api } from "@app/store/api";
 import { store } from "@app/store/store";
 import { type DomainEventPayload, parseDomainEventPayload } from "@soma/desktop-db";
 import { getDraft } from "./documents-service";
-
-type DomainEventHandler = (event: DomainEventPayload) => void;
 
 function handleDomainEvent(event: DomainEventPayload): void {
 	switch (event.kind) {
@@ -70,16 +69,9 @@ async function handleRemoteDocumentChanged(
 }
 
 export function startDomainEventListener(): () => void {
-	const apiBridge = typeof window !== "undefined" ? (window as any).api : undefined;
-	if (!apiBridge?.onDomainEvent) {
-		return () => undefined;
-	}
-
-	const handler: DomainEventHandler = (event) => {
+	return backend.events.onDomain((event) => {
 		const parsed = parseDomainEventPayload(event);
 		if (!parsed) return;
 		handleDomainEvent(parsed);
-	};
-
-	return apiBridge.onDomainEvent(handler);
+	});
 }

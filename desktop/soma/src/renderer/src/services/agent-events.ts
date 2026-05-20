@@ -1,12 +1,8 @@
-import { type AgentRuntimeEventPayload, parseAgentRuntimeEventPayload } from "@soma/desktop-db";
+import { backend } from "@app/lib/ipc";
+import { parseAgentRuntimeEventPayload } from "@soma/desktop-db";
 
 export function startAgentEventListener(): () => void {
-	const apiBridge = typeof window !== "undefined" ? (window as any).api : undefined;
-	if (!apiBridge?.onAgentEvent) {
-		return () => undefined;
-	}
-
-	return apiBridge.onAgentEvent((event: AgentRuntimeEventPayload) => {
+	return backend.events.onAgent((event) => {
 		const parsed = parseAgentRuntimeEventPayload(event);
 		if (!parsed) return;
 		if (parsed.kind === "error") {

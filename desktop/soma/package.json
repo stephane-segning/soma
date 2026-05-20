@@ -48,6 +48,7 @@
 		"@soma/desktop-db": "workspace:*",
 		"@soma/editor": "workspace:*",
 		"@soma/node": "workspace:*",
+		"@soma/sdk": "workspace:*",
 		"@soma/ui": "workspace:*",
 		"@tanstack/react-table": "^8.21.3",
 		"class-variance-authority": "^0.7.1",

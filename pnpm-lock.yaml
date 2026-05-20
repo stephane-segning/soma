@@ -629,6 +629,9 @@ importers:
       '@soma/node':
         specifier: workspace:*
         version: link:../../backend/crates/soma-node
+      '@soma/sdk':
+        specifier: workspace:*
+        version: link:../desktop-sdk
       '@soma/ui':
         specifier: workspace:*
         version: link:../desktop-ui
