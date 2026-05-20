@@ -58,7 +58,7 @@ export function InlineAIStream({
 				aria-busy="true"
 				aria-live="polite"
 				className={cn(
-					"inline-flex items-center gap-1 rounded-sm bg-info/10 px-1.5 py-0.5 align-baseline font-medium text-info text-ui-xs",
+					"inline-flex items-center gap-1 rounded-sm bg-info/10 px-1.5 py-0.5 align-baseline font-medium text-info text-xs",
 					className,
 				)}
 			>

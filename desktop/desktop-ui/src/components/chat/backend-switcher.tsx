@@ -103,7 +103,7 @@ export function BackendSwitcher({
 					defaultMessage: "Switch backend",
 				})}
 				className={cn(
-					"inline-flex items-center gap-1.5 rounded-md border border-base-300 bg-base-100 px-2 py-1 text-ui-xs transition-colors hover:bg-base-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+					"inline-flex items-center gap-1.5 rounded-md border border-base-300 bg-base-100 px-2 py-1 text-xs transition-colors hover:bg-base-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
 					disabled && "cursor-not-allowed opacity-50",
 					className,
 				)}
@@ -148,7 +148,10 @@ export function BackendSwitcher({
 									<button
 										aria-selected={isActive}
 										className={cn(
-											"flex w-full items-start gap-2 rounded-md px-2 py-1.5 text-left text-ui-sm transition-colors",
+											// No `transition-colors` — see MenuItem for context.
+											// Animating the row bg on hover/focus reads as the
+											// row "growing in" as the user mouses through the list.
+											"flex w-full items-start gap-2 rounded-md px-2 py-1.5 text-left text-sm",
 											isActive
 												? "bg-primary/10 text-base-content"
 												: isFocused
@@ -191,7 +194,7 @@ export function BackendSwitcher({
 												) : null}
 											</span>
 											{backend.meta ? (
-												<span className="truncate text-base-content/60 text-ui-xs">
+												<span className="truncate text-base-content/60 text-xs">
 													{backend.meta}
 												</span>
 											) : null}
@@ -209,7 +212,10 @@ export function BackendSwitcher({
 							/>
 							<button
 								className={cn(
-									"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-ui-sm transition-colors hover:bg-base-200 hover:text-base-content",
+									// No `transition-colors` — row-list highlights must snap,
+									// see MenuItem for context. The "Add backend…" footer is
+									// part of the same list so it follows the same rule.
+									"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-base-200 hover:text-base-content",
 									activeIndex === backends.length
 										? "bg-base-200 text-base-content"
 										: "text-base-content/80",

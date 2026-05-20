@@ -114,14 +114,14 @@ function Demo({
 	}));
 
 	return (
-		<div className="flex max-w-2xl flex-col gap-3 text-ui-sm">
+		<div className="flex max-w-2xl flex-col gap-3 text-sm">
 			<div className="rounded-md border border-base-300 bg-base-100 p-3">
 				<label className="flex flex-col gap-1">
-					<span className="text-base-content/60 text-ui-xs">
+					<span className="text-base-content/60 text-xs">
 						Filter (mock editor text after `/`)
 					</span>
 					<input
-						className="rounded-md border border-base-300 bg-base-100 px-2 py-1 text-body outline-none focus-visible:border-primary"
+						className="rounded-md border border-base-300 bg-base-100 px-2 py-1 text-sm outline-none focus-visible:border-primary"
 						onChange={(event) => setQuery(event.target.value)}
 						placeholder="type to filter…"
 						value={query}
@@ -138,7 +138,7 @@ function Demo({
 				onClose={() => setPicked("(closed)")}
 				query={query}
 			/>
-			<div className="text-base-content/60 text-ui-xs">
+			<div className="text-base-content/60 text-xs">
 				Last action: <code className="font-mono">{picked ?? "—"}</code>
 			</div>
 		</div>

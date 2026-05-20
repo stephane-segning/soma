@@ -29,7 +29,7 @@ function Demo({
 		setLog((prev) => [action, ...prev]);
 	}
 	return (
-		<div className="flex max-w-2xl flex-col gap-3 text-ui-sm">
+		<div className="flex max-w-2xl flex-col gap-3 text-sm">
 			<div className="rounded-md border border-base-300 bg-base-100 p-3 text-base-content/90">
 				<p>{SAMPLE_OUTPUT}</p>
 			</div>
@@ -48,11 +48,11 @@ function Demo({
 				}
 			/>
 			<div className="rounded-md border border-base-300 p-2 text-base-content/60">
-				<div className="text-ui-xs uppercase">Action log</div>
+				<div className="text-xs uppercase">Action log</div>
 				{log.length === 0 ? (
 					<div>No actions yet.</div>
 				) : (
-					<ul className="font-mono text-ui-xs">
+					<ul className="font-mono text-xs">
 						{log.map((entry, idx) => (
 							// biome-ignore lint/suspicious/noArrayIndexKey: append-only log
 							<li key={idx}>{entry}</li>

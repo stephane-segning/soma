@@ -117,7 +117,7 @@ function RailIcon({
 			aria-current={active ? "page" : undefined}
 			aria-label={item.name}
 			className={cn(
-				"relative inline-flex size-9 items-center justify-center rounded-md text-body transition-colors",
+				"relative inline-flex size-9 items-center justify-center rounded-md text-sm transition-colors",
 				active
 					? "bg-primary/15 text-primary"
 					: "text-base-content/80 hover:bg-base-200 hover:text-base-content",

@@ -132,7 +132,7 @@ What *does* change: the chat panel cutover (cutover 3 in scaffold §5) now leans
 - **Theme matrix.** Once the storybook decorator is fixed, run every story under both `cmyk` and `luxury` and capture any components that fail contrast in either. Likely 3–5 components; surface them as separate Wave 1 issues.
 - **Story coverage debt.** Every claimed-refactor component (command-palette, bubble-toolbar, context-menu, etc.) needs a story before the refactor begins. This is mechanical work and a good first-task for an implementer onboarding to the codebase.
 - **`PolymorphButton` consumer sweep.** After flipping the default to `default`, grep every caller; many likely currently pass `shape="default"` explicitly. Drop those — they're the workaround for the bad default.
-- **Yoopta subpath.** [AGENTS.md:167](../../../../AGENTS.md) lists `@soma/ui/yoopta` as a subpath. The PRD treats the editor as TipTap-only. Confirm whether `@soma/ui/yoopta` still ships anything or is dead code to delete in the cleanup.
+- **Yoopta subpath.** `AGENTS.md` (line 167, at the repo root — outside this docs tree) lists `@soma/ui/yoopta` as a subpath. The PRD treats the editor as TipTap-only. Confirm whether `@soma/ui/yoopta` still ships anything or is dead code to delete in the cleanup.
 
 ---
 

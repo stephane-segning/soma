@@ -47,7 +47,7 @@ export const WithDot: Story = {
 // The locked semantic combos that consumers should match across the app.
 export const BotStatusCombos: Story = {
 	render: () => (
-		<div className="flex flex-col gap-3 text-ui-sm">
+		<div className="flex flex-col gap-3 text-sm">
 			<div className="flex items-center gap-3">
 				<Pill dot="pulse" tone="neutral">
 					Pending

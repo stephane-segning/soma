@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
+import { BackendSwitcher } from "../components/chat/backend-switcher";
 import { AiInput } from "../components/forms/ai-input";
-import { AiModelSelector } from "../components/forms/ai-model-selector";
 import { notify } from "../components/overlays/toast";
 
 const meta: Meta<typeof AiInput> = {
@@ -23,27 +23,14 @@ export const Default: Story = {
 			<div className="space-y-4">
 				<AiInput
 					modelSelector={
-						<AiModelSelector
-							onChange={setModel}
-							options={[
-								{
-									id: "gpt-4o",
-									label: "GPT-4o",
-									description: "Balanced reasoning + speed",
-								},
-								{
-									id: "gpt-4o-mini",
-									label: "GPT-4o mini",
-									description: "Cheaper + fast",
-								},
-								{
-									id: "agent",
-									label: "Agent",
-									description: "Local agent via agentd",
-									hint: "Local",
-								},
+						<BackendSwitcher
+							activeId={model}
+							backends={[
+								{ id: "gpt-4o", name: "GPT-4o", meta: "Balanced reasoning + speed" },
+								{ id: "gpt-4o-mini", name: "GPT-4o mini", meta: "Cheaper + fast" },
+								{ id: "agent", name: "Agent", meta: "Local agent via agentd" },
 							]}
-							value={model}
+							onChange={setModel}
 						/>
 					}
 					onAttach={() => notify.info("Attach clicked")}
@@ -76,29 +63,15 @@ export const WithPreset: Story = {
 			<AiInput
 				{...args}
 				modelSelector={
-					<AiModelSelector
+					<BackendSwitcher
+						activeId={model}
+						backends={[
+							{ id: "agent", name: "Agent", meta: "Desktop agent via agentd" },
+							{ id: "gpt-4o", name: "GPT-4o", meta: "Balanced reasoning" },
+							{ id: "whisper", name: "Whisper", meta: "Transcription / voice" },
+						]}
 						className="min-w-[160px]"
 						onChange={setModel}
-						options={[
-							{
-								id: "agent",
-								label: "Agent",
-								description: "Desktop agent via agentd",
-								hint: "Local",
-							},
-							{
-								id: "gpt-4o",
-								label: "GPT-4o",
-								description: "Balanced reasoning",
-							},
-							{
-								id: "whisper",
-								label: "Whisper",
-								description: "Transcription / voice",
-								hint: "Audio",
-							},
-						]}
-						value={model}
 					/>
 				}
 				onChange={setText}

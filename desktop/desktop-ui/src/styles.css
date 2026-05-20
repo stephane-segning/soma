@@ -1,5 +1,10 @@
 @import "tailwindcss";
 @import "./tokens.css";
+/* Editor + list-runtime rules. Shared with the Soma renderer
+ * (`desktop/soma/src/renderer/src/styles/app.scss`) so the rules ship
+ * to production, not just Storybook. See `editor-runtime.css` for the
+ * full rationale. */
+@import "./editor-runtime.css";
 
 @plugin "tailwind-scrollbar";
 @plugin "@tailwindcss/typography";
@@ -31,3 +36,9 @@
 .react-hot-toast .toast-error {
 	@apply bg-error text-error-content;
 }
+
+/* The `.list-dense` modifier, ProseMirror drop-cursor / task-list /
+ * dragged-node styles all live in editor-runtime.css now so the same
+ * rules ship to the Soma renderer (which can't import this file
+ * directly without re-declaring the daisy plugin). See the import at
+ * the top of this file and the rationale in editor-runtime.css. */

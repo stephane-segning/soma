@@ -7,7 +7,7 @@ function OrderedListIcon() {
 	return (
 		<span
 			aria-hidden
-			className="inline-flex size-3.5 items-center justify-center font-mono text-ui-xs"
+			className="inline-flex size-3.5 items-center justify-center font-mono text-xs"
 		>
 			1.
 		</span>

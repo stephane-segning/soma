@@ -29,10 +29,10 @@ export function BubbleToolbar({
 			<AnimatePresence>
 				{open ? (
 					<motion.div
-						animate={{ opacity: 1, scale: 1 }}
+						animate={{ opacity: 1 }}
 						className="pointer-events-auto fixed z-50"
-						exit={{ opacity: 0, scale: 0.95 }}
-						initial={{ opacity: 0, scale: 0.95 }}
+						exit={{ opacity: 0 }}
+						initial={{ opacity: 0 }}
 						style={{ top: anchor.y, left: anchor.x }}
 						transition={{ duration: 0.12 }}
 					>

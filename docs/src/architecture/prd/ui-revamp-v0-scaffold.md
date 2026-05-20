@@ -8,7 +8,7 @@ PRD §7 step 5 is the deliverable; this is the spec for how step 5 runs.
 
 Before any component work, the design token system from [ADR-0005 §7](../adrs/0005-ui-revamp-v0.md) and [refs §3](./ui-revamp-v0-refs-files-density.md) lands in [desktop/desktop-ui/src/styles.css](../../../../desktop/desktop-ui/src/styles.css). Concretely:
 
-- **Font sizes (rem-based for accessibility).** Add `--text-body: 0.875rem` (14px @ 16px root), `--text-ui-sm: 0.8125rem` (13px), `--text-ui-xs: 0.6875rem` (11px) via Tailwind's `@theme`; set DaisyUI / Tailwind base to `--text-body`. Rem-based units honor user font scaling — important for accessibility and for a future web build, even though Electron itself rarely surfaces the OS font-size preference. Px equivalents are the design target; rem is the implementation unit.
+- **Font sizes (Tailwind-native).** Use `text-sm` (14px) for body + dense UI rows and `text-xs` (12px) for caps / hint text. Earlier waves shipped custom `--text-body / --text-ui-sm / --text-ui-xs` tokens at exact 14 / 13 / 11px from a density audit, but they were removed when tailwind-merge was found to silently drop them when combined with `text-{color}` classes in `cn(...)` compositions. The 1px upward adjustment on the densest rows is accepted as a tradeoff for the simpler scale.
 - **Line-heights.** `--leading-body: 1.5`, `--leading-ui: 1.2`. (Bumped from PRD's original 1.45.)
 - **Row heights.** Utility classes for three tiers, sized by content:
   - `row-text` — **2rem (32px)**, for text-only or icon-leading rows. **Does not fit a 40px avatar** — use `row-avatar` instead.

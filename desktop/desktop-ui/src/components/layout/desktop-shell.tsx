@@ -16,7 +16,23 @@ export type DesktopShellProps = {
 		hasRight: boolean;
 	}) => ReactNode;
 	footer?: ReactNode;
+	/**
+	 * Free-form overlay layer above the entire shell. Useful for global
+	 * modals, drag previews, etc.
+	 */
 	overlays?: ReactNode;
+	/**
+	 * Floating element pinned to the **top-left of the main column**
+	 * (not the shell — when the left rail opens, main shrinks and this
+	 * node moves with it). Designed for a `PanelChipBar`.
+	 */
+	mainTopLeft?: ReactNode;
+	/**
+	 * Floating element pinned to the **top-right of the main column**.
+	 * When the right rail opens, main shrinks and this node moves with
+	 * it. Designed for a `PanelChipBar`.
+	 */
+	mainTopRight?: ReactNode;
 	className?: string;
 	bodyClassName?: string;
 	headerClassName?: string;
@@ -26,10 +42,28 @@ export type DesktopShellProps = {
 	defaultRightOpen?: boolean;
 	initialLeftWidth?: number;
 	initialRightWidth?: number;
+	/**
+	 * Left rail resize bounds. The shell is "lightly resizable" on the
+	 * left because the typical left content (pages, outlines) doesn't
+	 * gain much from very wide rails.
+	 */
+	leftMinWidth?: number;
+	leftMaxWidth?: number;
+	/**
+	 * Right rail resize bounds. Right rails host chat / inspector /
+	 * tools, which want a broader range.
+	 */
+	rightMinWidth?: number;
+	rightMaxWidth?: number;
 	onLeftResizeStop?: (nextWidth: number) => void;
 	onRightResizeStop?: (nextWidth: number) => void;
 	storageKey?: string;
 };
+
+const DEFAULT_LEFT_MIN = 200;
+const DEFAULT_LEFT_MAX = 320;
+const DEFAULT_RIGHT_MIN = 280;
+const DEFAULT_RIGHT_MAX = 720;
 
 export function DesktopShell(props: DesktopShellProps) {
 	const state = useDesktopShellState(props);
@@ -47,6 +81,11 @@ export function DesktopShell(props: DesktopShellProps) {
 				: null,
 		[props.header, props.leftColumn, props.rightColumn, state],
 	);
+
+	const leftMinWidth = props.leftMinWidth ?? DEFAULT_LEFT_MIN;
+	const leftMaxWidth = props.leftMaxWidth ?? DEFAULT_LEFT_MAX;
+	const rightMinWidth = props.rightMinWidth ?? DEFAULT_RIGHT_MIN;
+	const rightMaxWidth = props.rightMaxWidth ?? DEFAULT_RIGHT_MAX;
 
 	return (
 		<div
@@ -67,7 +106,12 @@ export function DesktopShell(props: DesktopShellProps) {
 				)}
 			>
 				{headerNode ? (
-					<div className={cn("flex flex-col", props.headerClassName)}>
+					<div
+						className={cn(
+							"flex flex-col border-base-300 border-b bg-base-100",
+							props.headerClassName,
+						)}
+					>
 						{headerNode}
 					</div>
 				) : null}
@@ -79,6 +123,8 @@ export function DesktopShell(props: DesktopShellProps) {
 				>
 					<ShellPanel
 						content={props.leftColumn}
+						maxWidth={leftMaxWidth}
+						minWidth={leftMinWidth}
 						onResizeStop={(next) => {
 							state.setLeftWidth(next);
 							props.onLeftResizeStop?.(next);
@@ -87,16 +133,44 @@ export function DesktopShell(props: DesktopShellProps) {
 						side="left"
 						width={state.leftWidth}
 					/>
+					{/* Main column. Two-layer structure: the OUTER `<main>` is
+					    `relative` and `overflow-hidden`; the INNER scroll
+					    container holds the scrollable children. The
+					    `mainTopLeft` / `mainTopRight` slots are absolutely
+					    positioned against the outer `<main>`, *outside* the
+					    scrollable inner — so they stay pinned to the visible
+					    top corners no matter how far the user scrolls.
+					    Previous revisions nested the overlays inside the same
+					    element that owned `overflow-auto`, which made the
+					    chip bars disappear once the doc was scrolled
+					    (eliminating the only affordance to re-open collapsed
+					    panels). The `<main>` element still owns the
+					    `mainClassName` so callers can theme the surface as
+					    before. */}
 					<main
 						className={cn(
-							"max-h-full min-h-0 flex-1 overflow-auto",
+							"relative max-h-full min-h-0 flex-1 overflow-hidden",
 							props.mainClassName,
 						)}
 					>
-						{props.children}
+						<div className="h-full w-full overflow-auto">
+							{props.children}
+						</div>
+						{props.mainTopLeft ? (
+							<div className="pointer-events-none absolute top-2 left-2 z-10">
+								<div className="pointer-events-auto">{props.mainTopLeft}</div>
+							</div>
+						) : null}
+						{props.mainTopRight ? (
+							<div className="pointer-events-none absolute top-2 right-2 z-10">
+								<div className="pointer-events-auto">{props.mainTopRight}</div>
+							</div>
+						) : null}
 					</main>
 					<ShellPanel
 						content={props.rightColumn}
+						maxWidth={rightMaxWidth}
+						minWidth={rightMinWidth}
 						onResizeStop={(next) => {
 							state.setRightWidth(next);
 							props.onRightResizeStop?.(next);

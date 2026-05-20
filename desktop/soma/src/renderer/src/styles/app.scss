@@ -3,6 +3,15 @@
 @import "highlight.js/styles/github.css";
 /* Shared design tokens + surface utilities — single source of truth. */
 @import "../../../../../desktop-ui/src/tokens.css";
+/* Editor / list-row runtime rules shared with Storybook. Without this
+ * import the Soma renderer ships without `.soma-drop-cursor`, the
+ * ProseMirror task-list flex fix, the `.list-dense` row override, and
+ * the dragged-node feedback — all wired into `@soma/ui` primitives
+ * but otherwise dead in production. See editor-runtime.css for the
+ * full rationale (the file is imported here instead of `styles.css`
+ * because `styles.css` re-declares the daisy plugin with a different
+ * theme list, which would clash with the renderer's own config). */
+@import "../../../../../desktop-ui/src/editor-runtime.css";
 
 @source "../../../../../desktop-ui/src";
 @source "../../../../../desktop-editor/src";

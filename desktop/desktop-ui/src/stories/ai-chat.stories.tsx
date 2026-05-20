@@ -3,8 +3,8 @@ import { useEffect, useState } from "react";
 import { AiChat } from "../components/chat/ai-chat";
 import { AiConversation } from "../components/chat/ai-conversation";
 import type { ChatMessage } from "../components/chat/ai-message";
+import { BackendSwitcher } from "../components/chat/backend-switcher";
 import { AiInput } from "../components/forms/ai-input";
-import { AiModelSelector } from "../components/forms/ai-model-selector";
 import { notify } from "../components/overlays/toast";
 
 const meta: Meta = {
@@ -68,17 +68,13 @@ export const WithThinking: Story = {
 					</AiChat>
 					<AiInput
 						modelSelector={
-							<AiModelSelector
-								onChange={setModel}
-								options={[
-									{
-										id: "gpt-4o",
-										label: "GPT-4o",
-										description: "Reasoning + speed",
-									},
-									{ id: "agent", label: "Agentd", description: "Local agent" },
+							<BackendSwitcher
+								activeId={model}
+								backends={[
+									{ id: "gpt-4o", name: "GPT-4o", meta: "Reasoning + speed" },
+									{ id: "agent", name: "Agentd", meta: "Local agent" },
 								]}
-								value={model}
+								onChange={setModel}
 							/>
 						}
 						onChange={setInput}

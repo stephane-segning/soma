@@ -56,7 +56,7 @@ function Demo() {
 				strike={strike}
 				underline={underline}
 			/>
-			<div className="text-base-content/60 text-ui-xs">
+			<div className="text-base-content/60 text-xs">
 				Link URL: <code className="font-mono">{linkUrl ?? "—"}</code>
 			</div>
 		</div>

@@ -94,7 +94,7 @@ function Demo({ nodeType = "paragraph" }: { nodeType?: string }) {
 	}, []);
 
 	return (
-		<div className="flex max-w-3xl flex-col gap-3 text-ui-sm">
+		<div className="flex max-w-3xl flex-col gap-3 text-sm">
 			<SelectionAIBar
 				nodeType={nodeType}
 				onClose={() => setLog((prev) => ["closed", ...prev])}
@@ -103,13 +103,13 @@ function Demo({ nodeType = "paragraph" }: { nodeType?: string }) {
 				selectedText={SAMPLE_TEXT}
 			/>
 			<div className="rounded-md border border-base-300 bg-base-100 p-3">
-				<div className="mb-1 text-base-content/60 text-ui-xs uppercase">
+				<div className="mb-1 text-base-content/60 text-xs uppercase">
 					Invocation log
 				</div>
 				{log.length === 0 ? (
 					<div className="text-base-content/60">No actions invoked yet.</div>
 				) : (
-					<ul className="flex flex-col gap-0.5 font-mono text-ui-xs">
+					<ul className="flex flex-col gap-0.5 font-mono text-xs">
 						{log.map((entry, idx) => (
 							// biome-ignore lint/suspicious/noArrayIndexKey: append-only log
 							<li key={idx}>{entry}</li>

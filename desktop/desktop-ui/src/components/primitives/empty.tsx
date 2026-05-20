@@ -69,11 +69,11 @@ function FullEmpty({
 			{icon ? (
 				<div className="text-base-content/40 [&>*]:size-12">{icon}</div>
 			) : null}
-			<div className="text-body font-medium text-base-content/80">
+			<div className="text-sm font-medium text-base-content/80">
 				{headline}
 			</div>
 			{subtext ? (
-				<div className="text-ui-sm text-base-content/60">{subtext}</div>
+				<div className="text-sm text-base-content/60">{subtext}</div>
 			) : null}
 			{cta ? <div className="pt-1">{cta}</div> : null}
 		</div>
@@ -84,7 +84,7 @@ function CompactEmpty({ headline, className }: EmptyCompactProps) {
 	return (
 		<div
 			className={cn(
-				"flex w-full items-center justify-center rounded-md border border-base-300 border-dashed px-3 py-2 text-ui-sm text-base-content/60",
+				"flex w-full items-center justify-center rounded-md border border-base-300 border-dashed px-3 py-2 text-sm text-base-content/60",
 				className,
 			)}
 		>
@@ -98,7 +98,7 @@ function FilterEmpty({ headline, onClear, className }: EmptyFilterProps) {
 	return (
 		<div
 			className={cn(
-				"flex w-full items-center justify-between rounded-md border border-base-300 border-dashed px-3 py-2 text-ui-sm",
+				"flex w-full items-center justify-between rounded-md border border-base-300 border-dashed px-3 py-2 text-sm",
 				className,
 			)}
 		>

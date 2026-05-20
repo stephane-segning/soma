@@ -13,7 +13,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 const Avatar = ({ initials }: { initials: string }) => (
-	<div className="grid size-7 place-items-center rounded-full bg-primary/15 font-medium text-primary text-ui-xs">
+	<div className="grid size-5 place-items-center rounded-full bg-primary/15 font-medium text-[10px] text-primary">
 		{initials}
 	</div>
 );
@@ -21,76 +21,73 @@ const Avatar = ({ initials }: { initials: string }) => (
 const Overflow = () => (
 	<button
 		aria-label="More options"
-		className="grid size-7 place-items-center rounded-md text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content"
+		className="grid size-5 place-items-center rounded text-base-content/55 hover:bg-base-200 hover:text-base-content"
 		type="button"
 	>
-		<MoreHorizontal aria-hidden className="size-4" />
+		<MoreHorizontal aria-hidden className="size-3.5" />
 	</button>
 );
 
 export const TextTier: Story = {
 	render: () => (
-		<div className="max-w-xl divide-y divide-base-300">
-			<DenseRow actions={<Overflow />} primary="Project planning" tier="text" />
-			<DenseRow actions={<Overflow />} primary="Onboarding" tier="text" />
-			<DenseRow actions={<Overflow />} primary="Meeting notes" tier="text" />
-		</div>
+		<ul className="list max-w-xl list-dense bg-base-100">
+			<DenseRow actions={<Overflow />} primary="Project planning" />
+			<DenseRow actions={<Overflow />} primary="Onboarding" />
+			<DenseRow actions={<Overflow />} primary="Meeting notes" />
+		</ul>
 	),
 };
 
 export const AvatarTier: Story = {
 	render: () => (
-		<div className="max-w-xl divide-y divide-base-300">
+		<ul className="list max-w-xl list-dense bg-base-100">
 			<DenseRow
 				actions={<Overflow />}
 				leading={<Avatar initials="SS" />}
 				primary="Stéphane"
 				status={<Pill tone="info">Owner</Pill>}
-				tier="avatar"
 			/>
 			<DenseRow
 				actions={<Overflow />}
 				leading={<Avatar initials="NL" />}
 				meta="last seen 2h"
 				primary="Naomi"
-				tier="avatar"
 			/>
 			<DenseRow
 				actions={<Overflow />}
 				leading={<Avatar initials="JK" />}
 				primary="Jack"
 				status={<Pill tone="warning">Pending</Pill>}
-				tier="avatar"
 			/>
-		</div>
+		</ul>
 	),
 };
 
 export const CardTier: Story = {
 	render: () => (
-		<div className="max-w-xl divide-y divide-base-300">
+		<ul className="list max-w-xl list-dense bg-base-100">
 			<DenseRow
 				actions={<Overflow />}
-				leading={<File aria-hidden className="size-5 text-info" />}
+				leading={<File aria-hidden className="size-4 text-info" />}
 				meta="14 KB"
 				primary="space-design.md"
 				sub="Updated yesterday · 2 references"
 			/>
 			<DenseRow
 				actions={<Overflow />}
-				leading={<File aria-hidden className="size-5 text-warning" />}
+				leading={<File aria-hidden className="size-4 text-warning" />}
 				meta="120 KB"
 				primary="capability-form.png"
-				sub="Image · png"
 				status={<Pill tone="success">attached</Pill>}
+				sub="Image · png"
 			/>
-		</div>
+		</ul>
 	),
 };
 
 export const Clickable: Story = {
 	render: () => (
-		<div className="max-w-xl divide-y divide-base-300">
+		<ul className="list max-w-xl list-dense bg-base-100">
 			<DenseRow
 				actions={<Overflow />}
 				leading={<Avatar initials="OL" />}
@@ -104,13 +101,13 @@ export const Clickable: Story = {
 				onClick={() => undefined}
 				primary="LM Studio"
 			/>
-		</div>
+		</ul>
 	),
 };
 
 export const StatusPills: Story = {
 	render: () => (
-		<div className="max-w-xl divide-y divide-base-300">
+		<ul className="list max-w-xl list-dense bg-base-100">
 			<DenseRow
 				leading={<Avatar initials="@F" />}
 				meta="Last acked 2m"
@@ -141,14 +138,14 @@ export const StatusPills: Story = {
 					</Pill>
 				}
 			/>
-		</div>
+		</ul>
 	),
 };
 
 export const DarkTheme: Story = {
 	parameters: { theme: "luxury" },
 	render: () => (
-		<div className="max-w-xl divide-y divide-base-300 bg-base-100 p-4">
+		<ul className="list max-w-xl list-dense bg-base-100">
 			<DenseRow
 				actions={<Overflow />}
 				leading={<Avatar initials="SS" />}
@@ -157,11 +154,11 @@ export const DarkTheme: Story = {
 			/>
 			<DenseRow
 				actions={<Overflow />}
-				leading={<File aria-hidden className="size-5 text-info" />}
+				leading={<File aria-hidden className="size-4 text-info" />}
 				meta="14 KB"
 				primary="space-design.md"
 				sub="Updated yesterday · 2 references"
 			/>
-		</div>
+		</ul>
 	),
 };

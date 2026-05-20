@@ -18,7 +18,7 @@ import TaskItem from "@tiptap/extension-task-item";
 import TaskList from "@tiptap/extension-task-list";
 import Text from "@tiptap/extension-text";
 import Underline from "@tiptap/extension-underline";
-import { CharacterCount } from "@tiptap/extensions";
+import { CharacterCount, UndoRedo } from "@tiptap/extensions";
 import type { createLowlight } from "lowlight";
 import { AccordionNode } from "../../extensions/accordion";
 import { BlobFileNode, type BlobFileUploadResult } from "../../extensions/blob-file";
@@ -50,6 +50,9 @@ export function createDocumentExtensions(input: CreateDocumentExtensionsInput) {
 		CustomDocument,
 		Text,
 		CharacterCount.configure({ limit: input.limit }),
+		// Cmd+Z / Cmd+Shift+Z / Cmd+Y all live here. StarterKit ships this,
+		// but we pull individual extensions instead — easy to forget.
+		UndoRedo.configure({ depth: 200, newGroupDelay: 400 }),
 		Paragraph.extend({ draggable: true }),
 		Heading.extend({ draggable: true }).configure({ levels: [1, 2, 3] }),
 		Blockquote.extend({ draggable: true }),
@@ -70,13 +73,49 @@ export function createDocumentExtensions(input: CreateDocumentExtensionsInput) {
 		Strike,
 		Code,
 		Highlight.configure({ multicolor: false }),
-		Link.configure({
+		Link.extend({
+			addKeyboardShortcuts() {
+				return {
+					/**
+					 * `Cmd+K` / `Ctrl+K` opens the link input.
+					 *
+					 * Previous revisions called `window.prompt` here, which:
+					 *   (a) doesn't exist in Electron renderer windows, so the
+					 *       shortcut silently did nothing in production;
+					 *   (b) skipped the bare-URL normalisation
+					 *       (`example.com` → `https://example.com`) that
+					 *       `LinkInputMode` in `SelectionBubble` already does.
+					 *
+					 * Now: dispatch a `CustomEvent` on the editor's DOM root.
+					 * The React surface (`ContextualMenu`) listens for it and
+					 * opens the existing `SelectionBubble` link input — which
+					 * lives inside a TipTap `BubbleMenu` so it's already
+					 * anchored to the selection rect. That reuses the input
+					 * UI, the URL normalisation, and the cancel/Escape flow
+					 * with no duplication.
+					 *
+					 * On empty selection, return `true` to *consume* the
+					 * chord so the host's `Cmd+K` (browser omnibox focus,
+					 * etc.) doesn't fire and pull focus away from the
+					 * editor.
+					 */
+					"Mod-k": () => {
+						const { empty } = this.editor.state.selection;
+						if (empty) return true;
+						this.editor.view.dom.dispatchEvent(
+							new CustomEvent("soma:request-link-input", { bubbles: true }),
+						);
+						return true;
+					},
+				};
+			},
+		}).configure({
 			autolink: true,
 			openOnClick: true,
 			linkOnPaste: true,
 			HTMLAttributes: { rel: "noreferrer", target: "_blank" },
 		}),
-		Dropcursor.configure({ color: "#3b82f6", width: 2 }),
+		Dropcursor.configure({ color: "#3b82f6", width: 3, class: "soma-drop-cursor" }),
 		Placeholder.configure({ placeholder: input.placeholder }),
 		CommanderExtension.configure({ commands: input.commands }),
 		// Registry mounts with `registry: null` and the host (DocumentEditor)
