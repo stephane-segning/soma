@@ -6,10 +6,16 @@ const pages = {
 	updateTitle: vi.fn(),
 	setParents: vi.fn(),
 };
+const documents = {
+	getDraft: vi.fn(),
+	upsertDraft: vi.fn(),
+	queueDaemonSync: vi.fn(),
+	syncPublishedDocument: vi.fn(),
+};
 const createId = vi.fn(() => "generated-page-id");
 
 vi.mock("../lib/ipc", () => ({
-	backend: { pages },
+	backend: { pages, documents },
 	invoke: vi.fn(),
 }));
 
@@ -21,6 +27,7 @@ describe("documents service", () => {
 	beforeEach(() => {
 		vi.resetModules();
 		for (const fn of Object.values(pages)) fn.mockReset();
+		for (const fn of Object.values(documents)) fn.mockReset();
 		createId.mockClear();
 	});
 
