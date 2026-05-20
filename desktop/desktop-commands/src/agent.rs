@@ -1,65 +1,52 @@
-//! Agent commands. Replaces `controllers/agent-controller.ts` +
-//! `command-registry/agent-handlers.ts`. Each fn forwards directly to
-//! `AgentService`; the service owns all business logic.
-
-use std::sync::Arc;
+//! Tauri presenter for `desktop_api::agent::*`.
 
 use desktop_agent::{
-    AgentService, ChatMessage, ChatOptions, ChatResponse, EnqueueBackgroundTaskParams, ListBackgroundTasksParams,
-    RerankParams, ResolveDriftParams,
+    BackgroundTask, EnqueueBackgroundTaskParams, ListBackgroundTasksParams, RerankParams, RerankResult,
+    ResolveDriftParams, ResolveDriftResult,
+};
+use desktop_api::{
+    AppState,
+    agent::{self as api, AgentModel, ChatStreamArgs},
 };
 use desktop_core::error::DesktopResult;
+use desktop_agent::ChatResponse;
 use tauri::State;
 
-#[derive(Debug, serde::Deserialize)]
-pub struct ChatStreamArgs {
-    #[serde(default)]
-    pub messages: Vec<ChatMessage>,
-    #[serde(flatten)]
-    pub options: ChatOptions,
+#[tauri::command]
+pub async fn agent_chat_stream(state: State<'_, AppState>, args: ChatStreamArgs) -> DesktopResult<ChatResponse> {
+    api::chat_stream(state.inner(), args).await
 }
 
 #[tauri::command]
-pub async fn agent_chat_stream(state: State<'_, Arc<AgentService>>, args: ChatStreamArgs) -> DesktopResult<ChatResponse> {
-    Ok(state.chat(&args.messages, &args.options).await)
+pub async fn agent_list_models(state: State<'_, AppState>, space_id: Option<String>) -> DesktopResult<Vec<AgentModel>> {
+    api::list_models(state.inner(), space_id).await
 }
 
 #[tauri::command]
-pub async fn agent_list_models(
-    state: State<'_, Arc<AgentService>>,
-    space_id: Option<String>,
-) -> DesktopResult<Vec<desktop_agent::AgentModel>> {
-    state.list_models(space_id.as_deref()).await
-}
-
-#[tauri::command]
-pub async fn agent_rerank(
-    state: State<'_, Arc<AgentService>>,
-    args: RerankParams,
-) -> DesktopResult<Vec<desktop_agent::RerankResult>> {
-    state.rerank(&args).await
+pub async fn agent_rerank(state: State<'_, AppState>, args: RerankParams) -> DesktopResult<Vec<RerankResult>> {
+    api::rerank(state.inner(), args).await
 }
 
 #[tauri::command]
 pub async fn agent_resolve_drift(
-    state: State<'_, Arc<AgentService>>,
+    state: State<'_, AppState>,
     args: ResolveDriftParams,
-) -> DesktopResult<desktop_agent::ResolveDriftResult> {
-    state.resolve_drift(&args).await
+) -> DesktopResult<ResolveDriftResult> {
+    api::resolve_drift(state.inner(), args).await
 }
 
 #[tauri::command]
 pub async fn agent_enqueue_background_task(
-    state: State<'_, Arc<AgentService>>,
+    state: State<'_, AppState>,
     args: EnqueueBackgroundTaskParams,
-) -> DesktopResult<desktop_agent::BackgroundTask> {
-    state.enqueue_background_task(args).await
+) -> DesktopResult<BackgroundTask> {
+    api::enqueue_background_task(state.inner(), args).await
 }
 
 #[tauri::command]
 pub async fn agent_list_background_tasks(
-    state: State<'_, Arc<AgentService>>,
+    state: State<'_, AppState>,
     args: Option<ListBackgroundTasksParams>,
-) -> DesktopResult<Vec<desktop_agent::BackgroundTask>> {
-    Ok(state.list_background_tasks(&args.unwrap_or_default()).await)
+) -> DesktopResult<Vec<BackgroundTask>> {
+    api::list_background_tasks(state.inner(), args.unwrap_or_default()).await
 }

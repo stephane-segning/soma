@@ -1645,6 +1645,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "desktop-api"
+version = "0.1.2"
+dependencies = [
+ "async-trait",
+ "desktop-agent",
+ "desktop-core",
+ "desktop-daemon",
+ "desktop-services",
+ "serde",
+ "serde_json",
+ "soma-daemon",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "desktop-app"
 version = "0.1.2"
 dependencies = [
@@ -1680,12 +1696,11 @@ name = "desktop-commands"
 version = "0.1.2"
 dependencies = [
  "desktop-agent",
+ "desktop-api",
  "desktop-core",
- "desktop-daemon",
  "desktop-services",
  "serde",
  "serde_json",
- "soma-daemon",
  "tauri",
  "tokio",
  "tracing",

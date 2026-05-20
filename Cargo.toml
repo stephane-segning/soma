@@ -24,6 +24,7 @@ members = [
     "desktop/desktop-services",
     "desktop/desktop-daemon",
     "desktop/desktop-agent",
+    "desktop/desktop-api",
     "desktop/desktop-commands",
     "desktop/desktop-app/src-tauri",
     "xtask"
@@ -55,6 +56,7 @@ desktop-core = { path = "desktop/desktop-core" }
 desktop-services = { path = "desktop/desktop-services" }
 desktop-daemon = { path = "desktop/desktop-daemon" }
 desktop-agent = { path = "desktop/desktop-agent" }
+desktop-api = { path = "desktop/desktop-api" }
 desktop-commands = { path = "desktop/desktop-commands" }
 
 # Tauri + ecosystem (consumed by desktop-* crates and the desktop-app binary).

@@ -142,7 +142,10 @@ pub fn run() {
                 drop(splash);
             });
 
-            app.manage(AppState::new(daemon, agent_runtime));
+            app.manage(AppState::new(daemon, agent_runtime, Arc::clone(&agent_service)));
+            // `agent_service` is also kept as standalone state so the event
+            // stream tasks (which only need the service) can reach it without
+            // pulling the whole AppState.
             app.manage(agent_service);
             app.manage(BootState { logger_guards });
 
@@ -268,7 +271,7 @@ fn reveal_main_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
 async fn shutdown_runtimes<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     let state = app.state::<AppState>();
     let daemon = Arc::clone(&state.daemon);
-    let agent = Arc::clone(&state.agent);
+    let agent_runtime = Arc::clone(&state.agent_runtime);
 
     if let Some(bridges) = app.try_state::<BridgeState>() {
         if let Some(bridge) = bridges.daemon_bridge.lock().await.take() {
@@ -282,7 +285,7 @@ async fn shutdown_runtimes<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     if let Err(err) = daemon.shutdown().await {
         tracing::warn!(?err, "daemon shutdown raised; exiting anyway");
     }
-    if let Err(err) = agent.shutdown().await {
+    if let Err(err) = agent_runtime.shutdown().await {
         tracing::warn!(?err, "agent shutdown raised; exiting anyway");
     }
 }
