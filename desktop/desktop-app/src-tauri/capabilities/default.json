@@ -1,0 +1,20 @@
+{
+	"$schema": "../gen/schemas/desktop-schema.json",
+	"identifier": "default",
+	"description": "Default capability for the main window (spike).",
+	"windows": ["main"],
+	"permissions": [
+		"core:default",
+		"opener:default",
+		"store:default",
+		"log:default",
+		"os:default",
+		"dialog:default",
+		"fs:default",
+		"shell:default",
+		"process:default",
+		"window-state:default",
+		"deep-link:default",
+		"updater:default"
+	]
+}

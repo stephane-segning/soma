@@ -1,0 +1,17 @@
+{
+	"app": {
+		"title": "Soma (essai Tauri V2)",
+		"subtitle": "Éditeur TipTap dans une coquille Tauri V2 + React",
+		"runtime": "Exécution : {{name}} {{version}} sur Tauri {{tauri}}"
+	},
+	"editor": {
+		"placeholder": "Commencez à écrire. Tapez / pour le menu…",
+		"focus_probe": "Appuyez sur Entrée — le curseur doit rester sur la nouvelle ligne.",
+		"language_switch": "Langue",
+		"hint": "Cet écran vérifie que l'ancien bug Tauri/WKWebView (perte de focus à l'appui sur Entrée dans Yoopta) ne se reproduit pas avec TipTap."
+	},
+	"actions": {
+		"reset": "Réinitialiser",
+		"log_json": "Imprimer le JSON"
+	}
+}

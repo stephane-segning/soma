@@ -1,0 +1,17 @@
+{
+	"app": {
+		"title": "Soma (Tauri V2 spike)",
+		"subtitle": "TipTap editor inside a Tauri V2 + React shell",
+		"runtime": "Runtime: {{name}} {{version}} on Tauri {{tauri}}"
+	},
+	"editor": {
+		"placeholder": "Start writing. Press / for the slash menu…",
+		"focus_probe": "Press Enter — caret should stay on the new line.",
+		"language_switch": "Language",
+		"hint": "This screen exists to verify that the original Tauri-on-WKWebView Enter/focus bug from Yoopta does not reproduce with TipTap."
+	},
+	"actions": {
+		"reset": "Reset content",
+		"log_json": "Log JSON to console"
+	}
+}

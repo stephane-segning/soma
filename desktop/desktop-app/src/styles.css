@@ -1,0 +1,18 @@
+@import "@soma/ui/styles.css";
+@import "highlight.js/styles/github.css";
+
+/* Tailwind v4 source globs — let JIT see editor + ui + our local renderer. */
+@source "../src";
+@source "../../desktop-ui/src";
+@source "../../desktop-editor/src";
+
+html,
+body,
+#root {
+	height: 100%;
+}
+
+body {
+	margin: 0;
+	font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
