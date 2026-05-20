@@ -7,6 +7,7 @@ import { agent } from "./api/agent";
 import { blobs } from "./api/blobs";
 import { daemon } from "./api/daemon";
 import { documents, pages } from "./api/documents";
+import { practice } from "./api/practice";
 import { search } from "./api/search";
 import { spaces } from "./api/spaces";
 import { dbStorage, settings } from "./api/storage";
@@ -23,6 +24,7 @@ export interface Backend {
 	readonly documents: ReturnType<typeof documents>;
 	readonly events: ReturnType<typeof events>;
 	readonly pages: ReturnType<typeof pages>;
+	readonly practice: ReturnType<typeof practice>;
 	readonly search: ReturnType<typeof search>;
 	readonly settings: ReturnType<typeof settings>;
 	readonly spaces: ReturnType<typeof spaces>;
@@ -39,6 +41,7 @@ export function createBackend(transport: Transport): Backend {
 		documents: documents(transport),
 		events: events(transport),
 		pages: pages(transport),
+		practice: practice(transport),
 		search: search(transport),
 		settings: settings(transport),
 		spaces: spaces(transport),

@@ -11,6 +11,19 @@
  * ```
  */
 
+// Practice module types live in the SDK proper until the Tauri presenter
+// lands and specta starts emitting them into `bindings/`.
+export type {
+	Exercise,
+	ExerciseAttempt,
+	ExerciseDifficulty,
+	ExerciseDraft,
+	ExerciseMetadata,
+	ExerciseSource,
+	GenerateExerciseInput,
+	LeaderboardEntry,
+	RecordSessionResponse,
+} from "./api/practice";
 // Re-export every wire type the API surface accepts or returns so callers
 // import from one place.
 export * from "./bindings";
