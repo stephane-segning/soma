@@ -15,7 +15,7 @@ export function registerSettingsStorageHandlers(ipc: IpcMain, context: CommandRe
 		try {
 			return JSON.stringify(value);
 		} catch (error) {
-			console.warn("settings_get: failed to serialise value", { key, error });
+			context.logger.log("warn", "settings_get: failed to serialise value", { key, error });
 			return null;
 		}
 	});
@@ -23,8 +23,15 @@ export function registerSettingsStorageHandlers(ipc: IpcMain, context: CommandRe
 	ipc.handle("settings_set", (_event, params) => {
 		const key = typeof params?.key === "string" ? params.key : "";
 		if (!key) return;
-		const value = decodeSettingValue(params);
-		context.settings.set(key, value);
+		// Decoding can throw on malformed `valueJson`. Skip the write in
+		// that case — better to keep the existing value than to clobber
+		// it with `undefined` from a bad payload.
+		try {
+			const value = decodeSettingValue(params);
+			context.settings.set(key, value);
+		} catch (error) {
+			context.logger.log("warn", "settings_set: failed to decode value", { key, error });
+		}
 	});
 
 	ipc.on("db_storage_get", (event, key) => {
@@ -52,13 +59,10 @@ export function registerSettingsStorageHandlers(ipc: IpcMain, context: CommandRe
 }
 
 function decodeSettingValue(params: { value?: unknown; valueJson?: unknown } | undefined): unknown {
+	// Lets `JSON.parse` throw on malformed input so the caller can
+	// decide what to do (we skip the write rather than store `undefined`).
 	if (typeof params?.valueJson === "string") {
-		try {
-			return JSON.parse(params.valueJson);
-		} catch (error) {
-			console.warn("settings_set: invalid JSON value", { error });
-			return undefined;
-		}
+		return JSON.parse(params.valueJson);
 	}
 	return params?.value;
 }
