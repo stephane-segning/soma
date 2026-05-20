@@ -115,7 +115,7 @@ export function CapabilityForm({
 
 			<div className="flex flex-col gap-2">
 				{issueError ? (
-					<div className="flex items-start gap-2 rounded-md border border-error/40 bg-error/5 px-3 py-2 text-error text-ui-sm">
+					<div className="flex items-start gap-2 rounded-md border border-error/40 bg-error/5 px-3 py-2 text-error text-sm">
 						<AlertCircle aria-hidden className="mt-0.5 size-4 shrink-0" />
 						<span className="min-w-0 flex-1">{issueError}</span>
 					</div>
@@ -162,7 +162,7 @@ function Card({
 	return (
 		<section className="surface-card flex flex-col gap-3 p-3">
 			<header className="flex items-center justify-between gap-2">
-				<h3 className="font-medium text-base-content/90 text-ui-sm">
+				<h3 className="font-medium text-base-content/90 text-sm">
 					{title}
 				</h3>
 			</header>
@@ -192,13 +192,13 @@ function IdentityCard({
 		>
 			<div className="grid gap-3 sm:grid-cols-2">
 				<div className="flex flex-col gap-1">
-					<label className="text-base-content/60 text-ui-xs" htmlFor={peerIdId}>
+					<label className="text-base-content/60 text-xs" htmlFor={peerIdId}>
 						{t({
 							id: "capability-form.identity.peer-id",
 							defaultMessage: "Peer id",
 						})}
 					</label>
-					<div className="flex items-center gap-1 rounded-md border border-base-300 bg-base-200 px-2 py-1.5 font-mono text-ui-xs">
+					<div className="flex items-center gap-1 rounded-md border border-base-300 bg-base-200 px-2 py-1.5 font-mono text-xs">
 						<span className="min-w-0 flex-1 truncate" id={peerIdId}>
 							{peerId}
 						</span>
@@ -206,7 +206,7 @@ function IdentityCard({
 					</div>
 				</div>
 				<div className="flex flex-col gap-1">
-					<label className="text-base-content/60 text-ui-xs" htmlFor={aliasId}>
+					<label className="text-base-content/60 text-xs" htmlFor={aliasId}>
 						{t({
 							id: "capability-form.identity.alias",
 							defaultMessage: "Alias",
@@ -214,7 +214,7 @@ function IdentityCard({
 					</label>
 					<input
 						aria-describedby={`${aliasId}-help`}
-						className="rounded-md border border-base-300 bg-base-100 px-2 py-1.5 font-mono text-body outline-none focus-visible:border-primary"
+						className="rounded-md border border-base-300 bg-base-100 px-2 py-1.5 font-mono text-sm outline-none focus-visible:border-primary"
 						id={aliasId}
 						onChange={(event) => onAliasChange(event.target.value)}
 						placeholder={t({
@@ -226,7 +226,7 @@ function IdentityCard({
 						value={alias}
 					/>
 					<span
-						className="text-base-content/50 text-ui-xs"
+						className="text-base-content/50 text-xs"
 						id={`${aliasId}-help`}
 					>
 						{t({
@@ -341,13 +341,13 @@ function ScopeGroupBlock({
 		<div className="rounded-md border border-base-300">
 			<button
 				aria-expanded={open}
-				className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-ui-sm transition-colors hover:bg-base-200"
+				className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-base-200"
 				onClick={() => setOpen((v) => !v)}
 				type="button"
 			>
 				<span className="font-medium text-base-content/90">{group.label}</span>
 				<span className="flex items-center gap-2">
-					<span className="text-base-content/60 text-ui-xs">
+					<span className="text-base-content/60 text-xs">
 						{t({
 							id: "capability-form.scopes.group-count",
 							defaultMessage: "{granted}/{total}",
@@ -367,7 +367,7 @@ function ScopeGroupBlock({
 				<ul className="flex flex-col gap-1 border-base-300 border-t p-2">
 					{group.scopes.map((scope) => (
 						<li key={scope.id}>
-							<label className="flex items-start gap-2 rounded-md px-2 py-1 text-ui-sm transition-colors hover:bg-base-200">
+							<label className="flex items-start gap-2 rounded-md px-2 py-1 text-sm transition-colors hover:bg-base-200">
 								<input
 									checked={grantedScopeIds.includes(scope.id)}
 									className="checkbox checkbox-sm mt-0.5"
@@ -377,7 +377,7 @@ function ScopeGroupBlock({
 								<span className="flex min-w-0 flex-col">
 									<span className="text-base-content/90">{scope.label}</span>
 									{scope.description ? (
-										<span className="text-base-content/60 text-ui-xs">
+										<span className="text-base-content/60 text-xs">
 											{scope.description}
 										</span>
 									) : null}
@@ -458,7 +458,7 @@ function ExpiryCard({
 							<button
 								aria-pressed={active}
 								className={cn(
-									"rounded-md border px-2 py-1 text-ui-xs transition-colors",
+									"rounded-md border px-2 py-1 text-xs transition-colors",
 									active
 										? "border-primary/40 bg-primary/15 text-primary"
 										: "border-base-300 text-base-content/80 hover:bg-base-200",
@@ -473,7 +473,7 @@ function ExpiryCard({
 					})}
 				</div>
 				<div className="flex flex-col gap-1">
-					<label className="text-base-content/60 text-ui-xs" htmlFor={dateId}>
+					<label className="text-base-content/60 text-xs" htmlFor={dateId}>
 						{t({
 							id: "capability-form.expiry.exact",
 							defaultMessage: "Exact date",
@@ -484,7 +484,7 @@ function ExpiryCard({
 					    a valid way to leave the Never state. Clearing the
 					    input commits as `null` again. */}
 					<input
-						className="rounded-md border border-base-300 bg-base-100 px-2 py-1.5 text-body outline-none focus-visible:border-primary"
+						className="rounded-md border border-base-300 bg-base-100 px-2 py-1.5 text-sm outline-none focus-visible:border-primary"
 						id={dateId}
 						onChange={handleDateChange}
 						type="date"

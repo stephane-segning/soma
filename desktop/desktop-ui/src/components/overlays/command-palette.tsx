@@ -26,6 +26,7 @@ import { Search } from "react-feather";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useT } from "../../i18n/use-t";
 import { cn } from "../../utils/cn";
+import { Kbd } from "../primitives/kbd";
 import { OverlayPortal } from "./overlay-portal";
 
 export type CommandPaletteSectionKind =
@@ -228,15 +229,15 @@ export function CommandPalette({
 						onClick={onClose}
 					>
 						<motion.div
-							animate={{ opacity: 1, y: 0, scale: 1 }}
+							animate={{ opacity: 1, y: 0 }}
 							aria-label={t({
 								id: "command-palette.aria-label",
 								defaultMessage: "Command palette",
 							})}
 							aria-modal="true"
 							className="glass-panel shadow-elevated w-full max-w-2xl p-2"
-							exit={{ opacity: 0, y: 8, scale: 0.99 }}
-							initial={{ opacity: 0, y: 10, scale: 0.99 }}
+							exit={{ opacity: 0, y: 8 }}
+							initial={{ opacity: 0, y: 10 }}
 							onClick={(event) => event.stopPropagation()}
 							ref={containerRef}
 							role="dialog"
@@ -249,7 +250,7 @@ export function CommandPalette({
 								/>
 								<input
 									autoFocus
-									className="min-w-0 flex-1 bg-transparent text-body outline-none placeholder:text-base-content/40"
+									className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-base-content/40"
 									onChange={(event) => {
 										setQuery(event.target.value);
 										onQueryChange?.(event.target.value);
@@ -269,7 +270,7 @@ export function CommandPalette({
 							<div className="mt-2 flex max-h-96 flex-col gap-1 overflow-y-auto">
 								{grouped.map((group) => (
 									<div className="flex flex-col gap-0.5" key={group.section}>
-										<div className="px-2 pt-1 text-base-content/50 text-ui-xs uppercase tracking-wide">
+										<div className="px-2 pt-1 text-base-content/50 text-xs uppercase tracking-wide">
 											{sectionLabel[group.section]}
 										</div>
 										{group.items.map((item) => {
@@ -280,7 +281,7 @@ export function CommandPalette({
 												<button
 													aria-selected={isActive}
 													className={cn(
-														"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-ui-sm transition-colors",
+														"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors",
 														isActive
 															? "bg-base-200 text-base-content"
 															: "hover:bg-base-200",
@@ -303,15 +304,15 @@ export function CommandPalette({
 													<span className="flex min-w-0 flex-1 flex-col">
 														<span className="truncate">{item.title}</span>
 														{item.subtitle ? (
-															<span className="truncate text-base-content/60 text-ui-xs">
+															<span className="truncate text-base-content/60 text-xs">
 																{item.subtitle}
 															</span>
 														) : null}
 													</span>
 													{item.shortcut ? (
-														<span className="shrink-0 font-mono text-base-content/40 text-ui-xs">
+														<Kbd className="shrink-0" size="xs">
 															{item.shortcut}
-														</span>
+														</Kbd>
 													) : null}
 												</button>
 											);
@@ -319,7 +320,7 @@ export function CommandPalette({
 									</div>
 								))}
 								{flat.length === 0 ? (
-									<div className="px-2 py-4 text-center text-base-content/60 text-ui-sm">
+									<div className="px-2 py-4 text-center text-base-content/60 text-sm">
 										{t({
 											id: "command-palette.empty",
 											defaultMessage: "No matches",
@@ -340,7 +341,7 @@ export function CommandPalette({
 function KeyboardHintsFooter() {
 	const t = useT();
 	return (
-		<div className="mt-2 flex flex-wrap items-center gap-1 border-base-300 border-t pt-2 text-base-content/50 text-ui-xs">
+		<div className="mt-2 flex flex-wrap items-center gap-1 border-base-300 border-t pt-2 text-base-content/50 text-xs">
 			<HintChip
 				keys="↑↓"
 				label={t({
@@ -368,8 +369,8 @@ function KeyboardHintsFooter() {
 
 function HintChip({ keys, label }: { keys: string; label: string }) {
 	return (
-		<span className="inline-flex items-center gap-1 rounded-sm bg-base-200 px-1.5 py-0.5">
-			<kbd className="font-mono text-ui-xs">{keys}</kbd>
+		<span className="inline-flex items-center gap-1.5 px-1.5 py-0.5">
+			<Kbd size="xs">{keys}</Kbd>
 			<span>{label}</span>
 		</span>
 	);

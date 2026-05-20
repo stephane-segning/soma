@@ -1,30 +1,50 @@
 /**
- * PanelContainer — the right-area host that stacks panels and exposes
- * a collapsed-icon strip on the right edge.
+ * PanelContainer — the rail-side host that renders the **expanded**
+ * panels of a side rail (left or right).
  *
  * Locked by [PRD §3](../../../../../docs/src/architecture/prd/ui-revamp-v0.md)
  * and [refs main §1](../../../../../docs/src/architecture/prd/ui-revamp-v0-refs.md).
  *
- * The container is **presentational**: caller owns the list of panels
- * + which are collapsed. Panels stack vertically; collapsed panels
- * render as a vertical icon strip on the right edge so the user can
- * expand them with one click without losing them in a menu.
+ * **What it does, and what it doesn't.** PanelContainer is now a thin
+ * composition over `PanelStack`. It receives the full panel inventory
+ * and the set of currently-expanded ids, filters the inventory to the
+ * expanded subset, and stacks those panels at 100 % of the rail width.
  *
- * Drag-to-split is **not** in v0 (see scaffold §8 open question 3 —
- * keyboard-only split target for v0.1). The `columns` prop exists
- * so callers can pre-arrange a horizontal split if needed; for v0
- * we render only the first column (single vertical stack) and any
- * additional columns join the stack.
+ * It does NOT host the chip strip / icon rail anymore. The bar of
+ * collapsed-panel icons lives in the **main column** (top-right or
+ * top-left, via `DesktopShell`'s `mainTopLeft` / `mainTopRight`
+ * slots), as a `PanelChipBar`. Co-locating expanded + collapsed UI in
+ * one component was the original sin behind the "right rail floating"
+ * + "rail can't auto-shrink" pair of bugs.
+ *
+ * **Width.** 100 % of the host rail. No `w-72` cap, no multi-column,
+ * no horizontal scroll. The card cap is whatever the user dragged the
+ * rail to.
+ *
+ * **Mount/unmount.** The convention is for the caller to render
+ * `<PanelContainer />` only when at least one panel is expanded — and
+ * to leave `ShellPanel`'s `content` prop `null` otherwise so the rail
+ * unmounts entirely (returning width to 0). If you pass an empty
+ * `expandedIds`, this component renders `null`, which lets the rail's
+ * `<aside>` collapse without an explicit guard.
+ *
+ * **Build-time left/right placement.** The caller maintains two panel
+ * inventories — one for the left rail, one for the right — and renders
+ * two `<PanelContainer>` + two `<PanelChipBar>` pairs. Moving a panel
+ * from left to right is a one-line array shift at build time.
  */
+import { useMemo } from "react";
 import type { ReactNode } from "react";
-import { useT } from "../../i18n/use-t";
 import { cn } from "../../utils/cn";
-import { Panel } from "./panel";
+import { PanelStack } from "./panel-stack";
 
 export type PanelDescriptor = {
 	id: string;
 	title: ReactNode;
-	/** Icon shown when the panel is collapsed to the strip. */
+	/** Icon used by the matching `PanelChipBar`. Required even though
+	 *  PanelContainer doesn't render it directly — having every
+	 *  descriptor carry its icon lets the caller pass the same array to
+	 *  both PanelContainer and PanelChipBar without massaging the shape. */
 	icon: ReactNode;
 	/** Header actions (rendered to the right of the title). */
 	actions?: ReactNode;
@@ -34,110 +54,45 @@ export type PanelDescriptor = {
 };
 
 export type PanelContainerProps = {
-	panels: PanelDescriptor[];
-	/** Set of panel ids currently collapsed to the icon strip. */
-	collapsedIds?: ReadonlySet<string> | readonly string[];
-	onToggleCollapse?: (id: string) => void;
-	onClosePanel?: (id: string) => void;
+	/** The full panel inventory for this rail (expanded + collapsed). */
+	panels: ReadonlyArray<PanelDescriptor>;
+	/**
+	 * Set of panel ids currently expanded (visible as cards). Panels
+	 * not in this set are considered collapsed and skipped here — they
+	 * live in the matching `PanelChipBar` instead.
+	 */
+	expandedIds?: ReadonlySet<string> | readonly string[];
+	/** Fired when the user clicks the `−` button on a panel header. */
+	onCollapse?: (id: string) => void;
+	/** Fired when the user clicks the `×` button on a panel header. */
+	onClose?: (id: string) => void;
 	className?: string;
 };
 
 export function PanelContainer({
 	panels,
-	collapsedIds,
-	onToggleCollapse,
-	onClosePanel,
+	expandedIds,
+	onCollapse,
+	onClose,
 	className,
 }: PanelContainerProps) {
-	const t = useT();
-	const collapsedSet =
-		collapsedIds instanceof Set
-			? collapsedIds
-			: new Set<string>(collapsedIds ?? []);
-
-	const expanded = panels.filter((panel) => !collapsedSet.has(panel.id));
-	const collapsed = panels.filter((panel) => collapsedSet.has(panel.id));
-
-	return (
-		<div
-			aria-label={t({
-				id: "panel-container.aria-label",
-				defaultMessage: "Side panels",
-			})}
-			className={cn(
-				"flex min-h-0 w-full border-base-300 border-l bg-base-100",
-				className,
-			)}
-		>
-			<div className="flex min-h-0 flex-1 flex-col divide-y divide-base-300">
-				{expanded.length === 0 ? (
-					<EmptyExpanded />
-				) : (
-					expanded.map((panel) => (
-						<Panel
-							actions={panel.actions}
-							footer={panel.footer}
-							key={panel.id}
-							onClose={
-								onClosePanel ? () => onClosePanel(panel.id) : undefined
-							}
-							onCollapse={
-								onToggleCollapse
-									? () => onToggleCollapse(panel.id)
-									: undefined
-							}
-							title={panel.title}
-						>
-							{panel.content}
-						</Panel>
-					))
-				)}
-			</div>
-			{collapsed.length > 0 ? (
-				<aside
-					aria-label={t({
-						id: "panel-container.collapsed-strip",
-						defaultMessage: "Collapsed panels",
-					})}
-					className="flex w-9 shrink-0 flex-col items-center gap-1 border-base-300 border-l bg-base-100 py-2"
-				>
-					{collapsed.map((panel) => (
-						<button
-							aria-label={
-								typeof panel.title === "string"
-									? panel.title
-									: t({
-											id: "panel-container.expand",
-											defaultMessage: "Expand panel",
-										})
-							}
-							className="grid size-7 place-items-center rounded-md text-base-content/70 transition-colors hover:bg-base-200 hover:text-base-content focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-							key={panel.id}
-							onClick={
-								onToggleCollapse
-									? () => onToggleCollapse(panel.id)
-									: undefined
-							}
-							title={typeof panel.title === "string" ? panel.title : undefined}
-							type="button"
-						>
-							{panel.icon}
-						</button>
-					))}
-				</aside>
-			) : null}
-		</div>
+	const expandedSet = useMemo(
+		() =>
+			expandedIds instanceof Set
+				? expandedIds
+				: new Set<string>(expandedIds ?? []),
+		[expandedIds],
 	);
-}
 
-function EmptyExpanded() {
-	const t = useT();
+	const visible = panels.filter((panel) => expandedSet.has(panel.id));
+	if (visible.length === 0) return null;
+
 	return (
-		<div className="flex flex-1 items-center justify-center px-4 py-8 text-base-content/50 text-ui-sm">
-			{t({
-				id: "panel-container.empty",
-				defaultMessage: "No panels open. Pick one from the strip to expand it.",
-			})}
-		</div>
+		<PanelStack
+			className={cn("w-full", className)}
+			onClose={onClose}
+			onCollapse={onCollapse}
+			panels={visible}
+		/>
 	);
 }

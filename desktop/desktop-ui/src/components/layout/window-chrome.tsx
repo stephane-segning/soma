@@ -83,8 +83,6 @@ function ChromeButton({
 			className={cn("grid h-3 w-3 place-items-center rounded-full", color)}
 			onClick={onClick}
 			type="button"
-			whileHover={{ scale: 1.05 }}
-			whileTap={{ scale: 0.94 }}
 		/>
 	);
 }

@@ -71,7 +71,7 @@ export function SettingsTabs({
 					<button
 						aria-selected={active}
 						className={cn(
-							"-mb-px relative flex items-center gap-1.5 border-b-2 px-3 py-2 text-ui-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+							"-mb-px relative flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
 							active
 								? "border-primary text-base-content"
 								: "border-transparent text-base-content/60 hover:text-base-content",

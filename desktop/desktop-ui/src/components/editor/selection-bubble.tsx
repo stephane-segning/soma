@@ -66,6 +66,22 @@ export type SelectionBubbleProps = {
 	linkUrl?: string | null;
 	/** Pass `null` to clear the link. */
 	onSetLink?: (url: string | null) => void;
+	/**
+	 * Optional controlled state for the link-input mode. When provided
+	 * (both props), the bubble switches into the link input form
+	 * whenever `linkInputOpen` is true, regardless of whether the user
+	 * clicked the internal link icon. Callers use this to wire the
+	 * `Cmd+K` keyboard shortcut to the same link prompt the bubble
+	 * already renders — without that, `Cmd+K` would have to invent its
+	 * own input UI (which previously meant `window.prompt`, broken
+	 * under Electron).
+	 *
+	 * If either prop is omitted, the bubble manages link mode locally
+	 * (the internal link icon toggles it on, submit/cancel turns it
+	 * off) — exactly as before.
+	 */
+	linkInputOpen?: boolean;
+	onLinkInputOpenChange?: (open: boolean) => void;
 
 	// Comment.
 	onComment?: () => void;
@@ -81,16 +97,29 @@ export type SelectionBubbleProps = {
 
 export function SelectionBubble(props: SelectionBubbleProps) {
 	const t = useT();
-	const [mode, setMode] = useState<"format" | "link">("format");
+	const [internalMode, setInternalMode] = useState<"format" | "link">("format");
+	// When the controlled props are provided, mode tracks them; otherwise
+	// it tracks internal state. This keeps existing callers (which don't
+	// pass the controlled pair) on the old uncontrolled behaviour.
+	const controlled =
+		props.linkInputOpen !== undefined && props.onLinkInputOpenChange !== undefined;
+	const linkOpen = controlled ? props.linkInputOpen === true : internalMode === "link";
+	const setLinkOpen = (open: boolean) => {
+		if (controlled) {
+			props.onLinkInputOpenChange?.(open);
+		} else {
+			setInternalMode(open ? "link" : "format");
+		}
+	};
 
-	if (mode === "link") {
+	if (linkOpen) {
 		return (
 			<LinkInputMode
 				initialUrl={props.linkUrl ?? ""}
-				onCancel={() => setMode("format")}
+				onCancel={() => setLinkOpen(false)}
 				onSubmit={(url) => {
 					props.onSetLink?.(url.length > 0 ? url : null);
-					setMode("format");
+					setLinkOpen(false);
 				}}
 				className={props.className}
 			/>
@@ -150,7 +179,7 @@ export function SelectionBubble(props: SelectionBubbleProps) {
 			>
 				<span
 					aria-hidden
-					className="inline-block font-semibold text-ui-xs line-through"
+					className="inline-block font-semibold text-xs line-through"
 				>
 					S
 				</span>
@@ -168,7 +197,7 @@ export function SelectionBubble(props: SelectionBubbleProps) {
 			<ToolButton
 				active={Boolean(props.linkUrl)}
 				label={t({ id: "selection-bubble.link", defaultMessage: "Link" })}
-				onClick={() => setMode("link")}
+				onClick={() => setLinkOpen(true)}
 			>
 				<Link2 aria-hidden className="size-3.5" />
 			</ToolButton>
@@ -211,7 +240,7 @@ export function SelectionBubble(props: SelectionBubbleProps) {
 							id: "selection-bubble.ask-ai",
 							defaultMessage: "Ask AI",
 						})}
-						className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-info text-ui-xs transition-colors hover:bg-info/10"
+						className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-info text-xs transition-colors hover:bg-info/10"
 						onClick={props.onAskAI}
 						type="button"
 					>
@@ -294,7 +323,7 @@ function BlockStyleSelect({
 				id: "selection-bubble.block-style",
 				defaultMessage: "Block style",
 			})}
-			className="rounded-md bg-transparent px-1.5 py-0.5 text-base-content/80 text-ui-xs transition-colors hover:bg-base-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+			className="rounded-md bg-transparent px-1.5 py-0.5 text-base-content/80 text-xs transition-colors hover:bg-base-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
 			onChange={(event) => onChange?.(event.target.value)}
 			value={active?.id ?? ""}
 		>
@@ -354,7 +383,7 @@ function LinkInputMode({
 		>
 			<Link2 aria-hidden className="ml-1 size-3.5 text-base-content/60" />
 			<input
-				className="min-w-0 bg-transparent px-1 py-0.5 text-body outline-none placeholder:text-base-content/40"
+				className="min-w-0 bg-transparent px-1 py-0.5 text-sm outline-none placeholder:text-base-content/40"
 				onChange={(event) => setValue(event.target.value)}
 				onKeyDown={(event) => {
 					if (event.key === "Escape") {

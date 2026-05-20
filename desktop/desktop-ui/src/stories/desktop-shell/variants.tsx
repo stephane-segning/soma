@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { CheckCircle, Info, Sliders } from "react-feather";
 import { DesktopShell } from "../../components/layout/desktop-shell";
+import { Pill } from "../../components/primitives/pill";
 import { StatusBadge } from "../../components/presence/status-badge";
 import { InfoPanel, NavigationPanel, ShellHeader } from "./common";
 
@@ -16,15 +17,18 @@ export function SidebarRender() {
 			)}
 			leftColumn={<NavigationPanel />}
 			rightColumn={
-				<div className="space-y-3 text-sm">
-					<p className="font-semibold text-base-content/80">Status</p>
+				<div className="space-y-3 p-3 text-sm">
+					<p className="font-semibold text-base-content/80 text-xs uppercase tracking-wide">
+						Status
+					</p>
 					<StatusBadge label="Online" tone="success" />
 					<StatusBadge label="Syncing" tone="info" />
-					<div className="flex items-start gap-2 rounded-lg bg-base-200/60 p-3 text-base-content/70 text-xs">
+					<Pill dot tone="success">
+						Connected
+					</Pill>
+					<div className="flex items-start gap-2 rounded-md bg-base-200 p-3 text-base-content/70 text-xs">
 						<Info className="text-base-content/60" size={14} />
-						<span>
-							Use this shell as a structured layout for desktop views.
-						</span>
+						<span>Use this shell as a structured layout for desktop views.</span>
 					</div>
 				</div>
 			}
@@ -41,7 +45,7 @@ export function HeaderFooterRender() {
 	return (
 		<DesktopShell
 			footer={
-				<div className="flex items-center gap-3 rounded-lg border border-base-300/60 bg-base-100/80 p-3 text-base-content/80 text-sm">
+				<div className="flex items-center gap-3 border-base-300 border-t bg-base-100 px-3 py-2 text-base-content/80 text-sm">
 					<CheckCircle className="text-success" size={16} />
 					<span>All systems nominal. Last updated moments ago.</span>
 				</div>
@@ -55,7 +59,7 @@ export function HeaderFooterRender() {
 			)}
 			leftColumn={<NavigationPanel />}
 			rightColumn={
-				<div className="flex items-center gap-2 rounded-lg border border-base-300/60 bg-base-100/80 p-2 text-base-content/70">
+				<div className="m-2 flex items-center gap-2 rounded-md border border-base-300 bg-base-100 p-2 text-base-content/70 text-sm">
 					<Sliders size={14} />
 					<span>Resize with drag handle</span>
 				</div>
@@ -131,7 +135,7 @@ export function PersistentWidthsRender() {
 
 function ContentCard({ body, title }: { body: string; title?: string }) {
 	return (
-		<div className="rounded-xl border border-base-300/60 bg-base-100/80 p-4">
+		<div className="rounded-md border border-base-300 bg-base-100 p-4">
 			{title ? <h2 className="font-semibold text-lg">{title}</h2> : null}
 			<p className="text-base-content/70 text-sm">{body}</p>
 		</div>

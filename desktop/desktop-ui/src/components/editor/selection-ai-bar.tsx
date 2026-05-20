@@ -24,6 +24,7 @@ import {
 import { Star } from "react-feather";
 import { useT } from "../../i18n/use-t";
 import { cn } from "../../utils/cn";
+import { MenuItem, MenuSectionLabel } from "../overlays/menu-shell";
 import type {
 	NodeAIAction,
 	NodeAIActionCategory,
@@ -120,9 +121,15 @@ export function SelectionAIBar({
 
 	useEffect(() => {
 		const onKeyDown = (event: KeyboardEvent) => {
-			// Only respond when the event originated inside this instance.
-			// Without this, multiple SelectionAIBars mounted simultaneously
-			// would all react to the same keypress.
+			// Escape is a modal-style dismissal — fires regardless of where
+			// focus currently sits. Arrow/Enter are gated on focus living
+			// inside this instance so two simultaneous AI bars wouldn't
+			// trade keystrokes.
+			if (event.key === "Escape") {
+				event.preventDefault();
+				onClose();
+				return;
+			}
 			const target = event.target;
 			if (!(target instanceof Node)) return;
 			if (!containerRef.current?.contains(target)) return;
@@ -149,14 +156,25 @@ export function SelectionAIBar({
 				} else if (onCustomPrompt && prompt.trim().length > 0) {
 					onCustomPrompt(prompt.trim());
 				}
-			} else if (event.key === "Escape") {
-				event.preventDefault();
-				onClose();
 			}
 		};
 		window.addEventListener("keydown", onKeyDown);
 		return () => window.removeEventListener("keydown", onKeyDown);
 	}, [flat, activeIndex, nodeType, selectedText, prompt, onClose, onCustomPrompt]);
+
+	// Click-outside dismissal. Listen on `mousedown` (not click) so we
+	// close before the editor blurs the bar's input on a second click,
+	// and capture phase so it fires before any inner stop-propagation.
+	useEffect(() => {
+		const onMouseDown = (event: MouseEvent) => {
+			const target = event.target;
+			if (!(target instanceof Node)) return;
+			if (containerRef.current?.contains(target)) return;
+			onClose();
+		};
+		document.addEventListener("mousedown", onMouseDown, true);
+		return () => document.removeEventListener("mousedown", onMouseDown, true);
+	}, [onClose]);
 
 	return (
 		<div
@@ -176,7 +194,7 @@ export function SelectionAIBar({
 				<Star aria-hidden className="size-4 shrink-0 text-info" />
 				<input
 					autoFocus
-					className="min-w-0 flex-1 bg-transparent text-body outline-none placeholder:text-base-content/40"
+					className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-base-content/40"
 					onChange={(event) => setPrompt(event.target.value)}
 					placeholder={t({
 						id: "selection-ai.prompt-placeholder",
@@ -188,7 +206,7 @@ export function SelectionAIBar({
 			</div>
 
 			{flat.length === 0 ? (
-				<div className="px-2 py-2 text-base-content/60 text-ui-sm">
+				<div className="px-2 py-2 text-base-content/60 text-sm">
 					{onCustomPrompt && prompt.trim().length > 0
 						? t({
 								id: "selection-ai.dispatch-custom",
@@ -236,23 +254,16 @@ function ActionList({
 		<div className="flex max-h-72 flex-col gap-1 overflow-y-auto">
 			{grouped.map((group) => (
 				<div className="flex flex-col gap-0.5" key={group.category}>
-					<div className="px-2 pt-1 text-base-content/50 text-ui-xs uppercase tracking-wide">
-						{sectionLabel[group.category]}
-					</div>
+					<MenuSectionLabel>{sectionLabel[group.category]}</MenuSectionLabel>
 					{group.items.map((action) => {
 						const isActive = runningIndex === activeIndex;
 						const ownIndex = runningIndex;
 						runningIndex += 1;
 						return (
-							<button
-								aria-selected={isActive}
-								className={cn(
-									"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-ui-sm transition-colors",
-									isActive
-										? "bg-base-200 text-base-content"
-										: "hover:bg-base-200",
-								)}
+							<MenuItem
+								active={isActive}
 								key={action.id}
+								label={action.label}
 								onClick={() =>
 									action.run({
 										nodeType,
@@ -263,15 +274,8 @@ function ActionList({
 								}
 								onMouseEnter={() => setActiveIndex(ownIndex)}
 								role="option"
-								type="button"
-							>
-								<span className="min-w-0 flex-1 truncate">{action.label}</span>
-								{action.shortcut ? (
-									<span className="shrink-0 font-mono text-base-content/40 text-ui-xs">
-										{action.shortcut}
-									</span>
-								) : null}
-							</button>
+								shortcut={action.shortcut}
+							/>
 						);
 					})}
 				</div>

@@ -56,7 +56,7 @@ function FilterDemo() {
 	const [cleared, setCleared] = useState(false);
 	if (cleared) {
 		return (
-			<div className="max-w-sm text-ui-sm text-base-content/60">
+			<div className="max-w-sm text-sm text-base-content/60">
 				Filter cleared
 			</div>
 		);

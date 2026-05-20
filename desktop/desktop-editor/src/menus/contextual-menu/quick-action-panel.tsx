@@ -16,10 +16,10 @@ type QuickActionPanelProps = {
 export function QuickActionPanel({ resultText, resultTone, runningAction, selection, onRun }: QuickActionPanelProps) {
 	return (
 		<motion.div
-			animate={{ opacity: 1, y: 0, scale: 1 }}
+			animate={{ opacity: 1, y: 0 }}
 			className="fixed z-50 w-[min(92vw,560px)] rounded-2xl border border-base-300 bg-base-100 p-4 shadow-2xl"
-			exit={{ opacity: 0, y: 8, scale: 0.98 }}
-			initial={{ opacity: 0, y: 12, scale: 0.98 }}
+			exit={{ opacity: 0, y: 8 }}
+			initial={{ opacity: 0, y: 12 }}
 			style={{
 				left: `clamp(16px, ${selection.anchor.x - 280}px, calc(100vw - 576px))`,
 				top: `clamp(16px, ${selection.anchor.y}px, calc(100vh - 320px))`,

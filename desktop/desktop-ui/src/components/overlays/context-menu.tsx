@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import type { ReactNode } from "react";
 import type { OverlayPosition } from "../../types";
-import { cn } from "../../utils/cn";
+import { MenuItem, MenuShell } from "./menu-shell";
 import { OverlayPortal } from "./overlay-portal";
 
 export type ContextMenuItem = {
@@ -39,49 +39,30 @@ export function ContextMenu({
 							onMouseDown={onClose}
 						/>
 						<motion.div
-							animate={{ opacity: 1, scale: 1 }}
+							animate={{ opacity: 1 }}
 							className="pointer-events-auto fixed z-50 origin-top-left"
-							exit={{ opacity: 0, scale: 0.96 }}
-							initial={{ opacity: 0, scale: 0.96 }}
+							exit={{ opacity: 0 }}
+							initial={{ opacity: 0 }}
 							onMouseDown={(event) => event.stopPropagation()}
 							style={{ top: position.y, left: position.x }}
 							transition={{ duration: 0.12 }}
 						>
-							<div
-								className={cn(
-									"glass-panel shadow-elevated min-w-48 p-2",
-									className,
-								)}
-							>
+							<MenuShell className={className}>
 								{items.map((item) => (
-									<button
-										className={cn(
-											"group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors",
-											item.tone === "danger"
-												? "hover:bg-error hover:text-error-content"
-												: "hover:bg-base-200",
-											item.disabled
-												? "cursor-not-allowed opacity-50"
-												: "cursor-pointer",
-										)}
-										disabled={item.disabled}
+									<MenuItem
 										key={item.id}
+										disabled={item.disabled}
+										icon={item.icon}
+										label={item.label}
 										onClick={() => {
 											item.onSelect?.();
 											onClose?.();
 										}}
-										type="button"
-									>
-										<span className="text-base-content/70">{item.icon}</span>
-										<span className="flex-1">{item.label}</span>
-										{item.shortcut ? (
-											<span className="text-base-content/60 text-xs">
-												{item.shortcut}
-											</span>
-										) : null}
-									</button>
+										shortcut={item.shortcut}
+										tone={item.tone === "danger" ? "danger" : "default"}
+									/>
 								))}
-							</div>
+							</MenuShell>
 						</motion.div>
 					</>
 				) : null}

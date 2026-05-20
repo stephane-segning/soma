@@ -57,7 +57,7 @@ function Demo({ withAdd = true }: { withAdd?: boolean }) {
 	return (
 		<div className="flex h-48 items-end">
 			<div className="flex w-full max-w-xl items-center justify-between rounded-md border border-base-300 bg-base-100 p-3">
-				<span className="text-base-content/40 text-ui-sm">composer …</span>
+				<span className="text-base-content/40 text-sm">composer …</span>
 				<BackendSwitcher
 					activeId={activeId}
 					backends={BACKENDS}

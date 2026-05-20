@@ -83,7 +83,7 @@ export function PopupShell({
 				data-drag-region
 			>
 				<div
-					className="min-w-0 flex-1 truncate text-base-content/80 text-ui-xs"
+					className="min-w-0 flex-1 truncate text-base-content/80 text-xs"
 					title={title}
 				>
 					{title}

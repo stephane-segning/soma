@@ -59,12 +59,12 @@ export function InlineAIAcceptBar({
 			role="group"
 		>
 			{prompt ? (
-				<span className="px-2 py-0.5 text-base-content/60 text-ui-xs">
+				<span className="px-2 py-0.5 text-base-content/60 text-xs">
 					{prompt}
 				</span>
 			) : null}
 			<button
-				className="inline-flex items-center gap-1 rounded-md bg-primary px-2 py-1 font-medium text-primary-content text-ui-sm transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+				className="inline-flex items-center gap-1 rounded-md bg-primary px-2 py-1 font-medium text-primary-content text-sm transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
 				onClick={onAccept}
 				type="button"
 			>
@@ -118,7 +118,7 @@ function SecondaryButton({
 	return (
 		<button
 			className={cn(
-				"inline-flex items-center gap-1 rounded-md px-2 py-1 text-ui-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+				"inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
 				tone === "danger"
 					? "text-base-content/70 hover:bg-error/10 hover:text-error"
 					: "text-base-content/80 hover:bg-base-200 hover:text-base-content",

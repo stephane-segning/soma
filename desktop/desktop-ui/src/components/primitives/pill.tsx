@@ -36,20 +36,29 @@ export type PillProps = {
 	"aria-label"?: string;
 };
 
-const toneSurface: Record<PillTone, string> = {
-	neutral: "bg-base-200 text-base-content/80 border-base-300",
-	info: "bg-info/10 text-info border-info/30",
-	success: "bg-success/10 text-success border-success/30",
-	warning: "bg-warning/15 text-warning border-warning/40",
-	error: "bg-error/10 text-error border-error/40",
+// Map our semantic tones onto daisyUI's `badge-soft` style — a softer
+// tinted surface (lighter bg + matching text colour) that reads as a
+// status chip rather than a button. daisyUI 5 ships this modifier so
+// we can drop the hand-mixed `bg-info/10` form. `neutral` falls back to
+// the plain (no-tone) soft badge so it inherits the theme's neutral
+// palette.
+const toneBadgeClass: Record<PillTone, string> = {
+	neutral: "",
+	info: "badge-info",
+	success: "badge-success",
+	warning: "badge-warning",
+	error: "badge-error",
 };
 
+// Dot colour — slightly darker than the badge background so the dot
+// reads as a status indicator, not a background blob. daisyUI provides
+// `--color-*` tokens we can lean on.
 const toneDot: Record<PillTone, string> = {
-	neutral: "bg-base-content/60",
-	info: "bg-info",
-	success: "bg-success",
-	warning: "bg-warning",
-	error: "bg-error",
+	neutral: "bg-base-content/70",
+	info: "bg-info-content",
+	success: "bg-success-content",
+	warning: "bg-warning-content",
+	error: "bg-error-content",
 };
 
 export function Pill({
@@ -62,8 +71,13 @@ export function Pill({
 	return (
 		<span
 			className={cn(
-				"inline-flex items-center gap-1.5 rounded-sm border px-1.5 py-0.5 text-ui-xs font-medium",
-				toneSurface[tone],
+				// Lean on daisyUI's `.badge` primitive for the surface,
+				// `.badge-sm` for the smaller chip footprint, `.badge-soft`
+				// for the softer tinted style, and the tone modifier picked
+				// above. We add `gap-1.5` for the dot spacing since daisyUI's
+				// default gap is tighter than we want.
+				"badge badge-sm badge-soft gap-1.5",
+				toneBadgeClass[tone],
 				className,
 			)}
 			{...rest}
