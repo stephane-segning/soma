@@ -41,20 +41,21 @@ export type KbdProps = {
 
 export function Kbd({ children, size = "sm", className }: KbdProps) {
 	if (Array.isArray(children)) {
+		// Per daisyUI's docs example, render chord keys with literal `+`
+		// text nodes between them — no wrapping span, no extra styling.
+		// The plain `+` matches the rendered shape of
+		//   <kbd class="kbd">ctrl</kbd>+<kbd class="kbd">k</kbd>
+		// in daisy's own demos.
 		return (
-			<span className="inline-flex items-center gap-1">
+			<>
 				{children.map((key, index) => (
 					// biome-ignore lint/suspicious/noArrayIndexKey: stable chord shape
 					<Fragment key={index}>
-						{index > 0 ? (
-							<span aria-hidden className="text-base-content/40 text-xs">
-								+
-							</span>
-						) : null}
+						{index > 0 ? "+" : null}
 						<kbd className={cn("kbd", sizeClass[size], className)}>{key}</kbd>
 					</Fragment>
 				))}
-			</span>
+			</>
 		);
 	}
 	return <kbd className={cn("kbd", sizeClass[size], className)}>{children}</kbd>;

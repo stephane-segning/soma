@@ -17,16 +17,15 @@ describe("Kbd", () => {
 		expect(kbd?.textContent).toBe("⌘");
 	});
 
-	it("renders chord with `+` separators between keys", () => {
+	it("renders chord with `+` text nodes between keys (daisyUI docs shape)", () => {
 		const { container } = render(<Kbd>{["⌘", "K"]}</Kbd>);
 		const kbds = container.querySelectorAll("kbd");
 		expect(kbds.length).toBe(2);
 		expect(kbds[0].textContent).toBe("⌘");
 		expect(kbds[1].textContent).toBe("K");
-		// One separator between the two keys.
-		const separators = container.querySelectorAll("[aria-hidden]");
-		expect(separators.length).toBe(1);
-		expect(separators[0].textContent).toBe("+");
+		// The `+` separator is a bare text node, matching daisy's docs.
+		// Concatenating all child text should yield "⌘+K".
+		expect(container.textContent).toBe("⌘+K");
 	});
 
 	it("maps sizes to daisy modifiers", () => {
