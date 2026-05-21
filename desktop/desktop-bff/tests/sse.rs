@@ -45,7 +45,7 @@ async fn sse_endpoint_forwards_renderer_events() {
         tx.clone(),
     ));
 
-    let router = build_router(state);
+    let router = build_router(state, &desktop_bff::BffConfig::default());
     let listener = TcpListener::bind("127.0.0.1:0").await.expect("bind random port");
     let addr: SocketAddr = listener.local_addr().expect("local addr");
     let server = tokio::spawn(async move {
@@ -130,7 +130,7 @@ async fn daemon_status_returns_200_with_unreachable_when_daemon_idle() {
         tx,
     ));
 
-    let router = build_router(state);
+    let router = build_router(state, &desktop_bff::BffConfig::default());
     let listener = TcpListener::bind("127.0.0.1:0").await.expect("bind random port");
     let addr: SocketAddr = listener.local_addr().expect("local addr");
     let server = tokio::spawn(async move {
@@ -148,6 +148,103 @@ async fn daemon_status_returns_200_with_unreachable_when_daemon_idle() {
     assert_eq!(resp.status(), 200);
     let body: serde_json::Value = resp.json().await.expect("json");
     assert_eq!(body["reachable"], false);
+
+    server.abort();
+}
+
+/// With the default config (empty `allowed_origins`) no CORS layer is
+/// installed: cross-origin browsers can't read responses without an
+/// explicit allowlist. We assert this by checking that an OPTIONS
+/// preflight from a foreign origin gets *no* `Access-Control-Allow-Origin`
+/// header back.
+#[tokio::test]
+async fn default_config_installs_no_cors_layer() {
+    let tmp = TempDir::new().expect("tempdir");
+    let daemon = Arc::new(DaemonRuntime::new(DaemonRuntimeOptions::new(tmp.path())));
+    let agent_runtime = Arc::new(AgentRuntime::new());
+    let config_source = Arc::new(StaticConfigSource(AgentRuntimeConfig::default()));
+    let agent_service = AgentService::new(config_source, Arc::clone(&agent_runtime));
+    let practice = Arc::new(PracticeService::new());
+    let (tx, _rx) = broadcast::channel(DOMAIN_EVENT_CHANNEL_CAPACITY);
+    let state = Arc::new(AppState::new(daemon, agent_runtime, agent_service, practice, tx));
+
+    let router = build_router(state, &desktop_bff::BffConfig::default());
+    let listener = TcpListener::bind("127.0.0.1:0").await.expect("bind");
+    let addr: SocketAddr = listener.local_addr().expect("addr");
+    let server = tokio::spawn(async move {
+        axum::serve(listener, router).await.expect("serve");
+    });
+
+    let resp = reqwest::Client::new()
+        .request(reqwest::Method::OPTIONS, format!("http://{addr}/api/v1/daemon_status"))
+        .header("Origin", "https://evil.example.com")
+        .header("Access-Control-Request-Method", "POST")
+        .send()
+        .await
+        .expect("preflight");
+    assert!(
+        !resp.headers().contains_key("access-control-allow-origin"),
+        "default config must not echo an Access-Control-Allow-Origin header"
+    );
+
+    server.abort();
+}
+
+/// With explicit `allowed_origins`, the CORS layer is installed with
+/// `allow_credentials(true)` and the SDK-style preflight succeeds.
+#[tokio::test]
+async fn explicit_allowlist_enables_credentialed_cors() {
+    use axum::http::HeaderValue;
+
+    let tmp = TempDir::new().expect("tempdir");
+    let daemon = Arc::new(DaemonRuntime::new(DaemonRuntimeOptions::new(tmp.path())));
+    let agent_runtime = Arc::new(AgentRuntime::new());
+    let config_source = Arc::new(StaticConfigSource(AgentRuntimeConfig::default()));
+    let agent_service = AgentService::new(config_source, Arc::clone(&agent_runtime));
+    let practice = Arc::new(PracticeService::new());
+    let (tx, _rx) = broadcast::channel(DOMAIN_EVENT_CHANNEL_CAPACITY);
+    let state = Arc::new(AppState::new(daemon, agent_runtime, agent_service, practice, tx));
+
+    let mut cfg = desktop_bff::BffConfig::default();
+    cfg.allowed_origins = vec![HeaderValue::from_static("https://soma.example.com")];
+
+    let router = build_router(state, &cfg);
+    let listener = TcpListener::bind("127.0.0.1:0").await.expect("bind");
+    let addr: SocketAddr = listener.local_addr().expect("addr");
+    let server = tokio::spawn(async move {
+        axum::serve(listener, router).await.expect("serve");
+    });
+
+    // Allowed origin → echoed back, with credentials enabled.
+    let resp = reqwest::Client::new()
+        .request(reqwest::Method::OPTIONS, format!("http://{addr}/api/v1/daemon_status"))
+        .header("Origin", "https://soma.example.com")
+        .header("Access-Control-Request-Method", "POST")
+        .header("Access-Control-Request-Headers", "content-type")
+        .send()
+        .await
+        .expect("preflight");
+    assert_eq!(
+        resp.headers().get("access-control-allow-origin").map(|v| v.to_str().unwrap()),
+        Some("https://soma.example.com")
+    );
+    assert_eq!(
+        resp.headers().get("access-control-allow-credentials").map(|v| v.to_str().unwrap()),
+        Some("true")
+    );
+
+    // Foreign origin → no allow-origin header echoed.
+    let resp = reqwest::Client::new()
+        .request(reqwest::Method::OPTIONS, format!("http://{addr}/api/v1/daemon_status"))
+        .header("Origin", "https://evil.example.com")
+        .header("Access-Control-Request-Method", "POST")
+        .send()
+        .await
+        .expect("preflight foreign");
+    assert!(
+        resp.headers().get("access-control-allow-origin").is_none(),
+        "foreign origin should not be echoed"
+    );
 
     server.abort();
 }

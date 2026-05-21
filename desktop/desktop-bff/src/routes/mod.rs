@@ -9,12 +9,24 @@
 
 use std::sync::Arc;
 
-use axum::{Json, Router, extract::State, routing::{get, post}};
+use axum::{
+    Json, Router,
+    extract::{DefaultBodyLimit, State},
+    routing::{get, post},
+};
 use desktop_api::AppState;
 use desktop_api::{blobs, daemon, documents, spaces};
 
 use crate::error::ApiError;
 use crate::sse;
+
+/// Per-request body cap for the `blobs_*` routes. axum's default
+/// `Json`/`Bytes` extractor caps at 2 MiB, which is too tight for a real
+/// blob upload (images, PDFs, recorded audio). 100 MiB matches the
+/// renderer's expectation that "anything that fits in memory" should
+/// upload in a single round-trip. Routes that don't carry binary payloads
+/// stay on the global axum default.
+const BLOB_UPLOAD_MAX_BYTES: usize = 100 * 1024 * 1024;
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
@@ -22,7 +34,10 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/api/v1/documents_get_draft", post(documents_get_draft))
         .route("/api/v1/documents_upsert_draft", post(documents_upsert_draft))
         .route("/api/v1/daemon_status", post(daemon_status))
-        .route("/api/v1/blobs_upload", post(blobs_upload))
+        .route(
+            "/api/v1/blobs_upload",
+            post(blobs_upload).layer(DefaultBodyLimit::max(BLOB_UPLOAD_MAX_BYTES)),
+        )
         .route("/api/v1/events", get(sse::events_sse))
 }
 

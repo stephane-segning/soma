@@ -1748,6 +1748,7 @@ dependencies = [
  "desktop-core",
  "desktop-daemon",
  "desktop-services",
+ "dirs",
  "futures",
  "reqwest 0.12.28",
  "serde",
