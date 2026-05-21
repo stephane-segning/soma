@@ -5,9 +5,11 @@
 //! router factory that mounts every route plus CORS / trace middleware.
 
 use std::net::SocketAddr;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use axum::Router;
+use axum::extract::Extension;
 use axum::http::{HeaderName, HeaderValue, Method, header};
 use desktop_api::AppState;
 use tower_http::cors::{AllowOrigin, CorsLayer};
@@ -30,6 +32,12 @@ pub struct BffConfig {
     /// allowlist with `allow_credentials(true)` (the SDK sends
     /// `credentials: "include"`, which forbids `*`).
     pub allowed_origins: Vec<HeaderValue>,
+    /// On-disk root used by the blob-staging routes to materialize
+    /// renderer-sent payloads under `<user_data_dir>/tmp/uploads/...`.
+    /// Defaults to the platform temp dir so unit/integration tests don't
+    /// have to thread a real path — production callers wire this to the
+    /// same path the Tauri shell would resolve via `AppHandle::path()`.
+    pub user_data_dir: PathBuf,
 }
 
 impl Default for BffConfig {
@@ -37,7 +45,22 @@ impl Default for BffConfig {
         Self {
             bind_addr: "127.0.0.1:4123".parse().expect("hard-coded SocketAddr"),
             allowed_origins: Vec::new(),
+            user_data_dir: std::env::temp_dir().join("soma-bff"),
         }
+    }
+}
+
+/// Newtype wrapper exposed to handlers via `Extension<UserDataDir>` so
+/// the blob-staging routes can resolve `<user_data_dir>/tmp/uploads/...`
+/// without each handler reading the config object. Cheap to clone — the
+/// `PathBuf` is held behind an `Arc` so the per-request `Extension` lookup
+/// stays free of allocation.
+#[derive(Debug, Clone)]
+pub struct UserDataDir(pub Arc<PathBuf>);
+
+impl UserDataDir {
+    pub fn path(&self) -> &std::path::Path {
+        self.0.as_path()
     }
 }
 
@@ -55,9 +78,11 @@ impl Default for BffConfig {
 ///   credentialed requests and would also let any visited webpage POST
 ///   to mutation endpoints like `documents_upsert_draft`.
 pub fn build_router(state: Arc<AppState>, config: &BffConfig) -> Router {
+    let user_data_dir = UserDataDir(Arc::new(config.user_data_dir.clone()));
     let mut router = Router::new()
         .merge(routes::router())
         .with_state(state)
+        .layer(Extension(user_data_dir))
         .layer(TraceLayer::new_for_http());
 
     if !config.allowed_origins.is_empty() {
