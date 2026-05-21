@@ -14,6 +14,8 @@ use std::sync::Arc;
 use axum::{
     Json, Router,
     extract::{DefaultBodyLimit, Extension, State},
+    http::{StatusCode, header},
+    response::{IntoResponse, Response},
     routing::post,
 };
 use desktop_api::{AppState, blobs};
@@ -65,14 +67,28 @@ async fn blobs_upload(
     blobs::upload(&app, args).await.map(Json).map_err(ApiError::from)
 }
 
+/// Read a blob's raw bytes by `(space_id, cid)`. Returns
+/// `application/octet-stream` with the payload as the body — wrapping
+/// `Vec<u8>` in `Json` would serialize it as `[72, 101, ...]`, which
+/// inflates the payload 3-4x and burns CPU on both ends for blobs that
+/// can be up to 100 MiB. A missing blob maps to 404 with an empty body
+/// (the JSON `null` shape would conflict with the octet-stream
+/// content-type; callers distinguish "missing" by status, not body).
+///
+/// NOTE: the TS SDK's `httpTransport.invoke` currently calls
+/// `res.json()` unconditionally, so the renderer cannot consume this
+/// route over HTTP yet. The Tauri presenter is unaffected (it goes
+/// through `tauri::command`, not the BFF). A follow-up will teach the
+/// SDK to branch on `Content-Type` (or add a dedicated `fetchBytes`).
 async fn blobs_read(
     State(app): State<Arc<AppState>>,
     Json(body): Json<BlobReadBody>,
-) -> Result<Json<Option<Vec<u8>>>, ApiError> {
-    blobs::read(&app, body.space_id, body.cid)
-        .await
-        .map(Json)
-        .map_err(ApiError::from)
+) -> Result<Response, ApiError> {
+    let bytes = blobs::read(&app, body.space_id, body.cid).await.map_err(ApiError::from)?;
+    match bytes {
+        Some(data) => Ok(([(header::CONTENT_TYPE, "application/octet-stream")], data).into_response()),
+        None => Ok(StatusCode::NOT_FOUND.into_response()),
+    }
 }
 
 async fn blobs_stage_upload(
