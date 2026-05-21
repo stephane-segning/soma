@@ -26,6 +26,7 @@ members = [
     "desktop/desktop-agent",
     "desktop/desktop-api",
     "desktop/desktop-commands",
+    "desktop/desktop-bff",
     "desktop/desktop-app/src-tauri",
     "xtask"
 ]
@@ -58,6 +59,7 @@ desktop-daemon = { path = "desktop/desktop-daemon" }
 desktop-agent = { path = "desktop/desktop-agent" }
 desktop-api = { path = "desktop/desktop-api" }
 desktop-commands = { path = "desktop/desktop-commands" }
+desktop-bff = { path = "desktop/desktop-bff" }
 
 # Tauri + ecosystem (consumed by desktop-* crates and the desktop-app binary).
 tauri = { version = "2" }
@@ -96,7 +98,7 @@ derive_builder = "0.20"
 
 prost = "0.14"
 prost-types = "0.14"
-tokio-stream = "0.1"
+tokio-stream = { version = "0.1", features = ["sync"] }
 async-trait = "0.1"
 tonic = { version = "0.14", features = ["transport"] }
 tonic-prost = "0.14"
@@ -113,7 +115,9 @@ thiserror = { version = "2" }
 sha2 = "0.10"
 
 axum = { version = "0.8" }
+tower-http = { version = "0.6", features = ["cors", "trace"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal"] }
+dirs = "6"
 
 tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter", "json", "ansi", "serde_json"] }
 tracing-appender = { version = "0.2" }

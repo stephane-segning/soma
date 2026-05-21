@@ -1,0 +1,41 @@
+[package]
+name = "desktop-bff"
+description = "HTTP/SSE presenter over `desktop-api`. Mirrors the Tauri shell's command surface for the SDK's httpTransport so the renderer can run against a remote backend."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+authors.workspace = true
+
+[lib]
+name = "desktop_bff"
+path = "src/lib.rs"
+
+[[bin]]
+name = "desktop-bff"
+path = "src/main.rs"
+
+[dependencies]
+desktop-core = { workspace = true }
+desktop-services = { workspace = true }
+desktop-daemon = { workspace = true }
+desktop-agent = { workspace = true }
+desktop-api = { workspace = true }
+
+axum = { workspace = true }
+tower-http = { workspace = true }
+tokio = { workspace = true }
+tokio-stream = { workspace = true }
+futures = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+async-trait = { workspace = true }
+anyhow = { workspace = true }
+dirs = { workspace = true }
+
+[dev-dependencies]
+reqwest = { workspace = true, features = ["json", "stream", "rustls-tls"] }
+tempfile = { workspace = true }
+futures = { workspace = true }
