@@ -92,7 +92,11 @@ async fn main() -> anyhow::Result<()> {
         domain_events_tx,
     ));
 
-    let config = resolve_config()?;
+    let mut config = resolve_config()?;
+    // The blob-staging routes need the same on-disk root the runtimes
+    // booted from — overriding here keeps the env-driven resolution above
+    // as the single source of truth.
+    config.user_data_dir = user_data_dir.clone();
     let router = build_router(state, &config);
 
     let listener = TcpListener::bind(config.bind_addr)
