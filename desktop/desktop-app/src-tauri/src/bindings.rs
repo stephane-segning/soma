@@ -58,6 +58,10 @@ pub fn build_specta() -> Builder<Wry> {
             desktop_commands::documents::documents_list_pages,
             desktop_commands::documents::documents_update_page_title,
             desktop_commands::documents::documents_set_page_parents,
+            desktop_commands::documents::documents_get_draft,
+            desktop_commands::documents::documents_upsert_draft,
+            desktop_commands::documents::documents_queue_daemon_sync,
+            desktop_commands::documents::documents_sync_published,
             // Blobs
             desktop_commands::blobs::blobs_upload,
             desktop_commands::blobs::blobs_read,

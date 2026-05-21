@@ -16,8 +16,26 @@ use specta::Type;
 use tauri::Runtime;
 use tokio::task::JoinHandle;
 
+/// Source tag for renderer-broadcast events. Mirrors the
+/// `DomainEventSource` union in `desktop-data/src/events/types.ts`.
+///
+/// `Daemon` is reserved for events that originate from the daemon
+/// firehose; today every variant in `DomainEvent` that uses this tag is
+/// emitted with `Renderer` from a command handler.
+#[derive(Debug, Clone, Copy, Serialize, Type)]
+#[serde(rename_all = "kebab-case")]
+pub enum DomainEventSource {
+    Renderer,
+    Daemon,
+}
+
 /// Renderer-facing payload. Tagged on `kind` to match the discriminated
 /// union the renderer's `@soma/desktop-db` parser accepts.
+//
+// TODO: the `spaces-changed` / `space-changed` variants are also
+// renderer-broadcast in Electron (from spaces command-handlers). They're
+// out of scope for the documents-drafts PR — port them alongside the
+// spaces command broadcasts in a follow-up.
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(tag = "kind", rename_all = "kebab-case")]
 pub enum DomainEvent {
@@ -47,6 +65,27 @@ pub enum DomainEvent {
         space_id: String,
         delegate_peer_id: String,
         status: String,
+    },
+    /// Renderer-broadcast: emitted by document/page command handlers
+    /// when something changed at the page-list level for a space.
+    #[serde(rename_all = "camelCase")]
+    PagesChanged {
+        source: DomainEventSource,
+        #[specta(type = i32)]
+        at_ms: i64,
+        space_id: String,
+        reason: Option<String>,
+    },
+    /// Renderer-broadcast: emitted by document command handlers when a
+    /// specific document's contents changed.
+    #[serde(rename_all = "camelCase")]
+    DocumentChanged {
+        source: DomainEventSource,
+        #[specta(type = i32)]
+        at_ms: i64,
+        space_id: String,
+        document_id: String,
+        reason: Option<String>,
     },
 }
 

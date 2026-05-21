@@ -1,10 +1,9 @@
 /**
  * Documents service. Page / document commands route through `@soma/sdk`
- * (`backend.pages.*` / `backend.documents.*`). The draft commands are
- * SDK-typed but still resolve against the Electron transport only —
- * the Tauri presenter doesn't implement `documents_get_draft`,
- * `documents_upsert_draft`, `documents_queue_daemon_sync`, or
- * `documents_sync_published` yet.
+ * (`backend.pages.*` / `backend.documents.*`). Drafts (`getDraft`,
+ * `upsertDraft`, `queueDaemonSync`, `syncPublishedDocument`) are now
+ * available on both Electron and Tauri transports — wire types come
+ * from `@soma/sdk` bindings.
  */
 
 import { createId } from "@paralleldrive/cuid2";

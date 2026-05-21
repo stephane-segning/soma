@@ -1743,6 +1743,7 @@ dependencies = [
  "desktop-agent",
  "desktop-api",
  "desktop-core",
+ "desktop-daemon",
  "desktop-services",
  "serde",
  "serde_json",

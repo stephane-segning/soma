@@ -106,6 +106,76 @@ pub struct SetPageParentsArgs {
     pub parent_page_ids: Vec<String>,
 }
 
+// --- Draft DTOs --------------------------------------------------------------
+//
+// The drafts surface is a thin alias over `upsertDocument` / `getDocument`
+// in the daemon — there is no separate draft store. The Electron handlers
+// (`desktop/soma/src/main/controllers/documents-controller.ts`) live as
+// passthrough mappers; we mirror them verbatim here so the renderer can
+// hit the same shapes from the Tauri transport.
+
+#[derive(Debug, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct UpsertDraftArgs {
+    pub space_id: String,
+    pub document_id: String,
+    pub content_json: String,
+    #[serde(default)]
+    pub published: bool,
+    #[serde(default)]
+    #[specta(type = Option<i32>)]
+    pub updated_at_ms: Option<i64>,
+}
+
+#[derive(Debug, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct QueueDaemonSyncArgs {
+    pub space_id: String,
+    pub document_id: String,
+    pub content_json: String,
+    #[specta(type = i32)]
+    pub updated_at_ms: i64,
+    #[serde(default)]
+    pub published: Option<bool>,
+}
+
+#[derive(Debug, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct SyncPublishedDocumentArgs {
+    pub space_id: String,
+    pub document_id: String,
+    pub content_json: String,
+    #[specta(type = i32)]
+    pub updated_at_ms: i64,
+}
+
+#[derive(Debug, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct SyncPublishedDocumentResult {
+    pub uploaded: i32,
+}
+
+#[derive(Debug, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct GetDraftArgs {
+    pub space_id: String,
+    pub document_id: String,
+}
+
+/// Drafts row shape consumed by the renderer service today. `published`
+/// is `1 | 0` rather than a bool so the wire shape matches what the
+/// Electron handler emits.
+#[derive(Debug, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct DraftRecord {
+    pub space_id: String,
+    pub document_id: String,
+    pub content_json: String,
+    pub published: i32,
+    #[specta(type = i32)]
+    pub updated_at_ms: i64,
+}
+
 // --- Handlers ----------------------------------------------------------------
 
 fn err(e: impl std::fmt::Display) -> DesktopError {
@@ -179,4 +249,64 @@ pub async fn set_page_parents(state: &AppState, args: SetPageParentsArgs) -> Des
         .await
         .map_err(err)?;
     Ok(page.map(StoredPage::from))
+}
+
+// --- Draft handlers ----------------------------------------------------------
+
+pub async fn upsert_draft(state: &AppState, args: UpsertDraftArgs) -> DesktopResult<()> {
+    let handle = state.daemon.handle().await?;
+    handle
+        .upsert_document(dt::UpsertDocumentInput {
+            space_id: args.space_id,
+            document_id: args.document_id,
+            content_json: args.content_json,
+            published: args.published,
+            updated_at_ms: args.updated_at_ms.unwrap_or_else(now_ms),
+        })
+        .await
+        .map_err(err)
+}
+
+pub async fn queue_daemon_sync(state: &AppState, args: QueueDaemonSyncArgs) -> DesktopResult<()> {
+    let handle = state.daemon.handle().await?;
+    handle
+        .upsert_document(dt::UpsertDocumentInput {
+            space_id: args.space_id,
+            document_id: args.document_id,
+            content_json: args.content_json,
+            published: args.published.unwrap_or(true),
+            updated_at_ms: args.updated_at_ms,
+        })
+        .await
+        .map_err(err)
+}
+
+pub async fn sync_published(state: &AppState, args: SyncPublishedDocumentArgs) -> DesktopResult<SyncPublishedDocumentResult> {
+    let handle = state.daemon.handle().await?;
+    handle
+        .upsert_document(dt::UpsertDocumentInput {
+            space_id: args.space_id,
+            document_id: args.document_id,
+            content_json: args.content_json,
+            published: true,
+            updated_at_ms: args.updated_at_ms,
+        })
+        .await
+        .map_err(err)?;
+    // Mirror the Electron stub: the daemon's `upsertDocument` doesn't
+    // return a count, so we hard-code `1` so the renderer's "uploaded"
+    // accounting stays unchanged across transports.
+    Ok(SyncPublishedDocumentResult { uploaded: 1 })
+}
+
+pub async fn get_draft(state: &AppState, args: GetDraftArgs) -> DesktopResult<Option<DraftRecord>> {
+    let handle = state.daemon.handle().await?;
+    let record = handle.get_document(&args.space_id, &args.document_id).await.map_err(err)?;
+    Ok(record.map(|r| DraftRecord {
+        space_id: r.space_id,
+        document_id: r.document_id,
+        content_json: r.content_json,
+        published: if r.published { 1 } else { 0 },
+        updated_at_ms: r.updated_at_ms,
+    }))
 }
