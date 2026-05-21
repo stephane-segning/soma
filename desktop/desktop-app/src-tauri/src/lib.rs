@@ -20,6 +20,7 @@ use desktop_daemon::runtime::{DaemonRuntime, DaemonRuntimeOptions};
 use desktop_services::blob_protocol::SharedBlobReader;
 use desktop_services::events::AgentEventsBroadcaster;
 use desktop_services::logger::{self, LoggerGuards, LoggerOptions};
+use desktop_services::practice::PracticeService;
 use tauri::Manager;
 
 use crate::agent_config_source::StoreBackedConfigSource;
@@ -137,6 +138,10 @@ pub fn run() {
 
             let config_source = Arc::new(StoreBackedConfigSource::new(app.handle().clone()));
             let agent_service = AgentService::new(config_source, Arc::clone(&agent_runtime));
+            // Practice is process-local state (no daemon backing) — built
+            // up-front so AppState is ready by the time the renderer
+            // boots, matching the Electron PracticeController.
+            let practice = Arc::new(PracticeService::new());
 
             let _ = blob_reader_holder.set(DaemonBlobReader::shared(Arc::clone(&daemon)));
 
@@ -161,7 +166,7 @@ pub fn run() {
                 drop(splash);
             });
 
-            app.manage(AppState::new(daemon, agent_runtime, Arc::clone(&agent_service)));
+            app.manage(AppState::new(daemon, agent_runtime, Arc::clone(&agent_service), practice));
             // `agent_service` is also kept as standalone state so the event
             // stream tasks (which only need the service) can reach it without
             // pulling the whole AppState.

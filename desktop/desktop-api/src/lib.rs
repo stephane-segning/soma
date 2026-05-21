@@ -20,6 +20,7 @@ pub mod agent;
 pub mod blobs;
 pub mod daemon;
 pub mod documents;
+pub mod practice;
 pub mod search;
 pub mod spaces;
 pub mod state;

@@ -107,6 +107,10 @@ export const commands = {
 	limit: number | null,
 } | null) => typedError<BackgroundTask[], DesktopError>(__TAURI_INVOKE("agent_list_background_tasks", { args })),
 	search: (query: string | null) => typedError<SearchResult[], DesktopError>(__TAURI_INVOKE("search", { query })),
+	practiceListExercises: (spaceId: string | null) => typedError<Exercise[], DesktopError>(__TAURI_INVOKE("practice_list_exercises", { spaceId })),
+	practiceSaveExercise: (args: ExerciseDraft) => typedError<Exercise, DesktopError>(__TAURI_INVOKE("practice_save_exercise", { args })),
+	practiceRecordSession: (args: ExerciseAttempt) => typedError<RecordSessionResponse, DesktopError>(__TAURI_INVOKE("practice_record_session", { args })),
+	practiceGenerateExercise: (args: GenerateExerciseInput) => typedError<ExerciseDraft, DesktopError>(__TAURI_INVOKE("practice_generate_exercise", { args })),
 };
 
 /* Types */
@@ -364,6 +368,56 @@ export type EnsurePageArgs = {
 	updatedAtMs?: number | null,
 };
 
+export type Exercise = {
+	cid: string,
+	message: string,
+	meta: ExerciseMetadata,
+};
+
+export type ExerciseAttempt = {
+	exerciseId: string,
+	spaceId: string,
+	wpm: number | null,
+	accuracy: number | null,
+	durationMs: number,
+	completedAtMs: number,
+};
+
+export type ExerciseDifficulty = "beginner" | "intermediate" | "advanced";
+
+export type ExerciseDraft = {
+	message: string,
+	meta: ExerciseDraftMetadata,
+};
+
+export type ExerciseDraftMetadata = {
+	spaceId: string,
+	topic?: string | null,
+	difficulty?: ExerciseDifficulty | null,
+	source?: ExerciseSource | null,
+	tags?: string[] | null,
+};
+
+export type ExerciseMetadata = {
+	id: string,
+	spaceId: string,
+	topic?: string | null,
+	difficulty: ExerciseDifficulty,
+	source: ExerciseSource,
+	createdAtMs: number,
+	length: number,
+	tags?: string[] | null,
+};
+
+export type ExerciseSource = "manual" | "agent" | "imported";
+
+export type GenerateExerciseInput = {
+	spaceId: string,
+	topic?: string | null,
+	difficulty?: ExerciseDifficulty | null,
+	length?: number | null,
+};
+
 export type GetDraftArgs = {
 	spaceId: string,
 	documentId: string,
@@ -387,6 +441,16 @@ export type JoinSpaceArgs = {
 
 export type JoinSpaceResult = {
 	requestId: string,
+};
+
+export type LeaderboardEntry = {
+	spaceId: string,
+	exerciseId: string,
+	peerId?: string | null,
+	displayName?: string | null,
+	wpm: number | null,
+	accuracy: number | null,
+	completedAtMs: number,
 };
 
 export type ListBackgroundTasksParams = {
@@ -415,6 +479,11 @@ export type QueueDaemonSyncArgs = {
 	contentJson: string,
 	updatedAtMs: number,
 	published?: boolean | null,
+};
+
+export type RecordSessionResponse = {
+	ok: boolean,
+	leaderboard: LeaderboardEntry[],
 };
 
 export type RerankCandidate = {

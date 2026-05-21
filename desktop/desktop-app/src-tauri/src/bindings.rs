@@ -78,6 +78,11 @@ pub fn build_specta() -> Builder<Wry> {
             desktop_commands::agent::agent_list_background_tasks,
             // Search
             desktop_commands::search::search,
+            // Practice (typing drills)
+            desktop_commands::practice::practice_list_exercises,
+            desktop_commands::practice::practice_save_exercise,
+            desktop_commands::practice::practice_record_session,
+            desktop_commands::practice::practice_generate_exercise,
         ])
         // Event payloads + the error envelope are added below; without
         // them specta only sees what commands return. Comment one out at

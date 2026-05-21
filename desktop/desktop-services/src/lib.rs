@@ -16,4 +16,5 @@ pub mod blob_processing;
 pub mod blob_protocol;
 pub mod events;
 pub mod logger;
+pub mod practice;
 pub mod upload_payload_store;
