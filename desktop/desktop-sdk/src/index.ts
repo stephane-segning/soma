@@ -11,21 +11,11 @@
  * ```
  */
 
-// Documents-drafts types are now emitted into `bindings/` by specta;
-// they reach consumers via the `export * from "./bindings"` below.
-// Practice module types live in the SDK proper until the Tauri presenter
-// lands and specta starts emitting them into `bindings/`.
-export type {
-	Exercise,
-	ExerciseAttempt,
-	ExerciseDifficulty,
-	ExerciseDraft,
-	ExerciseMetadata,
-	ExerciseSource,
-	GenerateExerciseInput,
-	LeaderboardEntry,
-	RecordSessionResponse,
-} from "./api/practice";
+// Documents-drafts + practice module types are now both emitted into
+// `bindings/` by specta after their respective Tauri presenters landed;
+// they reach consumers through the `export * from "./bindings"` below.
+// Keep the convention here: only re-export from `./api/*` when specta
+// hasn't yet been taught a type (i.e. it's an Electron-only surface).
 // Re-export every wire type the API surface accepts or returns so callers
 // import from one place.
 export * from "./bindings";

@@ -1,11 +1,10 @@
 /**
  * Practice-mode (typing-drill) API surface.
  *
- * The Tauri presenter for practice doesn't exist yet — these types are
- * mirrored from the renderer's `@shared/practice` so the SDK can be the
- * single call-site contract for both shells. When the Tauri side lands,
- * the generator-emitted equivalents move into `src/bindings/index.ts`
- * and this file flips its imports.
+ * Backed by the in-process `PracticeService` on the Tauri side — every
+ * type below is re-exported from the specta-generated bindings so the
+ * renderer's `@shared/practice` shape and the Rust DTO shape stay
+ * locked in step.
  *
  * Channel names follow the snake_case convention established by #109.
  * Struct args use the `{ args }` envelope; scalar args (a single
@@ -13,70 +12,27 @@
  * `documents.ts` / `spaces.ts`.
  */
 
+import type {
+	Exercise,
+	ExerciseAttempt,
+	ExerciseDraft,
+	GenerateExerciseInput,
+	RecordSessionResponse,
+} from "../bindings";
 import type { Transport } from "../transport";
 
-export type ExerciseDifficulty = "beginner" | "intermediate" | "advanced";
-
-export type ExerciseSource = "agent" | "manual" | "imported";
-
-export interface ExerciseDraft {
-	message: string;
-	meta: {
-		spaceId: string;
-		topic?: string;
-		difficulty?: ExerciseDifficulty;
-		source?: ExerciseSource;
-		tags?: string[];
-	};
-}
-
-export interface ExerciseMetadata {
-	id: string;
-	spaceId: string;
-	createdAtMs: number;
-	difficulty: ExerciseDifficulty;
-	source: ExerciseSource;
-	topic?: string;
-	length: number;
-	tags?: string[];
-}
-
-export interface Exercise {
-	cid: string;
-	message: string;
-	meta: ExerciseMetadata;
-}
-
-export interface ExerciseAttempt {
-	exerciseId: string;
-	spaceId: string;
-	wpm: number;
-	accuracy: number;
-	durationMs: number;
-	completedAtMs: number;
-}
-
-export interface LeaderboardEntry {
-	spaceId: string;
-	exerciseId: string;
-	peerId?: string;
-	displayName?: string;
-	wpm: number;
-	accuracy: number;
-	completedAtMs: number;
-}
-
-export interface GenerateExerciseInput {
-	spaceId: string;
-	topic?: string;
-	difficulty?: ExerciseDifficulty;
-	length?: number;
-}
-
-export interface RecordSessionResponse {
-	ok: true;
-	leaderboard: LeaderboardEntry[];
-}
+export type {
+	Exercise,
+	ExerciseAttempt,
+	ExerciseDifficulty,
+	ExerciseDraft,
+	ExerciseDraftMetadata,
+	ExerciseMetadata,
+	ExerciseSource,
+	GenerateExerciseInput,
+	LeaderboardEntry,
+	RecordSessionResponse,
+} from "../bindings";
 
 export function practice(t: Transport) {
 	return {
