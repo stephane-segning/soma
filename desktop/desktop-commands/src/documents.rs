@@ -1,4 +1,9 @@
 //! Tauri presenter for `desktop_api::documents::*`.
+//!
+//! Renderer-source `document-changed` broadcasts moved into the
+//! `desktop-api` handlers themselves so the BFF can reuse the same
+//! publish path (see `desktop_api::events::publish`). This file is now a
+//! straight pass-through over `desktop_api::documents::*`.
 
 use desktop_api::{
     AppState,
@@ -9,23 +14,7 @@ use desktop_api::{
     },
 };
 use desktop_core::error::DesktopResult;
-use desktop_core::time::now_ms;
-use desktop_daemon::events::{DomainEvent, DomainEventSource};
-use desktop_services::events::DomainEventsBroadcaster;
 use tauri::State;
-
-fn broadcast_document_changed(app: &tauri::AppHandle, space_id: String, document_id: String, reason: &'static str) {
-    let event = DomainEvent::DocumentChanged {
-        source: DomainEventSource::Renderer,
-        at_ms: now_ms(),
-        space_id,
-        document_id,
-        reason: Some(reason.into()),
-    };
-    if let Err(err) = DomainEventsBroadcaster::broadcast(app, &event) {
-        tracing::warn!(?err, reason, "document-changed broadcast failed");
-    }
-}
 
 #[tauri::command]
 #[specta::specta]
@@ -75,11 +64,8 @@ pub async fn documents_set_page_parents(
 
 // --- Drafts ------------------------------------------------------------------
 //
-// Each command mirrors an Electron IPC handler in
-// `desktop/soma/src/main/command-registry/document-handlers.ts`. After the
-// daemon call succeeds we re-broadcast a `document-changed` event with
-// `source: "renderer"` so the renderer's domain-events service reacts the
-// same way it does today on Electron.
+// `document-changed` broadcasts are emitted by `desktop_api::documents::*`
+// directly. These adapters stay thin.
 
 #[tauri::command]
 #[specta::specta]
@@ -92,42 +78,21 @@ pub async fn documents_get_draft(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn documents_upsert_draft(
-    state: State<'_, AppState>,
-    app: tauri::AppHandle,
-    args: UpsertDraftArgs,
-) -> DesktopResult<()> {
-    let space_id = args.space_id.clone();
-    let document_id = args.document_id.clone();
-    api::upsert_draft(state.inner(), args).await?;
-    broadcast_document_changed(&app, space_id, document_id, "documents_upsert_draft");
-    Ok(())
+pub async fn documents_upsert_draft(state: State<'_, AppState>, args: UpsertDraftArgs) -> DesktopResult<()> {
+    api::upsert_draft(state.inner(), args).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn documents_queue_daemon_sync(
-    state: State<'_, AppState>,
-    app: tauri::AppHandle,
-    args: QueueDaemonSyncArgs,
-) -> DesktopResult<()> {
-    let space_id = args.space_id.clone();
-    let document_id = args.document_id.clone();
-    api::queue_daemon_sync(state.inner(), args).await?;
-    broadcast_document_changed(&app, space_id, document_id, "documents_queue_daemon_sync");
-    Ok(())
+pub async fn documents_queue_daemon_sync(state: State<'_, AppState>, args: QueueDaemonSyncArgs) -> DesktopResult<()> {
+    api::queue_daemon_sync(state.inner(), args).await
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn documents_sync_published(
     state: State<'_, AppState>,
-    app: tauri::AppHandle,
     args: SyncPublishedDocumentArgs,
 ) -> DesktopResult<SyncPublishedDocumentResult> {
-    let space_id = args.space_id.clone();
-    let document_id = args.document_id.clone();
-    let result = api::sync_published(state.inner(), args).await?;
-    broadcast_document_changed(&app, space_id, document_id, "documents_sync_published");
-    Ok(result)
+    api::sync_published(state.inner(), args).await
 }

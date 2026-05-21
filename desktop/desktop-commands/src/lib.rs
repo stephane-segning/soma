@@ -20,4 +20,4 @@ pub mod settings_storage;
 pub mod spaces;
 pub mod window;
 
-pub use desktop_api::AppState;
+pub use desktop_api::{AppState, DOMAIN_EVENT_CHANNEL_CAPACITY};

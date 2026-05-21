@@ -10,7 +10,6 @@ authors.workspace = true
 [dependencies]
 desktop-api = { workspace = true }
 desktop-core = { workspace = true }
-desktop-daemon = { workspace = true }
 desktop-services = { workspace = true }
 desktop-agent = { workspace = true }
 serde = { workspace = true }

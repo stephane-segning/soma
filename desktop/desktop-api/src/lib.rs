@@ -20,9 +20,10 @@ pub mod agent;
 pub mod blobs;
 pub mod daemon;
 pub mod documents;
+pub mod events;
 pub mod practice;
 pub mod search;
 pub mod spaces;
 pub mod state;
 
-pub use state::AppState;
+pub use state::{AppState, DOMAIN_EVENT_CHANNEL_CAPACITY};
