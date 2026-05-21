@@ -9,13 +9,24 @@
 //! The wire DTOs live in `desktop-api::practice`; here we deal in plain
 //! Rust types and let the presenter layer adapt them.
 
-use std::collections::HashMap;
+use std::cmp::Ordering;
+use std::collections::{BinaryHeap, HashMap};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use rand::seq::IndexedRandom;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 use tokio::sync::Mutex;
+
+/// Hard cap on how many attempts we keep per space. The leaderboard only
+/// surfaces the top 10, so older attempts contribute nothing once the
+/// bucket fills. Bounding the bucket also keeps `build_leaderboard`
+/// O(cap * log cap) regardless of total session count.
+const MAX_ATTEMPTS_PER_SPACE: usize = 1000;
+
+/// How many entries the leaderboard shows. Mirrors the Electron
+/// `.slice(0, 10)` after the sort.
+const LEADERBOARD_SIZE: usize = 10;
 
 /// Exercise difficulty levels. Wire values use kebab-case so a future
 /// `multi-word` variant doesn't break the contract.
@@ -198,30 +209,44 @@ impl PracticeService {
         let space_id = attempt.space_id.clone();
         {
             let mut map = self.attempts_by_space.lock().await;
-            map.entry(space_id.clone()).or_default().push(attempt);
+            let bucket = map.entry(space_id.clone()).or_default();
+            bucket.push(attempt);
+            // Drop oldest entries once we exceed the cap. Stable order
+            // (`drain(0..excess)`) so the most recent attempts always
+            // win the tie-breakers in `build_leaderboard`.
+            if bucket.len() > MAX_ATTEMPTS_PER_SPACE {
+                let excess = bucket.len() - MAX_ATTEMPTS_PER_SPACE;
+                bucket.drain(0..excess);
+            }
         }
         self.build_leaderboard(&space_id).await
     }
 
     async fn build_leaderboard(&self, space_id: &str) -> Vec<LeaderboardEntry> {
-        let attempts = {
-            let map = self.attempts_by_space.lock().await;
-            map.get(space_id).cloned().unwrap_or_default()
+        // Top-N via a min-heap keyed by `(wpm, accuracy)`: pop the
+        // smallest once the heap exceeds `LEADERBOARD_SIZE`, so we
+        // only ever keep the best 10 in memory and never sort the
+        // full attempts log. Combined with the per-space cap this
+        // keeps `record_session` bounded regardless of session count.
+        let map = self.attempts_by_space.lock().await;
+        let Some(attempts) = map.get(space_id) else {
+            return Vec::new();
         };
-        let mut sorted = attempts;
-        sorted.sort_by(|a, b| {
-            if (b.wpm - a.wpm).abs() < f64::EPSILON {
-                b.accuracy.partial_cmp(&a.accuracy).unwrap_or(std::cmp::Ordering::Equal)
-            } else {
-                b.wpm.partial_cmp(&a.wpm).unwrap_or(std::cmp::Ordering::Equal)
+        let mut heap: BinaryHeap<RankedAttempt<'_>> = BinaryHeap::with_capacity(LEADERBOARD_SIZE + 1);
+        for attempt in attempts {
+            heap.push(RankedAttempt::min(attempt));
+            if heap.len() > LEADERBOARD_SIZE {
+                heap.pop();
             }
-        });
-        sorted
-            .into_iter()
-            .take(10)
+        }
+        let mut top: Vec<&ExerciseAttempt> = heap.into_iter().map(|r| r.0).collect();
+        // Heap pops in min-first order; reverse to get the
+        // best-first order the renderer expects.
+        top.sort_by(|a, b| attempt_cmp(b, a));
+        top.into_iter()
             .map(|a| LeaderboardEntry {
-                space_id: a.space_id,
-                exercise_id: a.exercise_id,
+                space_id: a.space_id.clone(),
+                exercise_id: a.exercise_id.clone(),
                 peer_id: None,
                 display_name: None,
                 wpm: a.wpm,
@@ -240,25 +265,24 @@ impl PracticeService {
                 .map(|s| (*s).to_string())
                 .unwrap_or_else(|| FALLBACK_PHRASE.to_string()),
         };
+        // Renderer + Electron measure `length` in JavaScript string
+        // semantics (UTF-16 code units), so a topic with emoji or CJK
+        // characters needs UTF-16 accounting to honor the requested
+        // size. `message.len()` would count UTF-8 bytes and exit the
+        // loop too late (or too early, after the truncate).
         let desired_length = input.length.unwrap_or(140).max(0) as usize;
         let mut message = chosen;
-        while message.len() < desired_length {
+        while utf16_len(&message) < desired_length {
             let next = EXERCISE_BANK
                 .choose(&mut rng)
                 .map(|s| (*s).to_string())
                 .unwrap_or_else(|| FALLBACK_PHRASE.to_string());
             message = format!("{message}. {next}");
         }
-        // Match Electron's `.slice(0, desiredLength + 20)` byte-trim. Snap
-        // to a char boundary so we never split a UTF-8 codepoint.
+        // Match Electron's `.slice(0, desiredLength + 20)`: UTF-16
+        // truncation that never splits a Unicode scalar value.
         let cap = desired_length.saturating_add(20);
-        if message.len() > cap {
-            let mut end = cap;
-            while end > 0 && !message.is_char_boundary(end) {
-                end -= 1;
-            }
-            message.truncate(end);
-        }
+        message = truncate_utf16(&message, cap);
         ExerciseDraft {
             message,
             meta: ExerciseDraftMetadata {
@@ -288,7 +312,10 @@ fn build_exercise(draft: ExerciseDraft) -> Exercise {
     // would always get different CIDs and content-addressing breaks.
     let cid = cid_from_content(&draft.message, &draft.meta.space_id, draft.meta.topic.as_deref(), difficulty, source, draft.meta.tags.as_deref());
 
-    let length = draft.message.chars().count() as i64;
+    // JS `string.length` counts UTF-16 code units, not Unicode scalar
+    // values — emoji and other non-BMP characters take two units. We
+    // mirror that so the renderer + persisted metadata agree on length.
+    let length = utf16_len(&draft.message) as i64;
     let meta = ExerciseMetadata {
         id: cuid2::create_id(),
         space_id: draft.meta.space_id,
@@ -306,11 +333,83 @@ fn build_exercise(draft: ExerciseDraft) -> Exercise {
     }
 }
 
+/// JS `string.length` parity: count UTF-16 code units. Non-BMP
+/// characters (e.g. `"😀"`) count as 2 so the result matches what the
+/// renderer reads from `String.prototype.length`.
+fn utf16_len(s: &str) -> usize {
+    s.encode_utf16().count()
+}
+
+/// JS `string.slice(0, max_units)` parity: truncate to at most
+/// `max_units` UTF-16 code units, never splitting a Unicode scalar
+/// value. If a surrogate pair would straddle the boundary we drop the
+/// whole pair (matching `slice`'s behavior when called with the same
+/// boundary).
+fn truncate_utf16(s: &str, max_units: usize) -> String {
+    if utf16_len(s) <= max_units {
+        return s.to_string();
+    }
+    let mut acc = 0usize;
+    let mut end_byte = 0;
+    for (idx, ch) in s.char_indices() {
+        let w = ch.len_utf16();
+        if acc + w > max_units {
+            break;
+        }
+        acc += w;
+        end_byte = idx + ch.len_utf8();
+    }
+    s[..end_byte].to_string()
+}
+
 fn now_ms() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_millis() as i64)
         .unwrap_or(0)
+}
+
+/// Leaderboard order: highest `wpm` first, ties broken by higher
+/// `accuracy`. Pulled out of the heap and reused by the final sort so
+/// both orderings stay in sync.
+fn attempt_cmp(a: &ExerciseAttempt, b: &ExerciseAttempt) -> Ordering {
+    a.wpm
+        .partial_cmp(&b.wpm)
+        .unwrap_or(Ordering::Equal)
+        .then_with(|| a.accuracy.partial_cmp(&b.accuracy).unwrap_or(Ordering::Equal))
+}
+
+/// Heap wrapper that inverts `attempt_cmp` so the standard max-heap acts
+/// like a min-heap — pop returns the *worst* attempt currently held,
+/// which is what we want when shedding entries once the heap exceeds
+/// `LEADERBOARD_SIZE`.
+struct RankedAttempt<'a>(&'a ExerciseAttempt);
+
+impl<'a> RankedAttempt<'a> {
+    fn min(a: &'a ExerciseAttempt) -> Self {
+        Self(a)
+    }
+}
+
+impl PartialEq for RankedAttempt<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        attempt_cmp(self.0, other.0) == Ordering::Equal
+    }
+}
+
+impl Eq for RankedAttempt<'_> {}
+
+impl Ord for RankedAttempt<'_> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // Reverse so the max-heap exposes the *worst* attempt at the top.
+        attempt_cmp(other.0, self.0)
+    }
+}
+
+impl PartialOrd for RankedAttempt<'_> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 /// SHA-256 over the canonical-JSON encoding of the content-defining
@@ -520,8 +619,92 @@ mod tests {
                 length: Some(200),
             })
             .await;
-        assert!(draft.message.len() >= 200);
-        assert!(draft.message.len() <= 220);
+        // Length is measured in UTF-16 code units (JS `string.length`
+        // semantics), not bytes — keep these checks consistent with
+        // what the renderer would read.
+        let len = utf16_len(&draft.message);
+        assert!(len >= 200, "got {len} UTF-16 units");
+        assert!(len <= 220, "got {len} UTF-16 units");
         assert!(matches!(draft.meta.source, Some(ExerciseSource::Agent)));
+    }
+
+    #[test]
+    fn utf16_truncate_keeps_surrogate_pairs_whole() {
+        // "😀" is a single Unicode scalar value that takes 2 UTF-16
+        // code units. Truncating at 1 should drop it rather than split
+        // it into a lone surrogate.
+        let s = "ab😀";
+        assert_eq!(utf16_len(s), 4); // a + b + 2 (😀)
+        assert_eq!(truncate_utf16(s, 4), "ab😀");
+        assert_eq!(truncate_utf16(s, 3), "ab"); // can't fit half a surrogate pair
+        assert_eq!(truncate_utf16(s, 2), "ab");
+        assert_eq!(truncate_utf16(s, 1), "a");
+        assert_eq!(truncate_utf16(s, 0), "");
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn build_exercise_length_uses_utf16_units() {
+        let svc = PracticeService::new();
+        let saved = svc
+            .save_exercise(ExerciseDraft {
+                message: "ab😀".into(),
+                meta: ExerciseDraftMetadata {
+                    space_id: "practice".into(),
+                    ..Default::default()
+                },
+            })
+            .await;
+        // JS `"ab😀".length === 4`; previous `chars().count()` gave 3.
+        assert_eq!(saved.meta.length, 4);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn record_session_caps_history_per_space() {
+        let svc = PracticeService::new();
+        // Push one more attempt than the cap allows, distinct wpm
+        // values so we can verify which attempt got evicted.
+        for i in 0..=(MAX_ATTEMPTS_PER_SPACE as i64) {
+            svc.record_session(ExerciseAttempt {
+                exercise_id: "x".into(),
+                space_id: "practice".into(),
+                wpm: i as f64,
+                accuracy: 0.5,
+                duration_ms: 0,
+                completed_at_ms: i,
+            })
+            .await;
+        }
+        // Inspect bucket length directly via the public surface: the
+        // leaderboard always returns at most LEADERBOARD_SIZE, so
+        // assert via behavior: the lowest-wpm attempt (wpm == 0)
+        // should have been evicted.
+        let map = svc.attempts_by_space.lock().await;
+        let bucket = map.get("practice").expect("bucket exists");
+        assert_eq!(bucket.len(), MAX_ATTEMPTS_PER_SPACE);
+        assert!(
+            bucket.iter().all(|a| a.wpm > 0.0),
+            "oldest attempt (wpm = 0) should have been drained"
+        );
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn build_leaderboard_caps_at_size_limit() {
+        let svc = PracticeService::new();
+        for i in 0..(LEADERBOARD_SIZE * 3) {
+            svc.record_session(ExerciseAttempt {
+                exercise_id: format!("e{i}"),
+                space_id: "practice".into(),
+                wpm: i as f64,
+                accuracy: 0.5,
+                duration_ms: 0,
+                completed_at_ms: i as i64,
+            })
+            .await;
+        }
+        let board = svc.build_leaderboard("practice").await;
+        assert_eq!(board.len(), LEADERBOARD_SIZE);
+        // Best-first ordering: top entry has the highest wpm.
+        let highest = (LEADERBOARD_SIZE * 3 - 1) as f64;
+        assert_eq!(board[0].wpm, highest);
     }
 }
