@@ -9,26 +9,26 @@
  */
 
 import { describe, expect, it, vi } from "vitest";
-import type { EventSourceLike } from "./http";
+import type { EventLike, EventSourceCtor, EventSourceInitLike, EventSourceLike, MessageEventLike } from "./http";
 import { httpTransport } from "./http";
 
 class FakeEventSource implements EventSourceLike {
 	static instances: FakeEventSource[] = [];
 	readonly url: string;
-	readonly init?: EventSourceInit;
+	readonly init?: EventSourceInitLike;
 	readyState = 1;
-	onopen: ((this: EventSourceLike, ev: Event) => unknown) | null = null;
-	onerror: ((this: EventSourceLike, ev: Event) => unknown) | null = null;
-	private listeners = new Map<string, Set<(ev: MessageEvent) => void>>();
+	onopen: ((this: EventSourceLike, ev: EventLike) => unknown) | null = null;
+	onerror: ((this: EventSourceLike, ev: EventLike) => unknown) | null = null;
+	private listeners = new Map<string, Set<(ev: MessageEventLike) => void>>();
 	closed = false;
 
-	constructor(url: string, init?: EventSourceInit) {
+	constructor(url: string, init?: EventSourceInitLike) {
 		this.url = url;
 		this.init = init;
 		FakeEventSource.instances.push(this);
 	}
 
-	addEventListener(type: string, listener: (ev: MessageEvent) => void): void {
+	addEventListener(type: string, listener: (ev: MessageEventLike) => void): void {
 		let set = this.listeners.get(type);
 		if (!set) {
 			set = new Set();
@@ -37,7 +37,7 @@ class FakeEventSource implements EventSourceLike {
 		set.add(listener);
 	}
 
-	removeEventListener(type: string, listener: (ev: MessageEvent) => void): void {
+	removeEventListener(type: string, listener: (ev: MessageEventLike) => void): void {
 		this.listeners.get(type)?.delete(listener);
 	}
 
@@ -50,21 +50,24 @@ class FakeEventSource implements EventSourceLike {
 	emit(type: string, data: unknown): void {
 		const set = this.listeners.get(type);
 		if (!set) return;
-		const ev = { data: typeof data === "string" ? data : JSON.stringify(data) } as MessageEvent;
+		const ev: MessageEventLike = { data: typeof data === "string" ? data : JSON.stringify(data) };
 		for (const l of set) l(ev);
 	}
 
 	/** Test helper: fire the spec-level `error` event. */
 	error(): void {
-		this.onerror?.call(this, new Event("error"));
+		this.onerror?.call(this, { type: "error" });
 	}
 }
 
-function freshTransport() {
+const FakeEventSourceCtor = FakeEventSource as unknown as EventSourceCtor;
+
+function freshTransport(opts: { withCredentials?: boolean } = {}) {
 	FakeEventSource.instances = [];
 	return httpTransport({
 		baseUrl: "http://test.invalid",
-		eventSource: FakeEventSource as unknown as new (url: string, init?: EventSourceInit) => EventSourceLike,
+		eventSource: FakeEventSourceCtor,
+		...(opts.withCredentials !== undefined ? { withCredentials: opts.withCredentials } : {}),
 	});
 }
 
@@ -172,6 +175,86 @@ describe("httpTransport.subscribe", () => {
 		expect(warn).toHaveBeenCalled();
 		expect(() => unsub()).not.toThrow();
 		warn.mockRestore();
+	});
+
+	it("registers each subscribe independently even when callers pass the same handler reference", () => {
+		// Regression: previously the pool stored handlers in a `Set`,
+		// so two subscribes with the same function reference collapsed
+		// into one entry and the first unsubscribe tore down the
+		// shared registration (closing the EventSource while the
+		// second caller was still active).
+		const t = freshTransport();
+		const shared = vi.fn();
+
+		const unA = t.subscribe("domain_event", shared);
+		const unB = t.subscribe("domain_event", shared);
+
+		expect(FakeEventSource.instances).toHaveLength(1);
+		const es = FakeEventSource.instances[0];
+		if (!es) throw new Error("expected EventSource to be constructed");
+
+		es.emit("domain_event", { kind: "pages-changed" });
+		// Both registrations fire — one frame, two deliveries.
+		expect(shared).toHaveBeenCalledTimes(2);
+
+		unA();
+		// One registration left, so the EventSource must stay open.
+		expect(es.closed).toBe(false);
+
+		es.emit("domain_event", { kind: "document-changed" });
+		expect(shared).toHaveBeenCalledTimes(3);
+
+		unB();
+		expect(es.closed).toBe(true);
+	});
+
+	it("does not leak a handler registration when the EventSource ctor throws", () => {
+		// Regression: previously `add()` inserted the handler into the
+		// `Set` *before* constructing the EventSource, so a ctor throw
+		// (missing global, polyfill bug, bad URL) left a stale handler
+		// that subsequent successful subscribes would dispatch to.
+		FakeEventSource.instances = [];
+		let firstCall = true;
+		const ThrowingCtor: EventSourceCtor = function (this: unknown, url: string, init?: EventSourceInitLike) {
+			if (firstCall) {
+				firstCall = false;
+				throw new Error("ctor blew up");
+			}
+			return new FakeEventSource(url, init);
+		} as unknown as EventSourceCtor;
+
+		const t = httpTransport({
+			baseUrl: "http://test.invalid",
+			eventSource: ThrowingCtor,
+		});
+
+		const ghost = vi.fn();
+		expect(() => t.subscribe("domain_event", ghost)).toThrow("ctor blew up");
+
+		// Second subscribe succeeds — the ghost handler from the
+		// failed first attempt must NOT receive events.
+		const live = vi.fn();
+		const unsub = t.subscribe("domain_event", live);
+		const es = FakeEventSource.instances[0];
+		if (!es) throw new Error("expected EventSource to be constructed");
+
+		es.emit("domain_event", { kind: "document-changed" });
+		expect(live).toHaveBeenCalledTimes(1);
+		expect(ghost).not.toHaveBeenCalled();
+
+		unsub();
+		expect(es.closed).toBe(true);
+	});
+
+	it("threads HttpTransportOptions.withCredentials into the EventSource init", () => {
+		const t = freshTransport({ withCredentials: false });
+		const unsub = t.subscribe("domain_event", vi.fn());
+
+		const es = FakeEventSource.instances[0];
+		if (!es) throw new Error("expected EventSource to be constructed");
+		expect(es.init?.withCredentials).toBe(false);
+
+		unsub();
 	});
 
 	it("logs but does not close on transport errors (EventSource auto-reconnects)", () => {
