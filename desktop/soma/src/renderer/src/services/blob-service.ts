@@ -7,6 +7,8 @@
  * stamps the local `createdAtMs` clock that consumers expect.
  */
 
+import type { StageBlobResult } from "@soma/sdk";
+
 import { backend } from "../lib/ipc";
 
 export type StagedBlob = {
@@ -16,15 +18,7 @@ export type StagedBlob = {
 	createdAtMs: number;
 	url: string;
 	fileName?: string;
-	variants?: {
-		cid: string;
-		size: number;
-		mime: string;
-		name: string;
-		url: string;
-		width?: number;
-		height?: number;
-	}[];
+	variants?: NonNullable<StageBlobResult["variants"]>;
 };
 
 export async function stageBlob(input: {
@@ -49,6 +43,6 @@ export async function stageBlob(input: {
 		createdAtMs: Date.now(),
 		url: response.url,
 		fileName: response.name,
-		variants: response.variants,
+		variants: response.variants ?? undefined,
 	};
 }

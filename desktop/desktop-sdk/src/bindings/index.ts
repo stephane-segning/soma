@@ -69,6 +69,24 @@ export const commands = {
 	blobsUpload: (args: UploadBlobArgs) => typedError<UploadBlobResult, DesktopError>(__TAURI_INVOKE("blobs_upload", { args })),
 	blobsRead: (spaceId: string, cid: string) => typedError<number[] | null, DesktopError>(__TAURI_INVOKE("blobs_read", { spaceId, cid })),
 	blobsStageUpload: (args: StageUploadArgs) => typedError<StagedUpload, DesktopError>(__TAURI_INVOKE("blobs_stage_upload", { args })),
+	/**
+	 *  Mime-aware stage: image payloads pass through verbatim, anything else
+	 *  gets zipped before hitting the daemon. Returns the daemon's
+	 *  `cid`/`size`/`mime`/`name` plus the synthesized `soma-blob://` URL.
+	 */
+	blobsStage: (args: StageBlobArgs) => typedError<StageBlobResult_Serialize, DesktopError>(__TAURI_INVOKE("blobs_stage", { args })),
+	/**
+	 *  Two-step upload's "stage to disk" leg. The wire shape matches
+	 *  {@link blobs_stage_upload} — exposing it under the renderer-expected
+	 *  command name keeps the SDK call site stable across shells.
+	 */
+	blobsStagePayload: (args: StageUploadArgs) => typedError<StagedUpload, DesktopError>(__TAURI_INVOKE("blobs_stage_payload", { args })),
+	/**
+	 *  Two-step upload's "consume staged payload" leg. Reads the staged file,
+	 *  hands it to the mime-aware [`blobs_stage`] handler, then removes the
+	 *  staging file on success.
+	 */
+	blobsStageFromPayload: (args: StageFromPayloadArgs) => typedError<StageBlobResult_Serialize, DesktopError>(__TAURI_INVOKE("blobs_stage_from_payload", { args })),
 	agentChatStream: (args: ChatStreamArgs_Deserialize) => typedError<ChatResponse, DesktopError>(__TAURI_INVOKE("agent_chat_stream", { args })),
 	agentListModels: (spaceId: string | null) => typedError<AgentModel_Serialize[], DesktopError>(__TAURI_INVOKE("agent_list_models", { spaceId })),
 	agentRerank: (args: RerankParams) => typedError<RerankResult[], DesktopError>(__TAURI_INVOKE("agent_rerank", { args })),
@@ -205,8 +223,12 @@ export type ControlArgs = {
 
 export type ControlResult = {
 	/**
-	 *  `true` when the lifecycle action completed and the runtime is
-	 *  (still) reachable. Mirrors the Electron-side `ok` boolean.
+	 *  `true` when the lifecycle action completed successfully. Any
+	 *  underlying start/stop failure short-circuits via `?` before we
+	 *  reach the result construction, so by the time this is built the
+	 *  action has succeeded — even for `Stop`, where the post-action
+	 *  runtime is intentionally unreachable. Mirrors the Electron-side
+	 *  `ok` boolean.
 	 */
 	ok: boolean,
 	action: ControlAction,
@@ -393,6 +415,88 @@ export type SettingsGetArgs = {
 export type SettingsSetArgs = {
 	key: string,
 	valueJson: string,
+};
+
+/**
+ *  Args for the mime-aware {@link stage} handler. Mirrors the renderer's
+ *  `BlobStageParams` shape: image payloads pass through verbatim, anything
+ *  else is zipped before hitting the daemon.
+ */
+export type StageBlobArgs = {
+	spaceId: string,
+	docId?: string | null,
+	bytes: number[],
+	mime: string,
+	fileName?: string | null,
+};
+
+export type StageBlobResult = StageBlobResult_Serialize | StageBlobResult_Deserialize;
+
+export type StageBlobResult_Deserialize = {
+	cid: string,
+	size: number,
+	mime: string,
+	name: string,
+	url: string,
+	variants?: StageBlobVariant_Deserialize[] | null,
+};
+
+export type StageBlobResult_Serialize = {
+	cid: string,
+	size: number,
+	mime: string,
+	name: string,
+	url: string,
+	variants?: StageBlobVariant_Serialize[] | null,
+};
+
+/**
+ *  Thumbnail/variant descriptor. The Electron handler does not populate
+ *  these yet — the field exists so the SDK type can carry future variants
+ *  without a schema change.
+ */
+export type StageBlobVariant = StageBlobVariant_Serialize | StageBlobVariant_Deserialize;
+
+/**
+ *  Thumbnail/variant descriptor. The Electron handler does not populate
+ *  these yet — the field exists so the SDK type can carry future variants
+ *  without a schema change.
+ */
+export type StageBlobVariant_Deserialize = {
+	cid: string,
+	size: number,
+	mime: string,
+	name: string,
+	url: string,
+	width?: number | null,
+	height?: number | null,
+};
+
+/**
+ *  Thumbnail/variant descriptor. The Electron handler does not populate
+ *  these yet — the field exists so the SDK type can carry future variants
+ *  without a schema change.
+ */
+export type StageBlobVariant_Serialize = {
+	cid: string,
+	size: number,
+	mime: string,
+	name: string,
+	url: string,
+	width?: number | null,
+	height?: number | null,
+};
+
+/**
+ *  Args for the "consume a previously-staged payload and stage it as a
+ *  blob" handler. Mirrors the renderer's `BlobStageFromPayloadParams`.
+ */
+export type StageFromPayloadArgs = {
+	spaceId: string,
+	docId?: string | null,
+	payloadPath: string,
+	mime: string,
+	fileName?: string | null,
 };
 
 export type StageUploadArgs = {
