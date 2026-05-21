@@ -3,6 +3,7 @@
 //! every call.
 
 use desktop_core::error::{DesktopError, DesktopResult};
+use desktop_core::time::now_ms;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use soma_daemon::handle_types as dt;
@@ -180,14 +181,6 @@ pub struct DraftRecord {
 
 fn err(e: impl std::fmt::Display) -> DesktopError {
     DesktopError::Daemon { message: e.to_string() }
-}
-
-fn now_ms() -> i64 {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_millis() as i64)
-        .unwrap_or(0)
 }
 
 pub async fn upsert(state: &AppState, args: UpsertDocumentArgs) -> DesktopResult<()> {

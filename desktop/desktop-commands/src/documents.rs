@@ -9,17 +9,10 @@ use desktop_api::{
     },
 };
 use desktop_core::error::DesktopResult;
+use desktop_core::time::now_ms;
 use desktop_daemon::events::{DomainEvent, DomainEventSource};
 use desktop_services::events::DomainEventsBroadcaster;
 use tauri::State;
-
-fn now_ms() -> i64 {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_millis() as i64)
-        .unwrap_or(0)
-}
 
 fn broadcast_document_changed(app: &tauri::AppHandle, space_id: String, document_id: String, reason: &'static str) {
     let event = DomainEvent::DocumentChanged {
