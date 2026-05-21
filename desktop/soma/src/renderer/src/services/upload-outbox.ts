@@ -141,7 +141,16 @@ async function processJob(record: UploadJobRecord): Promise<void> {
 				size: staged.size,
 				mime: staged.mime,
 				name: staged.name ?? record.fileName ?? "blob",
-				variants: staged.variants,
+				variants:
+					staged.variants?.map((variant) => ({
+						cid: variant.cid,
+						size: variant.size,
+						mime: variant.mime,
+						name: variant.name,
+						url: variant.url,
+						width: variant.width ?? undefined,
+						height: variant.height ?? undefined,
+					})) ?? undefined,
 			};
 		});
 	} catch (error) {

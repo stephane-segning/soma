@@ -62,6 +62,9 @@ pub fn build_specta() -> Builder<Wry> {
             desktop_commands::blobs::blobs_upload,
             desktop_commands::blobs::blobs_read,
             desktop_commands::blobs::blobs_stage_upload,
+            desktop_commands::blobs::blobs_stage,
+            desktop_commands::blobs::blobs_stage_payload,
+            desktop_commands::blobs::blobs_stage_from_payload,
             // Agent
             desktop_commands::agent::agent_chat_stream,
             desktop_commands::agent::agent_list_models,
