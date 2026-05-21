@@ -245,9 +245,17 @@ pub async fn set_page_parents(state: &AppState, args: SetPageParentsArgs) -> Des
 }
 
 // --- Draft handlers ----------------------------------------------------------
+//
+// Each mutating handler broadcasts a renderer-source `document-changed`
+// event via `events::publish` after the daemon write succeeds. The
+// presenter no longer needs to know about events — both Tauri and the
+// (future) BFF subscribe to `AppState::domain_events` and forward
+// however their transport requires.
 
 pub async fn upsert_draft(state: &AppState, args: UpsertDraftArgs) -> DesktopResult<()> {
     let handle = state.daemon.handle().await?;
+    let space_id = args.space_id.clone();
+    let document_id = args.document_id.clone();
     handle
         .upsert_document(dt::UpsertDocumentInput {
             space_id: args.space_id,
@@ -257,11 +265,15 @@ pub async fn upsert_draft(state: &AppState, args: UpsertDraftArgs) -> DesktopRes
             updated_at_ms: args.updated_at_ms.unwrap_or_else(now_ms),
         })
         .await
-        .map_err(err)
+        .map_err(err)?;
+    crate::events::publish(state, crate::events::document_changed(space_id, document_id, "documents_upsert_draft"));
+    Ok(())
 }
 
 pub async fn queue_daemon_sync(state: &AppState, args: QueueDaemonSyncArgs) -> DesktopResult<()> {
     let handle = state.daemon.handle().await?;
+    let space_id = args.space_id.clone();
+    let document_id = args.document_id.clone();
     handle
         .upsert_document(dt::UpsertDocumentInput {
             space_id: args.space_id,
@@ -271,11 +283,18 @@ pub async fn queue_daemon_sync(state: &AppState, args: QueueDaemonSyncArgs) -> D
             updated_at_ms: args.updated_at_ms,
         })
         .await
-        .map_err(err)
+        .map_err(err)?;
+    crate::events::publish(
+        state,
+        crate::events::document_changed(space_id, document_id, "documents_queue_daemon_sync"),
+    );
+    Ok(())
 }
 
 pub async fn sync_published(state: &AppState, args: SyncPublishedDocumentArgs) -> DesktopResult<SyncPublishedDocumentResult> {
     let handle = state.daemon.handle().await?;
+    let space_id = args.space_id.clone();
+    let document_id = args.document_id.clone();
     handle
         .upsert_document(dt::UpsertDocumentInput {
             space_id: args.space_id,
@@ -286,6 +305,10 @@ pub async fn sync_published(state: &AppState, args: SyncPublishedDocumentArgs) -
         })
         .await
         .map_err(err)?;
+    crate::events::publish(
+        state,
+        crate::events::document_changed(space_id, document_id, "documents_sync_published"),
+    );
     // Mirror the Electron stub: the daemon's `upsertDocument` doesn't
     // return a count, so we hard-code `1` so the renderer's "uploaded"
     // accounting stays unchanged across transports.

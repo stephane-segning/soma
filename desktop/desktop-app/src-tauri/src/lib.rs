@@ -166,7 +166,42 @@ pub fn run() {
                 drop(splash);
             });
 
-            app.manage(AppState::new(daemon, agent_runtime, Arc::clone(&agent_service), practice));
+            // Renderer-source domain-event channel. Handlers in
+            // `desktop-api` push to it; we install a forwarder below
+            // that drains it into `app.emit(DOMAIN_EVENT, ...)` so the
+            // Tauri webview reacts the same way it always did. The BFF
+            // will subscribe to the same channel from its SSE handler.
+            let (domain_events_tx, mut domain_events_rx) =
+                tokio::sync::broadcast::channel(desktop_commands::DOMAIN_EVENT_CHANNEL_CAPACITY);
+            let forwarder_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                use desktop_services::events::DomainEventsBroadcaster;
+                loop {
+                    match domain_events_rx.recv().await {
+                        Ok(event) => {
+                            if let Err(err) = DomainEventsBroadcaster::broadcast(&forwarder_handle, &event) {
+                                tracing::warn!(?err, "renderer-source domain_event broadcast failed");
+                            }
+                        }
+                        // `Lagged` means our forwarder fell behind the
+                        // channel capacity. Trace and keep going so the
+                        // SSE / webview consumers stay live; the dropped
+                        // events would have been the oldest.
+                        Err(tokio::sync::broadcast::error::RecvError::Lagged(n)) => {
+                            tracing::warn!(dropped = n, "domain_event forwarder lagged");
+                        }
+                        Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
+                    }
+                }
+            });
+
+            app.manage(AppState::new(
+                daemon,
+                agent_runtime,
+                Arc::clone(&agent_service),
+                practice,
+                domain_events_tx,
+            ));
             // `agent_service` is also kept as standalone state so the event
             // stream tasks (which only need the service) can reach it without
             // pulling the whole AppState.
