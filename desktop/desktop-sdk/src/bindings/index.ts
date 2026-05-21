@@ -66,6 +66,16 @@ export const commands = {
 	createdAtMs: number,
 	updatedAtMs: number,
 } | null, DesktopError>(__TAURI_INVOKE("documents_set_page_parents", { args })),
+	documentsGetDraft: (args: GetDraftArgs) => typedError<{
+	spaceId: string,
+	documentId: string,
+	contentJson: string,
+	published: number,
+	updatedAtMs: number,
+} | null, DesktopError>(__TAURI_INVOKE("documents_get_draft", { args })),
+	documentsUpsertDraft: (args: UpsertDraftArgs) => typedError<null, DesktopError>(__TAURI_INVOKE("documents_upsert_draft", { args })),
+	documentsQueueDaemonSync: (args: QueueDaemonSyncArgs) => typedError<null, DesktopError>(__TAURI_INVOKE("documents_queue_daemon_sync", { args })),
+	documentsSyncPublished: (args: SyncPublishedDocumentArgs) => typedError<SyncPublishedDocumentResult, DesktopError>(__TAURI_INVOKE("documents_sync_published", { args })),
 	blobsUpload: (args: UploadBlobArgs) => typedError<UploadBlobResult, DesktopError>(__TAURI_INVOKE("blobs_upload", { args })),
 	blobsRead: (spaceId: string, cid: string) => typedError<number[] | null, DesktopError>(__TAURI_INVOKE("blobs_read", { spaceId, cid })),
 	blobsStageUpload: (args: StageUploadArgs) => typedError<StagedUpload, DesktopError>(__TAURI_INVOKE("blobs_stage_upload", { args })),
@@ -301,7 +311,40 @@ export type DesktopError = { kind: "io"; message: string } | { kind: "invalid-in
  *  Renderer-facing payload. Tagged on `kind` to match the discriminated
  *  union the renderer's `@soma/desktop-db` parser accepts.
  */
-export type DomainEvent = { kind: "document-blob-added"; spaceId: string; docId: string; cid: string; mime: string; size: number; name: string } | { kind: "join-submitted"; requestId: string; targetPeerId: string } | { kind: "join-decision"; fromPeerId: string; spaceId: string; decision: number; reason: string } | { kind: "join-failed"; targetPeerId: string; error: string } | { kind: "bot-status-changed"; spaceId: string; delegatePeerId: string; status: string };
+export type DomainEvent = { kind: "document-blob-added"; spaceId: string; docId: string; cid: string; mime: string; size: number; name: string } | { kind: "join-submitted"; requestId: string; targetPeerId: string } | { kind: "join-decision"; fromPeerId: string; spaceId: string; decision: number; reason: string } | { kind: "join-failed"; targetPeerId: string; error: string } | { kind: "bot-status-changed"; spaceId: string; delegatePeerId: string; status: string } | 
+/**
+ *  Renderer-broadcast: emitted by document/page command handlers
+ *  when something changed at the page-list level for a space.
+ */
+{ kind: "pages-changed"; source: DomainEventSource; atMs: number; spaceId: string; reason: string | null } | 
+/**
+ *  Renderer-broadcast: emitted by document command handlers when a
+ *  specific document's contents changed.
+ */
+{ kind: "document-changed"; source: DomainEventSource; atMs: number; spaceId: string; documentId: string; reason: string | null };
+
+/**
+ *  Source tag for renderer-broadcast events. Mirrors the
+ *  `DomainEventSource` union in `desktop-data/src/events/types.ts`.
+ * 
+ *  `Daemon` is reserved for events that originate from the daemon
+ *  firehose; today every variant in `DomainEvent` that uses this tag is
+ *  emitted with `Renderer` from a command handler.
+ */
+export type DomainEventSource = "renderer" | "daemon";
+
+/**
+ *  Drafts row shape consumed by the renderer service today. `published`
+ *  is `1 | 0` rather than a bool so the wire shape matches what the
+ *  Electron handler emits.
+ */
+export type DraftRecord = {
+	spaceId: string,
+	documentId: string,
+	contentJson: string,
+	published: number,
+	updatedAtMs: number,
+};
 
 export type EnqueueBackgroundTaskParams = {
 	kind: BackgroundTaskKind,
@@ -319,6 +362,11 @@ export type EnsurePageArgs = {
 	parentPageIds?: string[],
 	createdAtMs?: number | null,
 	updatedAtMs?: number | null,
+};
+
+export type GetDraftArgs = {
+	spaceId: string,
+	documentId: string,
 };
 
 export type IssueIssuerCapabilityArgs = {
@@ -360,6 +408,14 @@ export type ListSpacesResult = {
 };
 
 export type ModelKind = "chat" | "embed" | "unknown";
+
+export type QueueDaemonSyncArgs = {
+	spaceId: string,
+	documentId: string,
+	contentJson: string,
+	updatedAtMs: number,
+	published?: boolean | null,
+};
 
 export type RerankCandidate = {
 	id: string,
@@ -563,6 +619,17 @@ export type StoredSpaceMember = {
 	expiresAt: number,
 };
 
+export type SyncPublishedDocumentArgs = {
+	spaceId: string,
+	documentId: string,
+	contentJson: string,
+	updatedAtMs: number,
+};
+
+export type SyncPublishedDocumentResult = {
+	uploaded: number,
+};
+
 export type UpdatePageTitleArgs = {
 	spaceId: string,
 	pageId: string,
@@ -590,6 +657,14 @@ export type UploadBlobResult = {
 };
 
 export type UpsertDocumentArgs = {
+	spaceId: string,
+	documentId: string,
+	contentJson: string,
+	published?: boolean,
+	updatedAtMs?: number | null,
+};
+
+export type UpsertDraftArgs = {
 	spaceId: string,
 	documentId: string,
 	contentJson: string,
