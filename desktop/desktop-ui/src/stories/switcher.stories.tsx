@@ -67,8 +67,16 @@ export const ThemePicker: Story = {
 	render: function ThemeStory() {
 		const items: SwitcherItem[] = [
 			{ id: "cmyk", label: "Soma Light", mark: <Sun className="size-3.5" /> },
-			{ id: "luxury", label: "Luxury (dark)", mark: <Sun className="size-3.5" /> },
-			{ id: "system", label: "Follow system", mark: <Sun className="size-3.5" /> },
+			{
+				id: "luxury",
+				label: "Luxury (dark)",
+				mark: <Sun className="size-3.5" />,
+			},
+			{
+				id: "system",
+				label: "Follow system",
+				mark: <Sun className="size-3.5" />,
+			},
 		];
 		const [active, setActive] = useState<string | null>("cmyk");
 		return (

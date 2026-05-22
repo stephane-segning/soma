@@ -34,7 +34,11 @@ export const ExpandedAndCollapsed: Story = {
 					label="Chat (open)"
 				/>
 				<PanelChip icon={<Hash size={14} />} label="Pages" />
-				<PanelChip expanded icon={<Calendar size={14} />} label="Agenda (open)" />
+				<PanelChip
+					expanded
+					icon={<Calendar size={14} />}
+					label="Agenda (open)"
+				/>
 				<PanelChip icon={<Settings size={14} />} label="Settings" />
 			</div>
 		</div>

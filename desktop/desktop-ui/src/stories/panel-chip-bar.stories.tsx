@@ -9,14 +9,7 @@
  */
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
-import {
-	Calendar,
-	Clock,
-	Cpu,
-	Hash,
-	List,
-	MessageSquare,
-} from "react-feather";
+import { Calendar, Clock, Cpu, Hash, List, MessageSquare } from "react-feather";
 
 import {
 	PanelChipBar,

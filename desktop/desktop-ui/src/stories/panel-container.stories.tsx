@@ -10,12 +10,11 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { Calendar, Clock, FileText, List, MessageSquare } from "react-feather";
-
+import { PanelChipBar } from "../components/panels/panel-chip-bar";
 import {
 	PanelContainer,
 	type PanelDescriptor,
 } from "../components/panels/panel-container";
-import { PanelChipBar } from "../components/panels/panel-chip-bar";
 
 const meta = {
 	title: "Panels/PanelContainer",

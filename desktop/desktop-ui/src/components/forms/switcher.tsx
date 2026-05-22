@@ -112,12 +112,9 @@ export function Switcher({
 		onNavigate: setActiveIndex,
 		loop: true,
 	});
-	const { getReferenceProps, getFloatingProps, getItemProps } = useInteractions([
-		click,
-		dismiss,
-		role,
-		listNav,
-	]);
+	const { getReferenceProps, getFloatingProps, getItemProps } = useInteractions(
+		[click, dismiss, role, listNav],
+	);
 
 	const active = items.find((item) => item.id === activeId) ?? null;
 	const footerIndex = items.length;
@@ -154,10 +151,7 @@ export function Switcher({
 			</button>
 			{open ? (
 				<div
-					className={cn(
-						"glass-panel shadow-elevated z-40 p-1",
-						panelWidth,
-					)}
+					className={cn("glass-panel z-40 p-1 shadow-elevated", panelWidth)}
 					ref={refs.setFloating}
 					style={floatingStyles}
 					{...getFloatingProps()}
@@ -221,10 +215,7 @@ export function Switcher({
 					</ul>
 					{footer ? (
 						<>
-							<div
-								aria-hidden
-								className="my-1 border-base-300 border-t"
-							/>
+							<div aria-hidden className="my-1 border-base-300 border-t" />
 							<button
 								className={cn(
 									// Same "no transition-colors" rule — the footer action is

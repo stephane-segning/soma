@@ -331,7 +331,7 @@ function OutlinePanel() {
 			{headings.map((h, idx) => (
 				<li className="list-row hover:bg-base-200" key={`${h.level}-${idx}`}>
 					<span
-						className="text-base-content/40 text-[10px]"
+						className="text-[10px] text-base-content/40"
 						style={{ paddingInlineStart: (h.level - 1) * 12 }}
 					>
 						H{h.level}
@@ -393,7 +393,11 @@ function EditorMock({ title }: { title: string }) {
 					</span>
 				</li>
 				<li className="flex items-start gap-2">
-					<input className="checkbox checkbox-xs mt-0.5" readOnly type="checkbox" />
+					<input
+						className="checkbox checkbox-xs mt-0.5"
+						readOnly
+						type="checkbox"
+					/>
 					<span>Add a kbd primitive everyone can use</span>
 				</li>
 			</ul>
@@ -427,9 +431,8 @@ function ChatPanel() {
 						Assistant
 					</span>
 					<p className="text-base-content/80">
-						Editor polish PR ships Cmd+K link insertion, the bright drop
-						cursor, and a unified MenuShell primitive across slash / context /
-						AI bar.
+						Editor polish PR ships Cmd+K link insertion, the bright drop cursor,
+						and a unified MenuShell primitive across slash / context / AI bar.
 					</p>
 				</div>
 			</div>
