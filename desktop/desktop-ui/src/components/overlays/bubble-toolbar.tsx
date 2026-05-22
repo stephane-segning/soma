@@ -52,13 +52,18 @@ export function BubbleToolbar({
 		<OverlayPortal>
 			<AnimatePresence>
 				{open ? (
+					// Animate ONLY opacity on this node. `floatingStyles` writes
+					// `transform: translate(…)` to anchor the toolbar above the
+					// selection — motion animating `y` on the same element would
+					// overwrite that transform and the toolbar would drift away
+					// from the anchor. Opacity-only is the safe, minimalist path.
 					<motion.div
 						ref={refs.setFloating}
 						style={floatingStyles}
-						animate={{ opacity: 1, y: 0 }}
+						animate={{ opacity: 1 }}
 						className="pointer-events-auto z-50"
-						exit={{ opacity: 0, y: 4 }}
-						initial={{ opacity: 0, y: 4 }}
+						exit={{ opacity: 0 }}
+						initial={{ opacity: 0 }}
 						transition={{ duration: 0.12, ease: "easeOut" }}
 					>
 						<div

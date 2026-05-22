@@ -62,13 +62,25 @@ export function ContextMenu({
 							className="pointer-events-auto fixed inset-0 z-40"
 							onMouseDown={onClose}
 						/>
+						{/*
+						 * Animate ONLY opacity on this node.
+						 *
+						 * `floatingStyles` already writes `transform: translate(…)`
+						 * to position the menu. If motion animated `y` or `scale`
+						 * on the same element it would clobber that transform
+						 * string and the menu would render detached from the
+						 * anchor. `no-scale-animations.test.ts` also forbids
+						 * `scale: 0.x` entries here (the polish pass found scale-in
+						 * reads as "zoom on hover"). Opacity-only sidesteps both
+						 * and stays in sync with the rest of our overlay vocab.
+						 */}
 						<motion.div
 							ref={refs.setFloating}
 							style={floatingStyles}
-							animate={{ opacity: 1, scale: 1 }}
-							className="pointer-events-auto z-50 origin-top-left"
-							exit={{ opacity: 0, scale: 0.97 }}
-							initial={{ opacity: 0, scale: 0.97 }}
+							animate={{ opacity: 1 }}
+							className="pointer-events-auto z-50"
+							exit={{ opacity: 0 }}
+							initial={{ opacity: 0 }}
 							onMouseDown={(event) => event.stopPropagation()}
 							transition={{ duration: 0.12, ease: "easeOut" }}
 						>
