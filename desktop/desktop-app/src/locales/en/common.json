@@ -18,6 +18,21 @@
 		"spaces": "Spaces",
 		"settings": "Settings"
 	},
+	"panels": {
+		"pages": {
+			"title": "Pages",
+			"empty_no_space": "Select a space",
+			"empty_no_pages": "No pages yet",
+			"loading": "Loading…",
+			"error": "Could not load pages"
+		},
+		"nav": {
+			"title": "Nav",
+			"settings": "Settings",
+			"members": "Members",
+			"meta_info": "Meta info"
+		}
+	},
 	"pages": {
 		"spaces_index": {
 			"empty": "Spaces will appear here."
