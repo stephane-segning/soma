@@ -1,5 +1,7 @@
+import { flip, offset, shift, useFloating } from "@floating-ui/react";
 import { AnimatePresence, motion } from "motion/react";
 import type { ReactNode } from "react";
+import { useLayoutEffect } from "react";
 import type { OverlayPosition } from "../../types";
 import { MenuItem, MenuShell } from "./menu-shell";
 import { OverlayPortal } from "./overlay-portal";
@@ -29,6 +31,28 @@ export function ContextMenu({
 	onClose,
 	className,
 }: ContextMenuProps) {
+	const { refs, floatingStyles } = useFloating({
+		placement: "bottom-start",
+		strategy: "fixed",
+		middleware: [offset(4), flip(), shift({ padding: 8 })],
+	});
+
+	// Track the right-click point as a virtual element so @floating-ui can
+	// apply flip() and shift() — preventing overflow that the old manual
+	// `style={{ top, left }}` did not handle.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: setPositionReference is stable
+	useLayoutEffect(() => {
+		refs.setPositionReference({
+			getBoundingClientRect: () =>
+				DOMRect.fromRect({
+					x: position.x,
+					y: position.y,
+					width: 0,
+					height: 0,
+				}),
+		});
+	}, [position.x, position.y]);
+
 	return (
 		<OverlayPortal>
 			<AnimatePresence>
@@ -39,13 +63,14 @@ export function ContextMenu({
 							onMouseDown={onClose}
 						/>
 						<motion.div
-							animate={{ opacity: 1 }}
-							className="pointer-events-auto fixed z-50 origin-top-left"
-							exit={{ opacity: 0 }}
-							initial={{ opacity: 0 }}
+							ref={refs.setFloating}
+							style={floatingStyles}
+							animate={{ opacity: 1, scale: 1 }}
+							className="pointer-events-auto z-50 origin-top-left"
+							exit={{ opacity: 0, scale: 0.97 }}
+							initial={{ opacity: 0, scale: 0.97 }}
 							onMouseDown={(event) => event.stopPropagation()}
-							style={{ top: position.y, left: position.x }}
-							transition={{ duration: 0.12 }}
+							transition={{ duration: 0.12, ease: "easeOut" }}
 						>
 							<MenuShell className={className}>
 								{items.map((item) => (

@@ -1,4 +1,3 @@
-import { motion } from "motion/react";
 import type { ReactNode } from "react";
 import { ArrowRight } from "react-feather";
 import { cn } from "../../utils/cn";
@@ -23,15 +22,14 @@ export function LauncherCard({
 	className,
 }: LauncherCardProps) {
 	return (
-		<motion.button
+		<button
 			className={cn(
-				"flex w-full items-start justify-between rounded-2xl border border-base-300/60 bg-base-100/80 p-4 text-left shadow hover:border-primary/50",
+				"flex w-full items-start justify-between rounded-2xl border border-base-300/60 bg-base-100/80 p-4 text-left shadow",
+				"transition-transform duration-150 hover:-translate-y-0.5 hover:border-primary/50 active:scale-[0.98]",
 				className,
 			)}
 			onClick={onClick}
 			type="button"
-			whileHover={{ y: -2 }}
-			whileTap={{ scale: 0.98 }}
 		>
 			<div className="flex flex-1 items-start gap-3">
 				<div className="grid h-12 w-12 place-items-center rounded-xl bg-base-200 text-base-content/80">
@@ -55,6 +53,6 @@ export function LauncherCard({
 				</div>
 			</div>
 			<ArrowRight className="text-base-content/50" size={16} />
-		</motion.button>
+		</button>
 	);
 }
