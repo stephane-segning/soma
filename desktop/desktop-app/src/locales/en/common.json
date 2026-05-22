@@ -31,6 +31,19 @@
 			"settings": "Settings",
 			"members": "Members",
 			"meta_info": "Meta info"
+		},
+		"chat": {
+			"title": "Chat",
+			"placeholder": "Message the assistant…",
+			"send": "Send",
+			"empty": "Ask the assistant anything."
+		},
+		"bots": {
+			"title": "Bots",
+			"no_space": "Select a space",
+			"no_space_subtext": "Authorized bots for the active space will appear here.",
+			"loading": "Loading bots…",
+			"error": "Failed to load bots: {{message}}"
 		}
 	},
 	"palette": {
