@@ -33,7 +33,7 @@ pub mod ids {
     pub const HELP_DOCS: &str = "menu:help-docs";
 }
 
-const DOCS_URL: &str = "https://github.com/ssegning/soma";
+const DOCS_URL: &str = "https://github.com/stephane-ssegning/soma";
 
 /// Build the application menu. Called from the `Builder::menu(...)` callback
 /// so Tauri attaches it as the global menubar (macOS) or per-window menu
