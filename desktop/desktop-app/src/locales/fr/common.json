@@ -18,6 +18,21 @@
 		"spaces": "Espaces",
 		"settings": "Paramètres"
 	},
+	"panels": {
+		"pages": {
+			"title": "Pages",
+			"empty_no_space": "Sélectionnez un espace",
+			"empty_no_pages": "Aucune page",
+			"loading": "Chargement…",
+			"error": "Impossible de charger les pages"
+		},
+		"nav": {
+			"title": "Navigation",
+			"settings": "Paramètres",
+			"members": "Membres",
+			"meta_info": "Méta-infos"
+		}
+	},
 	"pages": {
 		"spaces_index": {
 			"empty": "Vos espaces apparaîtront ici."
