@@ -25,6 +25,8 @@ use tauri::Manager;
 
 use crate::agent_config_source::StoreBackedConfigSource;
 use crate::startup::deep_link;
+#[cfg(desktop)]
+use crate::startup::menu as app_menu;
 use crate::startup::splash::Splash;
 
 const MAIN_WINDOW_LABEL: &str = "main";
@@ -76,6 +78,13 @@ pub fn run() {
     let blob_reader_holder: Arc<OnceLock<SharedBlobReader>> = Arc::new(OnceLock::new());
 
     let mut builder = tauri::Builder::default();
+
+    #[cfg(desktop)]
+    {
+        builder = builder
+            .menu(|app| app_menu::build(app))
+            .on_menu_event(app_menu::on_event);
+    }
 
     #[cfg(desktop)]
     {
@@ -271,8 +280,37 @@ async fn start_event_streams<R: tauri::Runtime>(
 
 fn reveal_main_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     if let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) {
+        // Tag <html> with the host platform so global CSS (notably the
+        // macOS traffic-light gutter) can react. Cheaper than a JS bridge
+        // call from the renderer and keeps the shell self-contained.
+        let _ = window.eval(&format!(
+            "document.documentElement.setAttribute('data-shell-platform', '{}')",
+            shell_platform()
+        ));
         let _ = window.show();
         let _ = window.set_focus();
+    }
+}
+
+/// Stable platform tag for the renderer to react to. Aligned with the
+/// values `@tauri-apps/plugin-os`'s `platform()` returns so future code can
+/// share the same vocabulary.
+const fn shell_platform() -> &'static str {
+    #[cfg(target_os = "macos")]
+    {
+        "macos"
+    }
+    #[cfg(target_os = "windows")]
+    {
+        "windows"
+    }
+    #[cfg(target_os = "linux")]
+    {
+        "linux"
+    }
+    #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
+    {
+        "other"
     }
 }
 

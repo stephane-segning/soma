@@ -9,3 +9,7 @@
 pub const DOMAIN_EVENT: &str = "domain_event";
 pub const AGENT_EVENT: &str = "agent_event";
 pub const DEEP_LINK_EVENT: &str = "app:deep-link";
+/// Native-menu-bar dispatches: payload is the menu-item id (e.g.
+/// `menu:new-page`). The renderer's Phase-4 menu router subscribes to this
+/// channel and converts each id to its in-app action.
+pub const MENU_EVENT: &str = "app:menu-action";
