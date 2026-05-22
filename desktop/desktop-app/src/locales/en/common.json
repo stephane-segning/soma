@@ -1,7 +1,7 @@
 {
 	"app": {
-		"title": "Soma (Tauri V2 spike)",
-		"subtitle": "TipTap editor inside a Tauri V2 + React shell",
+		"title": "Soma",
+		"subtitle": "Soma desktop",
 		"runtime": "Runtime: {{name}} {{version}} on Tauri {{tauri}}"
 	},
 	"editor": {

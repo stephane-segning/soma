@@ -27,7 +27,6 @@ use crate::agent_config_source::StoreBackedConfigSource;
 use crate::startup::deep_link;
 use crate::startup::splash::Splash;
 
-const DEEP_LINK_SCHEME: &str = "soma";
 const MAIN_WINDOW_LABEL: &str = "main";
 
 /// Boot-only state that has to outlive `setup`. Tauri-managed so the
@@ -81,7 +80,9 @@ pub fn run() {
     #[cfg(desktop)]
     {
         builder = builder.plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
-            if let Some(url) = deep_link::extract_url(DEEP_LINK_SCHEME, &argv) {
+            let schemes = deep_link::configured_schemes(app);
+            let scheme_refs: Vec<&str> = schemes.iter().map(String::as_str).collect();
+            if let Some(url) = deep_link::extract_url(&scheme_refs, &argv) {
                 deep_link::dispatch(app, url);
             } else if let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) {
                 let _ = window.unminimize();
@@ -211,7 +212,9 @@ pub fn run() {
             #[cfg(desktop)]
             {
                 use tauri_plugin_deep_link::DeepLinkExt;
-                let _ = app.deep_link().register(DEEP_LINK_SCHEME);
+                for scheme in deep_link::configured_schemes(app.handle()) {
+                    let _ = app.deep_link().register(&scheme);
+                }
                 let handle_for_links = app.handle().clone();
                 app.deep_link().on_open_url(move |event| {
                     for url in event.urls() {
