@@ -24,12 +24,13 @@
 
 import { AppTabs } from "@soma/ui/components/layout/app-tabs";
 import { DesktopShell } from "@soma/ui/components/layout/desktop-shell";
+import { PanelChipBar } from "@soma/ui/components/panels/panel-chip-bar";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import type { MouseEvent } from "react";
+import { type MouseEvent, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Outlet, useLocation, useNavigate } from "react-router";
-import { LeftInnerRail } from "../components/LeftInnerRail";
-import { RightRail } from "../components/RightRail";
+import { LEFT_RAIL_DEFAULT_EXPANDED, LEFT_RAIL_PANEL_IDS, LeftInnerRail } from "../components/LeftInnerRail";
+import { RIGHT_RAIL_PANEL_IDS, RightRail, rightRailChipDescriptors } from "../components/RightRail";
 import { SpacesRailContainer } from "../components/SpacesRailContainer";
 
 /**
@@ -74,14 +75,48 @@ export function AppLayout() {
 	const location = useLocation();
 	const tabs = ROUTE_TABS.map(({ id, titleKey, fallback }) => ({ id, title: t(titleKey, fallback) }));
 	const activeId = activeTabId(location.pathname);
+
+	// Lifted expansion state for both rails, so the matching
+	// `PanelChipBar` in the main column corners can re-open panels the
+	// user collapsed via the panel header's `−` button.
+	const [leftExpanded, setLeftExpanded] = useState<Set<string>>(() => new Set(LEFT_RAIL_DEFAULT_EXPANDED));
+	const [rightExpanded, setRightExpanded] = useState<Set<string>>(
+		() => new Set([RIGHT_RAIL_PANEL_IDS.chat, RIGHT_RAIL_PANEL_IDS.bots]),
+	);
+
+	const toggleLeftPanel = useCallback((id: string) => {
+		setLeftExpanded((prev) => {
+			const next = new Set(prev);
+			if (next.has(id)) next.delete(id);
+			else next.add(id);
+			return next;
+		});
+	}, []);
+	const toggleRightPanel = useCallback((id: string) => {
+		setRightExpanded((prev) => {
+			const next = new Set(prev);
+			if (next.has(id)) next.delete(id);
+			else next.add(id);
+			return next;
+		});
+	}, []);
+
+	const leftChipPanels = useMemo(
+		() => [
+			{ id: LEFT_RAIL_PANEL_IDS.pages, icon: <span aria-hidden>P</span>, label: t("panels.pages.title", "Pages") },
+			{ id: LEFT_RAIL_PANEL_IDS.nav, icon: <span aria-hidden>N</span>, label: t("panels.nav.title", "Nav") },
+		],
+		[t],
+	);
+	const rightChipPanels = useMemo(
+		() => rightRailChipDescriptors(t("panels.chat.title", "Chat"), t("panels.bots.title", "Bots")),
+		[t],
+	);
+
 	return (
 		<DesktopShell
 			defaultLeftOpen={true}
 			defaultRightOpen={true}
-			initialLeftWidth={300}
-			initialRightWidth={320}
-			leftMaxWidth={460}
-			leftMinWidth={250}
 			header={() => (
 				// biome-ignore lint/a11y/noStaticElementInteractions: window drag region is inherently mouse-only chrome, not a focusable control
 				<header
@@ -110,16 +145,36 @@ export function AppLayout() {
 					</label>
 				</header>
 			)}
+			initialLeftWidth={332}
+			initialRightWidth={320}
 			leftColumn={
 				<div className="flex h-full">
 					<SpacesRailContainer />
 					<div className="flex-1 border-base-300 border-l">
-						<LeftInnerRail />
+						<LeftInnerRail expandedIds={leftExpanded} onCollapse={toggleLeftPanel} />
 					</div>
 				</div>
 			}
+			leftMaxWidth={460}
+			leftMinWidth={280}
 			mainClassName="bg-base-200/60 flex min-h-screen flex-col"
-			rightColumn={<RightRail />}
+			mainTopLeft={
+				<PanelChipBar
+					expandedIds={leftExpanded}
+					onToggle={toggleLeftPanel}
+					panels={leftChipPanels}
+					placement="top-left"
+				/>
+			}
+			mainTopRight={
+				<PanelChipBar
+					expandedIds={rightExpanded}
+					onToggle={toggleRightPanel}
+					panels={rightChipPanels}
+					placement="top-right"
+				/>
+			}
+			rightColumn={<RightRail expandedIds={rightExpanded} onCollapse={toggleRightPanel} />}
 		>
 			<AppTabs
 				activeId={activeId}

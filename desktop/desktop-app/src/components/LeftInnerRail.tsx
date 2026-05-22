@@ -25,6 +25,11 @@ const PAGES_ID = "pages";
 const NAV_ID = "nav";
 const DEFAULT_EXPANDED: ReadonlyArray<string> = [PAGES_ID, NAV_ID];
 
+/** Exported so AppLayout can mount a matching `PanelChipBar` in
+ *  `mainTopLeft` to re-expand collapsed panels. */
+export const LEFT_RAIL_PANEL_IDS = { pages: PAGES_ID, nav: NAV_ID } as const;
+export const LEFT_RAIL_DEFAULT_EXPANDED = DEFAULT_EXPANDED;
+
 export type LeftInnerRailProps = {
 	/**
 	 * Controlled expanded set. When provided, the rail's open/closed
