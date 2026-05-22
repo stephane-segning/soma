@@ -118,10 +118,11 @@ function Demo({ initialExpanded = ["chat"] }: { initialExpanded?: string[] }) {
 				<div className="absolute top-2 right-2">
 					<PanelChipBar
 						expandedIds={expanded}
-						onExpand={(id) =>
+						onToggle={(id) =>
 							setExpanded((prev) => {
 								const next = new Set(prev);
-								next.add(id);
+								if (next.has(id)) next.delete(id);
+								else next.add(id);
 								return next;
 							})
 						}

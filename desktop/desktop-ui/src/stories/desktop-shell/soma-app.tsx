@@ -161,11 +161,12 @@ export function SomaAppRender() {
 		() => new Set(["chat"]),
 	);
 
-	const expandLeft = useCallback(
+	const toggleLeft = useCallback(
 		(id: string) =>
 			setLeftExpanded((prev) => {
 				const next = new Set(prev);
-				next.add(id);
+				if (next.has(id)) next.delete(id);
+				else next.add(id);
 				return next;
 			}),
 		[],
@@ -179,11 +180,12 @@ export function SomaAppRender() {
 			}),
 		[],
 	);
-	const expandRight = useCallback(
+	const toggleRight = useCallback(
 		(id: string) =>
 			setRightExpanded((prev) => {
 				const next = new Set(prev);
-				next.add(id);
+				if (next.has(id)) next.delete(id);
+				else next.add(id);
 				return next;
 			}),
 		[],
@@ -226,7 +228,7 @@ export function SomaAppRender() {
 			mainTopLeft={
 				<PanelChipBar
 					expandedIds={leftExpanded}
-					onExpand={expandLeft}
+					onToggle={toggleLeft}
 					panels={LEFT_PANELS}
 					placement="top-left"
 				/>
@@ -234,7 +236,7 @@ export function SomaAppRender() {
 			mainTopRight={
 				<PanelChipBar
 					expandedIds={rightExpanded}
-					onExpand={expandRight}
+					onToggle={toggleRight}
 					panels={RIGHT_PANELS}
 					placement="top-right"
 				/>
