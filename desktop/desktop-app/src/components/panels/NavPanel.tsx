@@ -53,7 +53,7 @@ export function NavPanel() {
 	return (
 		<ul className="list list-dense">
 			{entries.map((entry) => (
-				<DenseRow aria-label={entry.label} key={entry.id} onClick={() => navigate(entry.path)} primary={entry.label} />
+				<DenseRow key={entry.id} onClick={() => navigate(entry.path)} primary={entry.label} />
 			))}
 		</ul>
 	);

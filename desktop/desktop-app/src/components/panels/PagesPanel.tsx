@@ -35,7 +35,7 @@ type LoadState = { kind: "idle" } | { kind: "loading" } | { kind: "ready"; pages
  *  from collapsing into a giant whitespace void when the space has
  *  zero pages (which is the typical first-run state). */
 function PagesEmptyLine({ children }: { children: React.ReactNode }) {
-	return <div className="px-3 py-2 text-[12px] text-base-content/55">{children}</div>;
+	return <div className="px-3 py-2 text-xs text-base-content/55">{children}</div>;
 }
 
 function toTreeDocs(pages: StoredPage[]): TreeDoc[] {
