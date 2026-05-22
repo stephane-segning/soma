@@ -16,7 +16,7 @@ const STARTER_CONTENT: JSONContent = {
 		{
 			type: "heading",
 			attrs: { level: 1 },
-			content: [{ type: "text", text: "Soma · Tauri V2 spike" }],
+			content: [{ type: "text", text: "Soma desktop" }],
 		},
 		{
 			type: "paragraph",

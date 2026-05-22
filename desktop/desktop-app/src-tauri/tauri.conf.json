@@ -1,6 +1,6 @@
 {
 	"$schema": "https://schema.tauri.app/config/2",
-	"productName": "Soma Desktop (Tauri spike)",
+	"productName": "Soma Desktop",
 	"version": "0.1.0",
 	"identifier": "digital.camer.soma.desktop",
 	"build": {
@@ -13,7 +13,7 @@
 		"windows": [
 			{
 				"label": "main",
-				"title": "Soma (Tauri spike)",
+				"title": "Soma",
 				"width": 1280,
 				"height": 800,
 				"minWidth": 720,

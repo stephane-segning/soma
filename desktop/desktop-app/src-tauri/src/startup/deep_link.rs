@@ -30,11 +30,39 @@ pub fn dispatch<R: Runtime>(app: &AppHandle<R>, url: &str) {
     }
 }
 
-/// Extract the first `soma://…` argument from a process argv slice. Used by
-/// the single-instance plugin to forward URLs from a duplicate launch.
-pub fn extract_url<'a>(scheme: &str, argv: &'a [String]) -> Option<&'a str> {
-    let prefix = format!("{scheme}://");
-    argv.iter().find_map(|arg| arg.starts_with(&prefix).then_some(arg.as_str()))
+/// Extract the first `<scheme>://…` argument from a process argv slice for
+/// any of the given schemes. Used by the single-instance plugin to forward
+/// URLs from a duplicate launch. The dev and prod builds use different
+/// schemes (`soma` vs `soma-dev`), so the caller passes the schemes loaded
+/// from the Tauri config.
+pub fn extract_url<'a>(schemes: &[&str], argv: &'a [String]) -> Option<&'a str> {
+    argv.iter().find_map(|arg| {
+        schemes
+            .iter()
+            .any(|scheme| arg.starts_with(&format!("{scheme}://")))
+            .then_some(arg.as_str())
+    })
+}
+
+/// Pull the deep-link plugin's configured schemes from the loaded Tauri
+/// config. Returns the schemes as owned `String`s; callers usually borrow
+/// them as `&[&str]` for [`extract_url`] / plugin registration. Falls back
+/// to an empty vec when the plugin isn't configured (e.g. on platforms
+/// where the deep-link plugin is compiled out).
+pub fn configured_schemes<R: Runtime>(app: &AppHandle<R>) -> Vec<String> {
+    let Some(plugin) = app.config().plugins.0.get("deep-link") else {
+        return Vec::new();
+    };
+    plugin
+        .get("desktop")
+        .and_then(|v| v.get("schemes"))
+        .and_then(|v| v.as_array())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str().map(str::to_owned))
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 fn focus<R: Runtime>(window: &tauri::WebviewWindow<R>) {

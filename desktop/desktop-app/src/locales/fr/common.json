@@ -1,7 +1,7 @@
 {
 	"app": {
-		"title": "Soma (essai Tauri V2)",
-		"subtitle": "Éditeur TipTap dans une coquille Tauri V2 + React",
+		"title": "Soma",
+		"subtitle": "Soma bureau",
 		"runtime": "Exécution : {{name}} {{version}} sur Tauri {{tauri}}"
 	},
 	"editor": {
