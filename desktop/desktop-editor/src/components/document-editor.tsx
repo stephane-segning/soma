@@ -28,6 +28,13 @@ export type DocumentEditorProps = {
 	onChange?: (doc: JSONContent) => void;
 	limit?: number;
 	onQuickAction?: (input: QuickActionRequest) => Promise<QuickActionResponse>;
+	/**
+	 * When `false`, the editor is mounted but ProseMirror disables
+	 * contenteditable on the surface. Text remains selectable and
+	 * screen-reader accessible — this is the right shape for the
+	 * read-only / non-editor-role path.
+	 */
+	editable?: boolean;
 };
 
 export function DocumentEditor({
@@ -43,6 +50,7 @@ export function DocumentEditor({
 	onChange,
 	limit,
 	onQuickAction,
+	editable = true,
 }: DocumentEditorProps): React.JSX.Element {
 	const effectiveCommands = commands ?? defaultCommands;
 	const lowlight = useLowlight();
@@ -66,7 +74,8 @@ export function DocumentEditor({
 		extensions,
 		content: initialContent ?? undefined,
 		immediatelyRender: false,
-		autofocus: "end",
+		autofocus: editable ? "end" : false,
+		editable,
 		editorProps: {
 			attributes: {
 				class: [
@@ -97,6 +106,14 @@ export function DocumentEditor({
 		if (!ext) return;
 		(ext.options as NodeAIRegistryExtensionOptions).registry = aiRegistry;
 	}, [editor, aiRegistry]);
+
+	// Keep the editor's `editable` flag in sync if the prop flips after
+	// mount (e.g. a role change). Tiptap caches the initial value, so we
+	// have to call `setEditable` imperatively.
+	useEffect(() => {
+		if (!editor) return;
+		if (editor.isEditable !== editable) editor.setEditable(editable);
+	}, [editor, editable]);
 
 	// Node-level AI trigger: set by ActionMenu when the drag-handle AI button
 	// is clicked, consumed by ContextualMenu to open the SelectionAIBar.
