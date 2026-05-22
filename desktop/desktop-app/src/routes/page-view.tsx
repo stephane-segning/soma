@@ -204,11 +204,13 @@ export function PageView() {
 
 	const debouncedPersist = useDebouncedCallback(persist, 500);
 
-	// Cancel any pending save targeted at the *previous* document when
-	// the route changes within the editor (page A → page B). We track
-	// the previous params in a ref so we only fire `cancel()` on an
-	// actual route change — *not* on the final unmount, where we want
-	// the flush effect below to win and persist the last keystrokes.
+	// Flush any pending save targeted at the *previous* document when
+	// the route changes within the editor (page A → page B). The args
+	// in the pending call were baked to A's `(spaceId, pageId, content)`
+	// at queue time, so flushing writes A's last keystrokes back to A's
+	// draft before we move on — `cancel()` here would silently discard
+	// them. We track the previous params in a ref so this only fires on
+	// an actual route change.
 	const prevRouteRef = useRef<{ spaceId?: string; pageId?: string }>({
 		spaceId,
 		pageId,
@@ -216,7 +218,7 @@ export function PageView() {
 	useEffect(() => {
 		const prev = prevRouteRef.current;
 		if (prev.spaceId !== spaceId || prev.pageId !== pageId) {
-			debouncedPersist.cancel();
+			debouncedPersist.flush();
 			prevRouteRef.current = { spaceId, pageId };
 		}
 	}, [spaceId, pageId, debouncedPersist]);
