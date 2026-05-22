@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { Code, FileText, Settings, Terminal } from "react-feather";
-import { AppTabs, type AppTab } from "../components/layout/app-tabs";
+import { type AppTab, AppTabs } from "../components/layout/app-tabs";
 
 const meta: Meta<typeof AppTabs> = {
 	title: "Layout/AppTabs",
@@ -13,9 +13,22 @@ export default meta;
 type Story = StoryObj<typeof AppTabs>;
 
 const SAMPLE_TABS: AppTab[] = [
-	{ id: "doc-1", title: "Architecture overview", icon: <FileText className="size-3.5" /> },
-	{ id: "doc-2", title: "Runbooks", icon: <FileText className="size-3.5" />, dirty: true },
-	{ id: "doc-3", title: "Wave 3 / PR notes", icon: <FileText className="size-3.5" /> },
+	{
+		id: "doc-1",
+		title: "Architecture overview",
+		icon: <FileText className="size-3.5" />,
+	},
+	{
+		id: "doc-2",
+		title: "Runbooks",
+		icon: <FileText className="size-3.5" />,
+		dirty: true,
+	},
+	{
+		id: "doc-3",
+		title: "Wave 3 / PR notes",
+		icon: <FileText className="size-3.5" />,
+	},
 ];
 
 function MockSurface({ children }: { children: React.ReactNode }) {
@@ -35,6 +48,40 @@ export const Default: Story = {
 		return (
 			<MockSurface>
 				<AppTabs activeId={active} onSelect={setActive} tabs={SAMPLE_TABS} />
+			</MockSurface>
+		);
+	},
+};
+
+export const Draggable: Story = {
+	render: function DraggableStory() {
+		const [tabs, setTabs] = useState<AppTab[]>(SAMPLE_TABS);
+		const [active, setActive] = useState("doc-1");
+		return (
+			<MockSurface>
+				<AppTabs
+					activeId={active}
+					onClose={(id) => {
+						setTabs((prev) => prev.filter((t) => t.id !== id));
+						if (id === active && tabs.length > 1) {
+							const remaining = tabs.filter((t) => t.id !== id);
+							setActive(remaining[0]?.id ?? "");
+						}
+					}}
+					onReorder={(nextIds) => {
+						setTabs((prev) => {
+							const byId = new Map(prev.map((t) => [t.id, t]));
+							return nextIds
+								.map((id) => byId.get(id))
+								.filter((t): t is AppTab => t !== undefined);
+						});
+					}}
+					onSelect={setActive}
+					tabs={tabs}
+				/>
+				<div className="px-4 py-2 text-base-content/50 text-xs">
+					Drag a tab left or right to reorder. A quick click still selects.
+				</div>
 			</MockSurface>
 		);
 	},
@@ -61,7 +108,11 @@ export const WithCloseAndNew: Story = {
 						const id = `doc-${nextId++}`;
 						setTabs((prev) => [
 							...prev,
-							{ id, title: `Untitled ${nextId - 1}`, icon: <FileText className="size-3.5" /> },
+							{
+								id,
+								title: `Untitled ${nextId - 1}`,
+								icon: <FileText className="size-3.5" />,
+							},
 						]);
 						setActive(id);
 					}}
@@ -77,8 +128,18 @@ export const WithDirtyIndicators: Story = {
 	render: function DirtyStory() {
 		const tabs: AppTab[] = [
 			{ id: "a", title: "Clean", icon: <FileText className="size-3.5" /> },
-			{ id: "b", title: "Has changes", icon: <FileText className="size-3.5" />, dirty: true },
-			{ id: "c", title: "Also dirty", icon: <Code className="size-3.5" />, dirty: true },
+			{
+				id: "b",
+				title: "Has changes",
+				icon: <FileText className="size-3.5" />,
+				dirty: true,
+			},
+			{
+				id: "c",
+				title: "Also dirty",
+				icon: <Code className="size-3.5" />,
+				dirty: true,
+			},
 		];
 		const [active, setActive] = useState("b");
 		return (
@@ -134,7 +195,11 @@ export const Empty: Story = {
 						const id = `t-${next++}`;
 						setTabs((prev) => [
 							...prev,
-							{ id, title: `Untitled ${next - 1}`, icon: <FileText className="size-3.5" /> },
+							{
+								id,
+								title: `Untitled ${next - 1}`,
+								icon: <FileText className="size-3.5" />,
+							},
 						]);
 					}}
 					onSelect={() => {}}
