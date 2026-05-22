@@ -1,4 +1,3 @@
-import { motion } from "motion/react";
 import type { ReactNode } from "react";
 import { cn } from "../../utils/cn";
 
@@ -76,11 +75,17 @@ function ChromeButton({
 	onClick?: () => void;
 	tone?: "muted" | "danger";
 }) {
-	const color = tone === "danger" ? "bg-error" : "bg-base-300";
+	const color =
+		tone === "danger"
+			? "bg-error hover:brightness-110"
+			: "bg-base-300 hover:brightness-110";
 	return (
-		<motion.button
+		<button
 			aria-label={label}
-			className={cn("grid h-3 w-3 place-items-center rounded-full", color)}
+			className={cn(
+				"grid h-3 w-3 place-items-center rounded-full transition-[filter] duration-100",
+				color,
+			)}
 			onClick={onClick}
 			type="button"
 		/>

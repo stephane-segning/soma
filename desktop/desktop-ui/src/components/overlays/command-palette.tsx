@@ -281,7 +281,8 @@ export function CommandPalette({
 												<button
 													aria-selected={isActive}
 													className={cn(
-														"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors",
+														// No `transition-colors` — snap the highlight; matches MenuShell/BackendSwitcher.
+												"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm",
 														isActive
 															? "bg-base-200 text-base-content"
 															: "hover:bg-base-200",

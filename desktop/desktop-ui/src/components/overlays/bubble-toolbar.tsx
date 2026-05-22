@@ -1,5 +1,7 @@
+import { flip, offset, shift, useFloating } from "@floating-ui/react";
 import { AnimatePresence, motion } from "motion/react";
 import type { ReactNode } from "react";
+import { useLayoutEffect } from "react";
 import { cn } from "../../utils/cn";
 import { OverlayPortal } from "./overlay-portal";
 
@@ -24,17 +26,45 @@ export function BubbleToolbar({
 	actions,
 	className,
 }: BubbleToolbarProps) {
+	const { refs, floatingStyles } = useFloating({
+		placement: "top",
+		strategy: "fixed",
+		middleware: [offset(6), flip(), shift({ padding: 8 })],
+	});
+
+	// Virtual element anchors the toolbar to the selection point.
+	// flip() falls back below if there is no room above; shift() keeps
+	// the toolbar inside the viewport on narrow lines.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: setPositionReference is stable
+	useLayoutEffect(() => {
+		refs.setPositionReference({
+			getBoundingClientRect: () =>
+				DOMRect.fromRect({
+					x: anchor.x,
+					y: anchor.y,
+					width: 0,
+					height: 0,
+				}),
+		});
+	}, [anchor.x, anchor.y]);
+
 	return (
 		<OverlayPortal>
 			<AnimatePresence>
 				{open ? (
+					// Animate ONLY opacity on this node. `floatingStyles` writes
+					// `transform: translate(…)` to anchor the toolbar above the
+					// selection — motion animating `y` on the same element would
+					// overwrite that transform and the toolbar would drift away
+					// from the anchor. Opacity-only is the safe, minimalist path.
 					<motion.div
+						ref={refs.setFloating}
+						style={floatingStyles}
 						animate={{ opacity: 1 }}
-						className="pointer-events-auto fixed z-50"
+						className="pointer-events-auto z-50"
 						exit={{ opacity: 0 }}
 						initial={{ opacity: 0 }}
-						style={{ top: anchor.y, left: anchor.x }}
-						transition={{ duration: 0.12 }}
+						transition={{ duration: 0.12, ease: "easeOut" }}
 					>
 						<div
 							className={cn(

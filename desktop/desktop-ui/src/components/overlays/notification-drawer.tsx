@@ -30,9 +30,13 @@ export function NotificationDrawer({
 			<AnimatePresence>
 				{open ? (
 					<>
-						<div
+						<motion.div
+							animate={{ opacity: 1 }}
 							className="fixed inset-0 z-30 bg-base-content/30 backdrop-blur"
+							exit={{ opacity: 0 }}
+							initial={{ opacity: 0 }}
 							onClick={onClose}
+							transition={{ duration: 0.2 }}
 						/>
 						<motion.aside
 							animate={{ x: 0, opacity: 1 }}
