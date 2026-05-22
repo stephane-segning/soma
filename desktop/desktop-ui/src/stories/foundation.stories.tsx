@@ -100,8 +100,8 @@ export const Surfaces: Story = {
 					glass-panel + shadow-elevated
 				</div>
 				<p className="text-base-content/70 text-sm">
-					Floating-overlay opt-in. Use only on modal / popover /
-					context-menu / toast.
+					Floating-overlay opt-in. Use only on modal / popover / context-menu /
+					toast.
 				</p>
 			</div>
 			<div className="surface-card-legacy p-4">

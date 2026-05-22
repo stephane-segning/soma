@@ -1,6 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { Copy, Edit, FileText, Folder, Star, Trash2 } from "react-feather";
-import { MenuItem, MenuSectionLabel, MenuShell } from "../components/overlays/menu-shell";
+import {
+	MenuItem,
+	MenuSectionLabel,
+	MenuShell,
+} from "../components/overlays/menu-shell";
 
 const meta = {
 	title: "Overlays/MenuShell",
@@ -16,11 +20,7 @@ export const BasicMenu: Story = {
 			<MenuShell>
 				<MenuItem icon={<Copy size={14} />} label="Copy" shortcut="⌘C" />
 				<MenuItem icon={<Edit size={14} />} label="Rename" />
-				<MenuItem
-					icon={<Trash2 size={14} />}
-					label="Delete"
-					tone="danger"
-				/>
+				<MenuItem icon={<Trash2 size={14} />} label="Delete" tone="danger" />
 			</MenuShell>
 		</div>
 	),

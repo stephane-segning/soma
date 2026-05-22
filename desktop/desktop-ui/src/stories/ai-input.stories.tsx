@@ -26,8 +26,16 @@ export const Default: Story = {
 						<BackendSwitcher
 							activeId={model}
 							backends={[
-								{ id: "gpt-4o", name: "GPT-4o", meta: "Balanced reasoning + speed" },
-								{ id: "gpt-4o-mini", name: "GPT-4o mini", meta: "Cheaper + fast" },
+								{
+									id: "gpt-4o",
+									name: "GPT-4o",
+									meta: "Balanced reasoning + speed",
+								},
+								{
+									id: "gpt-4o-mini",
+									name: "GPT-4o mini",
+									meta: "Cheaper + fast",
+								},
 								{ id: "agent", name: "Agent", meta: "Local agent via agentd" },
 							]}
 							onChange={setModel}

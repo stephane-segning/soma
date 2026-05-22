@@ -42,7 +42,10 @@ export function SettingsTabs({
 }: SettingsTabsProps) {
 	const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
-	function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
+	function handleKeyDown(
+		event: KeyboardEvent<HTMLButtonElement>,
+		index: number,
+	) {
 		if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
 		event.preventDefault();
 		const delta = event.key === "ArrowRight" ? 1 : -1;

@@ -83,7 +83,15 @@ describe("Kbd", () => {
 	it("renders named keys (Esc, Enter, Tab, F1-F12) as one keycap, not grapheme-split", () => {
 		// Without the named-key allowlist, "Esc" would split into E+S+C.
 		// Same for Tab, Enter, Backspace, F1-F12, etc.
-		const named = ["Esc", "Escape", "Enter", "Tab", "Backspace", "Delete", "F11"];
+		const named = [
+			"Esc",
+			"Escape",
+			"Enter",
+			"Tab",
+			"Backspace",
+			"Delete",
+			"F11",
+		];
 		for (const name of named) {
 			const { container } = render(<Kbd>{name}</Kbd>);
 			const kbds = container.querySelectorAll("kbd");

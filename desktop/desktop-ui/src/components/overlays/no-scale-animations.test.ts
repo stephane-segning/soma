@@ -41,7 +41,10 @@ const GUARDED: Record<string, string> = {
 const FORBIDDEN_PATTERNS: Array<{ name: string; regex: RegExp }> = [
 	{ name: "whileHover scale", regex: /whileHover\s*=\s*\{\{[^}]*\bscale\b/ },
 	{ name: "whileTap scale", regex: /whileTap\s*=\s*\{\{[^}]*\bscale\b/ },
-	{ name: "initial scale < 1", regex: /initial\s*=\s*\{\{[^}]*scale\s*:\s*0\./ },
+	{
+		name: "initial scale < 1",
+		regex: /initial\s*=\s*\{\{[^}]*scale\s*:\s*0\./,
+	},
 	{ name: "exit scale < 1", regex: /exit\s*=\s*\{\{[^}]*scale\s*:\s*0\./ },
 ];
 

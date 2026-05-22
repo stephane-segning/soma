@@ -15,13 +15,7 @@
  * sibling, not separate.
  */
 import { AnimatePresence, motion } from "motion/react";
-import {
-	type ReactNode,
-	useEffect,
-	useMemo,
-	useRef,
-	useState,
-} from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { Search } from "react-feather";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useT } from "../../i18n/use-t";
@@ -282,7 +276,7 @@ export function CommandPalette({
 													aria-selected={isActive}
 													className={cn(
 														// No `transition-colors` — snap the highlight; matches MenuShell/BackendSwitcher.
-												"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm",
+														"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm",
 														isActive
 															? "bg-base-200 text-base-content"
 															: "hover:bg-base-200",

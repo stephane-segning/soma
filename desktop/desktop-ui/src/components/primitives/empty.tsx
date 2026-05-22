@@ -41,10 +41,7 @@ export type EmptyFilterProps = {
 	className?: string;
 };
 
-export type EmptyProps =
-	| EmptyFullProps
-	| EmptyCompactProps
-	| EmptyFilterProps;
+export type EmptyProps = EmptyFullProps | EmptyCompactProps | EmptyFilterProps;
 
 export function Empty(props: EmptyProps) {
 	if (props.variant === "compact") return <CompactEmpty {...props} />;
@@ -69,9 +66,7 @@ function FullEmpty({
 			{icon ? (
 				<div className="text-base-content/40 [&>*]:size-12">{icon}</div>
 			) : null}
-			<div className="text-sm font-medium text-base-content/80">
-				{headline}
-			</div>
+			<div className="text-sm font-medium text-base-content/80">{headline}</div>
 			{subtext ? (
 				<div className="text-sm text-base-content/60">{subtext}</div>
 			) : null}

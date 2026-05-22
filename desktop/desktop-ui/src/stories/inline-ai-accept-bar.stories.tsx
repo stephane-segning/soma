@@ -42,7 +42,8 @@ function Demo({
 				prompt={
 					withPrompt ? (
 						<span>
-							Ask AI: <span className="font-medium">summarize this paragraph</span>
+							Ask AI:{" "}
+							<span className="font-medium">summarize this paragraph</span>
 						</span>
 					) : undefined
 				}

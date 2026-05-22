@@ -35,12 +35,19 @@ export type MenuShellProps = HTMLAttributes<HTMLDivElement> & {
  * role for `listbox` etc. via the spread `role` prop.
  */
 export const MenuShell = forwardRef<HTMLDivElement, MenuShellProps>(
-	function MenuShell({ className, width = "min-w-48", role = "menu", ...rest }, ref) {
+	function MenuShell(
+		{ className, width = "min-w-48", role = "menu", ...rest },
+		ref,
+	) {
 		return (
 			<div
 				ref={ref}
 				role={role}
-				className={cn("glass-panel shadow-elevated flex flex-col gap-0.5 p-1", width, className)}
+				className={cn(
+					"glass-panel shadow-elevated flex flex-col gap-0.5 p-1",
+					width,
+					className,
+				)}
 				{...rest}
 			/>
 		);
@@ -49,7 +56,10 @@ export const MenuShell = forwardRef<HTMLDivElement, MenuShellProps>(
 
 export type MenuItemTone = "default" | "danger";
 
-export type MenuItemProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children"> & {
+export type MenuItemProps = Omit<
+	ButtonHTMLAttributes<HTMLButtonElement>,
+	"children"
+> & {
 	label: ReactNode;
 	icon?: ReactNode;
 	shortcut?: ReactNode;
@@ -63,54 +73,68 @@ export type MenuItemProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "child
  * Standardizes row height, hover, and active state so menus look like
  * siblings even when their list contents diverge.
  */
-export const MenuItem = forwardRef<HTMLButtonElement, MenuItemProps>(function MenuItem(
-	{ label, icon, shortcut, tone = "default", active = false, className, disabled, ...rest },
-	ref,
-) {
-	const isDanger = tone === "danger";
-	return (
-		<button
-			ref={ref}
-			type="button"
-			disabled={disabled}
-			aria-selected={active || undefined}
-			// No transition on hover/active state. A 150ms colour fade on each
-			// row reads as the row "growing in" when the user moves the
-			// mouse over a menu — bg-color animating from transparent →
-			// base-200 across a sequence of hovered items looks like a wave
-			// of scaling. Snap the highlight instantly instead; the cursor
-			// motion itself supplies all the feedback we need.
-			className={cn(
-				"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm",
-				disabled && "cursor-not-allowed opacity-50",
-				!disabled && active && !isDanger && "bg-base-200 text-base-content",
-				!disabled && active && isDanger && "bg-error text-error-content",
-				!disabled && !active && !isDanger && "hover:bg-base-200",
-				!disabled && !active && isDanger && "hover:bg-error hover:text-error-content",
-				className,
-			)}
-			{...rest}
-		>
-			{icon != null ? (
-				<span
-					aria-hidden
-					className="inline-flex size-4 shrink-0 items-center justify-center text-base-content/60"
-				>
-					{icon}
-				</span>
-			) : null}
-			<span className="min-w-0 flex-1 truncate">{label}</span>
-			{shortcut != null ? (
-				// Render the shortcut hint through `Kbd` so every menu's
-				// shortcut text shares the same key-cap visual instead of
-				// each surface inventing its own font-mono styling.
-				<Kbd className="shrink-0" size="xs">
-					{shortcut}
-				</Kbd>
-			) : null}
-		</button>
-	);
-});
+export const MenuItem = forwardRef<HTMLButtonElement, MenuItemProps>(
+	function MenuItem(
+		{
+			label,
+			icon,
+			shortcut,
+			tone = "default",
+			active = false,
+			className,
+			disabled,
+			...rest
+		},
+		ref,
+	) {
+		const isDanger = tone === "danger";
+		return (
+			<button
+				ref={ref}
+				type="button"
+				disabled={disabled}
+				aria-selected={active || undefined}
+				// No transition on hover/active state. A 150ms colour fade on each
+				// row reads as the row "growing in" when the user moves the
+				// mouse over a menu — bg-color animating from transparent →
+				// base-200 across a sequence of hovered items looks like a wave
+				// of scaling. Snap the highlight instantly instead; the cursor
+				// motion itself supplies all the feedback we need.
+				className={cn(
+					"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm",
+					disabled && "cursor-not-allowed opacity-50",
+					!disabled && active && !isDanger && "bg-base-200 text-base-content",
+					!disabled && active && isDanger && "bg-error text-error-content",
+					!disabled && !active && !isDanger && "hover:bg-base-200",
+					!disabled &&
+						!active &&
+						isDanger &&
+						"hover:bg-error hover:text-error-content",
+					className,
+				)}
+				{...rest}
+			>
+				{icon != null ? (
+					<span
+						aria-hidden
+						className="inline-flex size-4 shrink-0 items-center justify-center text-base-content/60"
+					>
+						{icon}
+					</span>
+				) : null}
+				<span className="min-w-0 flex-1 truncate">{label}</span>
+				{shortcut != null ? (
+					// Render the shortcut hint through `Kbd` so every menu's
+					// shortcut text shares the same key-cap visual instead of
+					// each surface inventing its own font-mono styling.
+					<Kbd className="shrink-0" size="xs">
+						{shortcut}
+					</Kbd>
+				) : null}
+			</button>
+		);
+	},
+);
 
 /**
  * Small uppercase section header used to group items inside a MenuShell.

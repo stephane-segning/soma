@@ -38,11 +38,15 @@ export const Chords: Story = {
 			</div>
 			<div className="flex items-center gap-2">
 				<Kbd>Ctrl+Shift+Del</Kbd>
-				<span className="text-base-content/60 text-sm">Hard delete (named keys)</span>
+				<span className="text-base-content/60 text-sm">
+					Hard delete (named keys)
+				</span>
 			</div>
 			<div className="flex items-center gap-2">
 				<Kbd>{["⌘", "K"]}</Kbd>
-				<span className="text-base-content/60 text-sm">Explicit array form</span>
+				<span className="text-base-content/60 text-sm">
+					Explicit array form
+				</span>
 			</div>
 		</div>
 	),
@@ -95,9 +99,18 @@ export const NamedKeys: Story = {
 		<div className="flex flex-wrap items-center gap-3">
 			{(
 				[
-					"Esc", "Enter", "Tab", "Backspace", "Delete",
-					"Home", "End", "PageUp", "PageDown",
-					"F1", "F5", "F12",
+					"Esc",
+					"Enter",
+					"Tab",
+					"Backspace",
+					"Delete",
+					"Home",
+					"End",
+					"PageUp",
+					"PageDown",
+					"F1",
+					"F5",
+					"F12",
 				] as const
 			).map((key) => (
 				<Kbd key={key}>{key}</Kbd>

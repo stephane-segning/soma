@@ -102,8 +102,11 @@ export function SelectionBubble(props: SelectionBubbleProps) {
 	// it tracks internal state. This keeps existing callers (which don't
 	// pass the controlled pair) on the old uncontrolled behaviour.
 	const controlled =
-		props.linkInputOpen !== undefined && props.onLinkInputOpenChange !== undefined;
-	const linkOpen = controlled ? props.linkInputOpen === true : internalMode === "link";
+		props.linkInputOpen !== undefined &&
+		props.onLinkInputOpenChange !== undefined;
+	const linkOpen = controlled
+		? props.linkInputOpen === true
+		: internalMode === "link";
 	const setLinkOpen = (open: boolean) => {
 		if (controlled) {
 			props.onLinkInputOpenChange?.(open);
@@ -186,7 +189,10 @@ export function SelectionBubble(props: SelectionBubbleProps) {
 			</ToolButton>
 			<ToolButton
 				active={props.code}
-				label={t({ id: "selection-bubble.code", defaultMessage: "Inline code" })}
+				label={t({
+					id: "selection-bubble.code",
+					defaultMessage: "Inline code",
+				})}
 				onClick={props.onToggleCode}
 			>
 				<Code aria-hidden className="size-3.5" />

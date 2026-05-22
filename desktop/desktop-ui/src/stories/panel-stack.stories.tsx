@@ -88,7 +88,9 @@ export const WithCollapseHandlers: Story = {
 		return (
 			<MockRail>
 				<PanelStack
-					onCollapse={(id) => setPanels((prev) => prev.filter((p) => p.id !== id))}
+					onCollapse={(id) =>
+						setPanels((prev) => prev.filter((p) => p.id !== id))
+					}
 					panels={panels}
 				/>
 			</MockRail>

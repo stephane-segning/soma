@@ -115,7 +115,9 @@ export function Kbd({ children, size = "sm", className }: KbdProps) {
 			: [children];
 
 	if (keys.length === 1) {
-		return <kbd className={cn("kbd", sizeClass[size], className)}>{keys[0]}</kbd>;
+		return (
+			<kbd className={cn("kbd", sizeClass[size], className)}>{keys[0]}</kbd>
+		);
 	}
 
 	// Chord: bare `+` text between consecutive <kbd> elements,

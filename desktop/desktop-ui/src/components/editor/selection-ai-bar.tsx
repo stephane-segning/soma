@@ -14,13 +14,7 @@
  * Positioning is the caller's job — the editor extension wraps this
  * in its own floating surface anchored above the selection.
  */
-import {
-	type ReactNode,
-	useEffect,
-	useMemo,
-	useRef,
-	useState,
-} from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { Star } from "react-feather";
 import { useT } from "../../i18n/use-t";
 import { cn } from "../../utils/cn";
@@ -75,7 +69,10 @@ export function SelectionAIBar({
 	const containerRef = useRef<HTMLDivElement | null>(null);
 
 	const sectionLabel: Record<NodeAIActionCategory, string> = {
-		rewrite: t({ id: "selection-ai.section.rewrite", defaultMessage: "Rewrite" }),
+		rewrite: t({
+			id: "selection-ai.section.rewrite",
+			defaultMessage: "Rewrite",
+		}),
 		modify: t({ id: "selection-ai.section.modify", defaultMessage: "Modify" }),
 		tone: t({ id: "selection-ai.section.tone", defaultMessage: "Tone" }),
 		transform: t({
@@ -107,9 +104,10 @@ export function SelectionAIBar({
 		const buckets = new Map<NodeAIActionCategory, NodeAIAction[]>();
 		for (const category of CATEGORY_ORDER) buckets.set(category, []);
 		for (const action of visible) buckets.get(action.category)?.push(action);
-		return CATEGORY_ORDER
-			.map((category) => ({ category, items: buckets.get(category) ?? [] }))
-			.filter((g) => g.items.length > 0);
+		return CATEGORY_ORDER.map((category) => ({
+			category,
+			items: buckets.get(category) ?? [],
+		})).filter((g) => g.items.length > 0);
 	}, [actions, prompt]);
 
 	const flat = useMemo(() => grouped.flatMap((g) => g.items), [grouped]);
@@ -160,7 +158,15 @@ export function SelectionAIBar({
 		};
 		window.addEventListener("keydown", onKeyDown);
 		return () => window.removeEventListener("keydown", onKeyDown);
-	}, [flat, activeIndex, nodeType, selectedText, prompt, onClose, onCustomPrompt]);
+	}, [
+		flat,
+		activeIndex,
+		nodeType,
+		selectedText,
+		prompt,
+		onClose,
+		onCustomPrompt,
+	]);
 
 	// Click-outside dismissal. Listen on `mousedown` (not click) so we
 	// close before the editor blurs the bar's input on a second click,

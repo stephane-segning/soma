@@ -1,9 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 
-import {
-	type TreeDoc,
-	TreePopover,
-} from "../components/nav/tree-popover";
+import { type TreeDoc, TreePopover } from "../components/nav/tree-popover";
 
 const meta = {
 	title: "Nav/TreePopover",

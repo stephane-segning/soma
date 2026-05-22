@@ -22,11 +22,7 @@ Let me break this down step by step.
 export const Thinking: Story = {
 	render: () => (
 		<div className="max-w-lg">
-			<AiThinking
-				content={THINKING_CONTENT}
-				defaultOpen
-				status="thinking"
-			/>
+			<AiThinking content={THINKING_CONTENT} defaultOpen status="thinking" />
 		</div>
 	),
 };

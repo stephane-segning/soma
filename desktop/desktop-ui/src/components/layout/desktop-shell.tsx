@@ -153,9 +153,7 @@ export function DesktopShell(props: DesktopShellProps) {
 							props.mainClassName,
 						)}
 					>
-						<div className="h-full w-full overflow-auto">
-							{props.children}
-						</div>
+						<div className="h-full w-full overflow-auto">{props.children}</div>
 						{props.mainTopLeft ? (
 							<div className="pointer-events-none absolute top-2 left-2 z-10">
 								<div className="pointer-events-auto">{props.mainTopLeft}</div>

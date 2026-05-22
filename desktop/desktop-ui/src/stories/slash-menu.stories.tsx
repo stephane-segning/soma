@@ -11,10 +11,7 @@ import {
 	Type,
 } from "react-feather";
 
-import {
-	SlashMenu,
-	type SlashMenuItem,
-} from "../components/editor/slash-menu";
+import { SlashMenu, type SlashMenuItem } from "../components/editor/slash-menu";
 
 const meta = {
 	title: "Editor/SlashMenu",
@@ -131,9 +128,7 @@ function Demo({
 			<SlashMenu
 				items={items}
 				onAIPrompt={
-					withAIFallback
-						? (prompt) => setPicked(`ai · ${prompt}`)
-						: undefined
+					withAIFallback ? (prompt) => setPicked(`ai · ${prompt}`) : undefined
 				}
 				onClose={() => setPicked("(closed)")}
 				query={query}

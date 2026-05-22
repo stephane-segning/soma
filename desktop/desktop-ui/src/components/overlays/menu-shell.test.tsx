@@ -33,7 +33,11 @@ describe("MenuShell", () => {
 describe("MenuItem", () => {
 	it("renders icon + label + shortcut with the shared row classes", () => {
 		const { getByRole } = render(
-			<MenuItem icon={<span data-testid="icon" />} label="Open" shortcut="⌘O" />,
+			<MenuItem
+				icon={<span data-testid="icon" />}
+				label="Open"
+				shortcut="⌘O"
+			/>,
 		);
 		const button = getByRole("button");
 		expect(button.className).toContain("rounded-md");

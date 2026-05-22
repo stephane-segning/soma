@@ -173,10 +173,10 @@ export function TreePopover({
 
 	const dataProvider = useMemo(
 		() =>
-			new StaticTreeDataProvider(
-				treeItems,
-				(item, newName) => ({ ...item, data: { ...item.data, title: newName } }),
-			),
+			new StaticTreeDataProvider(treeItems, (item, newName) => ({
+				...item,
+				data: { ...item.data, title: newName },
+			})),
 		[treeItems],
 	);
 
@@ -239,9 +239,7 @@ export function TreePopover({
 									active={doc.id === currentId}
 									doc={doc}
 									key={`recent-${doc.id}`}
-									onSelect={(withMeta) =>
-										dispatchSelect(doc.id, withMeta)
-									}
+									onSelect={(withMeta) => dispatchSelect(doc.id, withMeta)}
 								/>
 							))}
 						</Section>
@@ -259,9 +257,7 @@ export function TreePopover({
 									active={doc.id === currentId}
 									doc={doc}
 									key={`starred-${doc.id}`}
-									onSelect={(withMeta) =>
-										dispatchSelect(doc.id, withMeta)
-									}
+									onSelect={(withMeta) => dispatchSelect(doc.id, withMeta)}
 									showStar
 								/>
 							))}
@@ -344,9 +340,7 @@ export function TreePopover({
 				</>
 			)}
 
-			<KeyboardHintsFooter
-				onSelectInNewTab={onSelectInNewTab !== undefined}
-			/>
+			<KeyboardHintsFooter onSelectInNewTab={onSelectInNewTab !== undefined} />
 		</div>
 	);
 }
@@ -407,9 +401,7 @@ function DocRow({
 			// No `transition-colors` — row-list highlights snap (see MenuItem).
 			className={cn(
 				"flex w-full items-center gap-2 rounded-md px-2 py-1 text-left text-sm",
-				active
-					? "bg-primary/10 text-primary"
-					: "hover:bg-base-200",
+				active ? "bg-primary/10 text-primary" : "hover:bg-base-200",
 			)}
 			onClick={handleClick}
 			type="button"
