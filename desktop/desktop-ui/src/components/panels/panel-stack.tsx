@@ -8,19 +8,23 @@
  * frame, in the SomaApp story).
  *
  * **Width contract.** PanelStack never imposes a column width — the
- * rail decides. Earlier revisions baked `w-72` into each column and
- * that's exactly the constraint the user pushed back on ("Used
- * panelcontainer width should be 100%, not 400px"). Here, 100 % is
- * the rule: card width = rail width, always.
+ * rail decides. Card width = rail width, always.
  *
  * **Vertical sizing.** Each card is `flex-1 min-h-0`, so N panels in
- * a stack split the available height evenly. If there's only one
- * card, it fills the rail.
+ * a stack split the available height evenly.
+ *
+ * **Motion contract.** Cards animate in / out on add / remove via
+ * `AnimatePresence` (opacity-only, to match the rest of the overlay
+ * vocab) and use motion's `layout` prop so existing cards smoothly
+ * redistribute height when a sibling enters or leaves. No scale, no
+ * y-translate — the layout animation does all the visible "moving
+ * parts."
  *
  * Returns `null` if `panels` is empty so callers can rely on
  * `<PanelStack panels={openPanels} />` collapsing cleanly without an
  * outer `panels.length > 0 &&` guard.
  */
+import { AnimatePresence, motion } from "motion/react";
 import type { ReactNode } from "react";
 import { cn } from "../../utils/cn";
 import { Panel } from "./panel";
@@ -51,19 +55,30 @@ export function PanelStack({
 	if (panels.length === 0) return null;
 	return (
 		<div className={cn("flex h-full min-h-0 flex-col gap-2 p-2", className)}>
-			{panels.map((panel) => (
-				<Panel
-					actions={panel.actions}
-					className="min-h-0 flex-1"
-					footer={panel.footer}
-					key={panel.id}
-					onClose={onClose ? () => onClose(panel.id) : undefined}
-					onCollapse={onCollapse ? () => onCollapse(panel.id) : undefined}
-					title={panel.title}
-				>
-					{panel.content}
-				</Panel>
-			))}
+			<AnimatePresence initial={false}>
+				{panels.map((panel) => (
+					<motion.div
+						animate={{ opacity: 1 }}
+						className="min-h-0 flex-1"
+						exit={{ opacity: 0 }}
+						initial={{ opacity: 0 }}
+						key={panel.id}
+						layout
+						transition={{ duration: 0.18, ease: "easeOut" }}
+					>
+						<Panel
+							actions={panel.actions}
+							className="h-full"
+							footer={panel.footer}
+							onClose={onClose ? () => onClose(panel.id) : undefined}
+							onCollapse={onCollapse ? () => onCollapse(panel.id) : undefined}
+							title={panel.title}
+						>
+							{panel.content}
+						</Panel>
+					</motion.div>
+				))}
+			</AnimatePresence>
 		</div>
 	);
 }
