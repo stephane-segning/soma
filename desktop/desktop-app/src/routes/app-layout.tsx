@@ -1,10 +1,25 @@
 /**
- * AppLayout — Phase 1 of the Tauri V2 desktop shell.
+ * AppLayout — Tauri V2 desktop shell composition.
  *
- * Composes the shared `@soma/ui` `DesktopShell` with a minimal
- * drag-region header, the spaces rail on the left, an `AppTabs`
- * strip at the top of the main column for cross-section navigation,
- * and the routed page below it.
+ * The full four-region layout the project owner specified:
+ *
+ *   ┌─────┬────────────┬──────────────────────┬──────────────┐
+ *   │ SR  │ Inner-Left │       Main           │ Right Rail   │
+ *   │ 52  │   ~280     │      flex            │     ~320     │
+ *   └─────┴────────────┴──────────────────────┴──────────────┘
+ *
+ * - **Outer spaces rail** (`SpacesRailContainer`): 52-px icon column.
+ *   Pulls real `backend.spaces.list()` data.
+ * - **Inner-left rail** (`LeftInnerRail`): `PanelContainer` stack of
+ *   Pages (`TreePopover` over `backend.pages.list`) + Nav.
+ * - **Main column**: `AppTabs` (top) + `<Outlet />` (routed content).
+ * - **Right rail** (`RightRail`): `PanelContainer` stack of Chat
+ *   (`AiChat` + composer) + Bots (`BotList`).
+ *
+ * The custom header is a drag-region only; chrome content is the app
+ * title at the left + language switcher at the right. The explicit
+ * `onMouseDown={startWindowDrag}` keeps Tauri's window-drag working
+ * regardless of the auto-attached listener's timing (see PR #129).
  */
 
 import { AppTabs } from "@soma/ui/components/layout/app-tabs";
@@ -13,6 +28,8 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import type { MouseEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Outlet, useLocation, useNavigate } from "react-router";
+import { LeftInnerRail } from "../components/LeftInnerRail";
+import { RightRail } from "../components/RightRail";
 import { SpacesRailContainer } from "../components/SpacesRailContainer";
 
 /**
@@ -60,6 +77,11 @@ export function AppLayout() {
 	return (
 		<DesktopShell
 			defaultLeftOpen={true}
+			defaultRightOpen={true}
+			initialLeftWidth={300}
+			initialRightWidth={320}
+			leftMaxWidth={460}
+			leftMinWidth={250}
 			header={() => (
 				// biome-ignore lint/a11y/noStaticElementInteractions: window drag region is inherently mouse-only chrome, not a focusable control
 				<header
@@ -88,8 +110,16 @@ export function AppLayout() {
 					</label>
 				</header>
 			)}
-			leftColumn={<SpacesRailContainer />}
+			leftColumn={
+				<div className="flex h-full">
+					<SpacesRailContainer />
+					<div className="flex-1 border-base-300 border-l">
+						<LeftInnerRail />
+					</div>
+				</div>
+			}
 			mainClassName="bg-base-200/60 flex min-h-screen flex-col"
+			rightColumn={<RightRail />}
 		>
 			<AppTabs
 				activeId={activeId}
