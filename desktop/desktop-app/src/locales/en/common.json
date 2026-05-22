@@ -13,5 +13,25 @@
 	"actions": {
 		"reset": "Reset content",
 		"log_json": "Log JSON to console"
+	},
+	"nav": {
+		"spaces": "Spaces",
+		"settings": "Settings"
+	},
+	"pages": {
+		"spaces_index": {
+			"empty": "Spaces will appear here."
+		},
+		"space_view": {
+			"placeholder": "Space content placeholder — pages, members, and editor land here in a later phase."
+		},
+		"settings": {
+			"placeholder": "Settings placeholder."
+		},
+		"not_found": {
+			"title": "Page not found",
+			"body": "The route you tried to open does not exist yet.",
+			"cta": "Go to Spaces"
+		}
 	}
 }
