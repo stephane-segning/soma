@@ -21,17 +21,18 @@ type ShellPanelProps = {
  * in on hover) — the rail itself has no border.
  *
  * **Auto-unmount contract.** Pass `content={null}` (or `undefined`)
- * when the rail has nothing to show, and ShellPanel renders nothing —
- * the rail collapses to 0 width and the persisted width is restored on
- * the next mount.
+ * when the rail has nothing to show. The rail then animates closed via
+ * `AnimatePresence` (width slides to 0) and unmounts after the exit
+ * completes — same behaviour as toggling `open={false}` from a header
+ * button. Both signals flow through the same motion path, so the user
+ * never sees the rail snap shut just because the last panel was
+ * collapsed.
  *
- * **Motion contract.** The rail toggles open/closed via motion: width
- * animates from 0 to `width` (and back to 0 on close) over 180 ms.
- * During an active resize-drag, the animation is suppressed (transition
- * duration drops to 0) so the handle tracks the cursor frame-perfect;
- * once the user releases, the next external `width` change re-animates.
- * This keeps the "open/close slides" effect without ever fighting the
- * `re-resizable` drag feedback loop.
+ * **Motion contract.** width animates from 0 → `width` on open / reverse
+ * on close, 180 ms easeOut. During an active resize-drag, transition
+ * duration drops to 0 so the wrapper tracks `re-resizable`'s
+ * `onResize` callback frame-perfect; once the user releases, the next
+ * external width change re-animates.
  */
 export function ShellPanel({
 	content,
@@ -46,10 +47,6 @@ export function ShellPanel({
 	const handleComponent =
 		side === "left" ? { right: <ResizeHandle /> } : { left: <ResizeHandle /> };
 
-	// liveWidth is the width motion animates toward. It tracks the
-	// committed `width` prop EXCEPT during an active drag, where it
-	// follows the in-flight `onResize` callback so the outer wrapper
-	// stays in lock-step with the inner Resizable's DOM width.
 	const [liveWidth, setLiveWidth] = useState(width);
 	const [dragging, setDragging] = useState(false);
 
@@ -57,21 +54,21 @@ export function ShellPanel({
 		if (!dragging) setLiveWidth(width);
 	}, [width, dragging]);
 
-	if (!content) return null;
+	// `content` is part of the visibility condition (NOT an early return)
+	// so AnimatePresence can play the exit animation when content goes
+	// from non-null to null — the rail slides closed instead of snapping.
+	const shouldShow = open && Boolean(content);
 
 	return (
 		<AnimatePresence initial={false}>
-			{open ? (
+			{shouldShow ? (
 				<motion.div
-					key={side}
 					animate={{ width: liveWidth }}
 					className="relative flex h-full shrink-0 overflow-hidden"
 					exit={{ width: 0 }}
 					initial={{ width: 0 }}
+					key={side}
 					transition={{
-						// During a drag, snap (duration 0) so the wrapper width
-						// matches the Resizable's DOM width frame-perfect. Open /
-						// close transitions get the 0.18 s slide.
 						width: { duration: dragging ? 0 : 0.18, ease: "easeOut" },
 					}}
 				>
