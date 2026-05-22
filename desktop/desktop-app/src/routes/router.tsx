@@ -10,7 +10,8 @@
  * Real space data, the right-column chat sidebar, command palette,
  * tabs bar, splash, and deep-link landing are deferred to later phases.
  */
-import { createBrowserRouter } from "react-router";
+import type { RouteObject } from "react-router";
+import { createMemoryRouter } from "react-router";
 import { AppLayout } from "./app-layout";
 import { NotFound } from "./not-found";
 import { rootRedirectLoader } from "./root-redirect";
@@ -19,7 +20,7 @@ import { SpaceView } from "./space-view";
 import { SpacesIndex } from "./spaces-index";
 import { SpikeEditor } from "./spike-editor";
 
-export const router = createBrowserRouter([
+const routes: RouteObject[] = [
 	{
 		path: "/",
 		Component: AppLayout,
@@ -51,4 +52,6 @@ export const router = createBrowserRouter([
 			},
 		],
 	},
-]);
+];
+
+export const router = createMemoryRouter(routes, { initialEntries: ["/"] });

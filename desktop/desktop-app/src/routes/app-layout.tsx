@@ -14,6 +14,7 @@ export function AppLayout() {
 	const { t, i18n } = useTranslation();
 	return (
 		<DesktopShell
+			defaultLeftOpen={true}
 			header={() => (
 				<header
 					className="sticky top-0 z-40 flex h-12 select-none items-center gap-3 border-base-300 border-b bg-base-100/95 px-3 backdrop-blur"
@@ -38,7 +39,6 @@ export function AppLayout() {
 			)}
 			leftColumn={<SpacesRailContainer />}
 			mainClassName="bg-base-200/60 min-h-screen"
-			storageKey="soma.tauri-app-layout"
 		>
 			<Outlet />
 		</DesktopShell>

@@ -7,7 +7,6 @@
  * via the SDK once the wire-up lands.
  */
 import { type SpaceRailItem, SpacesRail } from "@soma/ui/components/nav/spaces-rail";
-import { useMemo } from "react";
 import { useNavigate, useParams } from "react-router";
 
 const MOCK_SPACES: SpaceRailItem[] = [
@@ -20,7 +19,5 @@ export function SpacesRailContainer() {
 	const navigate = useNavigate();
 	const { spaceId } = useParams<{ spaceId?: string }>();
 
-	const items = useMemo(() => MOCK_SPACES, []);
-
-	return <SpacesRail activeId={spaceId ?? null} items={items} onSelect={(id) => navigate(`/spaces/${id}`)} />;
+	return <SpacesRail activeId={spaceId ?? null} items={MOCK_SPACES} onSelect={(id) => navigate(`/spaces/${id}`)} />;
 }
