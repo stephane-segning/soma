@@ -16,13 +16,7 @@
  * Positioning is the caller's job — the menu is presentational so
  * the TipTap extension can anchor it at the caret.
  */
-import {
-	type ReactNode,
-	useEffect,
-	useMemo,
-	useRef,
-	useState,
-} from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { Star } from "react-feather";
 import { useT } from "../../i18n/use-t";
 import { cn } from "../../utils/cn";
@@ -110,18 +104,13 @@ export function SlashMenu({
 		const buckets = new Map<SlashMenuSection, SlashMenuItem[]>();
 		for (const section of SECTION_ORDER) buckets.set(section, []);
 		for (const item of matches) buckets.get(item.section)?.push(item);
-		return SECTION_ORDER
-			.map((section) => ({
-				section,
-				items: buckets.get(section) ?? [],
-			}))
-			.filter((g) => g.items.length > 0);
+		return SECTION_ORDER.map((section) => ({
+			section,
+			items: buckets.get(section) ?? [],
+		})).filter((g) => g.items.length > 0);
 	}, [items, query]);
 
-	const flat = useMemo(
-		() => grouped.flatMap((g) => g.items),
-		[grouped],
-	);
+	const flat = useMemo(() => grouped.flatMap((g) => g.items), [grouped]);
 
 	const [activeIndex, setActiveIndex] = useState(0);
 	const containerRef = useRef<HTMLDivElement | null>(null);
@@ -145,7 +134,9 @@ export function SlashMenu({
 		keyboardNavRef.current = false;
 		const container = containerRef.current;
 		if (!container) return;
-		const active = container.querySelector<HTMLElement>('[role="option"][aria-selected="true"]');
+		const active = container.querySelector<HTMLElement>(
+			'[role="option"][aria-selected="true"]',
+		);
 		active?.scrollIntoView({ block: "nearest" });
 	}, [activeIndex]);
 
@@ -189,7 +180,12 @@ export function SlashMenu({
 	// Empty + onAIPrompt available → AI fallback row instead of a plain empty state.
 	if (flat.length === 0 && onAIPrompt && query.trim().length > 0) {
 		return (
-			<MenuShell className={className} ref={containerRef} role="listbox" width="w-80">
+			<MenuShell
+				className={className}
+				ref={containerRef}
+				role="listbox"
+				width="w-80"
+			>
 				<button
 					aria-selected="true"
 					className="flex items-center gap-2 rounded-md bg-info/10 px-2 py-1.5 text-left text-info text-sm"
@@ -213,7 +209,11 @@ export function SlashMenu({
 
 	if (flat.length === 0) {
 		return (
-			<MenuShell className={cn("text-base-content/60 text-sm", className)} ref={containerRef} width="w-80">
+			<MenuShell
+				className={cn("text-base-content/60 text-sm", className)}
+				ref={containerRef}
+				width="w-80"
+			>
 				<div className="px-2 py-1.5">
 					{t({ id: "slash-menu.empty", defaultMessage: "No matches" })}
 				</div>

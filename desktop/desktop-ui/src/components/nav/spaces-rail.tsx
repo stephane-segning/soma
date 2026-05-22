@@ -148,10 +148,12 @@ function RailIcon({
 	);
 }
 
-const statusToneClass: Record<NonNullable<SpaceRailItem["statusTone"]>, string> =
-	{
-		info: "bg-info",
-		success: "bg-success",
-		warning: "bg-warning",
-		error: "bg-error",
-	};
+const statusToneClass: Record<
+	NonNullable<SpaceRailItem["statusTone"]>,
+	string
+> = {
+	info: "bg-info",
+	success: "bg-success",
+	warning: "bg-warning",
+	error: "bg-error",
+};

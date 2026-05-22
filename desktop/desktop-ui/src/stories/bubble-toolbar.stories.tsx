@@ -1,6 +1,13 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
-import { AlignCenter, AlignLeft, Bold, Italic, Link, Underline } from "react-feather";
+import {
+	AlignCenter,
+	AlignLeft,
+	Bold,
+	Italic,
+	Link,
+	Underline,
+} from "react-feather";
 import { BubbleToolbar } from "../components/overlays/bubble-toolbar";
 
 const meta: Meta<typeof BubbleToolbar> = {
@@ -26,11 +33,7 @@ export const Default: Story = {
 				<p className="mb-6 text-base-content/60 text-sm">
 					The toolbar anchors at a fixed position relative to the document.
 				</p>
-				<BubbleToolbar
-					actions={textActions}
-					anchor={{ x: 80, y: 120 }}
-					open
-				/>
+				<BubbleToolbar actions={textActions} anchor={{ x: 80, y: 120 }} open />
 			</div>
 		);
 	},

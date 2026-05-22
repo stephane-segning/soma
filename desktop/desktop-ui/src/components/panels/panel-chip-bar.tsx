@@ -7,23 +7,17 @@
  * because it's absolutely positioned relative to main, not the shell.
  * Drop it into `DesktopShell`'s `mainTopLeft` / `mainTopRight` slot.
  *
- * **Visibility contract.** A chip only renders for panels whose id is
- * **not** in `expandedIds`. When a panel expands into the rail, its
- * chip is removed from the bar. Collapsing the panel (via the `−`
- * button in the Panel header) puts the chip back. The bar itself
- * returns `null` when every panel is expanded — it's not a permanent
- * UI element.
+ * **Visibility contract.** Every registered panel always renders a
+ * chip. The chip's `expanded` state mirrors the bar's `expandedIds` —
+ * expanded chips paint with a primary-color tint so the bar doubles as
+ * a "which panels are open right now" indicator. Clicking a chip
+ * toggles the matching panel; the parent decides whether that means
+ * add or remove via the `onToggle` callback.
  *
  * **Visual.** No card chrome — just a `backdrop-blur-md` clipped to
  * `rounded-lg`. The bar reads as "the thing behind the editor, only
- * blurred." No fill, no border, no shadow; the chips themselves
- * supply all the visible weight (and they only become visible on
- * hover because their resting state is just an icon glyph). On a
- * fully-white surface the bar is invisible until the cursor lands on
- * a chip — which is the right answer, since chips are an *overflow*
- * affordance, not a permanent toolbar. Max-width is `200px` and
- * chips `flex-wrap` to a second row if a caller registers more than
- * ~4 panels.
+ * blurred." Max-width is `200px` and chips `flex-wrap` to a second row
+ * if a caller registers more than ~4 panels.
  */
 import { type ReactNode, useMemo } from "react";
 import { useT } from "../../i18n/use-t";
@@ -42,8 +36,13 @@ export type PanelChipBarProps = {
 	panels: ReadonlyArray<PanelChipDescriptor>;
 	/** Set of panel ids that are currently expanded in the rail. */
 	expandedIds?: ReadonlySet<string> | readonly string[];
-	/** Fired when the user clicks a collapsed chip to expand it. */
-	onExpand?: (id: string) => void;
+	/**
+	 * Fired when the user clicks a chip. The parent decides whether
+	 * this means "expand the panel" or "collapse the panel" by reading
+	 * its own `expandedIds` state — the chip bar does not assume the
+	 * direction so the same handler can flip the panel either way.
+	 */
+	onToggle?: (id: string) => void;
 	/**
 	 * Hint to the assistive-tech reader about where the bar lives in
 	 * the layout. The actual positioning is up to the host slot.
@@ -55,7 +54,7 @@ export type PanelChipBarProps = {
 export function PanelChipBar({
 	panels,
 	expandedIds,
-	onExpand,
+	onToggle,
 	placement = "top-right",
 	className,
 }: PanelChipBarProps) {
@@ -68,8 +67,7 @@ export function PanelChipBar({
 		[expandedIds],
 	);
 
-	const collapsed = panels.filter((panel) => !expandedSet.has(panel.id));
-	if (collapsed.length === 0) return null;
+	if (panels.length === 0) return null;
 
 	return (
 		<div
@@ -90,12 +88,13 @@ export function PanelChipBar({
 			)}
 			role="toolbar"
 		>
-			{collapsed.map((panel) => (
+			{panels.map((panel) => (
 				<PanelChip
+					expanded={expandedSet.has(panel.id)}
 					icon={panel.icon}
 					key={panel.id}
 					label={panel.label}
-					onClick={onExpand ? () => onExpand(panel.id) : undefined}
+					onClick={onToggle ? () => onToggle(panel.id) : undefined}
 				/>
 			))}
 		</div>

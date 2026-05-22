@@ -69,9 +69,7 @@ export function PeerAddressInput({
 				className={cn(
 					"w-full rounded-md border bg-base-100 px-3 py-2 font-mono text-sm outline-none transition-colors",
 					"focus-visible:border-primary focus-visible:ring-1 focus-visible:ring-primary/40",
-					preview?.kind === "invalid"
-						? "border-error"
-						: "border-base-300",
+					preview?.kind === "invalid" ? "border-error" : "border-base-300",
 				)}
 				disabled={disabled}
 				id={inputId}
@@ -98,7 +96,10 @@ function PreviewLine({ preview }: { preview: PeerAddressValidation }) {
 	if (preview.kind === "valid") {
 		return (
 			<div className="flex items-start gap-2 text-sm">
-				<CheckCircle aria-hidden className="mt-0.5 size-4 shrink-0 text-success" />
+				<CheckCircle
+					aria-hidden
+					className="mt-0.5 size-4 shrink-0 text-success"
+				/>
 				<div className="flex min-w-0 flex-col">
 					<span className="text-base-content/80">
 						{t({

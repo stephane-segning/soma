@@ -26,26 +26,10 @@ export const AllTones: Story = {
 export const WithIcons: Story = {
 	render: () => (
 		<div className="flex flex-wrap gap-3">
-			<StatusBadge
-				icon={<Zap size={10} />}
-				label="Online"
-				tone="success"
-			/>
-			<StatusBadge
-				icon={<Clock size={10} />}
-				label="Syncing"
-				tone="warning"
-			/>
-			<StatusBadge
-				icon={<WifiOff size={10} />}
-				label="Offline"
-				tone="danger"
-			/>
-			<StatusBadge
-				icon={<CheckCircle size={10} />}
-				label="Ready"
-				tone="info"
-			/>
+			<StatusBadge icon={<Zap size={10} />} label="Online" tone="success" />
+			<StatusBadge icon={<Clock size={10} />} label="Syncing" tone="warning" />
+			<StatusBadge icon={<WifiOff size={10} />} label="Offline" tone="danger" />
+			<StatusBadge icon={<CheckCircle size={10} />} label="Ready" tone="info" />
 		</div>
 	),
 };

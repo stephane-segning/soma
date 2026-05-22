@@ -36,7 +36,12 @@ function setup(items = makeItems(10)) {
 	const onClose = vi.fn();
 	const utils = render(
 		<SomaIntlProvider>
-			<SlashMenu captureScope="window" items={items} onClose={onClose} query="" />
+			<SlashMenu
+				captureScope="window"
+				items={items}
+				onClose={onClose}
+				query=""
+			/>
 		</SomaIntlProvider>,
 	);
 	return { ...utils, scrollSpy };

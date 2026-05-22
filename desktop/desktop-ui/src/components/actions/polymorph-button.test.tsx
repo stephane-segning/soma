@@ -30,7 +30,11 @@ describe("PolymorphButton loading state", () => {
 
 	it("hides leading + trailing icons and shows spinner while loading", () => {
 		const { queryByTestId, container } = render(
-			<PolymorphButton leadingIcon={<Icon />} loading trailingIcon={<TrailingIcon />}>
+			<PolymorphButton
+				leadingIcon={<Icon />}
+				loading
+				trailingIcon={<TrailingIcon />}
+			>
 				Go
 			</PolymorphButton>,
 		);

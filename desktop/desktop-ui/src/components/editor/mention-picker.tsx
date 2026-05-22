@@ -13,13 +13,7 @@
  * surface anchored at the caret). The picker just renders + handles
  * keyboard nav + filtering.
  */
-import {
-	type ReactNode,
-	useEffect,
-	useMemo,
-	useRef,
-	useState,
-} from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { Cpu } from "react-feather";
 import { useT } from "../../i18n/use-t";
 import { cn } from "../../utils/cn";
@@ -101,7 +95,10 @@ export function MentionPicker({
 	}, [sections, query]);
 
 	const flat = useMemo(
-		() => filtered.flatMap((f) => f.items.map((i) => ({ section: f.section.kind, item: i }))),
+		() =>
+			filtered.flatMap((f) =>
+				f.items.map((i) => ({ section: f.section.kind, item: i })),
+			),
 		[filtered],
 	);
 
@@ -138,7 +135,9 @@ export function MentionPicker({
 			}
 			if (event.key === "ArrowDown") {
 				event.preventDefault();
-				setActiveIndex((idx) => (flat.length === 0 ? 0 : (idx + 1) % flat.length));
+				setActiveIndex((idx) =>
+					flat.length === 0 ? 0 : (idx + 1) % flat.length,
+				);
 			} else if (event.key === "ArrowUp") {
 				event.preventDefault();
 				setActiveIndex((idx) =>
@@ -237,7 +236,8 @@ export function MentionPicker({
 										item.isBot ? "text-info" : "text-base-content/60",
 									)}
 								>
-									{item.icon ?? (item.isBot ? <Cpu className="size-4" /> : null)}
+									{item.icon ??
+										(item.isBot ? <Cpu className="size-4" /> : null)}
 								</span>
 								<span className="min-w-0 flex-1 truncate">{item.label}</span>
 								{item.meta ? (

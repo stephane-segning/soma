@@ -74,7 +74,9 @@ function Demo({
 		...initialValue,
 	});
 	const [issuing, setIssuing] = useState(false);
-	const [issueError, setIssueError] = useState<string | undefined>(initialError);
+	const [issueError, setIssueError] = useState<string | undefined>(
+		initialError,
+	);
 
 	return (
 		<div className="max-w-2xl">

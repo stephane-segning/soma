@@ -28,7 +28,9 @@ export function SidebarRender() {
 					</Pill>
 					<div className="flex items-start gap-2 rounded-md bg-base-200 p-3 text-base-content/70 text-xs">
 						<Info className="text-base-content/60" size={14} />
-						<span>Use this shell as a structured layout for desktop views.</span>
+						<span>
+							Use this shell as a structured layout for desktop views.
+						</span>
 					</div>
 				</div>
 			}

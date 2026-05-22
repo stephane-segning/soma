@@ -28,9 +28,7 @@ export function ResizeHandle() {
 			className="group relative -mx-1 h-full w-2 cursor-col-resize"
 			role="none"
 		>
-			<span
-				className="pointer-events-none absolute top-1/2 left-1/2 h-10 w-0.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/50 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-active:bg-primary group-active:opacity-100"
-			/>
+			<span className="pointer-events-none absolute top-1/2 left-1/2 h-10 w-0.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/50 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-active:bg-primary group-active:opacity-100" />
 		</div>
 	);
 }

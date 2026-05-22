@@ -15,10 +15,7 @@
 import { fireEvent, render } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { SomaIntlProvider } from "../../i18n/intl-provider";
-import type {
-	NodeAIRegistry,
-	NodeAIAction,
-} from "./node-ai-registry.types";
+import type { NodeAIRegistry, NodeAIAction } from "./node-ai-registry.types";
 import { SelectionAIBar } from "./selection-ai-bar";
 
 function makeRegistry(actions: NodeAIAction[] = []): NodeAIRegistry {

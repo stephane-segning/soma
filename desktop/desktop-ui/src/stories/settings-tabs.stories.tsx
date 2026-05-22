@@ -15,7 +15,11 @@ type Story = StoryObj<typeof meta>;
 const TABS = [
 	{ id: "general", label: "General", icon: <Settings className="size-3.5" /> },
 	{ id: "members", label: "Members", icon: <Users className="size-3.5" /> },
-	{ id: "assistant", label: "Assistant", icon: <Sliders className="size-3.5" /> },
+	{
+		id: "assistant",
+		label: "Assistant",
+		icon: <Sliders className="size-3.5" />,
+	},
 	{ id: "bots", label: "Bots", icon: <Cpu className="size-3.5" /> },
 	{ id: "sharing", label: "Sharing" },
 	{

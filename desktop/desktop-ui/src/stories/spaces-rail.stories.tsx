@@ -1,10 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 
-import {
-	type SpaceRailItem,
-	SpacesRail,
-} from "../components/nav/spaces-rail";
+import { type SpaceRailItem, SpacesRail } from "../components/nav/spaces-rail";
 
 const meta = {
 	title: "Nav/SpacesRail",
@@ -32,8 +29,7 @@ function Demo() {
 				onSelect={setActiveId}
 			/>
 			<div className="flex-1 p-6 text-sm text-base-content/70">
-				Active space:{" "}
-				<code className="font-mono">{activeId}</code>
+				Active space: <code className="font-mono">{activeId}</code>
 			</div>
 		</div>
 	);
@@ -67,8 +63,8 @@ export const NoCreateButton: Story = {
 				onSelect={() => undefined}
 			/>
 			<div className="flex-1 p-6 text-sm text-base-content/70">
-				The `+` button is optional; omit `onCreate` to hide it (e.g. for
-				users without permission to create spaces).
+				The `+` button is optional; omit `onCreate` to hide it (e.g. for users
+				without permission to create spaces).
 			</div>
 		</div>
 	),

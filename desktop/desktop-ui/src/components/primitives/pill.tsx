@@ -13,12 +13,7 @@
 import type { ReactNode } from "react";
 import { cn } from "../../utils/cn";
 
-export type PillTone =
-	| "neutral"
-	| "info"
-	| "success"
-	| "warning"
-	| "error";
+export type PillTone = "neutral" | "info" | "success" | "warning" | "error";
 
 /**
  * `false` — no leading dot.

@@ -95,10 +95,7 @@ export function InlineAIAcceptBar({
 					})}
 				</SecondaryButton>
 			) : null}
-			<SecondaryButton
-				onClick={onDiscard}
-				tone="danger"
-			>
+			<SecondaryButton onClick={onDiscard} tone="danger">
 				<X aria-hidden className="size-3.5" />
 				{t({ id: "inline-ai-accept-bar.discard", defaultMessage: "Discard" })}
 			</SecondaryButton>

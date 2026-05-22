@@ -152,19 +152,11 @@ export function CapabilityForm({
 	);
 }
 
-function Card({
-	title,
-	children,
-}: {
-	title: ReactNode;
-	children: ReactNode;
-}) {
+function Card({ title, children }: { title: ReactNode; children: ReactNode }) {
 	return (
 		<section className="surface-card flex flex-col gap-3 p-3">
 			<header className="flex items-center justify-between gap-2">
-				<h3 className="font-medium text-base-content/90 text-sm">
-					{title}
-				</h3>
+				<h3 className="font-medium text-base-content/90 text-sm">{title}</h3>
 			</header>
 			{children}
 		</section>
@@ -225,10 +217,7 @@ function IdentityCard({
 						type="text"
 						value={alias}
 					/>
-					<span
-						className="text-base-content/50 text-xs"
-						id={`${aliasId}-help`}
-					>
+					<span className="text-base-content/50 text-xs" id={`${aliasId}-help`}>
 						{t({
 							id: "capability-form.identity.alias-help",
 							defaultMessage: "Used as @bot:<alias> in mentions.",

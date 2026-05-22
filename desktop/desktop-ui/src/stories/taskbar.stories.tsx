@@ -60,10 +60,7 @@ export const WithTray: Story = {
 					apps={APPS}
 					onSelectApp={setActiveApp}
 					tray={
-						<button
-							className="btn btn-ghost btn-xs"
-							type="button"
-						>
+						<button className="btn btn-ghost btn-xs" type="button">
 							<Bell size={14} />
 						</button>
 					}

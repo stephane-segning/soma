@@ -21,7 +21,10 @@ describe("Pill primitives", () => {
 	it("applies the matching badge-* tone class for each non-neutral tone", () => {
 		// `neutral` intentionally has no tone modifier — daisyUI's soft
 		// badge default is already the neutral palette.
-		const cases: Array<{ tone: "info" | "success" | "warning" | "error"; expected: string }> = [
+		const cases: Array<{
+			tone: "info" | "success" | "warning" | "error";
+			expected: string;
+		}> = [
 			{ tone: "info", expected: "badge-info" },
 			{ tone: "success", expected: "badge-success" },
 			{ tone: "warning", expected: "badge-warning" },
@@ -30,7 +33,10 @@ describe("Pill primitives", () => {
 		for (const { tone, expected } of cases) {
 			const { container } = render(<Pill tone={tone}>x</Pill>);
 			const span = container.firstChild as HTMLElement;
-			expect(span.className, `tone=${tone} should include ${expected}`).toContain(expected);
+			expect(
+				span.className,
+				`tone=${tone} should include ${expected}`,
+			).toContain(expected);
 		}
 	});
 

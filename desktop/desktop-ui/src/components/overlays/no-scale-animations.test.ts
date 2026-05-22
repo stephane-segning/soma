@@ -24,7 +24,7 @@ import menuShell from "./menu-shell.tsx?raw";
 import contextMenu from "./context-menu.tsx?raw";
 import bubbleToolbar from "./bubble-toolbar.tsx?raw";
 import commandPalette from "./command-palette.tsx?raw";
-import windowChrome from "../layout/window-chrome.tsx?raw";
+import appTabs from "../layout/app-tabs.tsx?raw";
 
 const GUARDED: Record<string, string> = {
 	"editor/selection-bubble.tsx": selectionBubble,
@@ -34,14 +34,17 @@ const GUARDED: Record<string, string> = {
 	"overlays/context-menu.tsx": contextMenu,
 	"overlays/bubble-toolbar.tsx": bubbleToolbar,
 	"overlays/command-palette.tsx": commandPalette,
-	"layout/window-chrome.tsx": windowChrome,
+	"layout/app-tabs.tsx": appTabs,
 };
 
 // Patterns that re-introduce the "zoom on hover/enter" feel.
 const FORBIDDEN_PATTERNS: Array<{ name: string; regex: RegExp }> = [
 	{ name: "whileHover scale", regex: /whileHover\s*=\s*\{\{[^}]*\bscale\b/ },
 	{ name: "whileTap scale", regex: /whileTap\s*=\s*\{\{[^}]*\bscale\b/ },
-	{ name: "initial scale < 1", regex: /initial\s*=\s*\{\{[^}]*scale\s*:\s*0\./ },
+	{
+		name: "initial scale < 1",
+		regex: /initial\s*=\s*\{\{[^}]*scale\s*:\s*0\./,
+	},
 	{ name: "exit scale < 1", regex: /exit\s*=\s*\{\{[^}]*scale\s*:\s*0\./ },
 ];
 
