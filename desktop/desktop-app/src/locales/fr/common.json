@@ -61,6 +61,8 @@
 		"page_view": {
 			"loading": "Chargement du document…",
 			"error": "Impossible de charger le document.",
+			"parse_error": "Impossible de charger cette page",
+			"try_again": "Réessayer",
 			"not_found": "Page introuvable",
 			"back_to_space": "Retour à l'espace"
 		},

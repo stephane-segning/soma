@@ -61,6 +61,8 @@
 		"page_view": {
 			"loading": "Loading document…",
 			"error": "Could not load the document.",
+			"parse_error": "Could not load this page",
+			"try_again": "Try again",
 			"not_found": "Page not found",
 			"back_to_space": "Back to space"
 		},
