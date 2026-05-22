@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { BackendStatusPanel } from "../components/BackendStatusPanel";
+import { BackendStatusPanel } from "../components/backend-status-panel";
 
 export function SpacesIndex() {
 	const { t } = useTranslation();

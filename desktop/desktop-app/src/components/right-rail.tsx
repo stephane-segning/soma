@@ -16,8 +16,8 @@
 import { PanelContainer, type PanelDescriptor } from "@soma/ui/components/panels/panel-container";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { BotsPanel } from "./panels/BotsPanel";
-import { ChatPanel } from "./panels/ChatPanel";
+import { BotsPanel } from "./panels/bots-panel";
+import { ChatPanel } from "./panels/chat-panel";
 
 /** Tiny inline icons — kept inline so the desktop-app shell doesn't have
  *  to pull in `react-feather` just for two glyphs that the `PanelChipBar`

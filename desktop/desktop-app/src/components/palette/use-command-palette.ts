@@ -103,7 +103,7 @@ export function CommandPaletteProvider({ children }: CommandPaletteProviderProps
 	// surprise editor users mid-keystroke. Track via the Gemini/Codex review
 	// on PR #131.
 	// TODO(palette): the menu accelerators above are shown as hardcoded ⌘
-	// symbols in `CommandPaletteRoot.tsx`; swap for a platform-aware
+	// symbols in `command-palette-root.tsx`; swap for a platform-aware
 	// formatter once non-macOS is on the roadmap. Same PR #131 review thread.
 	useEffect(() => {
 		const onKeyDown = (event: KeyboardEvent) => {

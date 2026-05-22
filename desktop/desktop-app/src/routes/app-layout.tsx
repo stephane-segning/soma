@@ -29,9 +29,9 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { type MouseEvent, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Outlet, useLocation, useNavigate } from "react-router";
-import { LEFT_RAIL_DEFAULT_EXPANDED, LEFT_RAIL_PANEL_IDS, LeftInnerRail } from "../components/LeftInnerRail";
-import { RIGHT_RAIL_PANEL_IDS, RightRail, rightRailChipDescriptors } from "../components/RightRail";
-import { SpacesRailContainer } from "../components/SpacesRailContainer";
+import { LEFT_RAIL_DEFAULT_EXPANDED, LEFT_RAIL_PANEL_IDS, LeftInnerRail } from "../components/left-inner-rail";
+import { RIGHT_RAIL_PANEL_IDS, RightRail, rightRailChipDescriptors } from "../components/right-rail";
+import { SpacesRailContainer } from "../components/spaces-rail-container";
 
 /**
  * Explicit drag handler so we don't depend on Tauri's auto-attached

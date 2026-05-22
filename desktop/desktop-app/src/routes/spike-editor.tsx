@@ -7,7 +7,7 @@
 import { DocumentEditor, type JSONContent } from "@soma/editor";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { BackendStatusPanel } from "../components/BackendStatusPanel";
+import { BackendStatusPanel } from "../components/backend-status-panel";
 import { backend } from "../lib/backend";
 
 const STARTER_CONTENT: JSONContent = {
