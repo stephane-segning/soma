@@ -33,6 +33,18 @@
 			"meta_info": "Meta info"
 		}
 	},
+	"palette": {
+		"placeholder": "Search commands, spaces, or pages…",
+		"commands": {
+			"go_to_spaces": "Go to Spaces",
+			"go_to_settings": "Go to Settings",
+			"open_editor_probe": "Open Editor (focus probe)",
+			"new_page": "New Page",
+			"new_space": "New Space",
+			"toggle_spaces_rail": "Toggle Spaces Rail",
+			"toggle_chat_sidebar": "Toggle Chat Sidebar"
+		}
+	},
 	"pages": {
 		"spaces_index": {
 			"empty": "Spaces will appear here."

@@ -33,6 +33,18 @@
 			"meta_info": "Méta-infos"
 		}
 	},
+	"palette": {
+		"placeholder": "Rechercher commandes, espaces ou pages…",
+		"commands": {
+			"go_to_spaces": "Aller aux Espaces",
+			"go_to_settings": "Aller aux Paramètres",
+			"open_editor_probe": "Ouvrir l'éditeur (test de focus)",
+			"new_page": "Nouvelle page",
+			"new_space": "Nouvel espace",
+			"toggle_spaces_rail": "Basculer la barre Espaces",
+			"toggle_chat_sidebar": "Basculer le panneau de chat"
+		}
+	},
 	"pages": {
 		"spaces_index": {
 			"empty": "Vos espaces apparaîtront ici."
