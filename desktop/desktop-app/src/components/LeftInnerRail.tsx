@@ -82,6 +82,10 @@ export function LeftInnerRail({ expandedIds, onCollapse, className }: LeftInnerR
 				title: t("panels.nav.title", "Nav") as ReactNode,
 				icon: <span aria-hidden>N</span>,
 				content: <NavPanel />,
+				// Nav holds 1–3 fixed rows. Shrinking it to content-height
+				// lets the sibling Pages panel reclaim the void instead of
+				// each card splitting the rail 50/50 regardless of content.
+				size: "content",
 			},
 		],
 		[t],

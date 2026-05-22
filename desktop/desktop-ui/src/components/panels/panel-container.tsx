@@ -33,8 +33,9 @@
  * two `<PanelContainer>` + two `<PanelChipBar>` pairs. Moving a panel
  * from left to right is a one-line array shift at build time.
  */
-import { useMemo } from "react";
+
 import type { ReactNode } from "react";
+import { useMemo } from "react";
 import { cn } from "../../utils/cn";
 import { PanelStack } from "./panel-stack";
 
@@ -51,6 +52,9 @@ export type PanelDescriptor = {
 	/** The panel body. Rendered inside a scroll container. */
 	content: ReactNode;
 	footer?: ReactNode;
+	/** Vertical sizing — forwarded to `PanelStack`. See
+	 *  `PanelStackItem.size`. Defaults to `"fill"`. */
+	size?: "fill" | "content";
 };
 
 export type PanelContainerProps = {

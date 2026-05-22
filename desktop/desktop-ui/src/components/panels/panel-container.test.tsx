@@ -117,4 +117,40 @@ describe("PanelContainer", () => {
 			expect(wrapper?.className).toContain("min-h-0");
 		}
 	});
+
+	it("descriptors with `size: \"content\"` get a flex-none wrapper and don't force h-full on the card", () => {
+		// A "content"-sized panel shrinks to its natural content height so
+		// a sibling "fill" panel can reclaim the vertical void. Verify the
+		// wrapper class swap + the matching `h-full` removal.
+		const panels: PanelDescriptor[] = [
+			{
+				id: "fill",
+				title: "Fill",
+				icon: <span>·</span>,
+				content: <div>fill</div>,
+			},
+			{
+				id: "tiny",
+				title: "Tiny",
+				icon: <span>·</span>,
+				content: <div>tiny</div>,
+				size: "content",
+			},
+		];
+		const { container } = render(
+			<SomaIntlProvider>
+				<PanelContainer expandedIds={new Set(["fill", "tiny"])} panels={panels} />
+			</SomaIntlProvider>,
+		);
+		const cards = container.querySelectorAll("section");
+		expect(cards.length).toBe(2);
+		const [fillCard, tinyCard] = Array.from(cards);
+		// Fill panel: same as the default — flex-1 wrapper, h-full card.
+		expect(fillCard.className).toContain("h-full");
+		expect(fillCard.parentElement?.className).toContain("flex-1");
+		// Content-sized panel: flex-none wrapper, no h-full forced on the card.
+		expect(tinyCard.className).not.toContain("h-full");
+		expect(tinyCard.parentElement?.className).toContain("flex-none");
+		expect(tinyCard.parentElement?.className).not.toContain("flex-1");
+	});
 });
