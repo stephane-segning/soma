@@ -35,7 +35,6 @@
 		"chat": {
 			"title": "Chat",
 			"placeholder": "Écrire à l'assistant…",
-			"send": "Envoyer",
 			"empty": "Posez n'importe quelle question à l'assistant."
 		},
 		"bots": {

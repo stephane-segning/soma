@@ -23,19 +23,14 @@ import { AiChat } from "@soma/ui/components/chat/ai-chat";
 import { AiConversation } from "@soma/ui/components/chat/ai-conversation";
 import type { ChatMessage as UiChatMessage } from "@soma/ui/components/chat/ai-message";
 import { AiThinking } from "@soma/ui/components/chat/ai-thinking";
-import { BackendSwitcher } from "@soma/ui/components/chat/backend-switcher";
+import { type BackendOption, BackendSwitcher } from "@soma/ui/components/chat/backend-switcher";
 import { AiInput } from "@soma/ui/components/forms/ai-input";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useParams } from "react-router";
 import { backend } from "../../lib/backend";
 
-type BackendChoice = {
-	id: string;
-	name: string;
-	meta?: string;
-};
-
-const BACKENDS: BackendChoice[] = [
+const BACKENDS: BackendOption[] = [
 	{ id: "ollama", name: "Ollama", meta: "Local · http://127.0.0.1:11434" },
 	{ id: "anthropic", name: "Anthropic", meta: "Cloud" },
 ];
@@ -49,11 +44,16 @@ function newId(): string {
 
 export function ChatPanel(): React.JSX.Element {
 	const { t } = useTranslation();
+	const { spaceId } = useParams<{ spaceId?: string }>();
 	const [messages, setMessages] = useState<UiChatMessage[]>([]);
 	const [draft, setDraft] = useState("");
 	const [activeBackend, setActiveBackend] = useState<string>(BACKENDS[0].id);
 	const [thinking, setThinking] = useState(false);
 
+	// TODO(bot-review): guard against setState after unmount — if the
+	// component unmounts while `chat` is in flight the `setMessages`
+	// callbacks below will warn. Tracked as the medium-impact race in
+	// the PR #132 review; out of scope for this commit.
 	const handleSend = useCallback(async () => {
 		const trimmed = draft.trim();
 		if (!trimmed || thinking) return;
@@ -74,10 +74,10 @@ export function ChatPanel(): React.JSX.Element {
 					role: m.role === "assistant" ? "assistant" : "user",
 					content: m.content,
 				})),
-				model: null,
+				model: activeBackend,
 				temperature: null,
 				maxTokens: null,
-				spaceId: null,
+				spaceId: spaceId ?? null,
 			});
 			const assistantContent = response.error ? `_${response.error}_` : response.token;
 			setMessages((prev) => [
@@ -101,7 +101,7 @@ export function ChatPanel(): React.JSX.Element {
 		} finally {
 			setThinking(false);
 		}
-	}, [draft, messages, thinking]);
+	}, [activeBackend, draft, messages, spaceId, thinking]);
 
 	const isEmpty = messages.length === 0;
 
@@ -124,17 +124,7 @@ export function ChatPanel(): React.JSX.Element {
 				</div>
 				<div className="border-base-300 border-t pt-2">
 					<AiInput
-						modelSelector={
-							<BackendSwitcher
-								activeId={activeBackend}
-								backends={BACKENDS.map((b) => ({
-									id: b.id,
-									name: b.name,
-									meta: b.meta,
-								}))}
-								onChange={setActiveBackend}
-							/>
-						}
+						modelSelector={<BackendSwitcher activeId={activeBackend} backends={BACKENDS} onChange={setActiveBackend} />}
 						onChange={setDraft}
 						onSend={handleSend}
 						placeholder={t("panels.chat.placeholder", "Message the assistant…")}

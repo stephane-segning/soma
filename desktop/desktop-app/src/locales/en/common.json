@@ -35,7 +35,6 @@
 		"chat": {
 			"title": "Chat",
 			"placeholder": "Message the assistant…",
-			"send": "Send",
 			"empty": "Ask the assistant anything."
 		},
 		"bots": {
