@@ -31,6 +31,18 @@
 			"settings": "Paramètres",
 			"members": "Membres",
 			"meta_info": "Méta-infos"
+		},
+		"chat": {
+			"title": "Chat",
+			"placeholder": "Écrire à l'assistant…",
+			"empty": "Posez n'importe quelle question à l'assistant."
+		},
+		"bots": {
+			"title": "Bots",
+			"no_space": "Sélectionnez un espace",
+			"no_space_subtext": "Les bots autorisés de l'espace actif apparaîtront ici.",
+			"loading": "Chargement des bots…",
+			"error": "Impossible de charger les bots : {{message}}"
 		}
 	},
 	"palette": {
