@@ -52,6 +52,18 @@
 		"space_view": {
 			"placeholder": "Space content placeholder — pages, members, and editor land here in a later phase."
 		},
+		"space_members": {
+			"placeholder": "Members and roles will appear here."
+		},
+		"space_info": {
+			"placeholder": "Space metadata will appear here."
+		},
+		"page_view": {
+			"loading": "Loading document…",
+			"error": "Could not load the document.",
+			"not_found": "Page not found",
+			"back_to_space": "Back to space"
+		},
 		"settings": {
 			"placeholder": "Settings placeholder."
 		},
@@ -59,6 +71,89 @@
 			"title": "Page not found",
 			"body": "The route you tried to open does not exist yet.",
 			"cta": "Go to Spaces"
+		}
+	},
+	"settings": {
+		"subtitle": "Tune Soma to taste.",
+		"tabs": {
+			"aria_label": "Settings sections",
+			"general": "General",
+			"account": "Account",
+			"appearance": "Appearance",
+			"capabilities": "Capabilities",
+			"network": "Network",
+			"advanced": "Advanced"
+		},
+		"general": {
+			"description": "Language, theme, and global shortcuts.",
+			"language": {
+				"label": "Language",
+				"hint": "Affects every visible string in the desktop shell."
+			},
+			"theme": {
+				"label": "Theme",
+				"hint": "Light, dark, or follow the system.",
+				"light": "Light",
+				"dark": "Dark",
+				"system": "System",
+				"default": "Default"
+			},
+			"shortcuts": {
+				"label": "Keyboard shortcuts",
+				"hint": "Open this page from anywhere.",
+				"open": "Open settings"
+			}
+		},
+		"account": {
+			"description": "Your local peer identity on this device.",
+			"loading": "Loading identity…",
+			"error": "Could not load the local peer.",
+			"peer_id": {
+				"label": "Local peer id",
+				"hint": "The libp2p identity for this device.",
+				"missing": "No peer id yet",
+				"copy": "Copy",
+				"copied": "Copied"
+			},
+			"listen_addrs": {
+				"label": "Listen addresses",
+				"count_one": "{{count}} address",
+				"count_other": "{{count}} addresses"
+			},
+			"transport": {
+				"label": "Transport"
+			}
+		},
+		"appearance": {
+			"description": "Surface controls — theme, density, and accent.",
+			"theme": {
+				"title": "Theme",
+				"description": "Pick a daisyUI theme to match your environment."
+			},
+			"density": {
+				"title": "Density",
+				"description": "Compact rows for dense lists, cozy rows for reading.",
+				"badge": "Dense"
+			},
+			"accent": {
+				"title": "Accent color",
+				"description": "Override the primary accent across the shell."
+			}
+		},
+		"capabilities": {
+			"description": "Issue a scoped capability to a bot or peer."
+		},
+		"network": {
+			"description": "Manually connect to a peer when discovery is unavailable.",
+			"peer": {
+				"label": "Peer multiaddress",
+				"invalid": "Address must include a /p2p/<peer-id> suffix."
+			}
+		},
+		"advanced": {
+			"description": "Diagnostics and experimental toggles.",
+			"coming_soon": "Advanced settings coming soon",
+			"cta": "Open diagnostics"
 		}
 	}
 }

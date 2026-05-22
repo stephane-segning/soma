@@ -52,6 +52,18 @@
 		"space_view": {
 			"placeholder": "Contenu de l'espace — les pages, membres et l'éditeur arriveront dans une phase suivante."
 		},
+		"space_members": {
+			"placeholder": "Les membres et leurs rôles s'afficheront ici."
+		},
+		"space_info": {
+			"placeholder": "Les métadonnées de l'espace s'afficheront ici."
+		},
+		"page_view": {
+			"loading": "Chargement du document…",
+			"error": "Impossible de charger le document.",
+			"not_found": "Page introuvable",
+			"back_to_space": "Retour à l'espace"
+		},
 		"settings": {
 			"placeholder": "Paramètres (placeholder)."
 		},
@@ -59,6 +71,89 @@
 			"title": "Page introuvable",
 			"body": "La route que vous avez ouverte n'existe pas encore.",
 			"cta": "Aller aux Espaces"
+		}
+	},
+	"settings": {
+		"subtitle": "Ajustez Soma à votre goût.",
+		"tabs": {
+			"aria_label": "Sections des paramètres",
+			"general": "Général",
+			"account": "Compte",
+			"appearance": "Apparence",
+			"capabilities": "Capacités",
+			"network": "Réseau",
+			"advanced": "Avancé"
+		},
+		"general": {
+			"description": "Langue, thème et raccourcis globaux.",
+			"language": {
+				"label": "Langue",
+				"hint": "S'applique à tout le bureau."
+			},
+			"theme": {
+				"label": "Thème",
+				"hint": "Clair, sombre, ou suivre le système.",
+				"light": "Clair",
+				"dark": "Sombre",
+				"system": "Système",
+				"default": "Par défaut"
+			},
+			"shortcuts": {
+				"label": "Raccourcis clavier",
+				"hint": "Ouvrir cette page depuis n'importe où.",
+				"open": "Ouvrir les paramètres"
+			}
+		},
+		"account": {
+			"description": "Votre identité locale sur cet appareil.",
+			"loading": "Chargement de l'identité…",
+			"error": "Impossible de charger le pair local.",
+			"peer_id": {
+				"label": "Identifiant du pair local",
+				"hint": "L'identité libp2p de cet appareil.",
+				"missing": "Aucun identifiant",
+				"copy": "Copier",
+				"copied": "Copié"
+			},
+			"listen_addrs": {
+				"label": "Adresses d'écoute",
+				"count_one": "{{count}} adresse",
+				"count_other": "{{count}} adresses"
+			},
+			"transport": {
+				"label": "Transport"
+			}
+		},
+		"appearance": {
+			"description": "Contrôles de surface — thème, densité, accent.",
+			"theme": {
+				"title": "Thème",
+				"description": "Choisissez un thème daisyUI adapté à votre environnement."
+			},
+			"density": {
+				"title": "Densité",
+				"description": "Lignes compactes pour les listes denses, lignes spacieuses pour la lecture.",
+				"badge": "Dense"
+			},
+			"accent": {
+				"title": "Couleur d'accent",
+				"description": "Remplace l'accent primaire dans tout le bureau."
+			}
+		},
+		"capabilities": {
+			"description": "Émettez une capacité scopée pour un bot ou un pair."
+		},
+		"network": {
+			"description": "Se connecter manuellement à un pair quand la découverte échoue.",
+			"peer": {
+				"label": "Multiadresse du pair",
+				"invalid": "L'adresse doit contenir un suffixe /p2p/<peer-id>."
+			}
+		},
+		"advanced": {
+			"description": "Diagnostics et bascules expérimentales.",
+			"coming_soon": "Paramètres avancés à venir",
+			"cta": "Ouvrir les diagnostics"
 		}
 	}
 }
