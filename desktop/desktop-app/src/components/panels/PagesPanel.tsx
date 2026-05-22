@@ -23,13 +23,20 @@
 
 import type { StoredPage } from "@soma/sdk";
 import { type TreeDoc, TreePopover } from "@soma/ui/components/nav/tree-popover";
-import { Empty } from "@soma/ui/components/primitives/empty";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router";
 import { backend } from "../../lib/backend";
 
 type LoadState = { kind: "idle" } | { kind: "loading" } | { kind: "ready"; pages: StoredPage[] } | { kind: "error" };
+
+/** Compact muted line for empty / loading / error states. Single
+ *  flex row, no centered placard, no dashed box — keeps the panel
+ *  from collapsing into a giant whitespace void when the space has
+ *  zero pages (which is the typical first-run state). */
+function PagesEmptyLine({ children }: { children: React.ReactNode }) {
+	return <div className="px-3 py-2 text-xs text-base-content/55">{children}</div>;
+}
 
 function toTreeDocs(pages: StoredPage[]): TreeDoc[] {
 	return pages.map((page) => ({
@@ -74,35 +81,19 @@ export function PagesPanel() {
 	}, [spaceId]);
 
 	if (!spaceId) {
-		return (
-			<div className="p-2">
-				<Empty headline={t("panels.pages.empty_no_space", "Select a space")} variant="compact" />
-			</div>
-		);
+		return <PagesEmptyLine>{t("panels.pages.empty_no_space", "Select a space")}</PagesEmptyLine>;
 	}
 
 	if (state.kind === "loading" || state.kind === "idle") {
-		return (
-			<div className="p-2">
-				<Empty headline={t("panels.pages.loading", "Loading…")} variant="compact" />
-			</div>
-		);
+		return <PagesEmptyLine>{t("panels.pages.loading", "Loading…")}</PagesEmptyLine>;
 	}
 
 	if (state.kind === "error") {
-		return (
-			<div className="p-2">
-				<Empty headline={t("panels.pages.error", "Could not load pages")} variant="compact" />
-			</div>
-		);
+		return <PagesEmptyLine>{t("panels.pages.error", "Could not load pages")}</PagesEmptyLine>;
 	}
 
 	if (state.pages.length === 0) {
-		return (
-			<div className="p-2">
-				<Empty headline={t("panels.pages.empty_no_pages", "No pages yet")} variant="compact" />
-			</div>
-		);
+		return <PagesEmptyLine>{t("panels.pages.empty_no_pages", "No pages yet")}</PagesEmptyLine>;
 	}
 
 	return (
