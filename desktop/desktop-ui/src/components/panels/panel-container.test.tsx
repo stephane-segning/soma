@@ -7,7 +7,7 @@
  * thin composition over `PanelStack`. Tests focus on the filter +
  * stack contract.
  */
-import { fireEvent, render } from "@testing-library/react";
+import { fireEvent, render, waitFor } from "@testing-library/react";
 import { useState } from "react";
 import { describe, expect, it } from "vitest";
 import { SomaIntlProvider } from "../../i18n/intl-provider";
@@ -79,7 +79,7 @@ describe("PanelContainer", () => {
 		expect(panelTitles(container)).toEqual(["Panel 0", "Panel 1", "Panel 2"]);
 	});
 
-	it("clicking a panel's collapse button removes it from the expanded set", () => {
+	it("clicking a panel's collapse button removes it from the expanded set", async () => {
 		const { container } = render(
 			<Harness initialExpanded={["p0", "p1"]} panelCount={2} />,
 		);
@@ -93,18 +93,28 @@ describe("PanelContainer", () => {
 		expect(collapseButtons.length).toBe(2);
 
 		fireEvent.click(collapseButtons[0]);
-		expect(panelTitles(container)).toEqual(["Panel 1"]);
+		// PanelStack wraps cards in `AnimatePresence`, so the collapsed
+		// panel keeps rendering through its exit animation. Wait for it
+		// to unmount rather than asserting synchronously.
+		await waitFor(() => {
+			expect(panelTitles(container)).toEqual(["Panel 1"]);
+		});
 	});
 
-	it("each rendered panel card has flex-1 + min-h-0 so heights split evenly", () => {
+	it("each rendered panel card sits in a flex-1 + min-h-0 wrapper so heights split evenly", () => {
 		const { container } = render(
 			<Harness initialExpanded={["p0", "p1"]} panelCount={2} />,
 		);
 		const cards = container.querySelectorAll("section");
 		expect(cards.length).toBe(2);
 		for (const card of cards) {
-			expect(card.className).toContain("flex-1");
-			expect(card.className).toContain("min-h-0");
+			// After the motion refactor, each `<section>` is `h-full` inside a
+			// `flex-1 min-h-0` motion wrapper — same effective layout, but the
+			// flex sizing lives one level up. Walk to the wrapper.
+			expect(card.className).toContain("h-full");
+			const wrapper = card.parentElement;
+			expect(wrapper?.className).toContain("flex-1");
+			expect(wrapper?.className).toContain("min-h-0");
 		}
 	});
 });
