@@ -15,4 +15,46 @@ body,
 body {
 	margin: 0;
 	font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+	/* Frameless Tauri window — `decorations: false` + `titleBarStyle: Overlay`
+	 * means the OS chrome is gone and the webview owns every pixel. Without
+	 * a `-webkit-app-region: drag` somewhere users can't move the window;
+	 * any element with `data-tauri-drag-region` opts in (and `-no-drag`
+	 * opts back out for buttons inside the drag area).
+	 *
+	 * `--shell-titlebar-pad-left` is the slot the in-window header should
+	 * reserve for the macOS traffic lights so they don't overlap content.
+	 * Other platforms get 0 — the layout collapses cleanly.
+	 */
+	--shell-titlebar-height: 32px;
+	--shell-titlebar-pad-left: 0px;
+}
+
+/* The Tauri shell injects `data-shell-platform` on `<html>` at boot
+ * (see `webview_init.rs`) so style rules can react to the host OS without
+ * a JS round-trip into the renderer. The 80px breathing room matches
+ * Electron's `trafficLightPosition` convention — the buttons sit ~12px
+ * from the left edge, and 80px leaves a small inner gutter past the
+ * Close/Min/Zoom triplet. */
+html[data-shell-platform="macos"] body {
+	--shell-titlebar-pad-left: 80px;
+}
+
+/* Anything tagged as draggable. Mirrors Electron's `-webkit-app-region: drag`
+ * convention used elsewhere in the codebase. */
+[data-tauri-drag-region],
+[data-drag-region] {
+	-webkit-app-region: drag;
+	app-region: drag;
+}
+
+[data-tauri-drag-region] button,
+[data-tauri-drag-region] a,
+[data-tauri-drag-region] input,
+[data-tauri-drag-region] [data-no-drag],
+[data-drag-region] button,
+[data-drag-region] a,
+[data-drag-region] input,
+[data-drag-region] [data-no-drag] {
+	-webkit-app-region: no-drag;
+	app-region: no-drag;
 }
