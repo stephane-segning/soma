@@ -13,5 +13,25 @@
 	"actions": {
 		"reset": "Réinitialiser",
 		"log_json": "Imprimer le JSON"
+	},
+	"nav": {
+		"spaces": "Espaces",
+		"settings": "Paramètres"
+	},
+	"pages": {
+		"spaces_index": {
+			"empty": "Vos espaces apparaîtront ici."
+		},
+		"space_view": {
+			"placeholder": "Contenu de l'espace — les pages, membres et l'éditeur arriveront dans une phase suivante."
+		},
+		"settings": {
+			"placeholder": "Paramètres (placeholder)."
+		},
+		"not_found": {
+			"title": "Page introuvable",
+			"body": "La route que vous avez ouverte n'existe pas encore.",
+			"cta": "Aller aux Espaces"
+		}
 	}
 }

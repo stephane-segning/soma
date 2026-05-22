@@ -120,6 +120,9 @@ importers:
       react-intl:
         specifier: ^7.1.13
         version: 7.1.14(react@19.2.4)(typescript@5.8.3)
+      react-router:
+        specifier: ^7.11.0
+        version: 7.13.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
     devDependencies:
       '@biomejs/biome':
         specifier: ^2.3.13

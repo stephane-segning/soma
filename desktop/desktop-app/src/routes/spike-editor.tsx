@@ -1,8 +1,14 @@
+/**
+ * SpikeEditor — verbatim port of the original Tauri V2 smoke-test
+ * `App.tsx` body. Kept reachable at `/spike/editor` so the
+ * Tauri-on-WKWebView Enter/focus probe (originally broken under Yoopta,
+ * verified working under TipTap) survives the router refactor.
+ */
 import { DocumentEditor, type JSONContent } from "@soma/editor";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { BackendStatusPanel } from "./components/BackendStatusPanel";
-import { backend } from "./lib/backend";
+import { BackendStatusPanel } from "../components/BackendStatusPanel";
+import { backend } from "../lib/backend";
 
 const STARTER_CONTENT: JSONContent = {
 	type: "doc",
@@ -58,8 +64,8 @@ const STARTER_CONTENT: JSONContent = {
 	],
 };
 
-function App() {
-	const { t, i18n } = useTranslation();
+export function SpikeEditor() {
+	const { t } = useTranslation();
 	const [doc, setDoc] = useState<JSONContent>(STARTER_CONTENT);
 
 	useEffect(() => {
@@ -75,17 +81,6 @@ function App() {
 					<h1 className="font-semibold text-2xl">{t("app.title")}</h1>
 					<p className="text-sm opacity-70">{t("app.subtitle")}</p>
 				</div>
-				<label className="flex items-center gap-2 text-xs">
-					<span className="opacity-70">{t("editor.language_switch")}</span>
-					<select
-						className="select select-bordered select-xs"
-						onChange={(e) => void i18n.changeLanguage(e.target.value)}
-						value={i18n.resolvedLanguage}
-					>
-						<option value="en">EN</option>
-						<option value="fr">FR</option>
-					</select>
-				</label>
 			</header>
 
 			<BackendStatusPanel />
@@ -100,7 +95,7 @@ function App() {
 				<button className="btn btn-sm" onClick={() => setDoc({ ...STARTER_CONTENT })} type="button">
 					{t("actions.reset")}
 				</button>
-				<button className="btn btn-sm btn-ghost" onClick={() => console.log("[editor] doc =", doc)} type="button">
+				<button className="btn btn-ghost btn-sm" onClick={() => console.log("[editor] doc =", doc)} type="button">
 					{t("actions.log_json")}
 				</button>
 			</div>
@@ -109,5 +104,3 @@ function App() {
 		</main>
 	);
 }
-
-export default App;
