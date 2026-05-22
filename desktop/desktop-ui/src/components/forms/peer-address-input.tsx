@@ -79,7 +79,8 @@ export function PeerAddressInput({
 					placeholder ??
 					t({
 						id: "peer-address-input.placeholder",
-						defaultMessage: "/ip4/.../tcp/.../p2p/<peer-id>",
+						// ICU MessageFormat treats `<…>` as XML tags; use guillemets so the parser doesn't reject it.
+						defaultMessage: "/ip4/.../tcp/.../p2p/‹peer-id›",
 					})
 				}
 				spellCheck={false}
