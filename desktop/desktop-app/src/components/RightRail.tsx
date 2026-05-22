@@ -14,7 +14,7 @@
  */
 
 import { PanelContainer, type PanelDescriptor } from "@soma/ui/components/panels/panel-container";
-import { useCallback, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { BotsPanel } from "./panels/BotsPanel";
 import { ChatPanel } from "./panels/ChatPanel";
@@ -72,9 +72,28 @@ const PANEL_IDS = {
 	bots: "bots",
 } as const;
 
-export function RightRail(): React.JSX.Element {
+const DEFAULT_EXPANDED: ReadonlyArray<string> = [PANEL_IDS.chat, PANEL_IDS.bots];
+
+export type RightRailProps = {
+	/**
+	 * Controlled expanded set. When provided, the rail's open/closed
+	 * state is owned by the parent; `onCollapse` must be wired to remove
+	 * ids. When omitted, state lives internally and both panels start
+	 * expanded.
+	 */
+	expandedIds?: ReadonlySet<string> | ReadonlyArray<string>;
+	/** Fired when a panel's header `−` button is clicked. */
+	onCollapse?: (id: string) => void;
+};
+
+export function RightRail({ expandedIds, onCollapse }: RightRailProps = {}): React.JSX.Element {
 	const { t } = useTranslation();
-	const [expanded, setExpanded] = useState<Set<string>>(() => new Set([PANEL_IDS.chat, PANEL_IDS.bots]));
+	const [internal, setInternal] = useState<Set<string>>(() => new Set(DEFAULT_EXPANDED));
+	const controlled = expandedIds !== undefined;
+	const expanded = useMemo<ReadonlySet<string>>(() => {
+		if (!controlled) return internal;
+		return expandedIds instanceof Set ? expandedIds : new Set(expandedIds);
+	}, [controlled, expandedIds, internal]);
 
 	const panels = useMemo<PanelDescriptor[]>(
 		() => [
@@ -94,14 +113,40 @@ export function RightRail(): React.JSX.Element {
 		[t],
 	);
 
-	const handleCollapse = useCallback((id: string) => {
-		setExpanded((prev) => {
-			if (!prev.has(id)) return prev;
-			const next = new Set(prev);
-			next.delete(id);
-			return next;
-		});
-	}, []);
+	const handleCollapse = useCallback(
+		(id: string) => {
+			if (controlled) {
+				onCollapse?.(id);
+				return;
+			}
+			setInternal((prev) => {
+				if (!prev.has(id)) return prev;
+				const next = new Set(prev);
+				next.delete(id);
+				return next;
+			});
+		},
+		[controlled, onCollapse],
+	);
 
 	return <PanelContainer expandedIds={expanded} onClose={handleCollapse} onCollapse={handleCollapse} panels={panels} />;
 }
+
+/** Stable chip descriptors used by the matching `PanelChipBar` in
+ *  AppLayout. Mirrors the `panels` array above (sans `content`) so the
+ *  chip bar can re-expand collapsed panels. */
+export function rightRailChipDescriptors(
+	chatLabel: string,
+	botsLabel: string,
+): Array<{
+	id: string;
+	icon: ReactNode;
+	label: string;
+}> {
+	return [
+		{ id: PANEL_IDS.chat, icon: <ChatIcon label={chatLabel} />, label: chatLabel },
+		{ id: PANEL_IDS.bots, icon: <BotIcon label={botsLabel} />, label: botsLabel },
+	];
+}
+
+export const RIGHT_RAIL_PANEL_IDS = PANEL_IDS;
