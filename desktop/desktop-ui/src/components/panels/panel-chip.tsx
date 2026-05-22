@@ -41,7 +41,7 @@ export function PanelChip({
 			aria-label={label}
 			aria-pressed={expanded}
 			className={cn(
-				"grid size-7 shrink-0 place-items-center rounded-md",
+				"grid size-7 shrink-0 cursor-pointer place-items-center rounded-md",
 				"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
 				// Snap the highlight — no transition-colors. Toggling the chip
 				// is a discrete action, but the convention across our overlay
