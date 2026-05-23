@@ -18,8 +18,8 @@
 import { PanelContainer, type PanelDescriptor } from "@soma/ui/components/panels/panel-container";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { NavPanel } from "./panels/NavPanel";
-import { PagesPanel } from "./panels/PagesPanel";
+import { NavPanel } from "./panels/nav-panel";
+import { PagesPanel } from "./panels/pages-panel";
 
 const PAGES_ID = "pages";
 const NAV_ID = "nav";
