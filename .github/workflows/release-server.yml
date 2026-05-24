@@ -54,7 +54,7 @@ jobs:
           persist-credentials: false
 
       - name: Setup just
-        uses: extractions/setup-just@v3
+        uses: extractions/setup-just@v4
 
       - name: Install build deps
         shell: bash
@@ -110,7 +110,7 @@ jobs:
           persist-credentials: false
 
       - name: Setup just
-        uses: extractions/setup-just@v3
+        uses: extractions/setup-just@v4
 
       - name: Download amd64 artifact
         uses: actions/download-artifact@v8
