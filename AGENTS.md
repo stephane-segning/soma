@@ -373,6 +373,18 @@ A single SQLite database per install, schema declared in one `.cstack` file. Tab
 
 ## Code Style
 
+### Naming conventions
+
+Applies to every package in this repo — TS, Rust, and config files alike.
+
+- **Files** — `kebab-case` for `.ts`, `.tsx`, `.js`, `.jsx`, `.css`, `.md`, `.json`, shell scripts. Rust source files keep their conventional `snake_case` per `rustfmt`.
+- **JavaScript / TypeScript variables and functions** — `camelCase`.
+- **Rust variables and functions** — `snake_case` (rustfmt enforces it; don't fight).
+- **Type names, classes, React components** — `PascalCase` regardless of language. JSX requires component identifiers to be PascalCase even when the file holding them is kebab-case (e.g. `left-inner-rail.tsx` exports `LeftInnerRail`).
+- **Constants** — `SCREAMING_SNAKE_CASE` when the value is genuinely compile-time-constant; otherwise treat as a normal variable.
+
+When renaming files to conform, use `git mv` (preserves history) and update every importer in the same commit — don't leave dangling imports.
+
 ### Rust
 
 - Stable Rust; `rustfmt`-formatted. New crates default to edition 2024.
@@ -388,7 +400,7 @@ A single SQLite database per install, schema declared in one `.cstack` file. Tab
 - Function components with hooks; keep side effects in services/hooks, not components.
 - Use existing hooks/state containers before adding new global state mechanisms.
 - Redux Toolkit + RTK Query for data; XState for finite state (practice typing); do not introduce Zustand or TanStack Query.
-- `pnpm run format` / `pnpm run lint` before committing.
+- **Prefer Biome** for formatting + linting in new packages (`pnpm exec biome check --write`, `biome format --write`). Existing packages using Prettier/ESLint follow their local choice; flag the divergence if it matters, don't migrate unilaterally. Always run `pnpm run format` / `pnpm run lint` before committing.
 - Logging: Winston in main; renderer logs through main IPC if you need them on disk.
 
 ### Documentation
@@ -396,6 +408,18 @@ A single SQLite database per install, schema declared in one `.cstack` file. Tab
 - Markdown under `docs/src/`.
 - Reference concrete file paths and binaries when possible.
 - Short, scannable sections with headings and bullets — not walls of text.
+
+## UI design philosophy
+
+Nice UI without stress or pretension. The rail-and-panel shell is where most of the visual work lands; the rules below keep it calm.
+
+- **Take time on layout.** UI work is not a speed contest. Sit with the proportions, spacing, and visual hierarchy. If a rail feels heavy, lighten it; if a panel feels empty, compact it. Iterate.
+- **No decoration that doesn't earn its keep.** Restraint reads as quality. Drop gradients, glow, animated backgrounds, ostentatious typography — keep effects for moments where they communicate something (focus, state change, motion of meaningful content).
+- **Look at references before designing.** When building or redesigning a screen, pull two or three reference screens from real products (Refero MCP when available — Missive, Hume AI, Copy.ai, OpenAI Playground are good analogs for SOMA's three-column workspace shell). Ground design decisions in something concrete; don't design in a vacuum.
+- **Composition over re-implementation.** Reach for `@soma/ui` primitives first (`DesktopShell`, `AppTabs`, `PanelContainer`, `PanelStack`, `PanelChipBar`, `TreePopover`, `DenseRow`, `AiChat`, `BotList`, `SettingsTabs`, `CommandPalette`, `Empty`, `Pill`, `Kbd`). If a primitive doesn't fit, extend it with a small typed prop (e.g. `PanelStackItem.size: "fill" | "content"`) rather than forking it.
+- **Respect locked-in design contracts.** When a primitive's docstring states a contract — `Panel`'s floating-card-with-soft-shadow chrome, `PanelChipBar`'s placement in `mainTopLeft` / `mainTopRight`, `PanelStack`'s vertical sizing — don't undo it without explicit instruction. The contract is usually there because a previous attempt without it broke something.
+- **Empty states are inline status lines, not centered placards** unless the screen genuinely has nothing else to do. A 0-page Pages panel should read as one muted line, not a giant whitespace void.
+- **Section labels are tiny tracking-wider caps** in muted color (`text-base-content/55` or similar), inline with the content. Save heavy card-header chrome for places where the seam between sections actually needs to read at a glance.
 
 ## Design patterns in use
 
