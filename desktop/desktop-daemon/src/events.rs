@@ -16,8 +16,7 @@ use specta::Type;
 use tauri::Runtime;
 use tokio::task::JoinHandle;
 
-/// Source tag for renderer-broadcast events. Mirrors the
-/// `DomainEventSource` union in `desktop-data/src/events/types.ts`.
+/// Source tag for renderer-broadcast events.
 ///
 /// `Daemon` is reserved for events that originate from the daemon
 /// firehose; today every variant in `DomainEvent` that uses this tag is
@@ -29,13 +28,8 @@ pub enum DomainEventSource {
     Daemon,
 }
 
-/// Renderer-facing payload. Tagged on `kind` to match the discriminated
-/// union the renderer's `@soma/desktop-db` parser accepts.
-//
-// TODO: the `spaces-changed` / `space-changed` variants are also
-// renderer-broadcast in Electron (from spaces command-handlers). They're
-// out of scope for the documents-drafts PR — port them alongside the
-// spaces command broadcasts in a follow-up.
+/// Renderer-facing payload. Tagged on `kind` so the renderer can
+/// discriminate each variant when consuming the `domain_event` channel.
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(tag = "kind", rename_all = "kebab-case")]
 pub enum DomainEvent {
