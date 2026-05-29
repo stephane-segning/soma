@@ -93,6 +93,11 @@ export function SpacesRailContainer() {
 	return (
 		<SpacesRail
 			activeId={spaceId ?? null}
+			// Transparent gutter — the rail carries no fill of its own, so it
+			// reveals the shell's unified canvas. Only the space tiles + the
+			// hairline `border-r` divider remain visible. (`SpacesRail`
+			// defaults to `bg-base-100`; twMerge lets this override win.)
+			className="bg-transparent"
 			items={safeItems}
 			onCreate={() => {
 				// TODO(palette): hook this into the `menu:new-space` command

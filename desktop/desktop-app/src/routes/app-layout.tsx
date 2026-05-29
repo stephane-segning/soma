@@ -96,12 +96,15 @@ export function AppLayout() {
 	// `leftColumn={null}` lets `ShellPanel` animate closed instead of
 	// leaving a dead, resizable empty column beside the spaces gutter.
 	const leftColumn =
-		leftExpanded.size > 0 ? (
-			<LeftInnerRail className="border-base-300 border-l" expandedIds={leftExpanded} onCollapse={toggleLeftPanel} />
-		) : null;
+		leftExpanded.size > 0 ? <LeftInnerRail expandedIds={leftExpanded} onCollapse={toggleLeftPanel} /> : null;
 
 	return (
 		<DesktopShell
+			// Single unified canvas. Rails and the main column carry no fill
+			// of their own — they're transparent and reveal this `base-200`
+			// surface, so the only things with a background are the floating
+			// panel cards (`base-100`), which read clearly against it.
+			className="bg-base-200"
 			defaultLeftOpen={true}
 			defaultRightOpen={true}
 			header={() => (
@@ -137,7 +140,7 @@ export function AppLayout() {
 			leftGutter={<SpacesRailContainer />}
 			leftMaxWidth={420}
 			leftMinWidth={220}
-			mainClassName="bg-base-200/60 flex min-h-screen flex-col"
+			mainClassName="flex min-h-screen flex-col"
 			mainTopLeft={
 				<PanelChipBar
 					expandedIds={leftExpanded}
