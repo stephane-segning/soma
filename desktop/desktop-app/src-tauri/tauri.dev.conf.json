@@ -1,6 +1,6 @@
 {
 	"$schema": "https://schema.tauri.app/config/2",
-	"productName": "Soma Desktop (Dev)",
+	"productName": "Soma (Dev)",
 	"identifier": "digital.camer.soma.desktop.dev",
 	"app": {
 		"windows": [
