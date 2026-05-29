@@ -5,15 +5,13 @@
   "packageManager": "pnpm@9.0.0",
   "scripts": {
     "contracts:rust": "cargo build -p soma-proto-build",
-    "contracts:ts": "pnpm --filter @soma/proto run build",
-    "contracts:check": "pnpm run contracts:rust && pnpm run contracts:ts",
-    "dev:soma": "pnpm --filter soma run dev",
+    "dev:desktop": "pnpm --filter @soma/desktop-app run tauri:dev",
     "docs:dev": "pnpm --filter @soma/docs run dev",
     "docs:build": "pnpm --filter @soma/docs run build",
     "docs:preview": "pnpm --filter @soma/docs run preview",
-    "typecheck": "pnpm --filter soma run typecheck",
-    "lint": "pnpm --filter soma run lint",
-    "format": "pnpm --filter soma run format"
+    "typecheck": "pnpm --filter @soma/desktop-app run typecheck",
+    "lint": "pnpm --filter @soma/desktop-app run lint",
+    "format": "pnpm --filter @soma/desktop-app run format"
   },
   "workspaces": [
     "desktop/*",
@@ -25,11 +23,7 @@
       "@swc/core",
       "core-js",
       "core-js-pure",
-      "electron",
-      "electron-winstaller",
-      "esbuild",
-      "grpc-tools",
-      "protobufjs"
+      "esbuild"
     ],
     "overrides": {
       "@tiptap/core": "3.18.0",

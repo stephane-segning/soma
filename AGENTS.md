@@ -1,16 +1,14 @@
 # SOMA
 
-Local-first workspace platform that ships as **two artifacts**: one Electron desktop app and one server binary. Both are thin shells around the same shared Rust crates — the desktop loads them as a napi-rs `.node` addon, the server runs them as subcommands of a unified binary. Long-running availability is provided by the server binary running in bot mode.
+Local-first workspace platform that ships as **two artifacts**: one Tauri V2 desktop app and one server binary. Both are thin shells around the same shared Rust crates — the desktop embeds them in its `src-tauri` process via a small stack of `desktop-*` crates, the server runs them as subcommands of a unified binary. Long-running availability is provided by the server binary running in bot mode.
 
 ## Architecture (target)
 
 Two build artifacts. One source tree.
 
-**Desktop** — `desktop/soma/`: the only Electron app. Includes a `/practice` route (formerly Tapia). Main process loads `soma-node.<os>-<arch>.node` at startup. No separate daemon binaries, no Unix-socket IPC, no spawning of child processes.
+**Desktop** — `desktop/desktop-app/`: the only desktop app, a **Tauri V2** shell. React + TypeScript renderer (Vite) over a Rust `src-tauri` host process. The host embeds the peer + agent runtimes in-process (via the `desktop-daemon` / `desktop-agent` crates) and exposes them to the renderer through Tauri commands. No separate daemon binaries, no Unix-socket IPC, no spawning of child processes. (The legacy Electron app + its napi `soma-node` addon were removed once the Tauri shell reached parity.)
 
-**`soma-node` addon** — `backend/crates/soma-node/`: napi-rs cdylib. Embeds the peer + agent runtimes in **one** Tokio runtime, owns **one** SQLite database (managed via CrateStack), exposes async `#[napi]` methods to Electron main. Same shared crates the server binary uses.
-
-**Server** — `somad`: the only server binary. Subcommands select behavior; subcommand options pass mode-specific configuration. Same shared crates the addon uses; mode is purely a runtime concern.
+**Server** — `somad`: the only server binary. Subcommands select behavior; subcommand options pass mode-specific configuration. Same shared crates the desktop host embeds; mode is purely a runtime concern.
 
 ```
 somad bot         [--http-addr ...] [--db-path ...] [--mode bot|admin] [--listen-addr ...]
@@ -24,10 +22,12 @@ Subcommands map to the existing service crates: `bot` uses `crates/peer` + `crat
 
 What's gone in the fully-collapsed target:
 
-- `backend/bins/daemon/`, `backend/bins/agentd/` — desktop runtimes moved to `crates/daemon/` and `crates/agentd/` (lib-only). The napi addon consumes them; no standalone binaries.
+- `backend/bins/daemon/`, `backend/bins/agentd/` — desktop runtimes moved to `crates/daemon/` and `crates/agentd/` (lib-only). The desktop host crates consume them; no standalone binaries.
 - `backend/bins/botd/`, `backend/bins/relayd/`, `backend/bins/rendezvousd/`, `backend/bins/bffd/`, `backend/bins/serverd/` — replaced by `backend/bins/somad/` with subcommands.
-- `desktop/tapia/` — merged into Soma's `/practice` route.
-- `desktop/desktop-proto/` (`@soma/proto`) — gRPC TS codegen unnecessary because Electron main calls the addon directly; libp2p protobuf stays Rust-only.
+- `desktop/soma/` (`soma`) — the legacy Electron app, removed in favour of the Tauri shell at `desktop/desktop-app/`.
+- `backend/crates/soma-node/` (`@soma/node`) — the napi-rs addon that bridged the embedded runtimes into Electron main. Gone with Electron; the Tauri host links the runtime crates directly.
+- `desktop/tapia/` — merged into the desktop app's `/practice` route.
+- `desktop/desktop-proto/` (`@soma/proto`) — gRPC TS codegen unnecessary; the desktop host calls the runtimes directly and `@soma/sdk` types are generated from the Rust command graph via specta. libp2p protobuf stays Rust-only.
 - `daemon-process-manager`, splash-blocks-on-daemon-Status gate, socket-path config plumbing in `@soma/desktop-config`.
 - All LaunchAgent / systemd-user-unit infrastructure for the desktop side; the embedded peer lives in-process.
 - All install/uninstall `sudo` *for the default sudoless install path*. We do publish `.deb` + `.dmg` for users who prefer a conventional installer (apt is sudo'd, drag-from-`.dmg` is not), but `.AppImage` / `.zip` remain the sudoless defaults.
@@ -54,16 +54,16 @@ Pre-prod refactor. Breaking changes are fine; there is no backwards-compatibilit
 - [x] P5 — Streaming: daemon `stream_events` wired through napi `ThreadsafeFunction`; renderer reacts via `DomainEventsService`. `chat_stream` deferred (no consumer — Soma uses OpenAI HTTP)
 - [x] P6a — Packaging cleanup: sudoless user-domain install at `~/Applications`, SHA256SUMS published with `desktop-v*` releases, obsolete `desktop/packaging/` + `release.yml` (bundle workflow) deleted. (The install/uninstall bootstrap scripts originally introduced here were retired once notarized macOS `.dmg`/`.zip` + Linux `.deb`/`.AppImage` made `curl | bash` unnecessary; users download directly from the release.)
 - [x] P6b — Developer ID code signing + notarization: `electron-builder.yml` has `notarize: true`; `release-desktop.yml` reads `CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_API_KEY` (content, materialized to `$RUNNER_TEMP/AuthKey.p8`), `APPLE_API_KEY_ID`, `APPLE_API_ISSUER`, `APPLE_TEAM_ID` from repo secrets; ad-hoc `codesign --sign -` + `ditto` rezip step removed
-- [x] P7 — CI matrix dedup: `.github/targets.json` is the single `(os, arch)` source, consumed via a `targets` job + `fromJSON` in both `release-desktop.yml` and `release-server.yml`. Dead `release-daemons.yml` + its sole-consumer `cargo-cross-build` composite action removed. `docker-backend.yml` renamed to `release-server.yml` to match the doc.
+- [x] P7 — CI matrix dedup: `.github/targets.json` is the single `(os, arch)` source, consumed via a `targets` job + `fromJSON` in the release workflow(s). Dead `release-daemons.yml` + its sole-consumer `cargo-cross-build` composite action removed. `docker-backend.yml` renamed to `release-server.yml` to match the doc.
+- [x] P8 — **Tauri migration + Electron removal.** New desktop app at `desktop/desktop-app/` (Tauri V2 shell) replaces the Electron app. The runtimes are embedded in `src-tauri` via the `desktop-*` Rust crates; `@soma/sdk` drives the renderer over Tauri commands today (HTTP/SSE BFF via `desktop-bff` later). `desktop/soma/` (Electron app), `backend/crates/soma-node/` (napi addon), `desktop/desktop-proto/` (`@soma/proto`), `release-desktop.yml`, and all `electron-builder*` / `electron.vite` config were deleted. **A Tauri release pipeline is not yet wired** — the desktop currently has no published-artifact path; the docs landing-page download links point at the now-stale Electron assets until a Tauri release workflow lands.
 
 When this document says "today" or describes current behavior in present tense, treat it as the *intended* behavior in the target architecture — verify against the code if you need to make a load-bearing decision.
 
 ## Repository Layout
 
 - `backend/` — Rust workspace.
-  - `crates/soma-node/` — napi-rs addon (cdylib) embedding the desktop peer + agent runtimes; loaded by Electron main.
-  - `crates/daemon/` (`soma-daemon`) — desktop peer runtime, library only. Consumed by `soma-node`; no standalone binary.
-  - `crates/agentd/` (`soma-agentd`) — desktop agent runtime, library only. Consumed by `soma-node`; no standalone binary.
+  - `crates/daemon/` (`soma-daemon`) — desktop peer runtime, library only. Embedded by the Tauri host (`desktop-daemon`); no standalone binary.
+  - `crates/agentd/` (`soma-agentd`) — desktop agent runtime, library only. Embedded by the Tauri host (`desktop-agent`); no standalone binary.
   - `crates/peer/` — libp2p peer behaviour, event types, request/response protocols.
   - `crates/agent/` — local LLM/embed/Yjs reconciliation runtime.
   - `crates/storage/` — repositories + schema; consumes the `.cstack` schema via `cratestack-rusqlite`.
@@ -71,25 +71,26 @@ When this document says "today" or describes current behavior in present tense, 
   - `crates/net/` — libp2p swarm builder (typestate transport order: TCP → QUIC → DNS → WS → Behaviour).
   - `crates/membership/`, `crates/api/`, `crates/cache/`, `crates/common/`, `crates/metrics/`, `crates/vdfs/`, `crates/relay/`, `crates/rendezvous/`, `crates/bff/`, `crates/proto-build/` — unchanged in role.
   - `bins/somad/` — the **only** server binary. Subcommand-dispatch entry point (`bot`, `relay`, `rendezvous`, `bff`, `all`). Mode-specific argument parsing lives per-subcommand under `bins/somad/src/commands/`.
-- `desktop/` — single Electron app + shared TS packages.
-  - `desktop/soma/` — Soma app. Renderer under `src/renderer`, main under `src/main`. Loads `@soma/node` (the napi addon).
-  - `desktop/soma/src/renderer/src/routes/practice/` — merged-in Tapia.
+- `desktop/` — the Tauri V2 desktop app + its supporting Rust crates + shared TS packages.
+  - `desktop/desktop-app/` — the Tauri V2 app (`@soma/desktop-app`). React/Vite renderer under `src/`; the Rust host under `src-tauri/` (binary crate `desktop-app`). Composes `@soma/ui`'s `DesktopShell`, drives data through `@soma/sdk`, and embeds the runtimes via the `desktop-*` crates.
+  - `desktop/desktop-core/`, `desktop/desktop-services/`, `desktop/desktop-daemon/`, `desktop/desktop-agent/`, `desktop/desktop-api/`, `desktop/desktop-commands/`, `desktop/desktop-bff/` — the Rust crates that compose into the Tauri host (see "Desktop App" below).
   - `desktop/desktop-ui/` — shared React components (`@soma/ui`), subpath-imports only (`@soma/ui/components/*`, `@soma/ui/hooks/*`, etc.; no root export).
-  - `desktop/desktop-config/` — stage detection + path normalization (`@soma/desktop-config`). Socket-path logic deleted in P4.
-  - `desktop/desktop-editor/`, `desktop/desktop-data/`, `desktop/desktop-icons/` — supporting packages.
-- `proto/` — libp2p wire formats (rust-only after P4 when `desktop-proto` is removed).
+  - `desktop/desktop-sdk/` — typed client SDK (`@soma/sdk`): one API facade, two transports (Tauri commands today, HTTP/SSE BFF later). Wire types live in `src/bindings/` (specta-generated from the Rust command graph).
+  - `desktop/desktop-config/` — stage detection + path normalization (`@soma/desktop-config`).
+  - `desktop/desktop-editor/` (`@soma/editor`), `desktop/desktop-data/` (`@soma/desktop-db`), `desktop/desktop-icons/` (Rust icon crate), `desktop/desktop-e2e/` (`@soma/e2e` — Cucumber × Playwright over Storybook) — supporting packages.
+- `proto/` — libp2p wire formats (Rust-only; the TS `@soma/proto` codegen package was removed with Electron).
 - `docs/` — VitePress docs (`@soma/docs`).
 - `deploy/` — Helm charts and infrastructure manifests for server backends.
 - `prd/` — product requirements.
-- `.github/workflows/` — release pipelines (single desktop matrix, single addon matrix, server-binary matrix).
+- `.github/workflows/` — CI (`test.yml`) + release pipelines (`release-server.yml` for the server-binary matrix, `release-pages.yml` for docs + Storybook). The Tauri desktop release pipeline is not yet wired.
 
 Where to put new code:
 
 - Domain logic → `backend/crates/core` or a focused new crate.
 - Storage queries → `backend/crates/storage` (repository modules per aggregate).
 - Peer wire/event behaviour → `backend/crates/peer`.
-- Things exposed to Electron → `backend/crates/soma-node` (napi surface only; delegate to other crates).
-- Renderer UI → `desktop/soma/src/renderer`.
+- A new desktop capability the renderer calls → add a transport-agnostic handler in `desktop/desktop-api`, wrap it as a `#[tauri::command]` in `desktop/desktop-commands` (and, for the remote path, an HTTP route in `desktop/desktop-bff`); the type flows to `@soma/sdk` via specta.
+- Renderer UI → `desktop/desktop-app/src`.
 - Reusable UI → `desktop/desktop-ui` (and update its subpath exports).
 
 ## Terminology: VDF
@@ -103,103 +104,90 @@ Where to put new code:
 
 ## Tech Stack
 
-- **Rust** — embedded runtime (`soma-node` addon) and all server backends. New crates default to **edition 2024**; existing crates migrate opportunistically.
-- **napi-rs** — Rust↔Node-API binding. Produces a `.node` per `(os, arch)` loaded by Electron main via `require()`.
-- **CrateStack (`cratestack-rusqlite`)** — schema-first SQLite layer. One `.cstack` schema is the source of truth for the addon's database; generated via `include_embedded_schema!`. Sync API, bundled SQLite, no tokio on the data path → friendly for FFI/napi bridging. Repo at `~/dev/cratestack`.
-- **Electron + React + TypeScript** — desktop UI. `strict` TS. pnpm workspace.
+- **Rust** — the Tauri desktop host (`src-tauri` + `desktop-*` crates) and all server backends. New crates default to **edition 2024**; existing crates migrate opportunistically.
+- **Tauri V2** — desktop shell. Rust host process exposes `#[tauri::command]`s to the renderer; plugins (`fs`, `dialog`, `shell`, `os`, `process`, `store`, `log`, `opener`, `deep-link`, `single-instance`, `updater`, `window-state`) provide native capabilities. `tauri-specta` walks the command graph to emit the `@soma/sdk` TypeScript bindings.
+- **CrateStack (`cratestack-rusqlite`)** — schema-first SQLite layer. One `.cstack` schema is the source of truth for the embedded database; generated via `include_embedded_schema!`. Sync API, bundled SQLite, no tokio on the data path. Repo at `~/dev/cratestack`.
+- **Tauri + React + TypeScript** — desktop UI. `strict` TS. pnpm workspace.
 - **Cargo workspace**, `resolver = "3"`, all third-party versions under `[workspace.dependencies]` in root `Cargo.toml`.
-- **Tokio** — single runtime per process. The addon owns the runtime; server binaries each own theirs.
+- **Tokio** — single runtime per process. The Tauri host owns the desktop runtime; server binaries each own theirs.
 - **libp2p** — peer transport (TCP + QUIC + WebSocket), circuit-relay v2 for NAT traversal, rendezvous for discovery.
-- **Tonic / Prost** — gRPC + protobuf for libp2p wire formats; **no** gRPC over Unix sockets between Electron and the addon (direct napi calls instead).
+- **Tonic / Prost** — gRPC + protobuf for libp2p wire formats. The renderer talks to the host over Tauri commands (not gRPC); types are generated from the Rust command graph via specta.
 - **Server storage** — SQLx AnyPool (Postgres or SQLite via `SOMA_DATABASE_URL`) for `somad bot` until CrateStack migration lands as a separate phase.
 - **`tracing`** for logs; `mimalloc` as the global allocator in all backends.
 
-## The soma-node Addon
+## The Desktop Host (`src-tauri` + `desktop-*` crates)
 
-`backend/crates/soma-node/` is the only thing Electron loads. It is the boundary between Rust and Node.
+The Tauri host is the boundary between Rust and the renderer. It is composed from a small stack of focused crates rather than one monolith:
 
-Crate shape:
+- `desktop-app` (`desktop/desktop-app/src-tauri/`) — the **binary**. A thin shell: builds Tauri-managed state, registers plugins, registers the command handlers, owns the event-stream lifecycle, and runs the app loop. All business logic lives in the library crates below. Mirrors the role the old Electron `main/index.ts` played.
+- `desktop-core` — shared types, errors, and event payloads.
+- `desktop-services` — non-runtime host services: logger, app store, blob protocol, upload-payload store, event broadcasters.
+- `desktop-daemon` — owns the in-process `soma-daemon` handle; exposes a high-level `DaemonClient` API and a daemon→renderer event bridge.
+- `desktop-agent` — owns the in-process `soma-agentd` handle plus the OpenAI-compatible chat/embed/rerank client.
+- `desktop-api` — **transport-agnostic** command handlers. The single source of business behaviour for the client surface.
+- `desktop-commands` — the Tauri presenter: thin `#[tauri::command]` adapters over `desktop-api` handlers. `tauri-specta` walks these to emit the `@soma/sdk` bindings.
+- `desktop-bff` — an HTTP/SSE presenter over `desktop-api`, mirroring the command surface for `@soma/sdk`'s `httpTransport` so the renderer can run against a remote backend later.
 
-- `[lib] crate-type = ["cdylib"]`, edition 2024.
-- Depends on the library forms of the peer and agent runtimes (post-P1). Builds them in a single Tokio runtime owned by the addon.
-- One SQLite database shared by both runtimes (no more split `daemon.db` / `agentd.db`). Schema declared in a single `.cstack` file consumed via `include_embedded_schema!`.
+Conventions:
 
-API conventions:
-
-- **Async-only** at the napi boundary. Every `#[napi]` method returns a `Promise`; no sync work that could stall the Electron event loop.
-- **`catch_unwind` at every boundary**. A Rust panic must never crash Electron main; convert to a typed error and surface it to JS.
-- **Supervisor pattern**. The addon exposes `start({ config }) -> Handle` and `Handle.shutdown()`. On unrecoverable runtime failure the supervisor logs, signals the JS layer, and exits cleanly so Electron's main process can restart the addon.
-- **TypeScript types are generated** via `napi build --dts` and re-exported from `desktop/soma`'s main process.
-- **Streaming** uses napi's `ThreadsafeFunction` / async iterators. Used for chat-stream, peer events, document subscriptions, blob reads.
-- **No global mutable state** in the addon itself (beyond the supervisor singleton); state lives inside the handle returned to JS.
-
-What lives in the addon vs the runtime crates:
-
-- The addon is glue. Business logic stays in `soma-peer`, `soma-agent`, `soma-storage`, etc.
-- The addon translates between napi types and the Rust API; it does not own domain logic.
+- **One presenter per transport, one shared handler layer.** New behaviour goes in `desktop-api`; `desktop-commands` and `desktop-bff` are thin adapters. Never duplicate logic across presenters.
+- **Embedded runtimes, single Tokio runtime per process.** The host links `soma-daemon` + `soma-agentd` as libraries and runs them in-process; no child processes, no sockets, no napi.
+- **Streaming** uses Tauri events: the daemon event bridge and agent runtime event poll push to the renderer; both are stopped explicitly on `RunEvent::ExitRequested` to avoid racing shutdown.
+- **TypeScript types are generated** from the Rust command graph via specta / `tauri-specta` into `desktop/desktop-sdk/src/bindings/`; the renderer consumes them through `@soma/sdk`, never by hand-writing wire types.
+- One SQLite database shared by both runtimes. Schema declared in a single `.cstack` file consumed via `include_embedded_schema!`.
 
 ## Storage (CrateStack)
 
 One `.cstack` schema describes the embedded database. Lives at `backend/crates/storage/schema.cstack` (or `backend/crates/soma-schema/schema.cstack` — finalized in P3).
 
-- The **addon** consumes the schema via `cratestack::include_embedded_schema!("schema.cstack")`.
+- The **desktop host** consumes the schema via `cratestack::include_embedded_schema!("schema.cstack")`.
 - **`somad bot` stays on SQLx for now.** Migrating botd's Postgres + SQLite paths to CrateStack is its own phase; the one-macro-per-crate constraint (`include_server_schema!` vs `include_embedded_schema!`) needs a deliberate design choice for that.
 - Single database file per install at `~/Library/Application Support/Soma/soma.db` on macOS, `~/.local/share/soma/soma.db` on Linux. Stage-specific (`-dev`, `-staging`) suffixes via `@soma/desktop-config`.
 - Tables (target schema — verify against the `.cstack` file): `spaces`, `space_memberships`, `join_decisions`, `join_requests`, `issuer_capabilities`, `mailbox`, `documents`, `pages`, `blobs`, `blob_refs`, `peer_public_keys`, plus agent-runtime tables (chat sessions, embeddings, etc.) that previously lived in `agentd.db`.
-- `cratestack-rusqlite` provides the sync data API; the addon wraps reads/writes in `spawn_blocking` only where contention is real (it usually isn't — rusqlite is fast).
-- No SQLx migrations directory on the desktop side; CrateStack generates schema from the `.cstack` source. Migration is a separate concern handled at addon start (DDL + version table).
+- `cratestack-rusqlite` provides the sync data API; the host wraps reads/writes in `spawn_blocking` only where contention is real (it usually isn't — rusqlite is fast).
+- No SQLx migrations directory on the desktop side; CrateStack generates schema from the `.cstack` source. Migration is a separate concern handled at host start (DDL + version table).
 
 ## Desktop App (Soma)
 
-Single Electron app at `desktop/soma/`. Tapia merged in as a `/practice` route in P2.
+Single Tauri V2 app at `desktop/desktop-app/`. Renderer under `src/` (React/Vite); Rust host under `src-tauri/` (see "The Desktop Host" above). Tapia merged in as a `/practice` route.
 
 Process model:
 
-- Main process: loads the addon, owns the supervisor, exposes high-level IPC to the renderer via the preload bridge (`window.api.invoke`).
-- Renderer: React + Redux Toolkit + RTK Query for IPC/data. XState for the typing-practice state machine. No Zustand; do not reintroduce TanStack Query.
-- No daemon spawn, no socket discovery, no splash gate. Cold-start = process start + addon init + first paint.
+- Host process (`src-tauri`): embeds the runtimes, registers Tauri commands + plugins, owns the daemon/agent event streams, runs the app loop.
+- Renderer: React + `react-router`. Data flows through `@soma/sdk` (`createBackend(tauriTransport())`, see `src/lib/backend.ts`) — there is **no Redux/RTK** in the Tauri renderer; the SDK facade is the single data surface. XState for the typing-practice state machine. No Zustand; do not introduce TanStack Query.
+- No daemon spawn, no socket discovery. Cold-start = host start + runtime init + first paint (a native splash covers init; the main window reveals once ready).
 
 Conventions:
 
-- Renderer imports use `@app/*` (configured in `desktop/soma/tsconfig.web.json` + `electron.vite.config.ts`).
-- Filenames are **kebab-case** for `.ts`/`.tsx` in both renderer and main.
+- Filenames are **kebab-case** for `.ts`/`.tsx`.
 - IDs are **CUIDs**, not UUIDs.
-- `@soma/ui` has **no root export** — import via subpaths (`@soma/ui/components/*`, `@soma/ui/hooks/*`, `@soma/ui/utils/*`, `@soma/ui/yoopta`, `@soma/ui/types`).
-- Routing: `react-router` core, memory or hash router (not `react-router-dom`).
-- Frameless window: `frame: false`; macOS hides native buttons via `setWindowButtonVisibility(false)`. Drag with `data-drag-region`, opt out with `data-no-drag`.
-- Deep links: `soma://...` registered by Electron; secondary launches routed through single-instance lock in `startup-service.ts`.
-- Window state persists via `electron-store` in `app-data-store.ts`.
-- Logging: Winston in main, writes to `app.getPath("userData")/logs/main.log`.
-- Tray-when-window-closed on macOS so the peer stays online for the session.
+- `@soma/ui` has **no root export** — import via subpaths (`@soma/ui/components/*`, `@soma/ui/hooks/*`, `@soma/ui/utils/*`, `@soma/ui/yoopta`, `@soma/ui/types`). The shell is composed from `@soma/ui`'s `DesktopShell` and its rail/panel primitives.
+- Routing: `react-router` core (`src/routes/router.tsx`), not `react-router-dom`.
+- Frameless window: `decorations: false`, `titleBarStyle: "Overlay"`, `hiddenTitle: true` in `tauri.conf.json`. Drag with `data-drag-region`, opt out with `data-no-drag`.
+- Deep links: `soma://...` via `tauri-plugin-deep-link`; secondary launches routed through `tauri-plugin-single-instance` (`src-tauri/src/startup/deep_link.rs`).
+- Window state persists via `tauri-plugin-window-state`; key/value app state via `tauri-plugin-store`.
+- Logging: `tauri-plugin-log` + the `desktop-services` logger; writes to the OS logs dir.
 
-State and IPC:
+State and data:
 
-- Redux Toolkit slices in `desktop/soma/src/renderer/src/store/`.
-- RTK Query (`store/api.ts`) for all IPC/data; use `api.injectEndpoints`, tag for cache invalidation, wrap in `src/queries/*` for ergonomic hooks.
-- Side effects (I/O, addon calls) live in dedicated hooks or services, not in components.
-
-Renderer resilience:
-
-- Suspense-wrapped router + route-level `RouteErrorBoundary` (`routes/router.tsx`, `routes/route-fallbacks.tsx`).
-- Editor crashes contained at the page area via `PageEditorFallback` around `DocumentEditor`; global `AppErrorBoundary` is the outer net.
-- TipTap: `immediatelyRender: false`, gate `ReactRenderer`/event listeners on `editor.options.element`, dispatch only when still mounted.
+- `@soma/sdk` is the data surface: `backend.spaces.list(...)`, etc. New endpoints come from `desktop-api` handlers surfaced through `desktop-commands`; the renderer calls them via the typed facade.
+- Side effects (I/O, command calls) live in dedicated hooks or services, not in components.
 
 Blob protocol:
 
-- `soma-blob://daemon/{space_id}/{cid}` handler still registered (the URL scheme is kept for renderer compatibility) but now calls `addon.readBlob(spaceId, cid)` directly — no gRPC roundtrip.
+- `soma-blob://...` URL scheme registered by the host (`desktop-services::blob_protocol`); the handler reads bytes through the embedded daemon directly — no gRPC roundtrip.
 
 Agent runtime configuration:
 
-- Source of truth: `electron-store` (`settings["agent.config"]`) via main-process settings IPC.
+- Source of truth: the Tauri store (`tauri-plugin-store`) via the host's config source (`src-tauri/src/agent_config_source.rs`), surfaced to the renderer through `@soma/sdk`.
 - Default provider: OpenAI-compatible at `http://127.0.0.1:11434/v1` (Ollama-style).
-- Supported provider kinds: `agentd` (now: the embedded runtime in the addon), `openai-compatible`.
-- Model capabilities (chat/embed/tool/image) are local UI metadata; optional per-workspace overrides under `agent.config.workspaces[space_id]`.
+- Supported provider kinds: `agentd` (the embedded agent runtime), `openai-compatible`.
 - Provider/model docs: `docs/src/development/agentd-models.md`.
 
 Practice route (merged Tapia):
 
-- Pure renderer surface; no addon dependency required (typing practice is local-only).
-- Uses XState for the typing state machine, Motion for cursor/feedback animations, a stable grapheme + diff library (`graphemer` / `grapheme-splitter` and `diff-match-patch` / `diff`), `simple-keyboard` for the on-screen keyboard.
+- Pure renderer surface; no host command dependency required (typing practice is local-only).
+- Uses XState for the typing state machine, Motion for cursor/feedback animations, a stable grapheme + diff library, `simple-keyboard` for the on-screen keyboard.
 
 ## Server: `somad`
 
@@ -269,26 +257,26 @@ The desktop peer is online only while Soma is open. Permanent availability for a
 - Fetch strategy: try any reachable peer (peerstore/Identify, rendezvous, relay) until one serves the CID; DB-backed retry queue (mailbox-style) for transient failures.
 - Cache policy: prefer retention for referenced blobs; eviction bounded by size/TTL/"unreferenced for N days". Never accepts uploads; the cache is filled only by pulling verified bytes (CID match).
 
-## Blobs (content-addressed, addon-owned)
+## Blobs (content-addressed, host-owned)
 
 Binary assets (files, images, attachments, Yoopta-related assets) are **content-addressed objects** stored outside Yjs/Yoopta. Collaborative documents store **references** to blobs, never bytes.
 
 Roles and rules:
 
-- The **embedded peer in the addon** is the source of truth for user-created blobs.
+- The **embedded peer in the desktop host** is the source of truth for user-created blobs.
 - `somad bot` is **cache-only** for blobs in both `bot` and `admin` modes (writes allowed only as a side-effect of fetching from the network; never accepts user upload).
 - Blob identity is a CID computed from bytes (e.g. `sha256`); storage is keyed by CID (content-addressed).
 
-Upload (addon-internal):
+Upload (host-internal):
 
-- Entrypoint: Electron main calls `addon.uploadBlob({ spaceId, bytes, contentType, name, yooptaContext? })`.
-- The addon persists bytes into the configured blob pool (space-scoped layout) and records minimal metadata (size, content type, original name) in SQLite.
+- Entrypoint: the renderer invokes an upload command (`@soma/sdk` → `desktop-commands` → `desktop-api`) with `{ spaceId, bytes, contentType, name, yooptaContext? }`.
+- The host persists bytes into the configured blob pool (space-scoped layout) and records minimal metadata (size, content type, original name) in SQLite.
 - A peer event is emitted **only** when the blob is associated with Yoopta content (i.e. upload includes Yoopta context like `document_id` / `node_id`). Non-Yoopta blobs are stored but generate no Yoopta-related events.
 
-Read and serve (renderer → main → addon):
+Read and serve:
 
-- Renderers load bytes via `soma-blob://daemon/{space_id}/{cid}` (kept for URL stability).
-- The Electron protocol handler (`desktop/soma/src/main/services/blob-protocol.ts`) calls `addon.readBlob(spaceId, cid)` — direct, no IPC.
+- Renderers load bytes via the `soma-blob://...` URL scheme (kept for URL stability).
+- The Tauri blob-protocol handler (`desktop-services::blob_protocol`) reads bytes through the embedded daemon — direct, no IPC, no gRPC.
 
 Network distribution (fetch + cache):
 
@@ -309,7 +297,7 @@ Yoopta integration:
 
 Security and limits:
 
-- Validate declared sizes/content types and enforce max blob sizes at ingress (addon API) and egress (network transfer).
+- Validate declared sizes/content types and enforce max blob sizes at ingress (host command API) and egress (network transfer).
 - **Always verify bytes match the CID before persisting/serving.**
 - Treat all remote blobs as untrusted; no automatic execution/rendering without UI sandboxing.
 
@@ -318,7 +306,7 @@ Security and limits:
 Join MVP has two planes:
 
 - **Transport**: `soma-peer` (libp2p request/response). Protocols `/soma/join/1` and `/soma/join-decision/1`.
-- **Policy + persistence**: `soma-membership` + SQLx (or CrateStack on the addon side) repositories — `join_requests`, `join_decisions`, `space_memberships`, `mailbox`.
+- **Policy + persistence**: `soma-membership` + SQLx (or CrateStack on the desktop side) repositories — `join_requests`, `join_decisions`, `space_memberships`, `mailbox`.
 
 Flows:
 
@@ -332,9 +320,9 @@ Open security work (currently provisional):
 - [ ] **Verify `IssuerCapability.signed`** (owner signature) and enforce expiry/allowed roles consistently before auto-approving.
 - [ ] **Canonical signing format**. Current signing uses CBOR via `ciborium`, but canonical CBOR is not guaranteed. Move to a canonical scheme before relying on cross-version/cross-implementation signatures.
 - [ ] **Space genesis artifact**. Today `spaces.owner_peer_id` is DB-local metadata only; add an owner-signed record other peers can verify.
-- [ ] **Issuer delegation lifecycle** with auditable issuance/rotation from both the in-process addon surface and admin HTTP.
+- [ ] **Issuer delegation lifecycle** with auditable issuance/rotation from both the in-process desktop command surface and admin HTTP.
 - [ ] **Space membership revocation/leave** end-to-end.
-- [ ] **Space roster / discovery** helpers exposed from addon (`listSpaceMembers`, `discoverSpaces`).
+- [ ] **Space roster / discovery** helpers exposed from the desktop host (`listSpaceMembers`, `discoverSpaces`).
 
 ## Storage schema (target)
 
@@ -363,13 +351,13 @@ A single SQLite database per install, schema declared in one `.cstack` file. Tab
 - All workspace crates depend on third-party crates using `{ workspace = true }`. Add optional capabilities with `features = [...]` on the workspace dep in the leaf `Cargo.toml`.
 - Do not add `version = "..."` for third-party crates anywhere except the root `Cargo.toml`.
 - Server backends: `clap` for CLI/env config, `mimalloc` as the global allocator.
-- Embedded addon: same allocator/tracing conventions, no clap; config comes from the napi caller.
+- Desktop host: same tracing conventions, no clap; config comes from the Tauri store / renderer commands.
 
 ### TypeScript / pnpm
 
 - pnpm workspace at `pnpm-workspace.yaml`; pnpm 9.
 - Strict TypeScript everywhere.
-- Built-only dependencies (electron, esbuild, protobufjs, the addon native build) pinned in `pnpm.onlyBuiltDependencies`.
+- Built-only dependencies (esbuild, native build tooling) pinned in `pnpm.onlyBuiltDependencies`.
 
 ## Code Style
 
@@ -391,17 +379,17 @@ When renaming files to conform, use `git mv` (preserves history) and update ever
 - Self-describing names; avoid single-letter identifiers except for well-understood indices.
 - Small, cohesive modules.
 - `tracing` for logs; no `println!` in production code.
-- Rich error types (thiserror / anyhow). Reserve `panic!` for truly unrecoverable cases — and remember any panic in the addon would propagate to Electron main if not caught.
+- Rich error types (thiserror / anyhow). Reserve `panic!` for truly unrecoverable cases — a panic inside a Tauri command should be converted to a typed error and surfaced to the renderer, not left to abort the host.
 - Explicit async boundaries; never block inside async tasks.
 - Traits-first abstraction: define behavior behind traits, prefer trait impls on small structs/newtypes, default methods on traits over separate helper modules. Free functions only for pure, stateless utilities.
 
-### TypeScript / React (Soma)
+### TypeScript / React (desktop app)
 
 - Function components with hooks; keep side effects in services/hooks, not components.
 - Use existing hooks/state containers before adding new global state mechanisms.
-- Redux Toolkit + RTK Query for data; XState for finite state (practice typing); do not introduce Zustand or TanStack Query.
+- `@soma/sdk` is the data surface (Tauri transport); XState for finite state (practice typing); do not introduce Zustand or TanStack Query.
 - **Prefer Biome** for formatting + linting in new packages (`pnpm exec biome check --write`, `biome format --write`). Existing packages using Prettier/ESLint follow their local choice; flag the divergence if it matters, don't migrate unilaterally. Always run `pnpm run format` / `pnpm run lint` before committing.
-- Logging: Winston in main; renderer logs through main IPC if you need them on disk.
+- Logging: `tauri-plugin-log` + the `desktop-services` logger on the host side; renderer logs route through it if they need to land on disk.
 
 ### Documentation
 
@@ -423,13 +411,13 @@ Nice UI without stress or pretension. The rail-and-panel shell is where most of 
 
 ## Design patterns in use
 
-- **Facade**: `soma_core::db::DbFactory` for SQLx; the napi `start({...})` returning a `Handle` is the addon's facade.
-- **Factory Method / Builder**: `DbFactory::any/sqlite` for SQLx pools; runtime config builders in soma-node.
+- **Facade**: `soma_core::db::DbFactory` for SQLx; `@soma/sdk`'s `Backend` is the renderer's facade over the host commands; `desktop-daemon`'s `DaemonClient` is the host's facade over the embedded runtime.
+- **Factory Method / Builder**: `DbFactory::any/sqlite` for SQLx pools; runtime config builders in `desktop-daemon` / `desktop-agent`.
+- **Presenter / transport-agnostic handler**: `desktop-api` holds the behaviour; `desktop-commands` (Tauri) and `desktop-bff` (HTTP/SSE) are thin presenters over it. Add a capability once in the handler layer, expose it through each presenter.
 - **Delegation / Chain of Responsibility / Composite**: `PeerEventDispatcher` routes events to a chain of handlers. Add behaviors by implementing `PeerEventHandler` and registering.
-- **Strategy**: logging vs metrics handlers are interchangeable strategies. Follow the pattern when adding persistence/instrumentation behaviors.
+- **Strategy**: logging vs metrics handlers are interchangeable strategies; `@soma/sdk` transports (Tauri vs HTTP) are interchangeable strategies behind the same `Backend` facade.
 - **Repository**: SQLx queries are wrapped per aggregate (memberships, join_decisions, issuer_capabilities, mailbox) in `backend/crates/storage`. Same pattern when the CrateStack schema lands — repositories sit on top of `cratestack-rusqlite` `ModelDelegate`s.
 - **MVC**: Axum handlers in server backends are controllers; DB + peer services are model; response serializers are view. Keep controllers thin.
-- **Supervisor (new)**: the addon wraps the runtime in a supervisor that catches panics and exposes lifecycle to Electron main.
 
 ## Telemetry & Logging
 
@@ -440,18 +428,20 @@ Backends initialize tracing via `soma_core::telemetry::init_tracing(...)` (`back
 - `SOMA_LOGS_DIR` — when set, writes weekly-rotating files under this dir. When unset, logs go to the process's default writer (stdout/stderr).
 - `SOMA_FLAME_ENABLED` — opt-in flame capture (folded stack output) via `tracing-flame`; `.folded` file per binary in a sibling `flame/` directory.
 
-In the addon, tracing init is gated: the supervisor calls `init_tracing` once at first `start()` and routes output to the user's logs dir (`~/Library/Logs/Soma/` on macOS, `~/.local/state/soma/logs/` on Linux). Electron main forwards relevant tracing events to the renderer via its existing logging IPC.
+In the desktop host, tracing init is gated: the `desktop-services` logger initializes once at startup and routes output to the user's logs dir (`~/Library/Logs/Soma/` on macOS, `~/.local/state/soma/logs/` on Linux). `tauri-plugin-log` forwards relevant events to the renderer.
 
 ## Packaging, Signing, Releases
 
-Target (post-P5) — sudoless, signed, single-bundle.
+Target — sudoless, signed, single-bundle, produced by the **Tauri bundler** (`tauri build`). The distribution philosophy below is unchanged from the Electron era; only the toolchain changed.
+
+> **Status:** a Tauri desktop *release workflow* is not yet wired. `release-desktop.yml` (the Electron pipeline) was removed with the Electron app; the principles below describe the intended Tauri packaging, and the docs landing-page download links remain pointed at the stale Electron assets until a Tauri release pipeline lands.
 
 ### macOS
 
-- One `.app` per install, containing the addon (`.node`) shipped inside the Electron bundle. No separate `soma-daemon.app` / `soma-agentd.app`.
-- Build → **Developer ID Application** code-sign (`codesign --deep --options runtime --timestamp --sign ...`) → notarize via `notarytool` → `xcrun stapler staple`.
-- Distribute as a notarized `.dmg` (standard) **and** a notarized `.zip` (manual) via the GitHub Release. Both come from the same signed `.app`. Users pick either: open the `.dmg` and drag Soma into Applications, or unzip and drop `Soma.app` wherever they want. No `/Library/LaunchAgents`, no `pkgbuild`, no `installer` invocation, no sudo, no `xattr -dr` quarantine stripping, no install/uninstall scripts.
-- macOS Login Item registered via `app.setLoginItemSettings({ openAtLogin: true, openAsHidden: true })` so the peer is online from session start (when the user opts in). The peer is alive only while the process is running — closing the window hides to tray.
+- One `.app` per install — a Tauri bundle embedding the runtimes in the host binary. No separate `soma-daemon.app` / `soma-agentd.app`.
+- Build → **Developer ID Application** code-sign → notarize via `notarytool` → staple (Tauri's bundler drives signing/notarization from env-provided credentials).
+- Distribute as a notarized `.dmg` (standard) **and** a notarized `.app`/`.zip` (manual) via the GitHub Release. No `/Library/LaunchAgents`, no `pkgbuild`, no `installer` invocation, no sudo, no `xattr -dr` quarantine stripping, no install/uninstall scripts.
+- macOS Login Item / autostart registered so the peer is online from session start (when the user opts in). The peer is alive only while the process is running — closing the window hides to tray.
 - arm64 only (5e38e7d set the precedent; the Intel path was retired).
 
 ### Linux
@@ -461,19 +451,12 @@ Target (post-P5) — sudoless, signed, single-bundle.
 
 ### CI
 
-- GitHub Actions, all manual-triggered (`workflow_dispatch`).
-- `.github/targets.json` is the single source of `(os, arch)` truth; both `release-desktop.yml` and `release-server.yml` open with a tiny `targets` job that `jq`s the relevant slice and emits it as a job output, then `build.strategy.matrix.include` consumes it via `fromJSON(needs.targets.outputs.<slice>)`. Adding a target = one entry in `targets.json`. `publish-manifest` in `release-desktop.yml` also reads the same slice so the release manifest can never drift from the build matrix.
-- `release-desktop.yml` builds the Electron app (incl. `@soma/node` addon native build per `(os, arch)`) + signs + notarizes + publishes to a `desktop-v*` Release marked as the repo's `latest`. Asset filenames are **versionless** (`soma-desktop-<os>-<arch>.<ext>`) — the version lives in the tag — so the docs landing page can link to `https://github.com/<owner>/<repo>/releases/latest/download/<name>` and never need re-deploying per release. Each release's `desktop-release-manifest.json` carries both `url` (tag-pinned) and `latest_url` (latest-pinned) entries so machine consumers can pick either.
+- GitHub Actions. `test.yml` runs on push/PR (Rust workspace build+test, `@soma/ui` + `@soma/editor` vitest coverage, Storybook-driven UI E2E). Release workflows are manual-triggered (`workflow_dispatch`).
+- `.github/targets.json` is the single source of `(os, arch)` truth. Today only `release-server.yml` consumes it (the `server` slice) via a tiny `targets` job that `jq`s the slice and emits it as a job output, then `build.strategy.matrix.include` consumes it via `fromJSON(needs.targets.outputs.server)`. Adding a server target = one entry in `targets.json`. (The old `desktop` slice was removed with the Electron release pipeline; a future Tauri release workflow can re-add a desktop slice.)
+- **Desktop release: not yet wired.** The Electron `release-desktop.yml` was removed with the Electron app. A Tauri equivalent (`tauri build` + sign/notarize + publish) still needs to be authored; the Apple Developer ID + App Store Connect API-key secrets (`CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_API_KEY` content, `APPLE_API_KEY_ID`, `APPLE_API_ISSUER`, `APPLE_TEAM_ID`) carry over to the Tauri bundler.
 - `release-server.yml` builds **one** `somad` Docker image (distroless, non-root) per `(os, arch)` and publishes to GHCR.
 - `release-pages.yml` deploys docs (VitePress) + Storybook to GitHub Pages.
 - SBOMs via `anchore/sbom-action` (Syft).
-- Required Apple secrets for notarization (already wired in `release-desktop.yml`):
-  - `CSC_LINK` — base64-encoded **Developer ID Application** `.p12`
-  - `CSC_KEY_PASSWORD` — `.p12` export password
-  - `APPLE_API_KEY` — raw `.p8` contents of the App Store Connect API key (the workflow writes it to `$RUNNER_TEMP/AuthKey.p8` and re-exports `APPLE_API_KEY` as the path)
-  - `APPLE_API_KEY_ID` — 10-char key ID
-  - `APPLE_API_ISSUER` — issuer UUID
-  - `APPLE_TEAM_ID` — 10-char team ID (electron-builder needs it explicit when using API-key notarization)
 
 ### Docker (server)
 
@@ -490,11 +473,10 @@ Target (post-P5) — sudoless, signed, single-bundle.
 
 ## Crash isolation & supervision
 
-- **Addon panics must never crash Electron main.** `catch_unwind` at every `#[napi]` boundary; convert to typed JS errors.
-- **Supervisor pattern**: the addon's top-level runtime is wrapped in a supervisor that monitors task health. On unrecoverable failure it logs, signals the supervisor consumer in JS, and the JS layer decides whether to restart the runtime or surface a fatal error.
-- **No `unwrap`/`expect` in async paths inside the addon** beyond the supervisor itself.
-- **Tokio panic = task aborts**, not process death — but if multiple critical tasks crash in sequence the supervisor escalates.
-- **CPU discipline**: every `#[napi]` fn returns a Promise; no sync work that could starve the Electron event loop. Heavy CPU work (embeddings, hashing, OCR, Yjs merges) runs on `spawn_blocking` or dedicated thread pools.
+- **A command handler must never panic the host.** Return typed errors from `desktop-api` handlers; convert them to `@soma/sdk` `BackendError`s at the Tauri boundary.
+- **No `unwrap`/`expect` in async paths inside the host** beyond clearly-infallible setup.
+- **Tokio panic = task aborts**, not process death — but cascading failures of critical tasks should be logged and surfaced to the renderer.
+- **CPU discipline**: keep command handlers async and non-blocking. Heavy CPU work (embeddings, hashing, OCR, Yjs merges) runs on `spawn_blocking` or dedicated thread pools so the host stays responsive.
 
 ## Testing and Validation
 
@@ -515,24 +497,32 @@ cargo test -p soma-rendezvous --test smoke -- --ignored
 
 Tests live alongside the code they exercise (same crate, nearby module). Keep tests deterministic — avoid network/timing dependencies unless absolutely necessary.
 
-### Addon (after P3)
+### Desktop host (Rust)
 
-- Integration tests live in `backend/crates/soma-node/tests/` and exercise the napi surface from Rust via `napi`'s test harness.
-- An end-to-end pnpm test in `desktop/soma/tests/` loads the built `.node` and exercises basic IPC.
+- `cargo build --workspace` / `cargo test --workspace` cover the `desktop-*` crates alongside the backend crates. `desktop-bff` carries integration tests under `desktop/desktop-bff/tests/`.
 
-### Desktop App
+### Desktop App (TS)
 
 ```bash
-cd desktop
 pnpm install
-pnpm --filter soma run typecheck
-pnpm --filter soma run lint
-pnpm --filter soma run build
+pnpm --filter @soma/desktop-app run typecheck
+pnpm --filter @soma/desktop-app run lint
+pnpm --filter @soma/desktop-app run build      # tsc + vite build (renderer)
+pnpm --filter @soma/desktop-app run tauri:dev   # full app (host + renderer)
+```
+
+Shared packages:
+
+```bash
+pnpm --filter @soma/ui exec vitest run
+pnpm --filter @soma/editor exec vitest run
+pnpm --filter @soma/sdk exec vitest run
+pnpm --filter @soma/e2e run test                # Cucumber × Playwright over Storybook
 ```
 
 ### Manual flows
 
-- Launch Soma; verify the addon initializes and the splash-less startup is fast.
+- Launch the desktop app (`pnpm --filter @soma/desktop-app run tauri:dev`); verify the host initializes the runtimes and the main window reveals after the native splash.
 - Exercise join flows, page navigation, the practice route, basic messaging, blob upload + read.
 
 ## Networking Services (Relay + Rendezvous)

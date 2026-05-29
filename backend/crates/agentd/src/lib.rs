@@ -1,8 +1,8 @@
 //! Embeddable runtime for the Soma desktop agent.
 //!
 //! There is no standalone `soma-agentd` binary anymore; the agent ships only
-//! as a library, linked into the `soma-node` napi addon and consumed in-process
-//! by the Electron desktop app.
+//! as a library, embedded in-process by the Tauri desktop app via the
+//! `desktop-agent` crate.
 
 use soma_core::SomaResult;
 use tokio::{sync::oneshot, task::JoinHandle};

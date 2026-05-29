@@ -33,4 +33,4 @@ pnpm docs:build   # outputs to ./site
 
 ## Repo automation (`cargo xtask`)
 
-Repo automation lives in `xtask/` and is invoked via `cargo xtask ...` (wired through `.cargo/config.toml`). CI uses this for Cargo workspace version resolution. Desktop builds and packaging are owned by the `desktop/` workspace (`@napi-rs/cli` + `electron-builder`); the release pipelines themselves live in `.github/workflows/release-desktop.yml` and `release-server.yml`.
+Repo automation lives in `xtask/` and is invoked via `cargo xtask ...` (wired through `.cargo/config.toml`). CI uses this for Cargo workspace version resolution. The desktop app is the Tauri V2 shell at `desktop/desktop-app/`; its bundle is produced by `tauri build`. The server release pipeline lives in `.github/workflows/release-server.yml` (a Tauri desktop release workflow is not yet wired).

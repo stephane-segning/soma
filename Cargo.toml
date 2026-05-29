@@ -15,7 +15,6 @@ members = [
     "backend/crates/bff",
     "backend/crates/peer",
     "backend/crates/vdfs",
-    "backend/crates/soma-node",
     "backend/crates/daemon",
     "backend/crates/agentd",
     "backend/bins/somad",
@@ -87,10 +86,6 @@ zip = { version = "5", default-features = false, features = ["deflate"] }
 specta = { version = "=2.0.0-rc.25", features = ["derive", "serde_json"] }
 specta-typescript = "=0.0.12"
 tauri-specta = { version = "=2.0.0-rc.25", features = ["derive", "typescript"] }
-
-napi = { version = "3", default-features = false, features = ["napi8", "tokio_rt", "async", "anyhow"] }
-napi-derive = { version = "3" }
-napi-build = { version = "2" }
 
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1"
@@ -169,14 +164,6 @@ panic = "abort"
 
 [profile.dev]
 incremental = true # Compile your binary in smaller steps.
-
-# Release profile for the soma-node napi addon: keep optimizations but allow
-# panic = "unwind" so napi-rs can catch panics at the boundary and surface
-# them as JS errors instead of aborting Electron's main process.
-[profile.addon-release]
-inherits = "release"
-panic = "unwind"
-strip = "debuginfo"
 
 [workspace.package]
 version = "0.1.2"

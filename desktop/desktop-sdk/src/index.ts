@@ -11,17 +11,13 @@
  * ```
  */
 
-// Documents-drafts + practice module types are now both emitted into
-// `bindings/` by specta after their respective Tauri presenters landed;
-// they reach consumers through the `export * from "./bindings"` below.
-// Keep the convention here: only re-export from `./api/*` when specta
-// hasn't yet been taught a type (i.e. it's an Electron-only surface).
-// Re-export every wire type the API surface accepts or returns so callers
-// import from one place.
+// Wire types are emitted into `bindings/` by specta after their
+// respective Tauri presenters land; they reach consumers through the
+// `export * from "./bindings"` below. Re-export every wire type the API
+// surface accepts or returns so callers import from one place.
 export * from "./bindings";
 export { BackendError, type BackendErrorKind, toBackendError } from "./errors";
 export { type Backend, createBackend } from "./facade";
 export type { Transport } from "./transport";
-export { type ElectronPreloadBridge, type ElectronTransportOptions, electronTransport } from "./transport/electron";
 export { type HttpTransportOptions, httpTransport } from "./transport/http";
 export { tauriTransport } from "./transport/tauri";
