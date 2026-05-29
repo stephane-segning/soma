@@ -139,7 +139,12 @@ jobs:
         uses: ./.github/actions/setup-protoc
 
       # Tauri's Linux bundler needs GTK/WebKit + AppImage tooling. Mirrors the
-      # dependency list from the Tauri V2 "Building" guide for Ubuntu 22.04.
+      # dependency list from the Tauri V2 "Building" guide. Runner is
+      # ubuntu-latest/24.04 (not 22.04) so the apt `protoc` is new enough for
+      # the proto3-optional fields in our .proto files — matching the
+      # server-release runners. Trade-off: AppImages built here inherit 24.04's
+      # glibc floor; revisit with a pinned-protoc-on-22.04 build if wider
+      # distro portability becomes a requirement.
       - name: Install Linux build deps
         if: matrix.os == 'linux'
         shell: bash
