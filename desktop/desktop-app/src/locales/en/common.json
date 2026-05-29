@@ -59,7 +59,8 @@
 	},
 	"pages": {
 		"spaces_index": {
-			"empty": "Spaces will appear here."
+			"headline": "No space selected",
+			"empty": "Pick a space from the rail, or create one to get started."
 		},
 		"space_view": {
 			"placeholder": "Space content placeholder — pages, members, and editor land here in a later phase."

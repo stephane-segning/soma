@@ -42,6 +42,8 @@ const SIZE_CLASS = {
 export type PanelStackItem = {
 	id: string;
 	title: ReactNode;
+	/** Small leading glyph rendered before the title in the card header. */
+	icon?: ReactNode;
 	actions?: ReactNode;
 	content: ReactNode;
 	footer?: ReactNode;
@@ -90,6 +92,7 @@ export function PanelStack({
 							actions={panel.actions}
 							className={panel.size === "content" ? undefined : "h-full"}
 							footer={panel.footer}
+							icon={panel.icon}
 							onClose={onClose ? () => onClose(panel.id) : undefined}
 							onCollapse={onCollapse ? () => onCollapse(panel.id) : undefined}
 							title={panel.title}

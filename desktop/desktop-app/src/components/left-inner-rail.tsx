@@ -18,6 +18,7 @@
 import { PanelContainer, type PanelDescriptor } from "@soma/ui/components/panels/panel-container";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { NavIcon, PagesIcon } from "./icons";
 import { NavPanel } from "./panels/nav-panel";
 import { PagesPanel } from "./panels/pages-panel";
 
@@ -75,17 +76,15 @@ export function LeftInnerRail({ expandedIds, onCollapse, className }: LeftInnerR
 			{
 				id: PAGES_ID,
 				title: t("panels.pages.title", "Pages") as ReactNode,
-				// The rail uses `PanelContainer` directly; the icon is only
-				// consumed by the matching `PanelChipBar`, which `LeftInnerRail`
-				// doesn't render. We still carry an icon so the descriptor can
-				// be reused if a future composition step adds a chip strip.
-				icon: <span aria-hidden>P</span>,
+				// Rendered in the panel header (Panel draws `icon` before the
+				// title) and reused by the matching `PanelChipBar` in AppLayout.
+				icon: <PagesIcon />,
 				content: <PagesPanel />,
 			},
 			{
 				id: NAV_ID,
 				title: t("panels.nav.title", "Nav") as ReactNode,
-				icon: <span aria-hidden>N</span>,
+				icon: <NavIcon />,
 				content: <NavPanel />,
 				// Nav holds 1–3 fixed rows. Shrinking it to content-height
 				// lets the sibling Pages panel reclaim the void instead of

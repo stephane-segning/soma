@@ -91,9 +91,12 @@ function SectionCard({
 	description?: ReactNode;
 	children: ReactNode;
 }) {
+	// Flat section — no card chrome. The page surface + the SettingsTabs
+	// strip already provide enough separation; a bordered, shadowed card
+	// on top of the tinted main surface read as "card stuffed in a card."
 	return (
-		<section className="rounded-2xl border border-base-300/60 bg-base-100/80 p-4 shadow-sm">
-			<header className="mb-3 flex flex-col gap-1">
+		<section>
+			<header className="mb-4 flex flex-col gap-1">
 				<h2 className="font-medium text-base">{title}</h2>
 				{description ? <p className="text-base-content/60 text-sm">{description}</p> : null}
 			</header>

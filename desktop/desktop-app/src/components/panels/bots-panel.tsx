@@ -15,11 +15,16 @@
 import type { StoredSpaceBot } from "@soma/sdk";
 import type { Bot } from "@soma/ui/components/lists/bot-list";
 import { BotList } from "@soma/ui/components/lists/bot-list";
-import { Empty } from "@soma/ui/components/primitives/empty";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router";
 import { backend } from "../../lib/backend";
+
+/** Inline muted status line — one row, no centered placard. Matches the
+ *  pages-panel empty-state vocabulary so every rail panel reads alike. */
+function BotsLine({ children }: { children: ReactNode }) {
+	return <div className="px-3 py-2 text-base-content/55 text-xs">{children}</div>;
+}
 
 function asBotStatus(status: string): Bot["status"] {
 	if (status === "active" || status === "pending" || status === "failed" || status === "expired") {
@@ -72,25 +77,16 @@ export function BotsPanel(): React.JSX.Element {
 	}, [spaceId]);
 
 	if (!spaceId) {
-		return (
-			<Empty
-				headline={t("panels.bots.no_space", "Select a space")}
-				subtext={t("panels.bots.no_space_subtext", "Authorized bots for the active space will appear here.")}
-			/>
-		);
+		return <BotsLine>{t("panels.bots.no_space", "Select a space")}</BotsLine>;
 	}
 
 	if (state.phase === "loading" || state.phase === "idle") {
-		return (
-			<div className="px-3 py-6 text-center text-base-content/50 text-sm">
-				{t("panels.bots.loading", "Loading bots…")}
-			</div>
-		);
+		return <BotsLine>{t("panels.bots.loading", "Loading bots…")}</BotsLine>;
 	}
 
 	if (state.phase === "error") {
 		return (
-			<div className="px-3 py-6 text-center text-error text-sm">
+			<div className="px-3 py-2 text-error text-xs">
 				{t("panels.bots.error", "Failed to load bots: {{message}}", { message: state.message })}
 			</div>
 		);

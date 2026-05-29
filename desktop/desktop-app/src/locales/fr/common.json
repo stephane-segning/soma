@@ -59,7 +59,8 @@
 	},
 	"pages": {
 		"spaces_index": {
-			"empty": "Vos espaces apparaîtront ici."
+			"headline": "Aucun espace sélectionné",
+			"empty": "Choisissez un espace dans la barre, ou créez-en un pour commencer."
 		},
 		"space_view": {
 			"placeholder": "Contenu de l'espace — les pages, membres et l'éditeur arriveront dans une phase suivante."
