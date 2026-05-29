@@ -15,14 +15,14 @@
 import type { StoredSpaceBot } from "@soma/sdk";
 import type { Bot } from "@soma/ui/components/lists/bot-list";
 import { BotList } from "@soma/ui/components/lists/bot-list";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useParams } from "react-router";
 import { backend } from "../../lib/backend";
 
 /** Inline muted status line — one row, no centered placard. Matches the
  *  pages-panel empty-state vocabulary so every rail panel reads alike. */
-function BotsLine({ children }: { children: React.ReactNode }) {
+function BotsLine({ children }: { children: ReactNode }) {
 	return <div className="px-3 py-2 text-base-content/55 text-xs">{children}</div>;
 }
 
