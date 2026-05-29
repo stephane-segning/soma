@@ -145,6 +145,11 @@ jobs:
       # server-release runners. Trade-off: AppImages built here inherit 24.04's
       # glibc floor; revisit with a pinned-protoc-on-22.04 build if wider
       # distro portability becomes a requirement.
+      #
+      # xdg-utils (xdg-mime) + desktop-file-utils are needed by Tauri's
+      # AppImage bundler. They're preinstalled on the x86 ubuntu-latest image
+      # but NOT on the leaner ubuntu-24.04-arm image, so the arm64 AppImage
+      # leg failed with "xdg-mime binary not found" until added here.
       - name: Install Linux build deps
         if: matrix.os == 'linux'
         shell: bash
@@ -160,7 +165,9 @@ jobs:
             file \
             patchelf \
             build-essential \
-            pkg-config
+            pkg-config \
+            xdg-utils \
+            desktop-file-utils
 
       - name: Install dependencies
         shell: bash
