@@ -1,5 +1,5 @@
 //! Cross-module DTOs. camelCase on the wire so the renderer's existing
-//! `@soma/desktop-db` parsers and call sites keep working after the cutover.
+//! parsers and call sites consume them without case conversion.
 
 use serde::{Deserialize, Serialize};
 use specta::Type;

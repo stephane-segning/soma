@@ -127,12 +127,13 @@ Events should follow the pattern: `<entity>_<action>`
 ### Desktop Workspace
 
 **Target (completed):**
-- `desktop/desktop-proto`
 - `desktop/desktop-ui`
 - `desktop/desktop-config`
-- `desktop/desktop-data`
 - `desktop/desktop-editor`
 - `desktop/desktop-icons`
+
+(The Electron-era `desktop/desktop-proto` and `desktop/desktop-data` packages
+were removed with the Electron app.)
 
 ---
 

@@ -20,8 +20,8 @@ All proto files live in `proto/` at the repository root:
 
 ```
 proto/
-├── daemon/v1/daemon.proto    # Record-shape reference for the in-process napi surface
-├── agent/v1/agent.proto      # Record-shape reference for the in-process napi surface
+├── daemon/v1/daemon.proto    # Record-shape reference for the in-process Tauri host surface
+├── agent/v1/agent.proto      # Record-shape reference for the in-process Tauri host surface
 └── space/v1/membership.proto  # Shared membership/capability types
 ```
 
@@ -29,8 +29,8 @@ proto/
 
 | Package | Purpose | Consumer |
 |---------|---------|----------|
-| `daemon.v1` | Record-shape reference for the in-process daemon napi surface | Desktop (Electron main process) |
-| `agent.v1` | Record-shape reference for the in-process agent napi surface | Desktop (Electron main process) |
+| `daemon.v1` | Record-shape reference for the in-process daemon command surface | Desktop (Tauri host process) |
+| `agent.v1` | Record-shape reference for the in-process agent command surface | Desktop (Tauri host process) |
 | `space.v1` | Membership/capability types | Backend + Desktop (shared) |
 
 ### Generated Artifacts
@@ -46,12 +46,19 @@ proto/
 
 #### TypeScript
 
-- **Package**: `@soma/proto`
-- **Location**: `desktop/desktop-proto/`
-- **Generation**: `ts-proto` via `grpc_tools_node_protoc`
-- **Exports**: `@soma/proto/daemon/*`, `@soma/proto/agent/*`, `@soma/proto/space/*`
-- **Generation entrypoints**: `daemon/v1/daemon.proto`, `agent/v1/agent.proto`, `space/v1/membership.proto`
-- **Portable override**: `SOMA_PROTO_ROOT=/absolute/path/to/proto pnpm --filter @soma/proto run build`
+The renderer no longer consumes the protos directly. The `@soma/proto`
+(`desktop/desktop-proto/`) `ts-proto` package was removed with the Electron
+app; the Tauri renderer's wire types are emitted from the Rust command graph
+instead:
+
+- **Package**: `@soma/sdk` (`desktop/desktop-sdk/`)
+- **Generation**: `tauri-specta` walks the `#[tauri::command]` graph and emits
+  TypeScript bindings under `desktop/desktop-sdk/src/bindings/`
+- **Exports**: the `commands` facade plus the wire types it references
+
+The `proto/` definitions above remain the record-shape reference for the Rust
+crates; the desktop side derives its TS types from the host command graph, not
+from `ts-proto` codegen.
 
 ### Contract Generation Boundary
 
@@ -59,7 +66,8 @@ The current monorepo contract boundary is:
 
 - source definitions stay under `proto/`
 - Rust codegen stays under `backend/crates/proto-build`
-- TypeScript codegen stays under `desktop/desktop-proto`
+- the desktop renderer derives its TS wire types from the Tauri command graph
+  (`tauri-specta` → `@soma/sdk` bindings), not from a `ts-proto` package
 - consumers import generated packages/modules, not raw `.proto` files
 
 That layout is intentionally kept compatible with a future external contracts repository by avoiding new consumer-side assumptions about the monorepo root.
@@ -68,7 +76,9 @@ That layout is intentionally kept compatible with a future external contracts re
 
 #### Daemon Surface (`daemon.v1.Daemon`)
 
-Transport: in-process napi calls on the `@soma/node` `SomaHandle`. The proto
+Transport: in-process Tauri commands. The Tauri host links the `soma-daemon`
+runtime as a library (via the `desktop-daemon` crate) and exposes it to the
+renderer through `#[tauri::command]`s consumed via `@soma/sdk`. The proto
 methods listed below are kept as a record-shape reference; they are not
 exposed as a gRPC service.
 
@@ -102,9 +112,9 @@ exposed as a gRPC service.
 
 #### Agent Surface (`agent.v1.Agent`)
 
-Transport: in-process napi calls on the `@soma/node` `SomaHandle`. The
-agent surface no longer ships as a gRPC service; the proto file is kept as a
-record-shape reference only.
+Transport: in-process Tauri commands (the host embeds `soma-agentd` via the
+`desktop-agent` crate). The agent surface no longer ships as a gRPC service;
+the proto file is kept as a record-shape reference only.
 
 | Method | Status | Description |
 |--------|--------|-------------|
@@ -132,10 +142,12 @@ Emitted via `StreamEvents` RPC:
 
 ### Desktop ↔ daemon transport
 
-The daemon and agent runtimes are linked into the `@soma/node` napi addon and
-loaded in-process by the Electron main process. There is no IPC socket and no
-separate daemon process; the previous `SOMA_DAEMON_SOCKET` /
-`SOMA_AGENTD_SOCKET` env vars and the per-stage socket-path tables are gone.
+The daemon and agent runtimes are linked into the Tauri host (`src-tauri`) as
+libraries via the `desktop-daemon` / `desktop-agent` crates and run in-process.
+The renderer reaches them over Tauri commands (`@soma/sdk`). There is no IPC
+socket, no separate daemon process, and no napi addon; the previous
+`SOMA_DAEMON_SOCKET` / `SOMA_AGENTD_SOCKET` env vars and the per-stage
+socket-path tables are gone.
 
 ### Stage Detection
 
@@ -167,8 +179,8 @@ Examples:
 - `somad-0.1.0-macos-arm64.tar.gz`
 
 The desktop daemon + agent runtimes are not shipped as standalone binaries —
-they're embedded in the desktop app's `@soma/node` napi addon and ride along
-with the Electron release.
+they're embedded in the Tauri host binary (`src-tauri`) and ride along with the
+desktop release.
 
 OS values: `linux`, `macos`
 
@@ -282,16 +294,16 @@ The packaging CLI also writes a bundle-local manifest next to each platform outp
 
 The backend must maintain:
 
-1. **Napi ABI stability**: No breaking changes to existing `SomaHandle` / `DaemonHandle` / `AgentHandle` method signatures within `v1`
+1. **Command surface stability**: No breaking changes to existing `DaemonHandle` / `AgentHandle` method signatures (exposed to the renderer as Tauri commands) within `v1`
 2. **Event compatibility**: New event types must be backward-compatible (unknown types ignored by old clients)
 
 ### Desktop → Backend
 
 The desktop must:
 
-1. **Load the addon**: Resolve and load the platform-specific `@soma/node` `.node` binary at Electron main startup
+1. **Link the runtimes**: Embed `soma-daemon` / `soma-agentd` in the Tauri host (`src-tauri`) via the `desktop-daemon` / `desktop-agent` crates
 2. **Handle unknown events**: Ignore unknown daemon-event variants without crashing
-3. **Support multiple versions**: Be resilient to missing methods on the addon surface
+3. **Support multiple versions**: Be resilient to missing methods on the host command surface
 
 ### Version Negotiation
 
@@ -309,9 +321,10 @@ Before splitting the monorepo, ensure:
 
 - [ ] `proto/` extracted to `soma-contracts` repo
 - [ ] Generated Rust SDK published to crates.io or private registry
-- [ ] Generated TypeScript SDK published to npm or private registry (relevant only while `desktop/desktop-proto` exists)
+- [ ] Generated TypeScript SDK published to npm or private registry (the renderer now derives types from the Tauri command graph via `tauri-specta` → `@soma/sdk`)
 - [x] Release manifest schema documented and versioned
-- [ ] Napi ABI / addon surface documented in a standalone spec
+- [x] `@soma/proto` (`ts-proto`) consumer dependency removed with the Electron app
+- [ ] Host command surface documented in a standalone spec
 - [x] Packaging can consume artifacts from separate GitHub releases
 - [ ] CI can validate contracts independently in each repo
 
@@ -319,8 +332,9 @@ Before splitting the monorepo, ensure:
 
 - `proto/README.md` documents the current contract boundary in-place
 - Rust codegen can resolve contracts via `SOMA_PROTO_ROOT`
-- TypeScript codegen can resolve contracts via `SOMA_PROTO_ROOT`
-- TypeScript codegen entrypoints now explicitly include `space/v1/membership.proto`
+- The renderer's TS wire types are generated from the Tauri command graph
+  (`tauri-specta` → `@soma/sdk` bindings); the proto-driven `ts-proto` pipeline
+  was retired with the Electron app
 
 ## Related Documents
 

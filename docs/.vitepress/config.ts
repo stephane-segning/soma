@@ -87,7 +87,6 @@ const sidebar: DefaultTheme.Sidebar = {
                 {text: 'justfile', link: '/development/justfile'},
                 {text: 'Peer Events', link: '/development/peer-events'},
                 {text: 'Local LLMs (agentd models)', link: '/development/agentd-models'},
-                {text: 'Desktop React DB', link: '/development/desktop-react-db'},
                 {text: 'UI Components', link: '/development/ui-components'},
                 {text: 'UI Framework Candidates', link: '/development/ui-framework-candidates'},
                 {text: 'Testing', link: '/development/testing'},

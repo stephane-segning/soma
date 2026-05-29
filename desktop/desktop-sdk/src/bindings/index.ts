@@ -312,8 +312,8 @@ export type DecideJoinResult = {
 export type DesktopError = { kind: "io"; message: string } | { kind: "invalid-input"; message: string } | { kind: "not-found"; message: string } | { kind: "daemon"; message: string } | { kind: "agent"; message: string } | { kind: "other"; message: string };
 
 /**
- *  Renderer-facing payload. Tagged on `kind` to match the discriminated
- *  union the renderer's `@soma/desktop-db` parser accepts.
+ *  Renderer-facing payload. Tagged on `kind` so the renderer can
+ *  discriminate each variant when consuming the `domain_event` channel.
  */
 export type DomainEvent = { kind: "document-blob-added"; spaceId: string; docId: string; cid: string; mime: string; size: number; name: string } | { kind: "join-submitted"; requestId: string; targetPeerId: string } | { kind: "join-decision"; fromPeerId: string; spaceId: string; decision: number; reason: string } | { kind: "join-failed"; targetPeerId: string; error: string } | { kind: "bot-status-changed"; spaceId: string; delegatePeerId: string; status: string } | 
 /**
@@ -328,9 +328,8 @@ export type DomainEvent = { kind: "document-blob-added"; spaceId: string; docId:
 { kind: "document-changed"; source: DomainEventSource; atMs: number; spaceId: string; documentId: string; reason: string | null };
 
 /**
- *  Source tag for renderer-broadcast events. Mirrors the
- *  `DomainEventSource` union in `desktop-data/src/events/types.ts`.
- * 
+ *  Source tag for renderer-broadcast events.
+ *
  *  `Daemon` is reserved for events that originate from the daemon
  *  firehose; today every variant in `DomainEvent` that uses this tag is
  *  emitted with `Renderer` from a command handler.
