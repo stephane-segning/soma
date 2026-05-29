@@ -1,6 +1,6 @@
 # Repo Split Readiness
 
-This document tracks what a future split of the monorepo into separate backend and desktop repos would actually require, post-architectural-collapse (PRs #41–#48). The collapse resolved many of the original blockers; what's left is small.
+This document tracks what a future split of the monorepo into separate backend and desktop repos would actually require, post-architectural-collapse and post-Tauri-migration. The collapse resolved many of the original blockers; the Tauri migration changed the remaining backend↔desktop coupling (the desktop now embeds the Rust crates directly in its `src-tauri` host rather than through a prebuilt napi addon).
 
 ## Status: deferred, not blocked
 
@@ -12,9 +12,9 @@ Pre-collapse, the split was blocked by:
 
 | Blocker (pre-collapse) | Status now |
 |---|---|
-| Shared `proto/` source consumed by both Rust and TypeScript | Mostly resolved. `proto/` is now used only for libp2p wire formats (Rust-only). The Electron main process no longer consumes generated TS types — it calls the addon directly. `desktop/desktop-proto` (`@soma/proto`) still exists in `pnpm-workspace.yaml` and is built by `pnpm run contracts:ts`, but no Soma code depends on it; it is slated for removal per the target architecture (AGENTS.md). |
-| Daemon/agent IPC contracts consumed by desktop | Resolved. The Electron main process loads the `@soma/node` napi addon and calls Rust functions directly. No gRPC, no Unix sockets, no shared TS types beyond `napi build --dts` output that ships *with* the addon. |
-| `desktop/packaging` CLI assuming one repo namespace | Resolved. `desktop/packaging` was deleted in P6a. Packaging is now per-artifact: `electron-builder` for the desktop app, the multi-arch `Dockerfile` for `somad`. No cross-product bundler. |
+| Shared `proto/` source consumed by both Rust and TypeScript | Resolved. `proto/` is now used only for libp2p wire formats (Rust-only). `desktop/desktop-proto` (`@soma/proto`) was removed with the Electron app; the renderer's TypeScript wire types are generated from the Rust command graph via `tauri-specta` into `@soma/sdk`. |
+| Daemon/agent IPC contracts consumed by desktop | Resolved. The Tauri `src-tauri` host embeds the `soma-daemon` / `soma-agentd` crates as libraries (via `desktop-daemon` / `desktop-agent`) and calls them in-process. No gRPC, no Unix sockets, no napi addon; the renderer talks to the host over Tauri commands (`@soma/sdk`). |
+| `desktop/packaging` CLI assuming one repo namespace | Resolved. `desktop/packaging` was deleted in P6a. Packaging is now per-artifact: the **Tauri bundler** for the desktop app, the multi-arch `Dockerfile` for `somad`. No cross-product bundler. |
 | Release manifest schema for cross-repo discovery | No longer needed. Desktop assets are published to `desktop-v*` Releases (with `SHA256SUMS`); the server image is published to `ghcr.io/<owner>/somad`. Each release stands alone. |
 | `release.yml` orchestrating both backend and desktop | Resolved. `release-desktop.yml` and `release-server.yml` are independent, each driven by `.github/targets.json`. |
 | Install/uninstall bootstrap scripts coupling release URLs | Resolved. Retired in P6a; users download directly from GitHub Releases. |
@@ -23,7 +23,7 @@ Pre-collapse, the split was blocked by:
 
 The remaining coupling between `backend/` and `desktop/` after the collapse:
 
-- **`@soma/node` build-time link.** `desktop/soma`'s Electron bundle embeds `soma-node.<os>-<arch>.node`, which is built from `backend/crates/soma-node`. In a split, the desktop repo would either need to publish the addon as an npm package from the backend repo's release pipeline, or vendor the prebuilt `.node` per `(os, arch)` from a `node-v*` Release.
+- **Shared Cargo workspace link.** The Tauri host (`desktop/desktop-app/src-tauri` + the `desktop-*` crates) depends on the backend runtime crates (`soma-daemon`, `soma-agentd`, and their dependencies) as path dependencies in the root Cargo workspace. In a split, the desktop repo would need those crates published (e.g. to a private registry) or vendored, and the desktop's `src-tauri` build would consume them as versioned dependencies rather than path deps.
 - **`.github/targets.json` shared (os, arch) source.** Lives at the repo root, consumed by both release workflows. Trivially duplicated or factored to a shared action if split.
 - **Single `docs/` VitePress site.** Architecture, development, and security docs cover both products. A split would need to decide: one shared docs repo, or per-product docs with separate sites.
 - **Root pnpm/Cargo workspace files.** `Cargo.toml`, `pnpm-workspace.yaml`, `package.json` at the root would dissolve into per-repo equivalents.
@@ -35,24 +35,24 @@ Suggested target layout (not committed to):
 
 ```
 soma-backend/
-├── backend/          # Rust workspace (crates + somad + soma-node addon)
+├── backend/          # Rust workspace (shared crates + somad)
 ├── xtask/
 ├── deploy/           # Helm charts for somad
 ├── Dockerfile
 └── .github/workflows/release-server.yml
-                     # plus an addon-publishing workflow if @soma/node ships as npm
+                     # plus a crate-publishing step if the runtime crates ship to a registry
 
 soma-desktop/
-├── desktop/          # pnpm workspace (soma app + shared TS packages)
+├── desktop/          # pnpm workspace + the Tauri app's src-tauri Rust crates
 └── .github/workflows/release-desktop.yml
-                     # consumes prebuilt @soma/node from soma-backend
+                     # consumes the runtime crates from soma-backend (registry or vendored)
 ```
 
 Open decisions before doing this:
 
-- Does `@soma/node` ship via npm (versioned, registered) or via GitHub Release downloads keyed by `(os, arch)`?
+- Do the runtime crates ship via a (private) Cargo registry, or get vendored into the desktop repo per release?
 - Where do the docs live — one `soma-docs` repo, or split docs per product?
-- Does the desktop repo build a release against arbitrary backend versions, or pin to a known-good `@soma/node` per desktop release?
+- Does the desktop repo build a release against arbitrary backend versions, or pin to a known-good set of runtime-crate versions per desktop release?
 
 ## Recommendation
 

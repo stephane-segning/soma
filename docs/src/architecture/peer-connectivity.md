@@ -1,6 +1,6 @@
 # Peer Connectivity (Daemon + Bot)
 
-This doc describes how Soma peers (the desktop daemon runtime — `soma-daemon`, linked in-process via the `@soma/node` napi addon — and `somad bot`) discover each other and establish connectivity using libp2p.
+This doc describes how Soma peers (the desktop daemon runtime — `soma-daemon`, embedded in-process in the Tauri host via `desktop-daemon` — and `somad bot`) discover each other and establish connectivity using libp2p.
 
 The implementation lives in the shared peer runtime: `backend/crates/peer` (`soma-peer`).
 
@@ -127,10 +127,10 @@ sequenceDiagram
 
 ## Configuration
 
-### Desktop daemon (in-process via `@soma/node`)
+### Desktop daemon (embedded in the Tauri host)
 
-The desktop daemon library reads its connectivity configuration from the napi
-addon's `StartConfig` (see `desktop/soma/src/main/services/addon-runtime.ts`).
+The desktop daemon library reads its connectivity configuration from the
+runtime config the Tauri host's `desktop-daemon` crate constructs at startup.
 The relevant fields:
 
 - `listenAddrs` (array of multiaddrs)
@@ -140,8 +140,8 @@ The relevant fields:
 - `enableMdns`
 
 There are no CLI flags or `SOMA_*` environment variables on the desktop side —
-the addon is loaded by the Electron main process, which constructs the config
-directly.
+the host process constructs the config directly when it spins up the embedded
+runtime.
 
 ### `somad bot` (server peer)
 
@@ -164,11 +164,10 @@ Copy their logged listen multiaddrs (including `/p2p/<peerid>`).
 
 ### Run the desktop app and point it at infra
 
-The Electron app embeds the daemon runtime, so connectivity is configured via
-the napi addon's `StartConfig` passed in from
-`desktop/soma/src/main/services/addon-runtime.ts`. Edit that file (or the
-desktop stage config it reads) to inject your local `--rendezvous-addrs` /
-`--relay-addrs` equivalents.
+The Tauri app embeds the daemon runtime, so connectivity is configured by the
+host's `desktop-daemon` crate when it constructs the runtime config at startup.
+Adjust that config (or the desktop stage config it reads) to inject your local
+`--rendezvous-addrs` / `--relay-addrs` equivalents.
 
 ### Observe behaviour
 

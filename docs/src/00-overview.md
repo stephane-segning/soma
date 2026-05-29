@@ -15,7 +15,7 @@ It combines:
 - peer-to-peer data resolution and caching
 - capability-based permissions for humans and bots
 - optional local AI assistance
-- a built-in typing-practice surface (Tapia, the `/practice` route)
+- a planned typing-practice surface (Tapia, to be merged in as the `/practice` route)
 
 Human roles inside a space stay intentionally simple:
 
@@ -112,7 +112,7 @@ Capabilities are intended to cover permissions for both humans and bots, such as
 
 ### Architecture (high level)
 
-- **Desktop UI** (Electron/Chromium + React) with the Rust daemon + agent runtimes linked in-process via the `@soma/node` napi addon
+- **Desktop app** (Tauri V2: React/Vite renderer over a Rust `src-tauri` host) with the daemon + agent runtimes embedded in-process and exposed to the renderer via `@soma/sdk` over Tauri commands
 - **`somad` server binary** (with `bot` / `relay` / `rendezvous` / `bff` / `all` subcommands)
 - **Bot peers** (`somad bot`: cache + onboarding)
 - **Relay + Rendezvous** (`somad relay` / `somad rendezvous`: connectivity only)
@@ -120,9 +120,9 @@ Capabilities are intended to cover permissions for both humans and bots, such as
 ---
 
 ## Tapia: typing practice inside Soma
-Tapia is the focused typing-practice surface built into the Soma desktop app.
+Tapia is the focused typing-practice surface planned for the Soma desktop app.
 
-- accessed at `/practice` inside Soma — no separate Electron app to install or launch
+- to be accessed at `/practice` inside Soma — there is no separate app to install or launch. The `/practice` route is **not yet wired in the Tauri app**; the migration is a tracked follow-up.
 - short passages, generated drills, and per-session feedback
 - pure-renderer (no daemon dependency); shares the same shell, theming, and shared UI packages as the rest of Soma
 - intentionally narrower in scope than Soma's main workspace surfaces

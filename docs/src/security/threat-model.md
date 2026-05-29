@@ -21,8 +21,8 @@ This page captures a practical threat model for Soma’s current architecture. I
 
 ### Desktop boundary
 
-- **Renderer (untrusted UI surface)** → **Electron main process (trusted local backend, including the `soma-daemon` and `soma-agentd` libraries linked in via the `soma-node` napi addon)**.
-- There is no separate daemon process and no IPC socket. Daemon operations are plain Rust calls inside the Electron main process — the only inter-process hop is the Chromium-renderer ↔ Electron-main bridge, which is already constrained to the controllers exposed by the preload script.
+- **Renderer (untrusted UI surface)** → **Tauri `src-tauri` host (trusted local backend, including the `soma-daemon` and `soma-agentd` libraries embedded via the `desktop-daemon` / `desktop-agent` crates)**.
+- There is no separate daemon process and no IPC socket. Daemon operations are plain Rust calls inside the host — the only boundary is the WebView-renderer ↔ host bridge, which is constrained to the `#[tauri::command]` surface exposed by `desktop-commands` (and gated by Tauri's capability/permission config).
 
 ### P2P boundary
 
@@ -39,13 +39,13 @@ This page captures a practical threat model for Soma’s current architecture. I
 
 Threats:
 
-- A malicious renderer payload triggers unsafe IPC calls into the Electron main process (confused deputy).
+- A malicious renderer payload triggers unsafe command calls into the Tauri host (confused deputy).
 - Another local process tampers with the daemon's on-disk state (SQLite DB, blob directory, libp2p identity key) under the user's home directory.
 
 Mitigations:
 
-- Keep renderer ↔ main IPC narrow; route privileged operations through the small, audited controller surface exposed by the preload script.
-- Store the libp2p identity and DBs under Electron's `userData` directory with default file permissions and let the OS isolation do its job; we do not rely on app-level authentication for "is this the same user."
+- Keep the renderer ↔ host command surface narrow; route privileged operations through the small, audited `desktop-commands` surface and Tauri's capability/permission config.
+- Store the libp2p identity and DBs under the app data dir (`~/Library/Application Support/Soma/` on macOS, `~/.local/share/soma/` on Linux) with default file permissions and let the OS isolation do its job; we do not rely on app-level authentication for "is this the same user."
 - See ADR-0001 for why we no longer maintain a separate daemon process / Unix-socket IPC surface.
 
 ### 2) Unauthorized membership / capability forgery

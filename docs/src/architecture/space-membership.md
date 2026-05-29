@@ -64,12 +64,12 @@ Revocation can be implemented by expiring capabilities, publishing revocation ev
 ### Current implementation snapshot
 
 - Transport: libp2p request/response protocol `/soma/join/1` (see `soma-peer`).
-- Daemon: the in-process `DaemonHandle` exposes `joinSpace` (via the napi addon's `SomaHandle`), then sends a JoinRequest over libp2p and surfaces decisions through `subscribeEvents`.
+- Daemon: the in-process `DaemonHandle` (owned by the Tauri host's `desktop-daemon` crate) exposes `joinSpace`, then sends a JoinRequest over libp2p and surfaces decisions through the daemon event stream (relayed to the renderer as Tauri events).
 - Join decisions: `somad bot` ships a real join decider that approves requests (optionally attaching an issuer capability if the bot has been delegated) and persists decisions/memberships to the shared SQLx storage.
 - Bot operating modes:
   - `bot` mode (default): HTTP is read-only (`/info`, `/healthz`, `/metrics`); join decisions still flow over libp2p via the decider.
   - `admin` mode: exposes admin-token-gated join control endpoints over HTTP for admin tooling; controllers still delegate to the decider/storage and never "force-join".
-- Auto-approval rules: the bot auto-approves only when it holds a valid issuer capability for the target space; otherwise join requests are recorded for manual approval. Manual approval surfaces exist in both the desktop daemon (via the napi addon's `decideJoin`) and the bot's admin HTTP.
+- Auto-approval rules: the bot auto-approves only when it holds a valid issuer capability for the target space; otherwise join requests are recorded for manual approval. Manual approval surfaces exist in both the desktop daemon (via the in-process handle's `decideJoin`, surfaced to the renderer through `@soma/sdk`) and the bot's admin HTTP.
 - Owner delegation: the daemon exposes `issueIssuerCapability` on its in-process handle; the current daemon must own the space, and the signed delegation is persisted for audit/reuse.
 - Discovery: the daemon exposes `discoverSpaces`, but it currently returns only locally known/member spaces. Rendezvous-backed space discovery is still future work.
 - Ownership proof: new daemon-created spaces carry an owner-signed genesis artifact in storage.

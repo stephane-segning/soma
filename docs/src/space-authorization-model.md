@@ -16,14 +16,14 @@ Possession of a valid `MembershipCapability` for the target `space_id`:
 
 Every surface that returns space content must check membership:
 - libp2p request/response (`/soma/blob/1` and any future protocols).
-- In-process daemon surface exposed to Electron main via the `@soma/node` napi addon (`SomaHandle` / `DaemonHandle` methods).
+- In-process daemon surface exposed to the renderer via the Tauri host (`desktop-api` handlers → `desktop-commands` → `@soma/sdk`).
 - `somad bot` admin HTTP (if it ever exposes read APIs).
 
 Controllers are thin; the check should live in the service layer so all surfaces reuse it.
 
 ## Where membership is enforced today
 - libp2p blobs: blob handler calls `SpaceAuthorizer` before serving bytes.
-- In-process daemon (napi): `uploadBlob`/`upsertDocument` require membership.
+- In-process daemon (via the Tauri command surface): `uploadBlob`/`upsertDocument` require membership.
 - Space creation: `CreateSpace` stores owner metadata plus an owner-signed `SpaceGenesisArtifact`.
 - Join decisions: membership capabilities are signature/subject/issuer-checked before persistence; delegated issuer chains are verified when the owner key is known.
 - Issuer delegation: `IssueIssuerCapability` is implemented on the in-process daemon surface, requires the current daemon to own the space, and persists the owner-signed delegation locally.

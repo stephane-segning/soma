@@ -116,9 +116,8 @@ Events should follow the pattern: `<entity>_<action>`
 | Name | Kind | Purpose | Notes |
 |------|------|---------|-------|
 | `somad` | Binary | Unified server binary with `bot` / `relay` / `rendezvous` / `bff` / `all` subcommands | Stable; replaces the former per-service `soma-botd` / `soma-relayd` / `soma-rendezvousd` / `soma-bffd` / `soma-serverd` binaries |
-| `soma-daemon` | Library | Desktop peer / daemon runtime | Stable; linked into `@soma/node` napi addon, no standalone binary |
-| `soma-agentd` | Library | Desktop agent runtime (Yjs drift resolver, etc.) | Stable; linked into `@soma/node` napi addon, no standalone binary |
-| `@soma/node` (`soma-node`) | napi cdylib | In-process bridge from Electron main to the daemon + agent libraries | Stable |
+| `soma-daemon` | Library | Desktop peer / daemon runtime | Stable; embedded by the Tauri host (`desktop-daemon`), no standalone binary |
+| `soma-agentd` | Library | Desktop agent runtime (Yjs drift resolver, etc.) | Stable; embedded by the Tauri host (`desktop-agent`), no standalone binary |
 
 ---
 
@@ -132,8 +131,11 @@ Events should follow the pattern: `<entity>_<action>`
 - `desktop/desktop-editor`
 - `desktop/desktop-icons`
 
-(The Electron-era `desktop/desktop-proto` and `desktop/desktop-data` packages
-were removed with the Electron app.)
+(The Electron-era `desktop/desktop-proto` (`@soma/proto`) and
+`desktop/desktop-data` (`@soma/desktop-db`) packages, along with the
+`backend/crates/soma-node` (`@soma/node`) napi addon, were removed with the
+Electron app. The current desktop app is the Tauri V2 shell at
+`desktop/desktop-app`.)
 
 ---
 
@@ -146,7 +148,7 @@ were removed with the Electron app.)
 | `VDFS` | Inconsistent acronym | Use VDF or cache peer |
 | `server-daemon` | Confusing | Use admin mode |
 | `spaceroom` | Proto package | Renamed to space.v1 (Phase 6) |
-| `tauri` | Previous framework | Use Electron/desktop |
+| `electron` | Previous desktop framework | Use Tauri V2 / `desktop/desktop-app` |
 
 ---
 

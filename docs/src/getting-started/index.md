@@ -4,17 +4,30 @@ This is the current development path for the repo as it exists today.
 
 The quickest useful setup is:
 
-- `desktop/soma` (Electron app — embeds the daemon + agent runtimes in-process
-  via the `@soma/node` napi addon)
+- `desktop/desktop-app` (the Tauri V2 app — its Rust `src-tauri` host embeds the
+  peer + agent runtimes in-process and exposes them to the React/Vite renderer
+  through Tauri commands consumed via `@soma/sdk`)
 
 Add `somad` (with the `bot`, `relay`, or `rendezvous` subcommand) only when you
 need peer/network flows that aren't satisfied by mDNS on the local machine.
 
 ## Prerequisites
 
-- Rust toolchain with Cargo
-- Node.js and `pnpm`
+- Rust toolchain with Cargo (the Tauri host is a Rust binary crate)
+- Node.js and `pnpm` (pnpm 9)
 - optional: `just` for the repo shortcuts
+
+On **Linux**, the Tauri build needs the WebKitGTK / GTK system libraries. On a
+Debian/Ubuntu-based distro:
+
+```bash
+sudo apt-get install -y \
+  libwebkit2gtk-4.1-dev libgtk-3-dev libayatana-appindicator3-dev \
+  librsvg2-dev libssl-dev file patchelf build-essential pkg-config \
+  xdg-utils desktop-file-utils
+```
+
+macOS and Windows need no extra system packages beyond the Rust + Node toolchains.
 
 Install JS dependencies from the repo root:
 
@@ -28,23 +41,41 @@ From the repo root:
 
 ```bash
 just desktop-run-soma
+# or, directly:
+pnpm --filter @soma/desktop-app run tauri:dev
 ```
 
-The desktop app starts the embedded daemon + agent runtimes inside the Electron
-main process; there is no separate daemon binary to launch and no Unix socket
-involved. Local data lives under Electron's `userData` directory.
+`tauri dev` compiles the Rust `src-tauri` host, starts the Vite renderer, and
+launches the app window. The host embeds the daemon + agent runtimes inside the
+`src-tauri` process — there is no separate daemon binary to launch, no Unix
+socket, and no napi addon. A native splash covers init; the main window reveals
+once the runtimes are ready. Local data lives at
+`~/Library/Application Support/Soma/` on macOS and `~/.local/share/soma/` on
+Linux.
+
+To produce an installable bundle instead of the dev loop:
+
+```bash
+just desktop-build-soma
+# or, directly:
+pnpm --filter @soma/desktop-app run tauri:build
+```
 
 ## What Each Process Does
 
-- `desktop/soma` (Electron): main UI. Electron main loads the `@soma/node` napi
-  addon, which embeds the libp2p peer / blob store / agent runtime; the
-  renderer talks to main over Electron IPC.
+- `desktop/desktop-app` (Tauri V2): the only desktop app. The Rust `src-tauri`
+  host (composed from the `desktop-*` crates) embeds the libp2p peer / blob
+  store / agent runtime and registers them as Tauri commands; the React
+  renderer talks to the host through the typed `@soma/sdk` facade
+  (`createBackend(tauriTransport())`).
 
 ## Tapia (Typing Practice)
 
-Tapia is built into Soma as the `/practice` route — there is no separate
-Electron app to launch. Open Soma and navigate to `/practice` for the
-short-passage, generated-drill, local-session-feedback flows.
+Tapia's typing-practice surface is being merged into Soma as a `/practice`
+route, but that route is **not yet wired in the Tauri app** — the renderer
+router (`desktop/desktop-app/src/routes/router.tsx`) currently ships
+`/spaces`, `/settings`, and the page editor. The `/practice` migration is a
+tracked follow-up.
 
 ## Optional: Run Peer/Infra Services
 
@@ -79,12 +110,13 @@ pnpm --filter @soma/docs run build
 
 ## Troubleshooting
 
-- The daemon runs inside the Electron main process; if Soma fails to start,
-  watch the Electron main logs for `starting @soma/node addon runtime` and any
-  error that follows. There is no separate daemon process to inspect.
-- For peer-flow issues, start with `RUST_LOG=debug` on the Electron main
-  process and bring up `somad bot` / `somad relay` / `somad rendezvous` only
-  after the local in-process daemon path works.
+- The daemon runs inside the Tauri `src-tauri` host process; if Soma fails to
+  start, watch the host logs for runtime-init errors. Logs land in the OS logs
+  dir (`~/Library/Logs/Soma/` on macOS, `~/.local/state/soma/logs/` on Linux);
+  use `RUST_LOG=debug` for verbose host output. There is no separate daemon
+  process to inspect.
+- For peer-flow issues, bring up `somad bot` / `somad relay` /
+  `somad rendezvous` only after the local in-process peer path works.
 
 ## More Specific Docs
 

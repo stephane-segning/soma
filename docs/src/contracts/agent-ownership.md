@@ -6,22 +6,22 @@
 
 The desktop agent surface has a compatibility proto for local helpers, but
 `soma-agentd` no longer owns model-provider behavior — and the surface itself
-has changed: `soma-agentd` is now a **library** linked into the `@soma/node`
-napi addon, not a separate process with a gRPC-over-Unix-socket surface.
+has changed: `soma-agentd` is now a **library** embedded by the Tauri host's
+`desktop-agent` crate, not a separate process with a gRPC-over-Unix-socket
+surface.
 
-### Path 1: agentd library (in-process via `@soma/node`)
+### Path 1: agentd library (in-process via `desktop-agent`)
 
-- **Surface:** in-process napi methods on the `SomaHandle` (`agentStatus`,
-  `listModels`, `resolveDrift`).
-- **Proto:** `proto/agent/v1/agent.proto` — kept as a record-shape reference
-  only; the agentd library no longer serves it as a gRPC server.
+- **Surface:** in-process calls into the embedded agent runtime (`agentStatus`,
+  `listModels`, `resolveDrift`), surfaced to the renderer through `@soma/sdk`.
+- **Proto:** `proto/agent/v1/agent.proto` — a Rust-only record-shape reference;
+  the agentd library no longer serves it as a gRPC server.
 - **Use case:** Yjs drift resolution and lightweight status.
 - **Features fully bound to the library:**
   - `agentStatus` / `listModels` (the latter returns an empty list)
   - `resolveDrift` (Yjs merge)
 - **Background tasks** that used to be persisted in a `soma-agentd` SQLite
-  table are now tracked in an in-memory store on the JS side
-  (`desktop/soma/src/main/services/agent-client/background-tasks.ts`).
+  table are tracked by the host's `desktop-agent` crate.
 
 ### Path 2: openai-compatible (HTTP)
 

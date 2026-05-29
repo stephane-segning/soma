@@ -33,7 +33,7 @@ Use `cargo xtask` for tasks that are primarily about:
 Do not move these concerns into `cargo xtask`:
 
 - `pnpm` install, lint, build, or release flows owned by `desktop/`
-- Electron app development commands
+- Tauri desktop app development commands
 - ad hoc root-level glue that would hide which workspace actually owns the command
 
 ## CI integration
