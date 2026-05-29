@@ -6,6 +6,18 @@ import { useDesktopShellState } from "./desktop-shell/state";
 export type DesktopShellProps = {
 	leftColumn?: ReactNode;
 	rightColumn?: ReactNode;
+	/**
+	 * Always-on, fixed-width column pinned to the far left, *outside* the
+	 * collapsible `leftColumn` rail. Designed for an icon rail (e.g. the
+	 * spaces rail) that must stay visible even when every inner panel is
+	 * collapsed. Unlike `leftColumn`, the gutter has no resize handle and
+	 * never animates closed — it sizes to its content's intrinsic width.
+	 *
+	 * Separating the gutter from `leftColumn` is what lets the inner rail
+	 * collapse to width 0 (via `leftColumn={null}`) while the icon rail
+	 * stays put — instead of leaving a dead, resizable empty column.
+	 */
+	leftGutter?: ReactNode;
 	children?: ReactNode;
 	header?: (controls: {
 		leftOpen: boolean;
@@ -121,6 +133,11 @@ export function DesktopShell(props: DesktopShellProps) {
 						props.contentClassName,
 					)}
 				>
+					{props.leftGutter ? (
+						// Always-on icon rail. `shrink-0` + intrinsic width so it
+						// never collapses with the resizable inner rail beside it.
+						<div className="flex h-full shrink-0">{props.leftGutter}</div>
+					) : null}
 					<ShellPanel
 						content={props.leftColumn}
 						maxWidth={leftMaxWidth}

@@ -110,7 +110,7 @@ export function ChatPanel(): React.JSX.Element {
 			<div className="flex h-full min-h-0 flex-col gap-2">
 				<div className="min-h-0 flex-1 overflow-auto">
 					{isEmpty ? (
-						<div className="px-3 py-6 text-center text-base-content/50 text-sm">
+						<div className="px-3 py-2 text-base-content/45 text-xs">
 							{t("panels.chat.empty", "Ask the assistant anything.")}
 						</div>
 					) : (

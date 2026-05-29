@@ -118,7 +118,7 @@ describe("PanelContainer", () => {
 		}
 	});
 
-	it("descriptors with `size: \"content\"` get a flex-none wrapper and don't force h-full on the card", () => {
+	it('descriptors with `size: "content"` get a flex-none wrapper and don\'t force h-full on the card', () => {
 		// A "content"-sized panel shrinks to its natural content height so
 		// a sibling "fill" panel can reclaim the vertical void. Verify the
 		// wrapper class swap + the matching `h-full` removal.
@@ -139,7 +139,10 @@ describe("PanelContainer", () => {
 		];
 		const { container } = render(
 			<SomaIntlProvider>
-				<PanelContainer expandedIds={new Set(["fill", "tiny"])} panels={panels} />
+				<PanelContainer
+					expandedIds={new Set(["fill", "tiny"])}
+					panels={panels}
+				/>
 			</SomaIntlProvider>,
 		);
 		const cards = container.querySelectorAll("section");

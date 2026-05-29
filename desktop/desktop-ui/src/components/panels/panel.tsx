@@ -31,6 +31,8 @@ export type PanelProps = {
 	title: ReactNode;
 	children: ReactNode;
 	footer?: ReactNode;
+	/** Small leading glyph rendered before the title in the header. */
+	icon?: ReactNode;
 	/** Extra actions rendered to the right of the title (icon buttons). */
 	actions?: ReactNode;
 	/** Collapse the panel to the icon strip. */
@@ -44,6 +46,7 @@ export function Panel({
 	title,
 	children,
 	footer,
+	icon,
 	actions,
 	onCollapse,
 	onClose,
@@ -59,7 +62,10 @@ export function Panel({
 				className,
 			)}
 		>
-			<header className="flex h-8 items-center gap-1 border-base-300 border-b px-2">
+			<header className="flex h-8 items-center gap-1.5 border-base-300 border-b px-2">
+				{icon ? (
+					<span className="shrink-0 text-base-content/50">{icon}</span>
+				) : null}
 				<h2 className="min-w-0 flex-1 truncate font-medium text-[11px] text-base-content/70 uppercase tracking-wide">
 					{title}
 				</h2>
@@ -91,7 +97,7 @@ export function Panel({
 			</header>
 			<div className="min-h-0 flex-1 overflow-auto">{children}</div>
 			{footer ? (
-				<footer className="border-base-300 border-t bg-base-100 px-2 py-1 text-xs text-base-content/80">
+				<footer className="border-base-300 border-t bg-base-100 px-2 py-1 text-base-content/80 text-xs">
 					{footer}
 				</footer>
 			) : null}
