@@ -83,21 +83,21 @@ backend-xtask-version-workspace path="../Cargo.toml":
 desktop-install:
 	cd desktop && pnpm install
 
-# Run the Soma Electron app in dev mode
+# Run the Tauri desktop app in dev mode
 desktop-run-soma:
-	cd desktop && pnpm --filter soma dev
+	cd desktop && pnpm --filter @soma/desktop-app run tauri:dev
 
-# Build the Soma Electron app
+# Build the Tauri desktop app bundle
 desktop-build-soma:
-	cd desktop && pnpm --filter soma run build
+	cd desktop && pnpm --filter @soma/desktop-app run tauri:build
 
-# Typecheck the Soma desktop app (Node + Web)
+# Typecheck the Tauri desktop app
 desktop-test-soma:
-	cd desktop && pnpm --filter soma run typecheck
+	cd desktop && pnpm --filter @soma/desktop-app run typecheck
 
 # Run lint + typecheck for the desktop app
 desktop-test-all:
-	cd desktop && pnpm --filter soma run lint && pnpm --filter soma run typecheck
+	cd desktop && pnpm --filter @soma/desktop-app run lint && pnpm --filter @soma/desktop-app run typecheck
 
 # Run vitest for @soma/ui (component + portable-stories coverage)
 desktop-test-ui:
@@ -107,30 +107,15 @@ desktop-test-ui:
 desktop-test-editor:
 	cd desktop && pnpm --filter @soma/editor run test:coverage
 
-# Run vitest for the soma renderer + main process (with coverage)
-desktop-test-renderer:
-	cd desktop && pnpm --filter soma run test:coverage
-
 # Run all unit tests across desktop workspaces with coverage
 desktop-test-unit:
 	just desktop-test-ui
 	just desktop-test-editor
-	just desktop-test-renderer
 
 # Run Cucumber × Playwright UI E2E features against @soma/ui storybook
 desktop-test-e2e:
 	cd desktop && pnpm --filter @soma/e2e run test
 
-# Generate icon assets for the Electron-based Soma app (desktop/soma)
-desktop-icons-soma input="desktop/soma/build/icon.png":
-	input_path="{{input}}"; input_path="${input_path#input=}"; cargo icons --input "$input_path" --output desktop/soma/build --flatten
-	cp desktop/soma/build/icons/icon.icns desktop/soma/build/icon.icns
-	cp desktop/soma/build/icons/icon-legacy.icns desktop/soma/build/icon-legacy.icns
-	cp desktop/soma/build/icons/icon.ico desktop/soma/build/icon.ico
-	cp desktop/soma/build/icons/1024x1024.png desktop/soma/build/icon.png
-	cp desktop/soma/build/icons/1024x1024.png desktop/soma/resources/icon.png
-	mkdir -p desktop/soma/src/renderer/public
-	cp desktop/soma/build/icons/1024x1024.png desktop/soma/src/renderer/public/icon.png
 
 #
 # Docs and compose helpers
@@ -233,9 +218,6 @@ test-desktop-soma:
 
 test-desktop-all:
 	just desktop-test-all
-
-icons-soma input="desktop/soma/build/icon.png":
-	just desktop-icons-soma {{input}}
 
 build-docs:
 	just docs-build
