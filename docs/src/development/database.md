@@ -4,7 +4,7 @@ Soma uses SQLx-backed storage for durable state such as join requests/decisions,
 
 ## What uses a database
 
-- `soma-daemon` (linked into the `@soma/node` napi addon, run in-process inside Electron main): SQLite file. Path is configured by the addon's `StartConfig.daemonDbPath`; the desktop app places it under Electron's `userData/daemon/daemon.db`.
+- `soma-daemon` (embedded in the Tauri `src-tauri` host via `desktop-daemon`, run in-process): SQLite file under the app's data dir — `~/Library/Application Support/Soma/` on macOS, `~/.local/share/soma/` on Linux (stage-specific `-dev` / `-staging` suffixes via `@soma/desktop-config`).
 - `somad bot` (server peer): SQLx AnyPool with SQLite or Postgres (`SOMA_DATABASE_URL`, default `./botd.db`).
 
 Both apply migrations at startup and fail fast if migrations cannot be applied.
@@ -40,17 +40,16 @@ Repository wiring:
 
 ### Inspecting the desktop daemon DB (SQLite)
 
-The file lives under Electron's `userData` directory — on macOS that is
-`~/Library/Application Support/soma/daemon/daemon.db`. On Linux it is
-`~/.config/soma/daemon/daemon.db`.
+The file lives under the desktop app's data directory — on macOS that is
+`~/Library/Application Support/Soma/`. On Linux it is `~/.local/share/soma/`.
 
 ```bash
-sqlite3 "$HOME/Library/Application Support/soma/daemon/daemon.db" '.tables'
+sqlite3 "$HOME/Library/Application Support/Soma/soma.db" '.tables'
 ```
 
 ### Running against a fresh DB
 
-- Delete the DB file (e.g., the daemon DB under `userData/daemon/`, or
+- Delete the DB file (e.g., the desktop DB under the app data dir, or
   `backend/botd.db` for the server bot) and restart the service.
 - Migrations will recreate the schema.
 

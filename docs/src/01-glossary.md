@@ -19,13 +19,13 @@ The main navigable note or document unit inside a workspace.
 An attachment (PDF, image, etc.), content-addressed by hash.
 
 **Daemon**  
-The local backend handling networking, storage, and permissions. On desktop, it runs in-process inside the Electron main process via the `@soma/node` napi addon (no separate process).
+The local backend handling networking, storage, and permissions. On desktop, it runs in-process inside the Tauri `src-tauri` host (via the `desktop-daemon` crate) — no separate process.
 
 **soma-daemon**  
-The desktop peer/daemon library crate (libp2p peer + storage). Linked into the `@soma/node` napi addon; no standalone binary.
+The desktop peer/daemon library crate (libp2p peer + storage). Embedded by the Tauri host (`desktop-daemon`); no standalone binary.
 
 **soma-agentd**  
-The desktop agent library crate (Yjs drift resolver and helpers). Linked into the `@soma/node` napi addon; no standalone binary.
+The desktop agent library crate (Yjs drift resolver and helpers). Embedded by the Tauri host (`desktop-agent`); no standalone binary.
 
 **somad**  
 The unified server binary. Subcommands `bot`, `relay`, `rendezvous`, `bff`, and `all` (TOML-composed multi-mode) replace the former per-service binaries.
@@ -69,7 +69,7 @@ A discovery service helping peers find each other.
 A bot-backed queue for delivering approvals asynchronously.
 
 **Tapia**  
-Typing-practice surface (short passages, generated drills, and session feedback) delivered as the `/practice` route inside the Soma desktop app. No longer a separate Electron app.
+Typing-practice surface (short passages, generated drills, and session feedback) planned to live at the `/practice` route inside the Soma desktop app. The `/practice` route is not yet wired in the Tauri app; the migration is a tracked follow-up.
 
 **Soma**  
 The main structured note-taking and workspace application in the platform.

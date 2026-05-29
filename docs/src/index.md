@@ -28,15 +28,15 @@ features:
     details: Peers discover and fetch data over libp2p, with relay and rendezvous infrastructure helping connectivity rather than owning the content.
   - title: Content-addressed attachments
     details: Blobs live outside collaborative document state and are fetched by verified CIDs, so cache peers can improve availability without becoming upload endpoints.
-  - title: Soma with built-in Tapia practice
-    details: One Electron desktop app (Soma) with Tapia delivered as the `/practice` route. Shared UI packages, Rust runtime crates linked via the `@soma/node` napi addon, and packaging automation all live in the same monorepo.
+  - title: One Tauri desktop app
+    details: Soma is a single Tauri V2 app — a React/Vite renderer over a Rust `src-tauri` host that embeds the peer and agent runtimes in-process and exposes them to the renderer through `@soma/sdk`. Shared UI packages, runtime crates, and the signed/notarized release pipeline all live in the same monorepo.
   - title: Developer-ready docs
     details: Start from setup, architecture, contracts, backend flows, desktop UI conventions, packaging, security, and deployment references.
 ---
 
 ## Install
 
-Soma ships as a single signed desktop app — Tapia is built in as the `/practice` route. Pick the download that fits your workflow; every link below resolves to the **latest release** automatically.
+Soma ships as a single signed desktop app. Pick the download that fits your workflow; every link below resolves to the **latest release** automatically.
 
 ### macOS (Apple Silicon)
 

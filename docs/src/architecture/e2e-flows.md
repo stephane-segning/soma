@@ -3,36 +3,37 @@
 This page documents a few "follow the bytes" flows across the repo so you can
 orient yourself when changing UI, daemon, or peer code.
 
-## 1) Desktop renderer ↔ Electron main (with in-process daemon)
+## 1) Desktop renderer ↔ Tauri host (with in-process daemon)
 
-- The desktop app lives under `desktop/soma`. Tapia is the `/practice` route
-  inside it, not a separate Electron app.
+- The desktop app lives under `desktop/desktop-app` (a Tauri V2 shell). The
+  React/Vite renderer is in `src/`; the Rust host is in `src-tauri/`. Tapia's
+  `/practice` route is planned but not yet wired into the renderer router.
 - The peer / daemon runtime is `soma-daemon` (`backend/crates/daemon`,
-  library only), linked into the `@soma/node` napi addon
-  (`backend/crates/soma-node`) and loaded directly by the Electron main
-  process. There is no separate daemon process and no IPC socket.
-- Protos: `proto/daemon/v1/daemon.proto` (compiled by
-  `backend/crates/proto-build`); used today only for record types like
-  `DaemonEvent`, not as a transport.
+  library only), embedded by the host's `desktop-daemon` crate and run
+  in-process. There is no separate daemon process and no IPC socket.
+- The renderer reaches the host through `@soma/sdk` over Tauri commands
+  (`createBackend(tauriTransport())`); wire types are generated from the Rust
+  command graph via `tauri-specta`. The `proto/daemon/v1/daemon.proto` schema is
+  Rust-only (libp2p wire formats), not a renderer transport.
 
 High-level sequence:
 
 ```mermaid
 sequenceDiagram
-  participant R as Renderer (React)
-  participant M as Electron main + soma-daemon (in-process)
+  participant R as Renderer (React + @soma/sdk)
+  participant M as Tauri host (src-tauri) + soma-daemon (in-process)
 
-  R->>M: ipc: status()
+  R->>M: command: status()
   M-->>R: peerId + listenAddrs
-  R->>M: ipc: subscribe(events)
-  M-->>R: stream of DaemonEvent
+  R->>M: subscribe to daemon events
+  M-->>R: Tauri event stream of DaemonEvent
 ```
 
 ## 2) Join a space (membership capabilities)
 
 Flow summary:
 
-1. The renderer asks Electron main to join a space.
+1. The renderer asks the Tauri host (via `@soma/sdk`) to join a space.
 2. The in-process daemon sends a join request over libp2p.
 3. A bot (or owner/issuer peer) decides and returns a join decision.
 4. The daemon persists the outcome and the renderer is notified through the
@@ -40,18 +41,18 @@ Flow summary:
 
 Relevant code:
 
-- UI command surface: [DaemonClient.joinSpace](../../../desktop/soma/src/main/services/daemon-client.ts) → napi `joinSpace`.
+- Command handler: `desktop/desktop-api` (transport-agnostic) surfaced as a `#[tauri::command]` in `desktop/desktop-commands`; the renderer calls it through `@soma/sdk`.
 - Peer protocol wiring: `backend/crates/peer/src/lib.rs` (protocol id `/soma/join/1`).
 - Bot join decider wiring: `backend/bins/somad/src/commands/bot/runtime.rs`.
 - Daemon join handling: `backend/crates/daemon/src/handle/joins.rs`, `backend/crates/daemon/src/handlers/`.
 
 ```mermaid
 sequenceDiagram
-  participant R as Renderer
-  participant M as Electron main + soma-daemon (in-process)
+  participant R as Renderer (@soma/sdk)
+  participant M as Tauri host + soma-daemon (in-process)
   participant Bot as somad bot (remote peer)
 
-  R->>M: ipc: joinSpace(space_id, target_peer_id, addrs)
+  R->>M: command: joinSpace(space_id, target_peer_id, addrs)
   M->>Bot: /soma/join/1 JoinRequest (libp2p)
   Bot-->>M: /soma/join/1 JoinDecision
   M-->>R: event: joinSubmitted / joinDecision
@@ -66,9 +67,9 @@ Design rule:
 - Collaborative documents store **references** to blobs, not bytes.
 - The daemon owns blob persistence; bots are cache-only.
 
-On desktop, the UI stages a blob locally, then hands the bytes to the
-in-process daemon via the napi addon's `uploadBlob` to publish into the
-content-addressed store.
+On desktop, the renderer invokes an upload command through `@soma/sdk`
+(`desktop-commands` → `desktop-api`), which hands the bytes to the in-process
+daemon to publish into the content-addressed store.
 
 See: `docs/src/architecture/blobs-vdfs.md`.
 
@@ -103,27 +104,28 @@ sequenceDiagram
 
 ## 5) Model chat (renderer → main → provider)
 
-The desktop renderer initiates a chat request via Electron IPC. Chat / list-models /
-rerank go directly to an OpenAI-compatible HTTP endpoint configured in the
-desktop runtime config (Ollama or a remote provider). The agent library
-(`soma-agentd`, in-process via the napi addon) is used only for in-process
-drift resolution and status; it does **not** proxy model RPCs.
+The desktop renderer initiates a chat request through `@soma/sdk` over Tauri
+commands. Chat / list-models / rerank go to an OpenAI-compatible HTTP endpoint
+configured in the Tauri store (Ollama or a remote provider) and driven by the
+`desktop-agent` client. The agent library (`soma-agentd`, embedded in-process)
+is used only for in-process drift resolution and status; it does **not** proxy
+model RPCs.
 
 Relevant code (desktop side):
 
-- Renderer: `desktop/soma/src/renderer/src/services/chat-service.ts`
-- Main: `desktop/soma/src/main/services/agent-client/openai.ts`
+- Renderer chat surface: `desktop/desktop-app/src` (consumes `@soma/sdk`).
+- Host agent client: `desktop/desktop-agent` (OpenAI-compatible chat/embed/rerank).
 
 ```mermaid
 sequenceDiagram
-  participant R as Renderer (React)
-  participant M as Electron main
+  participant R as Renderer (React + @soma/sdk)
+  participant M as Tauri host (desktop-agent)
   participant P as OpenAI-compatible endpoint (Ollama / remote)
 
   R->>M: chatStream(messages)
   M->>P: POST /v1/chat/completions (stream=true)
   P-->>M: SSE token chunks
-  M-->>R: stream of token events
+  M-->>R: Tauri event stream of token events
 ```
 
 ## 6) Server LLM BFF (optional)

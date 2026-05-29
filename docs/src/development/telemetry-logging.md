@@ -13,9 +13,12 @@ All Rust backends initialize `tracing` via `soma_core::telemetry::init_tracing(.
 
 The remaining standalone backend binary is `somad` (with subcommands
 `bot` / `relay` / `rendezvous` / `bff` / `all`). The desktop side embeds the
-daemon + agent runtimes in-process via the `@soma/node` napi addon, so the
+daemon + agent runtimes in-process inside the Tauri `src-tauri` host, so the
 same env vars (`RUST_LOG`, `SOMA_LOG_FORMAT`, `SOMA_LOGS_DIR`,
-`SOMA_FLAME_ENABLED`) apply when exported into the Electron main process.
+`SOMA_FLAME_ENABLED`) apply when exported into the host process. In the
+packaged app, the `desktop-services` logger and `tauri-plugin-log` route output
+to the OS logs dir (`~/Library/Logs/Soma/` on macOS,
+`~/.local/state/soma/logs/` on Linux).
 
 Plain text to stdout/stderr (server binary):
 

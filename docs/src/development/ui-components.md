@@ -433,7 +433,7 @@ locked `^x.y.z`, so only patches flow in until a coordinated bump.
 - `AiThinking` renders a collapsible "Thinking…" section; pass `status="thinking" | "complete"`, `durationLabel`, and `content` (markdown rendered via `AiMarkdown`).
 - Keep chat wrappers thin: `AiChat` provides a scroll container; inputs are kept separate.
 
-### Grapheme-Aware Typing (Tapia / `/practice` route)
+### Grapheme-Aware Typing (Tapia typing practice)
 
 - `useGraphemes(value: string)` splits text into grapheme clusters using `Intl.Segmenter` (fallback to `Array.from`).
 - `CharDisplay` is a dumb renderer that expects `shouldGraphemes` and `isGraphemes`. It aligns glyphs (including emojis) and shows mismatches with an elevated correct glyph.
@@ -469,9 +469,9 @@ For everything panel-related — `PanelChipBar` placement, the
 The `Desktop / Shell → Soma App` Storybook scene is the visual
 regression canary for any chrome-level change.
 
-### Window drag regions (Electron)
+### Window drag regions (Tauri)
 
-- Electron (`desktop/soma`): use `data-drag-region` + CSS `-webkit-app-region: drag` (see `desktop/soma/src/renderer/src/styles/app.scss`). Mark interactive elements with `data-no-drag`.
+- The Tauri app uses a frameless window (`decorations: false`, `titleBarStyle: "Overlay"`, `hiddenTitle: true` in `tauri.conf.json`). Mark draggable chrome with `data-drag-region` and opt interactive elements out with `data-no-drag`.
 
 ### Build + publishing
 

@@ -1,14 +1,14 @@
 # UI Framework Candidates
 
-Soma (including its built-in `/practice` Tapia surface) currently uses React 19, Tailwind CSS v4, DaisyUI, Floating UI, Motion, and a shared @soma/ui package. That works, but DaisyUI is carrying too much visual opinion into an app that wants a dense, native-feeling desktop surface.
+Soma (the Tauri V2 desktop app, including the planned Tapia typing-practice surface) currently uses React 19, Tailwind CSS v4, DaisyUI, Floating UI, Motion, and a shared @soma/ui package. That works, but DaisyUI is carrying too much visual opinion into an app that wants a dense, native-feeling desktop surface.
 
 ## What We Need
 
 - Headless or lightly styled primitives so `@soma/ui` remains the design-system boundary.
 - Strong accessibility defaults for menus, dialogs, comboboxes, tabs, toolbars, trees, and keyboard navigation.
 - Tailwind-compatible styling with no mandatory CSS-in-JS runtime.
-- React 19 compatibility and good behavior inside Electron/Chromium.
-- Composable APIs that can support Soma's workspace shell and the `/practice` route's focused interaction states without fighting Motion.
+- React 19 compatibility and good behavior inside the Tauri WebView (WKWebView on macOS, WebKitGTK on Linux).
+- Composable APIs that can support Soma's workspace shell and the planned `/practice` route's focused interaction states without fighting Motion.
 
 ## Leading Candidate: Base UI
 
@@ -33,14 +33,14 @@ Recommended experiment:
 | Candidate | Fit | Concern |
 | --- | --- | --- |
 | [React Aria Components](https://react-spectrum.adobe.com/react-aria/components.html) | Best accessibility depth and broad component coverage. | API and styling model may feel heavier than we need for a custom desktop shell. |
-| [Ark UI](https://ark-ui.com/react/docs/overview/introduction) | Headless, accessible, broad component set, and a state-machine flavor that could pair well with the typing-practice surface. | Multi-framework abstraction may add concepts we do not need in a React-only Electron app. |
+| [Ark UI](https://ark-ui.com/react/docs/overview/introduction) | Headless, accessible, broad component set, and a state-machine flavor that could pair well with the typing-practice surface. | Multi-framework abstraction may add concepts we do not need in a React-only app. |
 | [Radix Primitives](https://www.radix-ui.com/primitives/docs/overview/introduction) | Mature low-level primitives, familiar ecosystem, good fit for shadcn-style wrappers. | Base UI looks like the fresher direction for this exact unstyled React primitive layer. |
 | [Mantine](https://mantine.dev/) | Very productive full component library with many hooks and ready-made controls. | More of a replacement design system than a primitive layer; likely too opinionated for `@soma/ui`. |
 | [Chakra UI](https://chakra-ui.com/docs/components/concepts/overview) | Complete component inventory and strong composability story. | Its styling/runtime model is a larger departure from Tailwind-first desktop UI. |
 
 ## VitePress Compatibility
 
-Do not add Chakra UI directly to the VitePress docs theme. Chakra UI is a React component library, while VitePress is Vue-powered. We can still document Chakra UI here as a candidate for the Electron apps, but using it inside the docs site would require a React island or iframe bridge and would add framework complexity to a content-first site.
+Do not add Chakra UI directly to the VitePress docs theme. Chakra UI is a React component library, while VitePress is Vue-powered. We can still document Chakra UI here as a candidate for the desktop app, but using it inside the docs site would require a React island or iframe bridge and would add framework complexity to a content-first site.
 
 If the docs need richer interactive examples, prefer one of these:
 

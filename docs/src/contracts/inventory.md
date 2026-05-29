@@ -1,6 +1,6 @@
 # Backend/Desktop Contract Inventory
 
-This document tracks the shared contract surface between the desktop runtime crates (`soma-daemon`, `soma-agentd`) and Electron main, which loads them in-process via the `@soma/node` napi addon. The proto files under `proto/` are kept as record-shape references; the desktop side calls the addon's `SomaHandle` / `DaemonHandle` / `AgentHandle` methods directly — there is no gRPC service and no Unix socket.
+This document tracks the shared contract surface between the desktop runtime crates (`soma-daemon`, `soma-agentd`) and the Tauri host, which embeds them in-process via the `desktop-daemon` / `desktop-agent` crates. The host exposes the behaviour as transport-agnostic `desktop-api` handlers wrapped as `#[tauri::command]`s in `desktop-commands`; the renderer calls them through the typed `@soma/sdk` facade. The `proto/` files are Rust-only libp2p wire formats — there is no gRPC service, no Unix socket, and no napi addon. (The RPC names in the tables below are the conceptual operation names; on the wire they are Tauri commands, and the renderer types are generated from the command graph via `tauri-specta`.)
 
 **Last Updated:** 2026-05-16
 
@@ -16,7 +16,7 @@ This document tracks the shared contract surface between the desktop runtime cra
 
 ---
 
-## daemon.v1.Daemon (in-process napi surface on `SomaHandle` / `DaemonHandle`)
+## daemon.v1.Daemon (in-process surface via `desktop-daemon`, exposed through `desktop-api` → Tauri commands)
 
 | RPC | Proto | Backend | Desktop | Docs | Status | Notes |
 |-----|-------|---------|---------|------|--------|-------|
@@ -58,7 +58,7 @@ This document tracks the shared contract surface between the desktop runtime cra
 
 ---
 
-## agent.v1.Agent (in-process napi surface on `SomaHandle` / `AgentHandle`)
+## agent.v1.Agent (in-process surface via `desktop-agent`, exposed through `desktop-api` → Tauri commands)
 
 | RPC | Proto | Backend | Desktop | Docs | Status | Notes |
 |-----|-------|---------|---------|------|--------|-------|
@@ -75,8 +75,8 @@ This document tracks the shared contract surface between the desktop runtime cra
 
 ### Agent Client Dual-Path Behavior
 
-The desktop `AgentClient` has two runtime paths:
-- **agentd library path**: in-process napi calls into `soma-agentd` for `agentStatus`, `listModels`, and `resolveDrift` only
+The host's `desktop-agent` crate has two runtime paths:
+- **agentd library path**: in-process calls into the embedded `soma-agentd` for `agentStatus`, `listModels`, and `resolveDrift` only
 - **openai-compatible path**: Direct HTTP calls to OpenAI-compatible endpoints (Ollama, etc.) for chat / list-models / rerank
 
 This means not all agent features are strictly bound to `agent.proto`. See Phase 3 deliverable.

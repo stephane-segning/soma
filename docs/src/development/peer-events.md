@@ -13,7 +13,7 @@ Source: `backend/crates/peer/src/events.rs`
 
 ## Backpressure model (daemon example)
 
-In the `soma-daemon` library (run in-process via `@soma/node`), each handler is wrapped in its own `mpsc` queue/worker:
+In the `soma-daemon` library (run in-process inside the Tauri host via `desktop-daemon`), each handler is wrapped in its own `mpsc` queue/worker:
 
 - Dispatcher only enqueues events for handlers that care about the event kind.
 - `try_send` is used to avoid blocking the peer loop; full queues drop events (log/metrics can be added per handler).

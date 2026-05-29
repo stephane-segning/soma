@@ -1,12 +1,19 @@
 # Desktop Configuration Service
 
-`@soma/desktop-config` is the shared Electron runtime config layer for the
-Soma desktop app (which now also houses the `/practice` Tapia surface).
+`@soma/desktop-config` is the shared stage-detection + path-normalization layer
+for the Soma desktop app (the Tauri V2 app at `desktop/desktop-app`).
 
 It centralizes:
 
 - stage detection (dev / staging / prod)
-- stage-specific Electron data paths
+- stage-specific data paths
+
+> **Note:** the implementation in `src/stage-config.ts` still carries
+> Electron-era code (it imports `electron` and adjusts Electron app paths)
+> from before the Tauri migration. The Tauri host does not load it as-is; this
+> package needs a pass to align with the Tauri data-path conventions
+> (`@soma/desktop-config` is the intended home for stage detection +
+> Tauri path normalization). Flagged for follow-up.
 
 Package location:
 
@@ -49,10 +56,10 @@ Important behavior:
 
 ## Daemon transport
 
-The daemon and agent runtimes are linked into the `@soma/node` napi addon and
-loaded in-process by the Electron main process. There is no daemon socket and
-no separate daemon process — historical fields like socket paths and
-`SOMA_DAEMON_SOCKET` / `SOMA_AGENTD_SOCKET` are gone.
+The daemon and agent runtimes are embedded in the Tauri `src-tauri` host (via
+the `desktop-daemon` / `desktop-agent` crates) and run in-process. There is no
+daemon socket and no separate daemon process — historical fields like socket
+paths and `SOMA_DAEMON_SOCKET` / `SOMA_AGENTD_SOCKET` are gone.
 
 ## Current Package Shape
 

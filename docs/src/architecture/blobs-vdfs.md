@@ -35,7 +35,7 @@ Terminology note:
 - **CID**: identity of a blob, computed from the blob’s bytes (today: SHA‑256 hex string).
 - **Space scope**: blobs are stored under a `space_id` directory for layout and operational scoping.
 - **Daemon store vs bot cache**:
-  - The desktop daemon library (`soma-daemon`, run in-process inside the Electron main process via `@soma/node`) is the source of truth for user‑created blobs (uploaded through the napi addon's `uploadBlob`).
+  - The desktop daemon library (`soma-daemon`, embedded in-process in the Tauri host via `desktop-daemon`) is the source of truth for user‑created blobs (uploaded through the upload command surfaced by `@soma/sdk`).
   - `somad bot` is cache‑only for blobs (writes only as a side‑effect of fetching by CID).
 
 ## CID format (today)
@@ -59,7 +59,7 @@ Both daemon and bot use the same layout:
 
 Examples:
 
-- Desktop daemon blob root: configured by the napi addon's `StartConfig.blobDir`; the desktop app places it under Electron's `userData/daemon/blobs/`.
+- Desktop daemon blob root: configured by the Tauri host's `desktop-daemon` runtime config; the desktop app places it under the app data dir (`~/Library/Application Support/Soma/` on macOS, `~/.local/share/soma/` on Linux).
 - `somad bot` blob root: configured by `--blob-dir` / `SOMA_BLOB_DIR` (see `backend/bins/somad/src/commands/bot/`).
 
 ## Local ingestion (desktop)
@@ -67,15 +67,16 @@ Examples:
 Desktop UX stages blobs locally and then uploads them to the in-process
 daemon library:
 
-- Renderer stages blobs via Electron IPC through the main process.
-- Main process can keep local staged handles during upload preparation.
-- Daemon persistence happens through `SomaHandle.uploadBlob` (a Rust napi
-  call), after which the desktop renders daemon-owned blob references through
-  `soma-blob://daemon/{space_id}/{cid}`.
+- Renderer stages blobs locally and invokes an upload command via `@soma/sdk`.
+- The Tauri host (`desktop-commands` → `desktop-api`) receives the bytes.
+- Daemon persistence happens through the embedded daemon handle's
+  `upload_blob`, after which the desktop renders daemon-owned blob references
+  through `soma-blob://daemon/{space_id}/{cid}` (served by the host's
+  `desktop-services::blob_protocol` handler).
 
 Daemon ingestion path:
 
-- In-process napi method on the daemon handle (`uploadBlob`) — see [DaemonHandle::upload_blob](../../../backend/crates/daemon/src/handle/blobs.rs).
+- In-process method on the embedded daemon handle (`upload_blob`) — see [DaemonHandle::upload_blob](../../../backend/crates/daemon/src/handle/blobs.rs).
 - Size limit: `MAX_UPLOAD_BYTES = 8 MiB` (enforced in the daemon handle).
 
 ## Network fetch protocol (libp2p)
@@ -123,7 +124,7 @@ Operational note: current filesystem implementations require a non‑empty `spac
 sequenceDiagram
   autonumber
   participant UI as Desktop UI
-  participant D as soma-daemon (in-process via @soma/node — peer + blob store)
+  participant D as soma-daemon (in-process in the Tauri host — peer + blob store)
   participant P as soma-peer runtime (libp2p)
   participant R as Remote peer (daemon or bot)
   participant S as Remote BlobProvider (store/cache)
@@ -137,11 +138,11 @@ sequenceDiagram
   P->>D: BlobProvider.put(expected_cid, space_id, bytes)
 ```
 
-Today, the peer runtime already supports `/soma/blob/1` and `PeerCommand::FetchBlob`, while desktop rendering reads daemon-owned blobs through the Electron `soma-blob://daemon/...` path.
+Today, the peer runtime already supports `/soma/blob/1` and `PeerCommand::FetchBlob`, while desktop rendering reads daemon-owned blobs through the Tauri host's `soma-blob://daemon/...` protocol handler.
 
 ## Security and limits
 
-- Always enforce a maximum blob size at ingress (`uploadBlob` napi call) and egress (network transfer). Current limit is 8 MiB on both paths.
+- Always enforce a maximum blob size at ingress (the upload command) and egress (network transfer). Current limit is 8 MiB on both paths.
 - Always verify bytes match the CID before persisting or serving (both current FS implementations do this on `put`).
 - Treat remote blobs as untrusted: do not automatically execute or render without appropriate UI sandboxing.
 - Blob serving is membership-gated at the peer layer. Additional permission granularity may still evolve, but the fetch path is no longer intended to be open to non-members.
@@ -152,4 +153,4 @@ The desktop daemon library and `somad bot` share a single filesystem backend in 
 
 - `soma_vdfs::fs::FsBlobStore` (`backend/crates/vdfs/src/fs.rs`)
 
-Policy-level differences ("authoritative store" vs "cache-only") are enforced by which code paths are exposed to users (desktop `uploadBlob` napi call vs network pull-by-CID) rather than by separate storage implementations today.
+Policy-level differences ("authoritative store" vs "cache-only") are enforced by which code paths are exposed to users (the desktop upload command vs network pull-by-CID) rather than by separate storage implementations today.

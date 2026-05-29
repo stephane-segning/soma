@@ -192,7 +192,7 @@ Arch values: `amd64`, `arm64`
 soma-desktop-{version}-{os}-{arch}.{ext}
 ```
 
-The Tapia surface ships inside the Soma desktop artifact (as the `/practice` route); there is no separate `tapia-desktop-*` build.
+The Tapia surface ships inside the Soma desktop artifact (planned as the `/practice` route, not yet wired into the Tauri router); there is no separate `tapia-desktop-*` build.
 
 Extensions:
 
