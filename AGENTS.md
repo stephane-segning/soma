@@ -55,7 +55,7 @@ Pre-prod refactor. Breaking changes are fine; there is no backwards-compatibilit
 - [x] P6a — Packaging cleanup: sudoless user-domain install at `~/Applications`, SHA256SUMS published with `desktop-v*` releases, obsolete `desktop/packaging/` + `release.yml` (bundle workflow) deleted. (The install/uninstall bootstrap scripts originally introduced here were retired once notarized macOS `.dmg`/`.zip` + Linux `.deb`/`.AppImage` made `curl | bash` unnecessary; users download directly from the release.)
 - [x] P6b — Developer ID code signing + notarization: `electron-builder.yml` has `notarize: true`; `release-desktop.yml` reads `CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_API_KEY` (content, materialized to `$RUNNER_TEMP/AuthKey.p8`), `APPLE_API_KEY_ID`, `APPLE_API_ISSUER`, `APPLE_TEAM_ID` from repo secrets; ad-hoc `codesign --sign -` + `ditto` rezip step removed
 - [x] P7 — CI matrix dedup: `.github/targets.json` is the single `(os, arch)` source, consumed via a `targets` job + `fromJSON` in the release workflow(s). Dead `release-daemons.yml` + its sole-consumer `cargo-cross-build` composite action removed. `docker-backend.yml` renamed to `release-server.yml` to match the doc.
-- [x] P8 — **Tauri migration + Electron removal.** New desktop app at `desktop/desktop-app/` (Tauri V2 shell) replaces the Electron app. The runtimes are embedded in `src-tauri` via the `desktop-*` Rust crates; `@soma/sdk` drives the renderer over Tauri commands today (HTTP/SSE BFF via `desktop-bff` later). `desktop/soma/` (Electron app), `backend/crates/soma-node/` (napi addon), `desktop/desktop-proto/` (`@soma/proto`), `release-desktop.yml`, and all `electron-builder*` / `electron.vite` config were deleted. **A Tauri release pipeline is not yet wired** — the desktop currently has no published-artifact path; the docs landing-page download links point at the now-stale Electron assets until a Tauri release workflow lands.
+- [x] P8 — **Tauri migration + Electron removal.** New desktop app at `desktop/desktop-app/` (Tauri V2 shell) replaces the Electron app. The runtimes are embedded in `src-tauri` via the `desktop-*` Rust crates; `@soma/sdk` drives the renderer over Tauri commands today (HTTP/SSE BFF via `desktop-bff` later). `desktop/soma/` (Electron app), `backend/crates/soma-node/` (napi addon), `desktop/desktop-proto/` (`@soma/proto`), the Electron `release-desktop.yml`, and all `electron-builder*` / `electron.vite` config were deleted. A Tauri release pipeline now exists: `release-desktop.yml` builds the `desktop/desktop-app/` bundles via `tauri-apps/tauri-action` (macOS arm64 + Linux amd64/arm64), signs/notarizes macOS with the carried-over Apple secrets, and publishes versionless `soma-desktop-<os>-<arch>.<ext>` assets to a `desktop-v<version>` GitHub Release that the docs landing-page download links resolve to. (The macOS signing/notarization path still needs a real `workflow_dispatch` run to confirm.)
 
 When this document says "today" or describes current behavior in present tense, treat it as the *intended* behavior in the target architecture — verify against the code if you need to make a load-bearing decision.
 
@@ -82,7 +82,7 @@ When this document says "today" or describes current behavior in present tense, 
 - `docs/` — VitePress docs (`@soma/docs`).
 - `deploy/` — Helm charts and infrastructure manifests for server backends.
 - `prd/` — product requirements.
-- `.github/workflows/` — CI (`test.yml`) + release pipelines (`release-server.yml` for the server-binary matrix, `release-pages.yml` for docs + Storybook). The Tauri desktop release pipeline is not yet wired.
+- `.github/workflows/` — CI (`test.yml`) + release pipelines (`release-server.yml` for the server-binary matrix, `release-desktop.yml` for the Tauri desktop bundles via `tauri-action`, `release-pages.yml` for docs + Storybook).
 
 Where to put new code:
 
@@ -434,7 +434,7 @@ In the desktop host, tracing init is gated: the `desktop-services` logger initia
 
 Target — sudoless, signed, single-bundle, produced by the **Tauri bundler** (`tauri build`). The distribution philosophy below is unchanged from the Electron era; only the toolchain changed.
 
-> **Status:** a Tauri desktop *release workflow* is not yet wired. `release-desktop.yml` (the Electron pipeline) was removed with the Electron app; the principles below describe the intended Tauri packaging, and the docs landing-page download links remain pointed at the stale Electron assets until a Tauri release pipeline lands.
+> **Status:** the Tauri desktop *release workflow* is wired. `release-desktop.yml` (now a `tauri-action`-driven pipeline; the Electron version was removed with the Electron app) builds the `desktop/desktop-app/` bundles, signs/notarizes macOS, and publishes the versionless assets the docs landing-page download links resolve to. The macOS signing/notarization path still needs a real `workflow_dispatch` run to confirm end-to-end.
 
 ### macOS
 
@@ -452,8 +452,8 @@ Target — sudoless, signed, single-bundle, produced by the **Tauri bundler** (`
 ### CI
 
 - GitHub Actions. `test.yml` runs on push/PR (Rust workspace build+test, `@soma/ui` + `@soma/editor` vitest coverage, Storybook-driven UI E2E). Release workflows are manual-triggered (`workflow_dispatch`).
-- `.github/targets.json` is the single source of `(os, arch)` truth. Today only `release-server.yml` consumes it (the `server` slice) via a tiny `targets` job that `jq`s the slice and emits it as a job output, then `build.strategy.matrix.include` consumes it via `fromJSON(needs.targets.outputs.server)`. Adding a server target = one entry in `targets.json`. (The old `desktop` slice was removed with the Electron release pipeline; a future Tauri release workflow can re-add a desktop slice.)
-- **Desktop release: not yet wired.** The Electron `release-desktop.yml` was removed with the Electron app. A Tauri equivalent (`tauri build` + sign/notarize + publish) still needs to be authored; the Apple Developer ID + App Store Connect API-key secrets (`CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_API_KEY` content, `APPLE_API_KEY_ID`, `APPLE_API_ISSUER`, `APPLE_TEAM_ID`) carry over to the Tauri bundler.
+- `.github/targets.json` is the single source of `(os, arch)` truth. `release-server.yml` consumes the `server` slice and `release-desktop.yml` consumes the `desktop` slice, each via a tiny `targets` job that `jq`s the slice and emits it as a job output, then `build.strategy.matrix.include` consumes it via `fromJSON(needs.targets.outputs.<slice>)`. Adding a target = one entry in `targets.json`.
+- **Desktop release: wired (Tauri).** `release-desktop.yml` builds the `desktop/desktop-app/` bundles via `tauri-apps/tauri-action` (macOS arm64 + Linux amd64/arm64), signs/notarizes macOS, renames the bundles to the versionless `soma-desktop-<os>-<arch>.<ext>` convention, and publishes them to a `desktop-v<version>` Release pinned as `latest`. The Apple Developer ID + App Store Connect API-key secrets (`CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_API_KEY` content, `APPLE_API_KEY_ID`, `APPLE_API_ISSUER`, `APPLE_TEAM_ID`) are wired into `tauri-action` for the macOS leg. The signing/notarization path is unverified until a real `workflow_dispatch` run on the macOS runner.
 - `release-server.yml` builds **one** `somad` Docker image (distroless, non-root) per `(os, arch)` and publishes to GHCR.
 - `release-pages.yml` deploys docs (VitePress) + Storybook to GitHub Pages.
 - SBOMs via `anchore/sbom-action` (Syft).

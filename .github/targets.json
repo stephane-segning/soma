@@ -1,5 +1,28 @@
 {
-  "$comment": "Single source of (os, arch) truth for the server release workflow. Read at job start via jq and consumed as a matrix include via fromJSON. Adding a new target = adding one entry here; release-server.yml picks it up automatically (server matrix is linux-only by definition). The desktop is the Tauri app under desktop/desktop-app; its release pipeline is not yet wired (see PR removing the legacy Electron app).",
+  "$comment": "Single source of (os, arch) truth for the release workflows. Read at job start via jq and consumed as a matrix include via fromJSON. Adding a new target = adding one entry here; release-server.yml + release-desktop.yml pick it up automatically (server matrix is linux-only by definition). The desktop is the Tauri app under desktop/desktop-app, built via tauri-apps/tauri-action. `rust_target` is the host triple `tauri build` targets; `artifact_exts` lists the bundle extensions the collect step gathers for that leg and renames to the versionless soma-desktop-<os>-<arch>.<ext> the docs landing page links to (macos `zip` is produced by zipping the bundled .app).",
+  "desktop": [
+    {
+      "os": "linux",
+      "arch": "amd64",
+      "runs_on": "ubuntu-22.04",
+      "rust_target": "x86_64-unknown-linux-gnu",
+      "artifact_exts": ["AppImage", "deb"]
+    },
+    {
+      "os": "linux",
+      "arch": "arm64",
+      "runs_on": "ubuntu-22.04-arm",
+      "rust_target": "aarch64-unknown-linux-gnu",
+      "artifact_exts": ["AppImage", "deb"]
+    },
+    {
+      "os": "macos",
+      "arch": "arm64",
+      "runs_on": "macos-latest",
+      "rust_target": "aarch64-apple-darwin",
+      "artifact_exts": ["dmg", "zip"]
+    }
+  ],
   "server": [
     {
       "arch": "amd64",
