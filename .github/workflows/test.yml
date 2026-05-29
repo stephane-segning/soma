@@ -14,13 +14,11 @@ concurrency:
 
 jobs:
   rust:
-    # Build + test the whole Rust workspace, not just the crates that
-    # land in the napi addon. `pnpm typecheck:node` only walks the
-    # soma-node dependency graph (daemon, peer, storage, …), so
-    # downstream consumers like `somad` were drifting silently — a
-    # signature change in `soma-membership` broke the bot HTTP routes
-    # on #85 and the workflow never noticed. `--workspace` catches
-    # binaries + every test crate in one pass.
+    # Build + test the whole Rust workspace — the Tauri desktop crates
+    # (desktop-*) plus the shared backend crates and the `somad` server
+    # binary. `--workspace` catches binaries + every test crate in one
+    # pass so downstream consumers can't drift silently (e.g. a signature
+    # change in `soma-membership` once broke the bot HTTP routes on #85).
     name: Rust workspace (build + test)
     runs-on: ubuntu-latest
     steps:
@@ -101,18 +99,6 @@ jobs:
         with:
           name: coverage-soma-editor
           path: desktop/desktop-editor/coverage
-          if-no-files-found: ignore
-          retention-days: 14
-
-      - name: Run soma renderer vitest with coverage
-        run: pnpm --filter soma run test:coverage
-
-      - name: Upload soma coverage artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-soma
-          path: desktop/soma/coverage
           if-no-files-found: ignore
           retention-days: 14
 

@@ -1,8 +1,8 @@
 //! Embeddable runtime for the Soma daemon.
 //!
 //! There is no standalone `soma-daemon` binary anymore; the daemon ships only
-//! as a library, linked into the `soma-node` napi addon and consumed in-process
-//! by the Electron desktop app. Embedders provide their own Tokio runtime,
+//! as a library, embedded in-process by the Tauri desktop app via the
+//! `desktop-daemon` crate. Embedders provide their own Tokio runtime,
 //! tracing subscriber, and signal handling — this library installs none.
 
 use std::sync::Arc;

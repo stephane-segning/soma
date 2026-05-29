@@ -1,7 +1,6 @@
 packages:
   # specify a package in a direct subdir of the root
   - 'docs'
-  - 'desktop/desktop-proto'
   - 'desktop/desktop-config'
   - 'desktop/desktop-data'
   - 'desktop/desktop-editor'
@@ -9,5 +8,3 @@ packages:
   - 'desktop/desktop-e2e'
   - 'desktop/desktop-sdk'
   - 'desktop/desktop-app'
-  - 'desktop/soma'
-  - 'backend/crates/soma-node'
