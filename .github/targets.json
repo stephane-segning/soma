@@ -4,14 +4,14 @@
     {
       "os": "linux",
       "arch": "amd64",
-      "runs_on": "ubuntu-22.04",
+      "runs_on": "ubuntu-latest",
       "rust_target": "x86_64-unknown-linux-gnu",
       "artifact_exts": ["AppImage", "deb"]
     },
     {
       "os": "linux",
       "arch": "arm64",
-      "runs_on": "ubuntu-22.04-arm",
+      "runs_on": "ubuntu-24.04-arm",
       "rust_target": "aarch64-unknown-linux-gnu",
       "artifact_exts": ["AppImage", "deb"]
     },
