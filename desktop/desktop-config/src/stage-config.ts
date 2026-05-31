@@ -123,7 +123,7 @@ export class StageConfigService {
 	private readEnv(keys: string[], env: NodeJS.ProcessEnv): string | null {
 		for (const key of keys) {
 			const value = env[key];
-			if (value && value.trim().length > 0) {
+			if (typeof value === "string" && value.trim().length > 0) {
 				return value;
 			}
 		}
@@ -151,13 +151,12 @@ export class StageConfigService {
 		}
 
 		if (platform === "win32") {
-			const base = env.APPDATA?.trim() || join(home, "AppData", "Roaming");
+			const base = trimmedEnv(env.APPDATA) ?? join(home, "AppData", "Roaming");
 			return join(base, `${appName}${suffix}`);
 		}
 
 		// Linux + other Unix-likes follow the XDG base-directory spec.
-		const xdgDataHome = env.XDG_DATA_HOME?.trim();
-		const base = xdgDataHome || join(home, ".local", "share");
+		const base = trimmedEnv(env.XDG_DATA_HOME) ?? join(home, ".local", "share");
 		return join(base, `${unixAppName}${suffix}`);
 	}
 }
@@ -166,6 +165,14 @@ export function resolveStageConfig(
 	options: StageConfigOptions = {},
 ): StageRuntimeConfig {
 	return new StageConfigService(options).resolve();
+}
+
+function trimmedEnv(value: unknown): string | undefined {
+	if (typeof value !== "string") {
+		return undefined;
+	}
+	const trimmed = value.trim();
+	return trimmed.length > 0 ? trimmed : undefined;
 }
 
 export function normalizeStage(rawStage: string): Stage {
