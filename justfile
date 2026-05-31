@@ -3,7 +3,7 @@
 # Goal: keep the repo root convenient without making it the only place where
 # day-to-day tooling lives. Recipes here should delegate to the owning surface:
 # - `backend/` for Cargo and `cargo xtask`
-# - `desktop/` for pnpm workspaces and Electron apps
+# - `desktop/` for pnpm workspaces and the Tauri desktop app
 # - `docs/` for docs content (still built through the desktop pnpm workspace)
 
 set shell := ["bash", "-lc"]
@@ -15,10 +15,6 @@ set shell := ["bash", "-lc"]
 # Build the unified server binary
 backend-build-servers:
 	cd backend && cargo build -p somad
-
-# Build the @soma/node napi addon that hosts the daemon + agent in-process
-backend-build-node-addon:
-	cd backend && cargo build -p soma-node --release
 
 # Run somad bot
 backend-run-bot:
@@ -41,8 +37,8 @@ backend-run-all config="server.toml":
 	export SOMA_DATA_DIR="$PWD/.data" && cd backend && cargo run -p somad -- all --config {{config}}
 
 # Build every crate + binary in the Rust workspace. Catches downstream
-# breakage in `somad` and other binaries that the napi-scoped
-# `pnpm typecheck:node` doesn't walk. CI uses this same target.
+# breakage in `somad` and other binaries that the desktop pnpm
+# typecheck doesn't walk. CI uses this same target.
 backend-build-workspace:
 	cargo build --workspace --locked
 
@@ -174,59 +170,8 @@ check-lines:
 	./scripts/check-file-lines.sh
 
 #
-# Backward-compatible aliases kept during the current repo-shape transition
+# Helpers
 #
-
-build-daemons:
-	just backend-build-daemons
-
-run-daemon:
-	just backend-run-daemon
-
-run-agentd:
-	just backend-run-agentd
-
-build-servers:
-	just backend-build-servers
-
-run-botd:
-	just backend-run-botd
-
-run-relayd:
-	just backend-run-relayd
-
-run-rendezvousd:
-	just backend-run-rendezvousd
-
-run-bffd:
-	just backend-run-bffd
-
-run-serverd:
-	just backend-run-serverd
-
-test-backend:
-	just backend-test
-
-test-relayd-smoke:
-	just backend-test-relayd-smoke
-
-test-rendezvousd-smoke:
-	just backend-test-rendezvousd-smoke
-
-test-desktop-soma:
-	just desktop-test-soma
-
-test-desktop-all:
-	just desktop-test-all
-
-build-docs:
-	just docs-build
-
-run-soma-desktop:
-	just desktop-run-soma
-
-build-soma:
-	just desktop-build-soma
 
 # Show available just recipes
 help:

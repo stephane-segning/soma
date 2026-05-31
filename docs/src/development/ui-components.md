@@ -476,4 +476,4 @@ regression canary for any chrome-level change.
 ### Build + publishing
 
 - Build locally: `pnpm --filter @soma/ui run storybook` (dev) or `pnpm --filter @soma/ui run build:storybook`.
-- Docs pipeline: `just build-docs` also builds Storybook into `site/storybook` after VitePress runs.
+- Docs pipeline: `just docs-build` also builds Storybook into `site/storybook` after VitePress runs.

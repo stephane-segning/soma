@@ -19,4 +19,4 @@ runs:
       run: pnpm install --frozen-lockfile
     - name: Build docs
       shell: bash
-      run: just build-docs
+      run: just docs-build
