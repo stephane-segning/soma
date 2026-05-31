@@ -8,13 +8,6 @@ It centralizes:
 - stage detection (dev / staging / prod)
 - stage-specific data paths
 
-> **Note:** the implementation in `src/stage-config.ts` still carries
-> Electron-era code (it imports `electron` and adjusts Electron app paths)
-> from before the Tauri migration. The Tauri host does not load it as-is; this
-> package needs a pass to align with the Tauri data-path conventions
-> (`@soma/desktop-config` is the intended home for stage detection +
-> Tauri path normalization). Flagged for follow-up.
-
 Package location:
 
 - `desktop/desktop-config/`
@@ -25,34 +18,52 @@ Main implementation:
 
 ## What It Does
 
-`StageConfigService` resolves a runtime stage and then adjusts Electron paths
-to keep dev, staging, and prod installs isolated from each other.
+`StageConfigService` (or the `resolveStageConfig` convenience function) resolves
+a runtime stage and the normalized data paths that keep dev, staging, and prod
+installs isolated from each other. It is framework-agnostic: it depends only on
+`node:os` and `node:path`, with no `electron` import and no socket plumbing.
 
-For non-prod stages it rewrites Electron paths such as:
+Calling `resolve()` returns a `StageRuntimeConfig`:
 
-- `appData`
-- `userData`
-- `sessionData`
-- `logs`
-- `cache`
-- `crashDumps`
+- `stage` — `"dev" | "staging" | "prod"`
+- `dataDir` — the stage-specific data root
+- `databasePath` — the single SQLite file inside `dataDir` (default `soma.db`)
+- `logsDir` — `dataDir/logs`
+- `cacheDir` — `dataDir/cache`
 
-It also updates the app name with the stage suffix.
+It computes paths; it does not create directories or mutate any host process
+state.
+
+## Path Normalization
+
+The data root follows each platform's convention, with a `-<stage>` suffix for
+non-prod stages:
+
+| Platform | Prod root | Non-prod example |
+| --- | --- | --- |
+| macOS | `~/Library/Application Support/Soma` | `~/Library/Application Support/Soma-dev` |
+| Linux | `$XDG_DATA_HOME/soma` (falls back to `~/.local/share/soma`) | `~/.local/share/soma-staging` |
+| Windows | `%APPDATA%/Soma` (falls back to `~/AppData/Roaming/Soma`) | `%APPDATA%/Soma-dev` |
+
+The macOS/Windows folder name comes from `appName` (default `Soma`); the
+Linux/XDG name comes from `unixAppName` (default `appName.toLowerCase()`).
 
 ## Stage Resolution
 
-The service resolves stage from:
+The service resolves stage from, in order:
 
-1. explicit environment overrides when allowed
-2. stage suffix in the packaged app name
-3. `dev` when running unpackaged in development
+1. an explicit environment override (`SOMA_STAGE` / `SOMA_CHANNEL` by default)
+2. a `-<stage>` suffix on the packaged product name, when `appNameForStage` is
+   supplied (e.g. `Soma-staging` → `staging`)
+3. `dev` when `isDev` is set
 4. otherwise `prod`
 
-Important behavior:
+`normalizeStage` maps common aliases — `production`/`release` → `prod`,
+`development`/`debug` → `dev`, `stage`/`beta`/`canary` → `staging` — and any
+unrecognized value falls back to `prod`.
 
-- packaged apps ignore normal env overrides by default
-- unpackaged/dev runs allow env overrides
-- `production` normalizes to `prod`
+The platform, home directory, and environment can all be injected through
+`StageConfigOptions` (`platform`, `homeDir`, `env`) for testing.
 
 ## Daemon transport
 
@@ -63,8 +74,8 @@ paths and `SOMA_DAEMON_SOCKET` / `SOMA_AGENTD_SOCKET` are gone.
 
 ## Current Package Shape
 
-The package currently exports its source entry directly:
+The package builds with `tsc` and ships its compiled `dist/` entry:
 
-- `desktop/desktop-config/package.json`
-
-So the important source of truth is the implementation in `src/stage-config.ts`.
+- `desktop/desktop-config/package.json` — `main`/`types` point at
+  `dist/stage-config.{js,d.ts}`
+- the source of truth is `src/stage-config.ts`

@@ -22,13 +22,9 @@
 		"format": "biome format --write .",
 		"lint": "biome check --write ."
 	},
-	"peerDependencies": {
-		"electron": "^39.2.6"
-	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.3.13",
 		"@types/node": "^25.1.0",
-		"electron": "^40.1.0",
 		"typescript": "^5.9.3"
 	}
 }

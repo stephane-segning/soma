@@ -79,7 +79,7 @@ For a fuller walkthrough, see `docs/src/getting-started/index.md`.
 
 - `planning/` contains active plans and cutover notes; it is not the canonical documentation surface
 - `docs/` is being narrowed to current, implemented, or finished behavior only
-- the shared desktop config package (`@soma/desktop-config`) normalizes stage-specific data directories (e.g. `Soma-dev` vs `Soma`) — there are no socket paths anymore; the daemon runs in-process inside Electron main
+- the shared desktop config package (`@soma/desktop-config`) does stage detection + path normalization for the Tauri data dirs (e.g. `Soma-dev` vs `Soma`) — no `electron` dependency and no socket paths; the daemon runs in-process inside the Tauri `src-tauri` host
 - root task names without the `backend-` or `desktop-` prefix are transitional aliases kept for compatibility while tooling boundaries are clarified
 
 ## Docker Compose
