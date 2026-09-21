@@ -59,6 +59,23 @@ jobs:
       - name: cargo test --workspace
         run: cargo test --workspace --locked
 
+      # `cargo test` above runs `desktop-app`'s `emit_typescript_bindings`
+      # test as a side effect, which regenerates
+      # desktop/desktop-sdk/src/bindings/index.ts from the live Rust command
+      # graph (see desktop/desktop-app/src-tauri/src/bindings.rs). This step
+      # is what actually makes good on that file's own doc comment ("CI then
+      # asserts the working tree stays clean") — a drifted DTO/command
+      # surface fails the build instead of silently shipping a stale SDK.
+      - name: Verify specta bindings are up to date
+        run: |
+          if ! git diff --exit-code -- desktop/desktop-sdk/src/bindings/; then
+            echo "::error::Generated TypeScript bindings are stale. Run \`cargo test -p desktop-app emit_typescript_bindings\` and commit the result." >&2
+            exit 1
+          fi
+
+      - name: cargo clippy --workspace
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
   unit:
     name: Unit tests + coverage
     runs-on: ubuntu-latest
@@ -101,6 +118,11 @@ jobs:
           path: desktop/desktop-editor/coverage
           if-no-files-found: ignore
           retention-days: 14
+
+      # No test:coverage script here (unlike @soma/ui / @soma/editor) — @soma/sdk
+      # doesn't have a coverage config, so this is a plain pass/fail gate.
+      - name: Run @soma/sdk vitest
+        run: pnpm --filter @soma/sdk run test
 
   e2e:
     name: UI E2E (Cucumber × Playwright)
@@ -146,3 +168,52 @@ jobs:
           path: desktop/desktop-e2e/playwright-report
           if-no-files-found: ignore
           retention-days: 14
+
+  renderer:
+    # The desktop app's own TS (React/Vite renderer under
+    # desktop/desktop-app/src/) was never typechecked, linted, or built by
+    # any workflow — it was only ever compiled as a side effect of the
+    # manual, workflow_dispatch-only release-desktop.yml. This job closes
+    # that gap on every push/PR.
+    name: Desktop app renderer (typecheck + lint + build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 9.0.0
+          run_install: false
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install workspace deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm --filter @soma/desktop-app run typecheck
+
+      - name: Lint
+        run: pnpm --filter @soma/desktop-app run lint
+
+      - name: Build
+        run: pnpm --filter @soma/desktop-app run build
+
+  cargo-deny:
+    # Rust supply-chain gate: RustSec advisories, license policy, banned/
+    # duplicate crates, and untrusted sources. Policy lives in the root
+    # `deny.toml`. `arguments: ""` overrides the action's own default
+    # (`--all-features`) so this matches how the rest of CI actually builds
+    # (no workflow anywhere passes `--all-features`) and what `deny.toml`'s
+    # own `[graph] all-features = false` is written against.
+    name: Dependency audit (cargo-deny)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          arguments: ""
