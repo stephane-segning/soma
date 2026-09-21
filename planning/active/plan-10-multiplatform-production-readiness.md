@@ -84,20 +84,32 @@ Also shipped alongside: Members and Bots tabs on the same screen, which made the
 flow reachable for the first time** (`joinRequests`/`decideJoin` had zero UI callers), along with
 `revokeMember`, `revokeBot` and real capability issuance against a pasted peer address.
 
-### 2. Invite UX — absent end to end
-No invite link, no QR, no paste-a-peer-ID form. `soma://` deep links are forwarded to the
-renderer as raw strings and `console.info`'d — there is no path parsing or route table. The proto
-already models `InviteState`/`InviteProof` with a comment about embedding them in a `soma://`
-link; both have zero references outside generated code. Today the only way to join a space is
-calling the SDK directly with an out-of-band peer ID and multiaddr.
+### 2. ~~Invite UX~~ — DONE
 
-### 3. Space settings screen
+Owner-signed `InviteState` encoded as `soma://invite/<base64url CBOR>`, verified **entirely
+offline** before any network contact, so the confirmation screen is trustworthy. Single-use by
+default with an atomic guarded-UPDATE replay check; a valid invite auto-approves at its own
+stated role, matched only against a row the decider itself issued. Deep links now parse into a
+typed route table instead of emitting a raw string into a `console.info`.
+
+This also partly closes the TOFU gap: the pinned owner now comes from a signed artifact rather
+than from whoever you happened to dial. What remains is (a) trusting the link reached you
+untampered, inherent to any invite-link scheme, and (b) the requester's `InviteProof` signature
+is not yet verified decider-side, because `PeerKeyResolver` is only populated by a prior Identify
+exchange and nothing guarantees that completes before a `JoinRequest` lands.
+
+Needed one proto change: identities here are ECDSA, and ECDSA peer ids do not embed the public
+key the way small Ed25519 ones do, so offline verification had nowhere to get it. `CborSigned.
+signer_public_key` is populated for `InviteState` only — membership/issuer/genesis signing sites
+leave it empty and no existing verifier reads it.
+
+### 3. ~~Space settings screen~~ — DONE (Members · Invites · Bots · Assistant)
 `spaces/:spaceId/members` and `/info` are `Empty` placeholders; there is no
 `spaces/:spaceId/settings` route. ADR-0005 §3 specifies the IA (General · Members · Assistant ·
 Bots · Sharing · Danger, auto-save on blur, no global Save). Items 1, 2 and the bots UI all land
 here.
 
-### 4. Shell hardening
+### 4. ~~Shell hardening~~ — DONE (error boundaries, toasts mounted, /practice restored, window title, palette populated)
 - **No error boundary anywhere** — a render throw blanks the whole app.
 - A complete toast system exists in `@soma/ui` and is **never mounted**; failures go to `console`.
 - `/practice` route was dropped in the Electron→Tauri rewrite and never restored, though its
@@ -223,3 +235,51 @@ Deliberately not bulk-fixed: `biome check --write` would strip `autoFocus` from 
 palette's search input — which is intentional and would break ⌘K — and auto-adding effect
 dependencies risks render loops. This needs a deliberate pass, then a CI gate, in that order.
 Adding the gate first would just land a red pipeline.
+
+## Addendum 3: the end-to-end verification pass
+
+Everything above was verified by running the app, not only by tests.
+
+**Web** — built the bundle against a real `desktop-bff` and drove it in a browser: token
+handshake and URL strip, page create → type → reload with content restored from SQLite, deep URL
+surviving reload, window title tracking, the Members roster and join-approval queue, invite
+create/copy/revoke, and both redemption paths. A link whose role was rewritten to Owner without
+re-signing renders "signature doesn't verify", shows the claimed values under an explicit
+"CLAIMED BY THE LINK — NOT VERIFIED" header, and offers no Join control at all.
+
+**Per-space AI config** — proved at runtime rather than by inspection: one running process routed
+`agent_list_models` to the space's own base URL when given a `spaceId`, and to the default scope's
+when not.
+
+**iOS** — create page → editor → typing, on device.
+
+### What the run found that tests did not
+
+- The daemon never started on iOS, from a comment-only edit to an already-applied migration. Tests
+  all passed; a checksum mismatch only bites a database that already ran the old bytes.
+- Every struct-argument command 422'd over HTTP (`{args}` envelope vs a flat body). The earlier
+  "end-to-end web test" missed it by using a no-struct-arg command and driving its mutation with
+  curl, bypassing the SDK.
+- Five components read the active space with `useParams()` while rendered as `AppLayout` column
+  props — siblings of `<Outlet />` — so `pages-panel` had never listed a page and `bots-panel` had
+  never shown a bot.
+- On the phone, the chip bar rendered on top of body copy, and the settings tab strip pushed tabs
+  off-screen with no way to reach them.
+
+None of these were catchable from test output. The common thread is that they live in the seams —
+between transports, between a component and where it is mounted, between a file's bytes and a
+checksum taken earlier.
+
+## Still open
+
+- **Android runtime is unverified.** It builds a valid APK (`aapt2` confirms arm64-v8a and the
+  mDNS permissions) but no emulator was available to run it.
+- **`@soma/ui` is never linted by CI** and carries ~20 accumulated errors. Deliberately not
+  bulk-fixed: `biome check --write` would strip intentional `autoFocus` from the command palette
+  and auto-add effect dependencies. Needs a deliberate pass, then a gate — in that order.
+- **`CommandPalette` still self-binds `mod+k`** in addition to the app's shortcut registry.
+  Harmless today only because `onOpen` is never passed; a latent double-fire if anyone passes it.
+  The registry should be the single owner.
+- **Page titles stay "Untitled"** regardless of the first heading — the plan-02 follow-up.
+- **iOS header scrolls above the status bar** when the keyboard opens.
+- `backend.search` is still a stub returning `[]`; the palette deliberately does not call it.
