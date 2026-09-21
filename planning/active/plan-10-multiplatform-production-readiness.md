@@ -308,13 +308,68 @@ The safe-area fix itself: `position: fixed` on the shell tracking the full `visu
 viewport inside the layout viewport when an editable field focuses, and neither `vh` unit reports
 that pan — so `top`/`left` matter as much as `height`.
 
+## Addendum 5: what a real two-node run proves, and the one thing it disproves
+
+Ran two independent `desktop-bff` processes (separate data dirs, separate identities) plus the iOS
+simulator, all on the same LAN, and drove them over REST.
+
+**Working, proven on the wire:**
+
+- **Discovery and transport.** Three distinct peers — desktop A
+  (`Qmaz5Zj…`), desktop B (`QmcGxede…`) and the iOS app (`QmSLYWPD…`) — found each other over
+  mDNS and established libp2p connections, in both directions, including desktop ↔ iOS. Idle
+  connections close with `KeepAliveTimeout` and re-establish on the next mDNS round, which is
+  ordinary libp2p behavior, not a fault.
+- **Invite → join → membership, entirely over p2p.** A issued an editor invite; B verified it
+  *offline* (correct role, issuer, bootstrap multiaddrs) and redeemed it; the join request crossed
+  the wire and **auto-approved at the invite's stated role**. A's roster then listed B as `editor`
+  and B's own membership list agreed. The join-request queue stayed empty, i.e. it took the
+  auto-approve path rather than falling back to manual review.
+
+**Disproven: documents do not replicate between peers.** A published a document into a space B is
+an editor of, and B never saw it — no document, no page — after 60s of polling. There is no bug to
+chase, because there is no code path: `documents_sync_published` and `documents_queue_daemon_sync`
+are byte-for-byte the same local `upsert_document` call, differing only in the source string of the
+*local* UI event they emit. Neither touches the network, and there is no gossipsub topic for
+documents or spaces anywhere in `backend/crates/peer/src/`. `SyncPublishedDocumentResult.uploaded`
+is a hard-coded `1` — the comment at `desktop/desktop-api/src/documents.rs:355` says it exists only
+so "the renderer's 'uploaded' accounting stays unchanged" from the Electron stub. So the UI reports
+a successful upload of one document every time, having sent nothing.
+
+This is the honest status of "p2p fs": **identity, discovery, transport, membership and
+authorization are real and cross-platform; file/document replication is not implemented.** Item 6
+below ("Realtime collaboration") is therefore not a refinement of a working sync — it is the sync.
+Worth renaming the two commands and dropping the fake counter regardless of when replication
+lands, so the surface stops implying a transfer that never happens.
+
+**Also found: the default space can never be shared.** `DEFAULT_SPACE_ID` is the compile-time
+constant `"private"` (`backend/crates/daemon/src/runtime/helpers.rs:19`), so every install seeds a
+space with the *same id* owned by its *own* peer. Inviting anyone to it fails at redemption with
+"invite issuer does not match this space's already-established trust anchor". The trust anchor is
+behaving correctly — refusing a same-id takeover is exactly its job — but the most obvious space to
+share is structurally unshareable, and the error explains none of that. Fix is a product decision
+(namespace the default id per peer, or refuse invite creation for it with a real explanation), and
+changing the seeded id is a data migration, so it is not done here.
+
 ## Still open
 
 - **Landscape on iOS is visually unverified** — rotating the Simulator needs computer-use control
   of the Simulator app, which was declined. The `visualViewport` rect tracking is orientation-
-  agnostic by construction and portrait is verified, but nobody has looked at it rotated.
-- **Android runtime is verified for networking** (the swarm now builds and logs), but no emulator
-  run has exercised the full UI.
+  agnostic by construction and portrait is verified, but nobody has looked at it rotated. Note the
+  `--shell-titlebar-pad-left` double-count fix only *matters* in landscape (the inset is 0 in
+  portrait), so that specific correction is reasoned, not observed.
+- **The full software keyboard on iOS is unverified.** Portrait was driven on an iPhone 17 Pro with
+  the new build: create space → new page → type → H1 renders, and with 18 lines pushing the caret
+  to the bottom edge of the viewport the editor scrolled *internally* while the header stayed
+  pinned below the Dynamic Island and the status bar stayed clear — which is the regression the
+  fix targets. That run had the keyboard *accessory bar* up rather than the full ~300pt keyboard;
+  restarting the Simulator with `ConnectHardwareKeyboard` off left WKWebView refusing tap-injected
+  focus, so the larger viewport shrink was never exercised. Same mechanism, larger magnitude.
+- **The layout fixes above are unverified on Android.** Android itself was driven end to end on a
+  Pixel 10 Pro emulator in the previous commit (swarm listens; boot → space → New Page → type),
+  but that run predates this pass, and the shell-height and summon-key changes have not been seen
+  on it. They are platform-neutral CSS/React, and both were verified on iOS and in a browser at
+  375/1100/1400px.
 - **`@soma/ui`'s ~20 accumulated lint errors are fixed and the CI gate is on** (`lint:ci` =
   `biome ci .`, wired for all five packages). Note the packages disagree on `lineWidth`
   (app/sdk 120, ui/editor default 80), so a whole-package `--write` in `ui`/`editor` reformats
