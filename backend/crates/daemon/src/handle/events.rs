@@ -95,5 +95,12 @@ fn map_event(payload: daemon::daemon_event::Event) -> Option<DaemonEventRecord> 
                 status: e.status,
             })
         }
+        daemon::daemon_event::Event::DocumentReplicated(e) => {
+            Some(DaemonEventRecord::DocumentReplicated {
+                space_id: e.space_id,
+                document_id: e.document_id,
+                from_peer_id: e.from_peer_id,
+            })
+        }
     }
 }

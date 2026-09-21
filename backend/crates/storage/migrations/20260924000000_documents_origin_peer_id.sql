@@ -1,0 +1,25 @@
+-- `documents.origin_peer_id`: records which peer authored a document
+-- row's current version, and doubles as the deterministic tie-breaker
+-- for last-writer-wins (LWW) p2p replication when two peers write to
+-- the same `(space_id, document_id)` at the identical `updated_at_ms`
+-- (millisecond wall-clock timestamps from independent, unsynchronized
+-- peer clocks collide more often than a naive read of "just compare
+-- timestamps" suggests). See
+-- `soma_storage::documents::DocumentRepository::upsert_document_if_newer`
+-- for the exact `(updated_at_ms, origin_peer_id)` lexicographic
+-- comparison this column enables, applied as a single conditional
+-- `INSERT ... ON CONFLICT ... DO UPDATE ... WHERE` statement — the same
+-- portable (SQLite + Postgres) pattern already used by
+-- `space_memberships.rs`'s `upsert_membership` in this crate.
+--
+-- Existing rows backfill to '' (empty string), which sorts lowest in a
+-- byte-wise TEXT comparison on both SQLite (default BINARY collation)
+-- and Postgres (default collation). That means a pre-existing local row
+-- with an unknown origin always LOSES a tie against an incoming
+-- replicated write that carries a real peer id. This is the intended,
+-- safe direction: a remote write with a real origin is more likely to
+-- already be the version other peers in the space have also converged
+-- on, so preferring it over an untagged local row reduces divergence
+-- across the space rather than entrenching a row nobody else has
+-- provenance for.
+ALTER TABLE documents ADD COLUMN origin_peer_id TEXT NOT NULL DEFAULT '';

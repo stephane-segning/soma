@@ -524,6 +524,7 @@ mod tests {
                 content_json: r#"{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"the launch codes are hidden here"}]}]}"#.into(),
                 published: true,
                 updated_at_ms: 1,
+                origin_peer_id: String::new(),
             })
             .await
             .expect("upsert document");
@@ -591,6 +592,7 @@ mod tests {
                 content_json: r#"{"type":"doc","content":[{"type":"paragraph","content":[{"type":"text","text":"confidential contents"}]}]}"#.into(),
                 published: true,
                 updated_at_ms: 1,
+                origin_peer_id: String::new(),
             })
             .await
             .expect("upsert document");

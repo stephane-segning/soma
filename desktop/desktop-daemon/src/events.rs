@@ -136,6 +136,22 @@ impl From<DaemonEventRecord> for DomainEvent {
                 delegate_peer_id,
                 status,
             },
+            // The first genuinely daemon-sourced `DocumentChanged`: a
+            // peer's version of this document was accepted into local
+            // storage, so any open editor is now looking at stale text.
+            // `reason` is what lets the renderer tell this apart from
+            // its own write echoing back.
+            DaemonEventRecord::DocumentReplicated {
+                space_id,
+                document_id,
+                from_peer_id,
+            } => DomainEvent::DocumentChanged {
+                source: DomainEventSource::Daemon,
+                at_ms: desktop_core::time::now_ms(),
+                space_id,
+                document_id,
+                reason: Some(format!("replicated from {from_peer_id}")),
+            },
         }
     }
 }
@@ -173,9 +189,31 @@ pub fn spawn(domain_events: broadcast::Sender<DomainEvent>, daemon: DaemonHandle
     let mut rx = daemon.subscribe_events(buffer);
     let task = tokio::spawn(async move {
         while let Some(record) = rx.recv().await {
+            // A replicated document carries its page row with it, so the
+            // page list changed too. `From` can only produce one event,
+            // and the pages panel listens for its own — without this the
+            // document arrives but never appears in the sidebar until
+            // the next manual refresh.
+            let also_pages = match &record {
+                DaemonEventRecord::DocumentReplicated { space_id, .. } => {
+                    Some(DomainEvent::PagesChanged {
+                        source: DomainEventSource::Daemon,
+                        at_ms: desktop_core::time::now_ms(),
+                        space_id: space_id.clone(),
+                        reason: Some("replicated".to_string()),
+                    })
+                }
+                _ => None,
+            };
+
             let event: DomainEvent = record.into();
             if let Err(err) = domain_events.send(event) {
                 tracing::debug!(?err, "daemon-source domain_event publish dropped: channel closed or no subscribers yet");
+            }
+            if let Some(pages) = also_pages
+                && let Err(err) = domain_events.send(pages)
+            {
+                tracing::debug!(?err, "daemon-source pages-changed publish dropped");
             }
         }
     });

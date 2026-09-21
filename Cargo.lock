@@ -7243,6 +7243,7 @@ dependencies = [
  "soma-storage",
  "soma-vdfs",
  "sqlx",
+ "tempfile",
  "tokio",
  "tokio-stream",
  "tracing",

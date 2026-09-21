@@ -6,9 +6,16 @@ use std::{
 use async_trait::async_trait;
 use soma_membership::{JoinPolicy, build_join_decider};
 use soma_net::NetIdentity;
-use soma_peer::{PeerConfig, SpaceAuthorizer, bootstrap::PeerBootstrapper, join::JoinDecider};
+use soma_peer::{
+    DocumentSyncProvider, PeerConfig, SpaceAuthorizer, bootstrap::PeerBootstrapper,
+    join::JoinDecider,
+};
 use soma_storage::RepositoryProvider;
+use soma_proto_build::daemon;
 use soma_vdfs::BlobProvider;
+use tokio::sync::broadcast;
+
+use crate::sync::StorageDocumentSync;
 
 pub(crate) struct DaemonPeerBootstrap {
     pub(crate) identity_path: PathBuf,
@@ -19,6 +26,7 @@ pub(crate) struct DaemonPeerBootstrap {
     pub(crate) enable_mdns: bool,
     pub(crate) blob_provider: Arc<dyn BlobProvider>,
     pub(crate) repos: Arc<dyn RepositoryProvider>,
+    pub(crate) events: broadcast::Sender<daemon::DaemonEvent>,
 }
 
 #[derive(Clone)]
@@ -62,6 +70,10 @@ impl PeerBootstrapper for DaemonPeerBootstrap {
             .space_authorizer(Arc::new(StorageSpaceAuthorizer {
                 repos: self.repos.clone(),
             }) as Arc<dyn SpaceAuthorizer>)
+            .document_sync(Arc::new(StorageDocumentSync::new(
+                self.repos.clone(),
+                self.events.clone(),
+            )) as Arc<dyn DocumentSyncProvider>)
             .build()
             .expect("peer config")
     }

@@ -1,10 +1,12 @@
 use crate::codec::{
-    BlobAnnounce, BlobAnnounceAck, BlobAnnounceCodec, BlobCodec, IssuerCapabilityAck,
-    IssuerOfferCodec, JoinCodec, JoinDecisionAck, JoinDecisionCodec,
+    BlobAnnounce, BlobAnnounceAck, BlobAnnounceCodec, BlobCodec, DocSyncCodec, DocSyncRequest,
+    DocSyncResponse, IssuerCapabilityAck, IssuerOfferCodec, JoinCodec, JoinDecisionAck,
+    JoinDecisionCodec,
 };
 use crate::protocol::{
     AGENT_PROTOCOL, build_blob_announce_behaviour, build_blob_behaviour,
-    build_issuer_offer_behaviour, build_join_behaviour, build_join_decision_behaviour,
+    build_doc_sync_behaviour, build_issuer_offer_behaviour, build_join_behaviour,
+    build_join_decision_behaviour,
 };
 use libp2p::{
     identify, identity, mdns, ping, relay, rendezvous, request_response as reqres,
@@ -56,6 +58,7 @@ pub(crate) fn build_app_behaviour(
         issuer_offer: build_issuer_offer_behaviour(),
         blob: build_blob_behaviour(),
         blob_announce: build_blob_announce_behaviour(),
+        doc_sync: build_doc_sync_behaviour(),
     }
 }
 
@@ -72,6 +75,7 @@ pub(crate) struct AppBehaviour {
     pub(crate) issuer_offer: reqres::Behaviour<IssuerOfferCodec>,
     pub(crate) blob: reqres::Behaviour<BlobCodec>,
     pub(crate) blob_announce: reqres::Behaviour<BlobAnnounceCodec>,
+    pub(crate) doc_sync: reqres::Behaviour<DocSyncCodec>,
 }
 
 #[derive(Debug)]
@@ -86,6 +90,7 @@ pub(crate) enum AppEvent {
     IssuerOffer(reqres::Event<space::IssuerCapability, IssuerCapabilityAck>),
     Blob(reqres::Event<BlobRequest, BlobResponse>),
     BlobAnnounce(reqres::Event<BlobAnnounce, BlobAnnounceAck>),
+    DocSync(reqres::Event<DocSyncRequest, DocSyncResponse>),
 }
 
 impl From<ping::Event> for AppEvent {
@@ -145,5 +150,11 @@ impl From<reqres::Event<BlobRequest, BlobResponse>> for AppEvent {
 impl From<reqres::Event<BlobAnnounce, BlobAnnounceAck>> for AppEvent {
     fn from(event: reqres::Event<BlobAnnounce, BlobAnnounceAck>) -> Self {
         AppEvent::BlobAnnounce(event)
+    }
+}
+
+impl From<reqres::Event<DocSyncRequest, DocSyncResponse>> for AppEvent {
+    fn from(event: reqres::Event<DocSyncRequest, DocSyncResponse>) -> Self {
+        AppEvent::DocSync(event)
     }
 }

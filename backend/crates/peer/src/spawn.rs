@@ -102,6 +102,7 @@ pub fn spawn_peer(mut config: PeerConfig) -> SomaResult<PeerHandle> {
             event_tx,
             blob_provider,
             config.space_authorizer.clone(),
+            config.document_sync.clone(),
         )
         .await
     });

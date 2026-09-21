@@ -11,6 +11,92 @@ pub trait SpaceAuthorizer: Send + Sync {
     async fn can_read_space(&self, peer: &PeerId, space_id: &str) -> bool;
 }
 
+/// Replication metadata for one document, without its content.
+///
+/// `(updated_at_ms, origin_peer_id)` is the version. Compared
+/// lexicographically it gives every peer the same winner for the same
+/// pair of versions, which is the whole point — a bare timestamp ties on
+/// same-millisecond writes and leaves the two sides permanently
+/// disagreeing about who won.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DocumentDigest {
+    pub document_id: String,
+    pub updated_at_ms: i64,
+    pub origin_peer_id: String,
+    pub published: bool,
+}
+
+/// A document and the page row that makes it reachable.
+///
+/// The page travels with the document because they live in separate
+/// tables and a document without its page is content the receiving UI
+/// has no way to list. `title` empty means no page row was attached.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DocumentPayload {
+    pub document_id: String,
+    pub content_json: String,
+    pub updated_at_ms: i64,
+    pub origin_peer_id: String,
+    pub published: bool,
+    pub title: String,
+    pub parent_page_ids: Vec<String>,
+}
+
+/// One side of a `/soma/doc-sync/1` exchange.
+///
+/// Exactly one of `have` / `want` is populated in practice: `have` is an
+/// offer, `want` is a pull. See `codec::doc_sync` for why that split is
+/// what makes the exchange terminate.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct DocumentSyncRequest {
+    pub space_id: String,
+    pub have: Vec<DocumentDigest>,
+    pub want: Vec<String>,
+    /// Payloads satisfying a `want` from the peer's previous response.
+    pub documents: Vec<DocumentPayload>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct DocumentSyncResponse {
+    pub authorized: bool,
+    pub have: Vec<DocumentDigest>,
+    pub documents: Vec<DocumentPayload>,
+    /// Ids the responder wants back from the requester.
+    pub want: Vec<String>,
+}
+
+/// Document replication policy, supplied by the daemon.
+///
+/// The peer crate owns no storage and no membership table, so every
+/// decision that needs either — may this peer read this space, which
+/// versions win, what should be written — lives behind this trait, the
+/// same way blob reads go through `BlobProvider` and joins through
+/// `JoinDecider`. The runtime only moves bytes.
+#[async_trait]
+pub trait DocumentSyncProvider: Send + Sync {
+    /// Answer an inbound request. The implementation is responsible for
+    /// authorizing `from` against `request.space_id` and must return
+    /// `authorized: false` with everything else empty when it fails —
+    /// a refusal that still listed documents would leak the roster of a
+    /// space the caller cannot read.
+    async fn handle_request(
+        &self,
+        from: &PeerId,
+        request: DocumentSyncRequest,
+    ) -> DocumentSyncResponse;
+
+    /// Consume a response: apply any documents it carried, and decide
+    /// whether to pull anything the peer advertised. Returning `Some`
+    /// sends exactly one follow-up request; the follow-up carries only
+    /// `want`, so it cannot provoke another round.
+    async fn on_response(
+        &self,
+        from: &PeerId,
+        space_id: &str,
+        response: DocumentSyncResponse,
+    ) -> Option<DocumentSyncRequest>;
+}
+
 /// Commands sent to the peer runtime.
 #[derive(Debug)]
 pub enum PeerCommand {
@@ -57,6 +143,16 @@ pub enum PeerCommand {
         cid: String,
         mime: String,
         size: u64,
+    },
+    /// Start (or continue) a document-sync exchange with `target`.
+    ///
+    /// Fire-and-forget like `AnnounceBlob`: the outcome arrives as a
+    /// [`PeerEvent::DocumentsReplicated`] if anything was written, and
+    /// a failure is simply a sync that did not happen — the next
+    /// connection or local write retries it.
+    SyncDocuments {
+        target: PeerId,
+        request: DocumentSyncRequest,
     },
     Shutdown,
 }
