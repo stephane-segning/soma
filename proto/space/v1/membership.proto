@@ -58,6 +58,31 @@ message CborSigned {
 
   // Optional: signature algorithm hint, e.g. "ed25519".
   string alg = 4;
+
+  // Protobuf-encoded libp2p public key of the signer
+  // (`libp2p_identity::PublicKey::encode_protobuf`).
+  //
+  // Populated ONLY for artifacts that must be verifiable with zero network
+  // access and zero prior relationship to the signer -- today, only
+  // `InviteState` (see soma_membership::invite). libp2p peer ids are NOT
+  // guaranteed to embed the signer's public key: this deployment's real
+  // identities are ECDSA (see soma_net::NetIdentity::generate), and
+  // ECDSA/RSA/secp256k1 keys are SHA-256-hashed into the peer id, not
+  // embedded, unlike small Ed25519 keys. So a self-contained bearer
+  // credential like an invite link has no other way to be verified before
+  // ever dialling anyone.
+  //
+  // Every OTHER signed artifact in this schema (MembershipCapability,
+  // IssuerCapability, SpaceGenesisArtifact) is verified exclusively
+  // through soma_membership::trust::PeerKeyResolver / TrustAnchor against
+  // a LOCALLY-PINNED key (Identify-learned or already-trusted), never
+  // through a key embedded in the payload being verified -- see
+  // docs/src/space-authorization-model.md and trust.rs's module doc. A
+  // verifier MUST NOT read this field to authorize anything beyond "this
+  // exact signed blob was produced by the holder of this exact key"; it
+  // carries no proof of space ownership beyond that, and none of the
+  // existing verification functions consult it.
+  bytes signer_public_key = 5;
 }
 
 // Owner-signed proof that a peer created/owns the space genesis.
@@ -342,6 +367,7 @@ message PutMailboxItemRequest {
 //   - Daemon/JoinSpace (proto/daemon/v1/daemon.proto) for join submission
 //   - Daemon/DecideJoin for manual approval
 //   - libp2p protocols /soma/join/1 and /soma/join-decision/1 for P2P flow
+//
 // The message types defined above are used by the real implementation.
 // Desktop code should NOT attempt to call these RPCs.
 service MembershipService {

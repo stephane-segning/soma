@@ -39,7 +39,17 @@ export const commands = {
 	spacesDecideJoin: (args: DecideJoinArgs) => typedError<DecideJoinResult, DesktopError>(__TAURI_INVOKE("spaces_decide_join", { args })),
 	spacesListJoinRequests: () => typedError<StoredJoinRequest[], DesktopError>(__TAURI_INVOKE("spaces_list_join_requests")),
 	spacesRevokeMember: (args: RevokeMemberArgs) => typedError<boolean, DesktopError>(__TAURI_INVOKE("spaces_revoke_member", { args })),
+	spacesRevokeBot: (args: RevokeBotArgs) => typedError<boolean, DesktopError>(__TAURI_INVOKE("spaces_revoke_bot", { args })),
 	spacesIssueIssuerCapability: (args: IssueIssuerCapabilityArgs) => typedError<boolean, DesktopError>(__TAURI_INVOKE("spaces_issue_issuer_capability", { args })),
+	invitesCreate: (args: CreateInviteArgs) => typedError<StoredInvite, DesktopError>(__TAURI_INVOKE("invites_create", { args })),
+	invitesList: (spaceId: string) => typedError<StoredInvite[], DesktopError>(__TAURI_INVOKE("invites_list", { spaceId })),
+	invitesRevoke: (args: RevokeInviteArgs) => typedError<boolean, DesktopError>(__TAURI_INVOKE("invites_revoke", { args })),
+	/**
+	 *  Decode + offline-verify a `soma://invite/...` link. Touches no
+	 *  network — safe to call before the user chooses to redeem it.
+	 */
+	invitesInspect: (link: string) => typedError<InviteInspection, DesktopError>(__TAURI_INVOKE("invites_inspect", { link })),
+	invitesRedeem: (args: RedeemInviteArgs) => typedError<RedeemInviteResult, DesktopError>(__TAURI_INVOKE("invites_redeem", { args })),
 	documentsUpsert: (args: UpsertDocumentArgs) => typedError<null, DesktopError>(__TAURI_INVOKE("documents_upsert", { args })),
 	documentsGet: (spaceId: string, documentId: string) => typedError<{
 	spaceId: string,
@@ -106,6 +116,13 @@ export const commands = {
 	spaceId: string | null,
 	limit: number | null,
 } | null) => typedError<BackgroundTask[], DesktopError>(__TAURI_INVOKE("agent_list_background_tasks", { args })),
+	agentConfigGetDefault: () => typedError<AgentProviderConfigView, DesktopError>(__TAURI_INVOKE("agent_config_get_default")),
+	agentConfigGetSpace: (spaceId: string) => typedError<AgentProviderConfigView, DesktopError>(__TAURI_INVOKE("agent_config_get_space", { spaceId })),
+	agentConfigSetDefault: (args: SetDefaultAgentProviderConfigArgs) => typedError<AgentProviderConfigView, DesktopError>(__TAURI_INVOKE("agent_config_set_default", { args })),
+	agentConfigSetSpace: (args: SetSpaceAgentProviderConfigArgs) => typedError<AgentProviderConfigView, DesktopError>(__TAURI_INVOKE("agent_config_set_space", { args })),
+	agentConfigClearDefault: () => typedError<boolean, DesktopError>(__TAURI_INVOKE("agent_config_clear_default")),
+	agentConfigClearSpace: (spaceId: string) => typedError<boolean, DesktopError>(__TAURI_INVOKE("agent_config_clear_space", { spaceId })),
+	agentConfigValidate: (args: ValidateAgentProviderConfigArgs) => typedError<ValidateAgentProviderConfigResult, DesktopError>(__TAURI_INVOKE("agent_config_validate", { args })),
 	search: (query: string | null) => typedError<SearchResult[], DesktopError>(__TAURI_INVOKE("search", { query })),
 	practiceListExercises: (spaceId: string | null) => typedError<Exercise[], DesktopError>(__TAURI_INVOKE("practice_list_exercises", { spaceId })),
 	practiceSaveExercise: (args: ExerciseDraft) => typedError<Exercise, DesktopError>(__TAURI_INVOKE("practice_save_exercise", { args })),
@@ -136,11 +153,42 @@ export type AgentProvider =
 /**  Any HTTP endpoint speaking the OpenAI REST shape (Ollama, vLLM, OpenAI proper, etc.). */
 "open-ai-compatible";
 
+/**
+ *  Client-safe projection of one scope's AI provider config override
+ *  row. A field is `null` when this scope doesn't override that column
+ *  (it inherits — space from default, default from the compiled-in
+ *  constants). `poll_interval_ms` is always `null` on a space-scope
+ *  response (`get_space`) — only the default scope's poll interval is
+ *  configurable; see `set_space`'s doc comment.
+ */
+export type AgentProviderConfigView = {
+	provider: AgentProvider | null,
+	baseUrl: string | null,
+	hasApiKey: boolean,
+	chatModel: string | null,
+	embedModel: string | null,
+	requestTimeoutMs: number | null,
+	pollIntervalMs: number | null,
+	/**
+	 *  `null` when this scope has never been saved — every other field
+	 *  is then also `null`.
+	 */
+	updatedAtMs: number | null,
+};
+
 export type AgentRuntimeEvent = AgentRuntimeEvent_Serialize | AgentRuntimeEvent_Deserialize;
 
 export type AgentRuntimeEvent_Deserialize = ({ kind: "ready"; atMs: number; provider: AgentProvider; baseUrl: string }) & { error?: never; models?: never } | ({ kind: "status"; atMs: number; provider: AgentProvider; baseUrl: string; models: AgentModel_Deserialize[] }) & { error?: never } | ({ kind: "error"; atMs: number; provider: AgentProvider; baseUrl: string; error: string }) & { models?: never };
 
 export type AgentRuntimeEvent_Serialize = ({ kind: "ready"; atMs: number; provider: AgentProvider; baseUrl: string }) & { error?: never; models?: never } | ({ kind: "status"; atMs: number; provider: AgentProvider; baseUrl: string; models: AgentModel_Serialize[] }) & { error?: never } | ({ kind: "error"; atMs: number; provider: AgentProvider; baseUrl: string; error: string }) & { models?: never };
+
+/**
+ *  Three-state write for the one field that never round-trips in
+ *  cleartext (`AgentProviderConfigView` only ever exposes `hasApiKey`).
+ *  Defaults to `Unchanged` when omitted, so a save that isn't touching
+ *  the key field doesn't have to think about it.
+ */
+export type ApiKeyInput = { kind: "unchanged" } | { kind: "clear" } | { kind: "set"; value: string };
 
 export type AppInfo = {
 	name: string,
@@ -255,6 +303,20 @@ export type ControlResult = {
 	message: string | null,
 };
 
+export type CreateInviteArgs = {
+	spaceId: string,
+	/**
+	 *  Role string ("owner"/"editor"/"viewer"/"member"/"bot"); empty
+	 *  defaults to "member".
+	 */
+	role?: string,
+	/**  Seconds from now until expiry. `0` means "never expires". */
+	ttlSecs: number,
+	label?: string,
+	/**  `false` (the default) makes the invite redeemable exactly once. */
+	multiUse?: boolean,
+};
+
 export type CreateSpaceArgs = {
 	spaceId?: string | null,
 	displayName?: string | null,
@@ -309,7 +371,39 @@ export type DecideJoinResult = {
 	approved: boolean,
 };
 
-export type DesktopError = { kind: "io"; message: string } | { kind: "invalid-input"; message: string } | { kind: "not-found"; message: string } | { kind: "daemon"; message: string } | { kind: "agent"; message: string } | { kind: "other"; message: string };
+/**
+ *  A parsed `soma://` deep link, emitted on [`DEEP_LINK_EVENT`] in place
+ *  of the raw URL string — see `startup::deep_link::dispatch` (the
+ *  `desktop-app` binary) for the route table that produces this. Unlike
+ *  [`DOMAIN_EVENT`] / [`AGENT_EVENT`], whose payload shapes are owned by
+ *  `soma-daemon`/`soma-agentd` and kept out of this dependency-light
+ *  crate, `DeepLinkRoute` genuinely belongs here: it's OS/URL-routing
+ *  concern, not a daemon/agent-runtime concept, and keeping it a real
+ *  type (rather than `serde_json::Value`) is what lets `desktop-app`
+ *  register it with `tauri-specta` for a properly typed `@soma/sdk`
+ *  binding.
+ */
+export type DeepLinkRoute = 
+/**
+ *  `soma://invite/<payload>` — a space invite link. `link` is the
+ *  full original URL, ready to pass straight to
+ *  `backend.invites.inspect({ link })`.
+ */
+{ kind: "invite"; link: string } | 
+/**
+ *  Any `soma://...` URL that didn't match a known route — carries the
+ *  raw URL so nothing is silently dropped.
+ */
+{ kind: "unknown"; url: string };
+
+export type DesktopError = { kind: "io"; message: string } | { kind: "invalid-input"; message: string } | { kind: "not-found"; message: string } | { kind: "daemon"; message: string } | { kind: "agent"; message: string } | 
+/**
+ *  Caller did not present a valid credential. Maps to HTTP 401 at the
+ *  BFF boundary (`desktop-bff::error::ApiError::status`). The Tauri
+ *  presenter never produces this variant — the in-process command
+ *  surface has no network boundary to authenticate across.
+ */
+{ kind: "unauthenticated"; message: string } | { kind: "other"; message: string };
 
 /**
  *  Renderer-facing payload. Tagged on `kind` so the renderer can
@@ -329,7 +423,7 @@ export type DomainEvent = { kind: "document-blob-added"; spaceId: string; docId:
 
 /**
  *  Source tag for renderer-broadcast events.
- *
+ * 
  *  `Daemon` is reserved for events that originate from the daemon
  *  firehose; today every variant in `DomainEvent` that uses this tag is
  *  emitted with `Renderer` from a command handler.
@@ -422,12 +516,51 @@ export type GetDraftArgs = {
 	documentId: string,
 };
 
+/**
+ *  Result of decoding + offline-verifying a `soma://invite/...` link —
+ *  see `inspect`'s doc comment: this never touches the network.
+ */
+export type InviteInspection = {
+	validity: InviteValidity,
+	spaceId: string | null,
+	spaceLabel: string | null,
+	role: string | null,
+	/**
+	 *  The verified issuer when `validity == "valid"`; the UNVERIFIED
+	 *  claimed signer otherwise (UI display only — never a trust
+	 *  decision unless `validity == "valid"`).
+	 */
+	issuerPeerId: string | null,
+	/**  Unix-seconds. `null` means "never expires". */
+	expiresAt: number | null,
+	bootstrapMultiaddrs: string[],
+};
+
+/**  Why an inspected invite link is or isn't usable. */
+export type InviteValidity = "valid" | 
+/**
+ *  Decoded, but the signature doesn't verify (forged, corrupted, or
+ *  hand-edited).
+ */
+"invalidSignature" | 
+/**  Decoded and signature-valid, but past its expiry. */
+"expired" | 
+/**  Not a well-formed `soma://invite/...` link at all. */
+"malformed";
+
 export type IssueIssuerCapabilityArgs = {
 	spaceId: string,
 	targetPeerId: string,
 	expiresAt: number,
 	alias?: string | null,
 	scopes?: string[],
+	/**
+	 *  Multiaddrs to dial `target_peer_id` on before sending the offer —
+	 *  same shape/purpose as `JoinSpaceArgs.targetMultiaddrs`. Required
+	 *  for a freshly-deployed bot with no prior connection; may be left
+	 *  empty when the target is already reachable some other way.
+	 */
+	targetMultiaddrs?: string[],
 };
 
 export type JoinSpaceArgs = {
@@ -485,6 +618,16 @@ export type RecordSessionResponse = {
 	leaderboard: LeaderboardEntry[],
 };
 
+export type RedeemInviteArgs = {
+	link: string,
+	displayName?: string,
+	deviceName?: string,
+};
+
+export type RedeemInviteResult = {
+	requestId: string,
+};
+
 export type RerankCandidate = {
 	id: string,
 	content: string,
@@ -513,23 +656,79 @@ export type ResolveDriftResult = {
 	mergedUpdateBase64: string,
 };
 
+export type RevokeBotArgs = {
+	spaceId: string,
+	delegatePeerId: string,
+	reason?: string,
+};
+
+export type RevokeInviteArgs = {
+	spaceId: string,
+	id: string,
+};
+
 export type RevokeMemberArgs = {
 	spaceId: string,
 	subjectPeerId: string,
 	reason?: string,
 };
 
+/**
+ *  One search hit. Maps cleanly onto `@soma/ui`'s `CommandPaletteItem`
+ *  (`id`, `title`, `subtitle`, `section`): `spaceName` is the natural
+ *  `subtitle`, `kind` plus `spaceId`/`id` are enough to build the right
+ *  route and `onSelect`, and `snippet` (set for `document` hits only)
+ *  gives the palette a reason to show *why* something matched.
+ */
 export type SearchResult = {
-	kind: string,
+	kind: SearchResultKind,
+	spaceId: string,
+	spaceName: string,
 	id: string,
 	title: string,
-	spaceId: string,
+	snippet: string | null,
+	updatedAtMs: number,
+};
+
+export type SearchResultKind = "space" | "page" | "document";
+
+/**
+ *  Whole-state overwrite for the default scope. Every field (except
+ *  `apiKey`, see [`ApiKeyInput`]) is a full replace: `null`/omitted
+ *  clears that column back to "use the compiled-in default"; the UI is
+ *  expected to always send the complete current form state, not a
+ *  sparse patch (auto-save-on-blur per ADR-0005 §3).
+ */
+export type SetDefaultAgentProviderConfigArgs = {
+	provider: AgentProvider | null,
+	baseUrl: string | null,
+	apiKey?: ApiKeyInput,
+	chatModel: string | null,
+	embedModel: string | null,
+	requestTimeoutMs: number | null,
+	pollIntervalMs: number | null,
 };
 
 export type SetPageParentsArgs = {
 	spaceId: string,
 	pageId: string,
 	parentPageIds: string[],
+};
+
+/**
+ *  Same contract as [`SetDefaultAgentProviderConfigArgs`], scoped to one
+ *  space — with no `pollIntervalMs` field at all: the poll interval is
+ *  process-wide, not overridable per space, so it isn't part of this
+ *  scope's writable surface.
+ */
+export type SetSpaceAgentProviderConfigArgs = {
+	spaceId: string,
+	provider: AgentProvider | null,
+	baseUrl: string | null,
+	apiKey?: ApiKeyInput,
+	chatModel: string | null,
+	embedModel: string | null,
+	requestTimeoutMs: number | null,
 };
 
 export type SettingsGetArgs = {
@@ -645,6 +844,24 @@ export type StoredDocument = {
 	updatedAtMs: number,
 };
 
+export type StoredInvite = {
+	spaceId: string,
+	/**  Opaque id `RevokeInviteArgs.id` takes back. */
+	id: string,
+	/**  The full `soma://invite/...` link, ready to share. */
+	link: string,
+	issuerPeerId: string,
+	role: string,
+	/**  Unix-seconds; `0` means never expires. */
+	expiresAt: number,
+	label: string,
+	multiUse: boolean,
+	createdAt: number,
+	/**  Unix-seconds; `0` means not revoked. */
+	revokedAt: number,
+	redeemedCount: number,
+};
+
 export type StoredJoinRequest = {
 	requestId: string,
 	spaceId: string,
@@ -738,6 +955,27 @@ export type UpsertDraftArgs = {
 	contentJson: string,
 	published?: boolean,
 	updatedAtMs?: number | null,
+};
+
+export type ValidateAgentProviderConfigArgs = {
+	baseUrl: string,
+	/**
+	 *  Omitted/empty means "no Authorization header" — mirrors
+	 *  `OpenAiProvider::auth_header`'s trim-and-check-empty rule.
+	 */
+	apiKey?: string | null,
+	requestTimeoutMs?: number | null,
+};
+
+export type ValidateAgentProviderConfigResult = {
+	ok: boolean,
+	modelCount: number | null,
+	/**
+	 *  Present only when `ok` is false — a human-readable reason the UI
+	 *  can show inline under the field (ADR-0005 §3: "errors surface
+	 *  inline under the field").
+	 */
+	error: string | null,
 };
 
 export type WindowControlAction = "minimize" | "toggleMaximize" | "close";

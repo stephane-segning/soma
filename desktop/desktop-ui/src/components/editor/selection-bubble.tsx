@@ -118,13 +118,13 @@ export function SelectionBubble(props: SelectionBubbleProps) {
 	if (linkOpen) {
 		return (
 			<LinkInputMode
+				className={props.className}
 				initialUrl={props.linkUrl ?? ""}
 				onCancel={() => setLinkOpen(false)}
 				onSubmit={(url) => {
 					props.onSetLink?.(url.length > 0 ? url : null);
 					setLinkOpen(false);
 				}}
-				className={props.className}
 			/>
 		);
 	}
@@ -132,7 +132,7 @@ export function SelectionBubble(props: SelectionBubbleProps) {
 	return (
 		<div
 			className={cn(
-				"glass-panel shadow-elevated inline-flex items-center gap-0.5 p-1",
+				"glass-panel inline-flex items-center gap-0.5 p-1 shadow-elevated",
 				props.className,
 			)}
 			role="toolbar"
@@ -382,7 +382,7 @@ function LinkInputMode({
 	return (
 		<form
 			className={cn(
-				"glass-panel shadow-elevated inline-flex items-center gap-1 p-1",
+				"glass-panel inline-flex items-center gap-1 p-1 shadow-elevated",
 				className,
 			)}
 			onSubmit={handleSubmit}

@@ -22,18 +22,18 @@ impl BlobsService {
         document_id: Option<&str>,
     ) -> SomaResult<()> {
         self.repos.blob_repo().upsert_blob(blob).await?;
-        if let Some(document_id) = document_id {
-            if !document_id.trim().is_empty() {
-                self.repos
-                    .blob_repo()
-                    .add_ref(&BlobRef {
-                        space_id: blob.space_id.clone(),
-                        cid: blob.cid.clone(),
-                        document_id: document_id.to_string(),
-                        created_at_ms: blob.created_at_ms,
-                    })
-                    .await?;
-            }
+        if let Some(document_id) = document_id
+            && !document_id.trim().is_empty()
+        {
+            self.repos
+                .blob_repo()
+                .add_ref(&BlobRef {
+                    space_id: blob.space_id.clone(),
+                    cid: blob.cid.clone(),
+                    document_id: document_id.to_string(),
+                    created_at_ms: blob.created_at_ms,
+                })
+                .await?;
         }
         Ok(())
     }

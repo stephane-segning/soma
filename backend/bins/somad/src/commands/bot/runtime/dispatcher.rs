@@ -33,11 +33,15 @@ async fn sweep_mailbox(state: &BotState) {
     soma_membership::outbox::sweep_due(&state.repos, &state.peer_id, &state.peer_commands).await;
 }
 
+/// Wrapped handlers ready for dispatch, paired with the background task
+/// each one's internal queue drains on.
+type WrappedHandlers<Ctx> = (Vec<Arc<dyn PeerEventHandler<Ctx>>>, Vec<JoinHandle<()>>);
+
 fn wrap_with_queues<Ctx>(
     ctx: Arc<Ctx>,
     handlers: Vec<Arc<dyn PeerEventHandler<Ctx>>>,
     capacity: usize,
-) -> (Vec<Arc<dyn PeerEventHandler<Ctx>>>, Vec<JoinHandle<()>>)
+) -> WrappedHandlers<Ctx>
 where
     Ctx: Send + Sync + 'static,
 {

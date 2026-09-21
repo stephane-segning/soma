@@ -1,6 +1,6 @@
 [package]
 name = "desktop-bff"
-description = "HTTP/SSE presenter over `desktop-api`. Mirrors the Tauri shell's command surface for the SDK's httpTransport so the renderer can run against a remote backend."
+description = "Authenticated HTTP/WebSocket presenter over `desktop-api`. Mirrors the Tauri shell's command surface for the SDK's httpTransport so the renderer can run against a remote backend."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -22,7 +22,7 @@ desktop-daemon = { workspace = true }
 desktop-agent = { workspace = true }
 desktop-api = { workspace = true }
 
-axum = { workspace = true }
+axum = { workspace = true, features = ["ws"] }
 tower-http = { workspace = true }
 tokio = { workspace = true }
 tokio-stream = { workspace = true }
@@ -34,8 +34,10 @@ tracing-subscriber = { workspace = true }
 async-trait = { workspace = true }
 anyhow = { workspace = true }
 dirs = { workspace = true }
+sha2 = { workspace = true }
 
 [dev-dependencies]
 reqwest = { workspace = true, features = ["json", "stream", "rustls-tls"] }
 tempfile = { workspace = true }
 futures = { workspace = true }
+tokio-tungstenite = { workspace = true }

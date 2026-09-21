@@ -7,11 +7,7 @@
 
 use std::sync::Arc;
 
-use axum::{
-    Json, Router,
-    extract::State,
-    routing::post,
-};
+use axum::{Json, Router, extract::State, routing::post};
 use desktop_api::{AppState, documents};
 use serde::Deserialize;
 
@@ -32,12 +28,18 @@ pub(super) fn router() -> Router<Arc<AppState>> {
             post(documents_set_page_parents),
         )
         .route("/api/v1/documents_get_draft", post(documents_get_draft))
-        .route("/api/v1/documents_upsert_draft", post(documents_upsert_draft))
+        .route(
+            "/api/v1/documents_upsert_draft",
+            post(documents_upsert_draft),
+        )
         .route(
             "/api/v1/documents_queue_daemon_sync",
             post(documents_queue_daemon_sync),
         )
-        .route("/api/v1/documents_sync_published", post(documents_sync_published))
+        .route(
+            "/api/v1/documents_sync_published",
+            post(documents_sync_published),
+        )
 }
 
 // --- Positional-arg request bodies ------------------------------------------
@@ -61,7 +63,10 @@ async fn documents_upsert(
     State(app): State<Arc<AppState>>,
     Json(args): Json<documents::UpsertDocumentArgs>,
 ) -> Result<Json<()>, ApiError> {
-    documents::upsert(&app, args).await.map(Json).map_err(ApiError::from)
+    documents::upsert(&app, args)
+        .await
+        .map(Json)
+        .map_err(ApiError::from)
 }
 
 async fn documents_get(
@@ -78,7 +83,10 @@ async fn documents_ensure_page(
     State(app): State<Arc<AppState>>,
     Json(args): Json<documents::EnsurePageArgs>,
 ) -> Result<Json<documents::StoredPage>, ApiError> {
-    documents::ensure_page(&app, args).await.map(Json).map_err(ApiError::from)
+    documents::ensure_page(&app, args)
+        .await
+        .map(Json)
+        .map_err(ApiError::from)
 }
 
 async fn documents_list_pages(
@@ -115,14 +123,20 @@ async fn documents_get_draft(
     State(app): State<Arc<AppState>>,
     Json(args): Json<documents::GetDraftArgs>,
 ) -> Result<Json<Option<documents::DraftRecord>>, ApiError> {
-    documents::get_draft(&app, args).await.map(Json).map_err(ApiError::from)
+    documents::get_draft(&app, args)
+        .await
+        .map(Json)
+        .map_err(ApiError::from)
 }
 
 async fn documents_upsert_draft(
     State(app): State<Arc<AppState>>,
     Json(args): Json<documents::UpsertDraftArgs>,
 ) -> Result<Json<()>, ApiError> {
-    documents::upsert_draft(&app, args).await.map(Json).map_err(ApiError::from)
+    documents::upsert_draft(&app, args)
+        .await
+        .map(Json)
+        .map_err(ApiError::from)
 }
 
 async fn documents_queue_daemon_sync(

@@ -13,18 +13,17 @@
  * the renderer-flavoured tsconfig (no `node:fs` needed).
  */
 import { describe, expect, it } from "vitest";
-
+import selectionAiBar from "../editor/selection-ai-bar.tsx?raw";
 // Eager raw imports — Vite returns the file contents as a string. The
 // path is relative to this file. Each entry corresponds to one guarded
 // component file.
 import selectionBubble from "../editor/selection-bubble.tsx?raw";
-import selectionAiBar from "../editor/selection-ai-bar.tsx?raw";
 import slashMenu from "../editor/slash-menu.tsx?raw";
-import menuShell from "./menu-shell.tsx?raw";
-import contextMenu from "./context-menu.tsx?raw";
+import appTabs from "../layout/app-tabs.tsx?raw";
 import bubbleToolbar from "./bubble-toolbar.tsx?raw";
 import commandPalette from "./command-palette.tsx?raw";
-import appTabs from "../layout/app-tabs.tsx?raw";
+import contextMenu from "./context-menu.tsx?raw";
+import menuShell from "./menu-shell.tsx?raw";
 
 const GUARDED: Record<string, string> = {
 	"editor/selection-bubble.tsx": selectionBubble,

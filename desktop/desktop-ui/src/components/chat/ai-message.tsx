@@ -60,7 +60,6 @@ function getIcon(role: ChatRole): ReactNode {
 			return <Tool size={18} />;
 		case "source":
 			return <Database size={18} />;
-		case "user":
 		default:
 			return <MessageCircle size={18} />;
 	}

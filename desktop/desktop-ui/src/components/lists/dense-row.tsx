@@ -124,6 +124,7 @@ export const DenseRow = forwardRef<HTMLLIElement, DenseRowProps>(
 				{actions ? (
 					// Stop propagation so action buttons don't also fire the row's
 					// onClick / keyboard handlers when the row is interactive.
+					// biome-ignore lint/a11y/noStaticElementInteractions: transparent event-boundary, not a control of its own — `actions` is an opaque ReactNode of real, already-focusable buttons; this span only stops their clicks/keydowns from bubbling into the row, so it must not claim an interactive role.
 					<span
 						className="flex items-center"
 						onClick={(event) => event.stopPropagation()}

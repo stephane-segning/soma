@@ -1,4 +1,5 @@
 mod blob;
+mod blob_announce;
 mod command;
 mod issuer;
 mod join;
@@ -111,7 +112,7 @@ pub(crate) fn relay_circuit_addr(local_peer: &PeerId, relay_addr: &Multiaddr) ->
     extract_peer_id(relay_addr).map(|_| {
         let mut addr = relay_addr.clone();
         addr.push(Protocol::P2pCircuit);
-        addr.push(Protocol::P2p((*local_peer).into()));
+        addr.push(Protocol::P2p(*local_peer));
         addr
     })
 }

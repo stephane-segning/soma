@@ -2,8 +2,8 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 
 import {
-	type CapabilityFormValue,
 	CapabilityForm,
+	type CapabilityFormValue,
 	type ScopeGroup,
 } from "../components/forms/capability-form";
 

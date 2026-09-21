@@ -1,19 +1,26 @@
-//! Bridge from `soma_daemon::DaemonHandle::subscribe_events` to the renderer
-//! `domain_event` IPC channel. Mirrors
-//! `desktop/soma/src/main/services/startup-service/daemon-events.ts`.
+//! Bridge from `soma_daemon::DaemonHandle::subscribe_events` to the shared
+//! renderer-facing domain-event channel (`AppState::domain_events`).
+//! Mirrors `desktop/soma/src/main/services/startup-service/daemon-events.ts`.
 //!
 //! The bridge is a single spawned `tokio` task. It owns the mpsc receiver
 //! the daemon hands out; dropping the bridge stops translation (the daemon
 //! task ends on its own when the receiver drops).
+//!
+//! Deliberately transport-agnostic: this crate is linked into both the
+//! Tauri shell and the standalone `desktop-bff` binary, so it must not
+//! depend on `tauri`. The bridge publishes onto a plain
+//! `tokio::sync::broadcast::Sender<DomainEvent>` — the same channel
+//! `desktop-api` handlers publish renderer-sourced events onto — so every
+//! presenter (Tauri's `app.emit` forwarder, the BFF's WebSocket handler)
+//! drains one unified stream instead of each shell wiring its own copy of
+//! "what counts as a domain event." See AGENTS.md's "one event pipeline,
+//! two presenters" note under Crash isolation & supervision / Desktop Host.
 
-use std::sync::Arc;
-
-use desktop_services::events::DomainEventsBroadcaster;
 use serde::Serialize;
 use soma_daemon::DaemonHandle;
 use soma_daemon::handle_types::DaemonEventRecord;
 use specta::Type;
-use tauri::Runtime;
+use tokio::sync::broadcast;
 use tokio::task::JoinHandle;
 
 /// Source tag for renderer-broadcast events.
@@ -150,21 +157,25 @@ impl Drop for EventBridge {
     }
 }
 
-/// Subscribe to `daemon`'s event firehose and re-emit each event via
-/// `domain_event` on every webview window. Mirrors the
-/// `DaemonEventStreamBridge.start()` flow in the old Electron startup
-/// service.
+/// Subscribe to `daemon`'s event firehose and re-publish each event onto
+/// `domain_events`. Mirrors the `DaemonEventStreamBridge.start()` flow in
+/// the old Electron startup service, generalized to any presenter: the
+/// Tauri shell forwards the same channel into `app.emit`, the BFF forwards
+/// it into the WebSocket stream.
 ///
 /// Buffer is forwarded to `DaemonHandle::subscribe_events`; 256 is the same
 /// default the napi addon used.
-pub fn spawn<R: Runtime>(app: tauri::AppHandle<R>, daemon: DaemonHandle, buffer: usize) -> EventBridge {
+///
+/// Soft-fails like `desktop_api::events::publish`: a `send` error only
+/// means the channel is closed (shutting down) or has no subscribers yet,
+/// neither of which should kill the bridge task.
+pub fn spawn(domain_events: broadcast::Sender<DomainEvent>, daemon: DaemonHandle, buffer: usize) -> EventBridge {
     let mut rx = daemon.subscribe_events(buffer);
-    let app = Arc::new(app);
     let task = tokio::spawn(async move {
         while let Some(record) = rx.recv().await {
             let event: DomainEvent = record.into();
-            if let Err(err) = DomainEventsBroadcaster::broadcast(&*app, &event) {
-                tracing::warn!(?err, "domain_event broadcast failed");
+            if let Err(err) = domain_events.send(event) {
+                tracing::debug!(?err, "daemon-source domain_event publish dropped: channel closed or no subscribers yet");
             }
         }
     });

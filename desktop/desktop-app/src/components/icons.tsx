@@ -31,6 +31,14 @@ export function NavIcon({ className = "size-3.5" }: IconProps): ReactNode {
 	);
 }
 
+export function PlusIcon({ className = "size-3.5" }: IconProps): ReactNode {
+	return (
+		<svg aria-hidden="true" className={className} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+			<path d="M12 5v14M5 12h14" strokeLinecap="round" strokeLinejoin="round" />
+		</svg>
+	);
+}
+
 export function SettingsIcon({ className = "size-4" }: IconProps): ReactNode {
 	return (
 		<svg aria-hidden="true" className={className} fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">

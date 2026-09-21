@@ -1,4 +1,5 @@
 import type * as B from "../bindings";
+import { BackendError } from "../errors";
 import type { Transport } from "../transport";
 
 /**
@@ -36,7 +37,28 @@ export type StageFromPayloadVariant = B.StageBlobVariant_Serialize;
 export function blobs(t: Transport) {
 	return {
 		upload: (args: B.UploadBlobArgs) => t.invoke<B.UploadBlobResult>("blobs_upload", { args }),
-		read: (spaceId: string, cid: string) => t.invoke<number[] | null>("blobs_read", { spaceId, cid }),
+		/**
+		 * `blobs_read`'s missing-blob case is `Ok(None)` over Tauri, but
+		 * `desktop-bff`'s HTTP route encodes the same case as a bare 404
+		 * with no JSON body (see `desktop-bff/src/routes/blobs.rs`'s doc
+		 * comment on `blobs_read` — bytes stream as
+		 * `application/octet-stream`, which can't also carry a JSON
+		 * `null`). `httpTransport.invoke` surfaces that as a thrown
+		 * `BackendError` with `kind: "not-found"` (derived from the plain
+		 * HTTP status, since there's no JSON envelope to parse) rather
+		 * than silently resolving `null` itself — only this call site
+		 * knows "404 here" means "absent value", not "error", so the
+		 * translation happens here, keeping both transports' return
+		 * values identical for callers.
+		 */
+		read: async (spaceId: string, cid: string): Promise<number[] | null> => {
+			try {
+				return await t.invoke<number[]>("blobs_read", { spaceId, cid });
+			} catch (err) {
+				if (err instanceof BackendError && err.kind === "not-found") return null;
+				throw err;
+			}
+		},
 		stageUpload: (args: B.StageUploadArgs) => t.invoke<B.StagedUpload>("blobs_stage_upload", { args }),
 		/**
 		 * Mime-aware stage: image payloads pass through verbatim, anything else

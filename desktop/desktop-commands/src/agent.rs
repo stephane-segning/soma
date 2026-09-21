@@ -1,32 +1,41 @@
 //! Tauri presenter for `desktop_api::agent::*`.
 
+use desktop_agent::ChatResponse;
 use desktop_agent::{
-    BackgroundTask, EnqueueBackgroundTaskParams, ListBackgroundTasksParams, RerankParams, RerankResult,
-    ResolveDriftParams, ResolveDriftResult,
+    BackgroundTask, EnqueueBackgroundTaskParams, ListBackgroundTasksParams, RerankParams,
+    RerankResult, ResolveDriftParams, ResolveDriftResult,
 };
 use desktop_api::{
     AppState,
     agent::{self as api, AgentModel, ChatStreamArgs},
 };
 use desktop_core::error::DesktopResult;
-use desktop_agent::ChatResponse;
 use tauri::State;
 
 #[tauri::command]
 #[specta::specta]
-pub async fn agent_chat_stream(state: State<'_, AppState>, args: ChatStreamArgs) -> DesktopResult<ChatResponse> {
+pub async fn agent_chat_stream(
+    state: State<'_, AppState>,
+    args: ChatStreamArgs,
+) -> DesktopResult<ChatResponse> {
     api::chat_stream(state.inner(), args).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn agent_list_models(state: State<'_, AppState>, space_id: Option<String>) -> DesktopResult<Vec<AgentModel>> {
+pub async fn agent_list_models(
+    state: State<'_, AppState>,
+    space_id: Option<String>,
+) -> DesktopResult<Vec<AgentModel>> {
     api::list_models(state.inner(), space_id).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn agent_rerank(state: State<'_, AppState>, args: RerankParams) -> DesktopResult<Vec<RerankResult>> {
+pub async fn agent_rerank(
+    state: State<'_, AppState>,
+    args: RerankParams,
+) -> DesktopResult<Vec<RerankResult>> {
     api::rerank(state.inner(), args).await
 }
 

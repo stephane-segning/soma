@@ -21,7 +21,7 @@
  * surrounding range non-editable; the consumer's editor extension is
  * responsible for that (TipTap's `contenteditable=false` on the node).
  */
-import { Star, Square } from "react-feather";
+import { Square, Star } from "react-feather";
 import { useT } from "../../i18n/use-t";
 import { cn } from "../../utils/cn";
 

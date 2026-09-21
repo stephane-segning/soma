@@ -15,6 +15,7 @@ export function AiConversation({
 }: AiConversationProps) {
 	const endRef = useRef<HTMLDivElement | null>(null);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: `messages` is a deliberate re-run trigger — scrolls to the bottom whenever a new message arrives (while `autoScroll` is on); it isn't read inside the effect body itself.
 	useEffect(() => {
 		if (autoScroll && endRef.current) {
 			endRef.current.scrollIntoView({ behavior: "smooth" });

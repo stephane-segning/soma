@@ -1,15 +1,11 @@
-//! Search route — placeholder, mirrors `desktop_commands::search`.
-//! The daemon doesn't expose a search endpoint yet so the underlying
-//! handler returns an empty list; the route exists so the SDK call site
-//! resolves uniformly across transports.
+//! Search route — mirrors `desktop_commands::search`. See
+//! `desktop_api::search` for the handler, and
+//! `soma_daemon::DaemonHandle::search` / `soma_storage::search` for the
+//! membership-scoping and matching rules.
 
 use std::sync::Arc;
 
-use axum::{
-    Json, Router,
-    extract::State,
-    routing::post,
-};
+use axum::{Json, Router, extract::State, routing::post};
 use desktop_api::{AppState, search};
 use serde::Deserialize;
 
@@ -27,8 +23,8 @@ struct SearchBody {
 }
 
 async fn search(
-    State(_app): State<Arc<AppState>>,
+    State(app): State<Arc<AppState>>,
     Json(body): Json<SearchBody>,
 ) -> Result<Json<Vec<search::SearchResult>>, ApiError> {
-    search::query(body.query).await.map(Json).map_err(ApiError::from)
+    search::query(&app, body.query).await.map(Json).map_err(ApiError::from)
 }

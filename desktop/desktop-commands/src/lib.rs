@@ -11,13 +11,15 @@
 //! reach across crates for the type.
 
 pub mod agent;
+pub mod agent_config;
 pub mod blobs;
 pub mod daemon;
 pub mod documents;
+pub mod invites;
 pub mod practice;
 pub mod search;
 pub mod settings_storage;
 pub mod spaces;
 pub mod window;
 
-pub use desktop_api::{AppState, DOMAIN_EVENT_CHANNEL_CAPACITY};
+pub use desktop_api::{AGENT_EVENT_CHANNEL_CAPACITY, AppState, DOMAIN_EVENT_CHANNEL_CAPACITY};

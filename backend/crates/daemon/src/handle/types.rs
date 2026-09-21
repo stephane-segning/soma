@@ -216,6 +216,93 @@ pub struct RevokeSpaceInput {
 }
 
 #[derive(Debug, Clone)]
+pub struct RevokeIssuerCapabilityInput {
+    pub space_id: String,
+    pub delegate_peer_id: String,
+    pub reason: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct CreateInviteInput {
+    pub space_id: String,
+    /// Role string ("owner"/"editor"/"viewer"/"member"/"bot"); empty or
+    /// unrecognized defaults to "member".
+    pub role: String,
+    /// Seconds from now until expiry. `0` means "never expires".
+    pub ttl_secs: i64,
+    /// Optional label for UX (e.g. "Form 4 Maths"). Empty is fine.
+    pub label: String,
+    /// `false` (the default/recommended choice) makes the invite
+    /// redeemable exactly once; `true` allows unlimited redemptions
+    /// until revoked or expired. See `soma_membership::invite`'s module
+    /// doc comment for the full rationale.
+    pub multi_use: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct InviteRecord {
+    pub space_id: String,
+    /// Opaque id `RevokeInviteInput::id` takes back.
+    pub id: String,
+    /// The full `soma://invite/...` link, ready to share.
+    pub link: String,
+    pub issuer_peer_id: String,
+    pub role: String,
+    /// Unix-seconds; `0` means never expires.
+    pub expires_at: i64,
+    pub label: String,
+    pub multi_use: bool,
+    pub created_at: i64,
+    /// Unix-seconds; `0` means not revoked.
+    pub revoked_at: i64,
+    pub redeemed_count: i64,
+}
+
+#[derive(Debug, Clone)]
+pub struct RevokeInviteInput {
+    pub space_id: String,
+    pub id: String,
+}
+
+/// Why an inspected invite link is or isn't usable — mirrors
+/// `soma_membership::InviteValidity` one-to-one (kept as a distinct type
+/// per this module's "no proto, no soma_membership types" contract; see
+/// the module doc comment).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum InviteValidity {
+    Valid,
+    InvalidSignature,
+    Expired,
+    Malformed,
+}
+
+/// Result of decoding + offline-verifying a `soma://invite/...` link.
+/// Every field beyond `validity` is `None`/empty precisely when it isn't
+/// knowable (e.g. every field but `validity` is absent for a
+/// [`InviteValidity::Malformed`] link).
+#[derive(Debug, Clone)]
+pub struct InviteInspectionRecord {
+    pub validity: InviteValidity,
+    pub space_id: Option<String>,
+    pub space_label: Option<String>,
+    pub role: Option<String>,
+    /// The verified issuer when `validity == Valid`; the UNVERIFIED
+    /// claimed signer otherwise (UI display only — never a trust
+    /// decision unless `validity == Valid`).
+    pub issuer_peer_id: Option<String>,
+    /// Unix-seconds. `None` means "never expires".
+    pub expires_at: Option<i64>,
+    pub bootstrap_multiaddrs: Vec<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct RedeemInviteInput {
+    pub link: String,
+    pub display_name: String,
+    pub device_name: String,
+}
+
+#[derive(Debug, Clone)]
 pub struct IssueIssuerCapabilityInput {
     pub space_id: String,
     pub target_peer_id: String,
@@ -231,6 +318,100 @@ pub struct IssueIssuerCapabilityInput {
     /// NOTE: scopes are NOT enforced at runtime — that is a separate,
     /// larger PR involving `validate_issuer_capability`.
     pub scopes: Vec<String>,
+    /// Multiaddrs to dial `target_peer_id` on before sending the offer.
+    /// Same shape and purpose as `JoinSpaceInput::target_multiaddrs`.
+    ///
+    /// A freshly-deployed remote bot has no prior connection to this
+    /// peer and (in the common case) no rendezvous config pointing at
+    /// it yet, so `PeerCommand::SendIssuerOffer` needs somewhere to
+    /// dial — without this, `send_request` can only reach a peer this
+    /// process happens to already be connected to or already has
+    /// addresses for in its peerstore, and the offer silently sits
+    /// until it times out and the row flips to `failed`. May be empty
+    /// when the target is already reachable some other way (already
+    /// connected, known via mDNS/rendezvous, etc).
+    pub target_multiaddrs: Vec<String>,
+}
+
+/// Scope-keyed AI provider config overrides, exactly as persisted. Every
+/// field is `None` when this scope doesn't override that column —
+/// callers resolve "inherit" themselves (space -> default -> the
+/// caller's own compiled-in constants; this daemon has no opinion on
+/// what those constants are).
+///
+/// `api_key` carries the real cleartext value and is for **in-process
+/// Rust callers only** (e.g. `desktop-agent`'s config resolver, building
+/// a Bearer header). It must never be serialized straight onto any
+/// client-facing DTO — `desktop-api`'s handlers project it into a
+/// `has_api_key: bool` before it ever reaches a Tauri command or HTTP
+/// route; see `desktop_api::agent_config`.
+#[derive(Debug, Clone, Default)]
+pub struct AgentProviderConfigRecord {
+    pub provider: Option<String>,
+    pub base_url: Option<String>,
+    pub api_key: Option<String>,
+    pub chat_model: Option<String>,
+    pub embed_model: Option<String>,
+    pub request_timeout_ms: Option<i64>,
+    pub poll_interval_ms: Option<i64>,
+    /// `None` when this scope has never been saved at all (an all-`None`
+    /// row and "no row" are observably identical to every caller, so
+    /// both collapse to this one record shape).
+    pub updated_at_ms: Option<i64>,
+}
+
+/// Whole-state overwrite for the non-secret columns of one scope's AI
+/// provider config. `None` on any field clears that column (reverts to
+/// inherit) — this is a full replace, not a sparse patch: callers pass
+/// every field's desired value on every call, matching an auto-save
+/// settings form that always holds the complete state for a scope.
+#[derive(Debug, Clone, Default)]
+pub struct UpsertAgentProviderConfigInput {
+    pub provider: Option<String>,
+    pub base_url: Option<String>,
+    pub chat_model: Option<String>,
+    pub embed_model: Option<String>,
+    pub request_timeout_ms: Option<i64>,
+    /// Only meaningful on the default scope. `DaemonHandle::agent_config_upsert_space`
+    /// rejects a call where this is `Some(_)`.
+    pub poll_interval_ms: Option<i64>,
+}
+
+/// Three-state write for the one column that never round-trips to a
+/// client in cleartext. See [`AgentProviderConfigRecord`]'s doc comment.
+#[derive(Debug, Clone, Default)]
+pub enum ApiKeyWrite {
+    /// Don't touch the stored key (if any).
+    #[default]
+    Unchanged,
+    /// Explicitly wipe the stored key. Distinct from `Unchanged` even
+    /// though both can observably leave `has_api_key == false` — see
+    /// `soma-storage`'s `clearing_the_key_is_distinct_from_never_setting_it` test.
+    Clear,
+    /// Replace the stored key with this value.
+    Set(String),
+}
+
+/// What a [`SearchResultRecord`] refers to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SearchResultKind {
+    Space,
+    Page,
+    Document,
+}
+
+/// One search hit, scoped to spaces the caller is a member of — see
+/// [`crate::DaemonHandle::search`]'s doc comment for the scoping rule
+/// and the per-kind result cap.
+#[derive(Debug, Clone)]
+pub struct SearchResultRecord {
+    pub kind: SearchResultKind,
+    pub space_id: String,
+    pub space_name: String,
+    pub id: String,
+    pub title: String,
+    pub snippet: Option<String>,
+    pub updated_at_ms: i64,
 }
 
 /// Plain-typed snapshot of one entry on the daemon's broadcast event stream.

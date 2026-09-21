@@ -63,7 +63,18 @@ export function SettingsTabs({
 		<div
 			aria-label={ariaLabel}
 			className={cn(
-				"flex w-full items-center gap-1 border-base-300 border-b",
+				// `overflow-x-auto` + `scrollbar-none`: same pattern `AppTabs`
+				// already uses for its own tab row. At desktop widths every
+				// tab set observed so far fits, so this is inert (nothing to
+				// scroll, zero visual change). At 402px a real 4-tab settings
+				// page (Members/Invites/Bots/Assistant, text-only) sits right
+				// at the edge of what fits, and a 6-tab set (verified via the
+				// `SettingsTabs` Storybook story at 402px) genuinely overflows
+				// — without this, the tabs past the edge become completely
+				// unreachable (no scroll affordance existed at all). `shrink-0`
+				// on each tab (below) stops flex from squeezing labels instead
+				// of the row overflowing.
+				"scrollbar-none flex w-full items-center gap-1 overflow-x-auto border-base-300 border-b",
 				className,
 			)}
 			role="tablist"
@@ -74,7 +85,7 @@ export function SettingsTabs({
 					<button
 						aria-selected={active}
 						className={cn(
-							"-mb-px relative flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+							"relative -mb-px flex shrink-0 items-center gap-1.5 border-b-2 px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
 							active
 								? "border-primary text-base-content"
 								: "border-transparent text-base-content/60 hover:text-base-content",

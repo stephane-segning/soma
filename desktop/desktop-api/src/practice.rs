@@ -259,7 +259,10 @@ impl From<GenerateExerciseInput> for svc::GenerateExerciseInput {
 
 // --- Handlers ----------------------------------------------------------------
 
-pub async fn list_exercises(state: &AppState, space_id: Option<String>) -> DesktopResult<Vec<Exercise>> {
+pub async fn list_exercises(
+    state: &AppState,
+    space_id: Option<String>,
+) -> DesktopResult<Vec<Exercise>> {
     // Electron defaults missing `spaceId` to `""` (so the call returns
     // the empty list rather than erroring). Mirror that here.
     let id = space_id.unwrap_or_default();
@@ -272,15 +275,24 @@ pub async fn save_exercise(state: &AppState, draft: ExerciseDraft) -> DesktopRes
     Ok(saved.into())
 }
 
-pub async fn record_session(state: &AppState, attempt: ExerciseAttempt) -> DesktopResult<RecordSessionResponse> {
+pub async fn record_session(
+    state: &AppState,
+    attempt: ExerciseAttempt,
+) -> DesktopResult<RecordSessionResponse> {
     let leaderboard = state.practice.record_session(attempt.into()).await;
     Ok(RecordSessionResponse {
         ok: true,
-        leaderboard: leaderboard.into_iter().map(LeaderboardEntry::from).collect(),
+        leaderboard: leaderboard
+            .into_iter()
+            .map(LeaderboardEntry::from)
+            .collect(),
     })
 }
 
-pub async fn generate_exercise(state: &AppState, input: GenerateExerciseInput) -> DesktopResult<ExerciseDraft> {
+pub async fn generate_exercise(
+    state: &AppState,
+    input: GenerateExerciseInput,
+) -> DesktopResult<ExerciseDraft> {
     let draft = state.practice.generate_exercise(input.into()).await;
     Ok(draft.into())
 }

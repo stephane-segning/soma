@@ -51,11 +51,16 @@ export function BackendStatusPanel(): React.JSX.Element {
 	useEffect(() => {
 		const offDomain = backend.events.onDomain((e) => setDomainEvents((prev) => [stamp(e), ...prev].slice(0, 8)));
 		const offAgent = backend.events.onAgent((e) => setAgentEvents((prev) => [stamp(e), ...prev].slice(0, 8)));
-		const offDeep = backend.events.onDeepLink((url) => console.info("[deep-link]", url));
+		// No `onDeepLink` subscription here on purpose: deep links now
+		// route for real, via `components/deep-link/deep-link-listener.tsx`
+		// mounted once at the React root (`main.tsx`). Subscribing again
+		// here — a debug panel nested inside the `/spike/editor` route,
+		// which is exactly the "route that may not be mounted when the
+		// link arrives" anti-pattern that component's own doc comment
+		// warns against — would just be a second, redundant listener.
 		return () => {
 			offDomain();
 			offAgent();
-			offDeep();
 		};
 	}, []);
 

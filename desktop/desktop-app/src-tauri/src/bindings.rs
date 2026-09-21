@@ -8,6 +8,7 @@
 
 use desktop_agent::AgentRuntimeEvent;
 use desktop_core::error::DesktopError;
+use desktop_core::events::DeepLinkRoute;
 use desktop_daemon::events::DomainEvent;
 use tauri::Wry;
 use tauri_specta::{Builder, collect_commands};
@@ -50,7 +51,14 @@ pub fn build_specta() -> Builder<Wry> {
             desktop_commands::spaces::spaces_decide_join,
             desktop_commands::spaces::spaces_list_join_requests,
             desktop_commands::spaces::spaces_revoke_member,
+            desktop_commands::spaces::spaces_revoke_bot,
             desktop_commands::spaces::spaces_issue_issuer_capability,
+            // Invites
+            desktop_commands::invites::invites_create,
+            desktop_commands::invites::invites_list,
+            desktop_commands::invites::invites_revoke,
+            desktop_commands::invites::invites_inspect,
+            desktop_commands::invites::invites_redeem,
             // Documents
             desktop_commands::documents::documents_upsert,
             desktop_commands::documents::documents_get,
@@ -76,6 +84,14 @@ pub fn build_specta() -> Builder<Wry> {
             desktop_commands::agent::agent_resolve_drift,
             desktop_commands::agent::agent_enqueue_background_task,
             desktop_commands::agent::agent_list_background_tasks,
+            // Agent provider config (per-space AI provider settings)
+            desktop_commands::agent_config::agent_config_get_default,
+            desktop_commands::agent_config::agent_config_get_space,
+            desktop_commands::agent_config::agent_config_set_default,
+            desktop_commands::agent_config::agent_config_set_space,
+            desktop_commands::agent_config::agent_config_clear_default,
+            desktop_commands::agent_config::agent_config_clear_space,
+            desktop_commands::agent_config::agent_config_validate,
             // Search
             desktop_commands::search::search,
             // Practice (typing drills)
@@ -90,6 +106,7 @@ pub fn build_specta() -> Builder<Wry> {
         .typ::<DomainEvent>()
         .typ::<AgentRuntimeEvent>()
         .typ::<DesktopError>()
+        .typ::<DeepLinkRoute>()
 }
 
 /// Emit `bindings.ts` during dev runs only. Release builds skip this so
@@ -100,7 +117,10 @@ pub fn export_bindings(builder: &Builder<Wry>) -> Result<(), Box<dyn std::error:
     // The SDK owns the generated file — desktop-app just consumes
     // `@soma/sdk` like any other workspace package.
     builder
-        .export(Typescript::default(), "../../desktop-sdk/src/bindings/index.ts")
+        .export(
+            Typescript::default(),
+            "../../desktop-sdk/src/bindings/index.ts",
+        )
         .map_err(Into::into)
 }
 

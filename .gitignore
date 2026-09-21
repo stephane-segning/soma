@@ -20,8 +20,12 @@ data
 .data
 
 site
-gen
 artifacts
+
+# desktop/desktop-app/src-tauri/gen/{apple,android} (Tauri iOS/Android
+# scaffolding) IS tracked — it's a real Xcode/Gradle project, not a build
+# byproduct. Each has its own nested .gitignore for the genuinely-derived
+# artifacts inside it (Pods/, build/, .gradle, local.properties, etc.).
 
 storybook-static
 

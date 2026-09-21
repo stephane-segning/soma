@@ -23,7 +23,7 @@ pub(crate) async fn persist_membership(
         warn!(%err, "failed to upsert space while processing join");
     }
 
-    if let Err(err) = repo
+    match repo
         .upsert_membership(&SpaceMembership {
             space_id: space_id.to_string(),
             subject_peer_id: subject_peer_id.to_string(),
@@ -35,6 +35,17 @@ pub(crate) async fn persist_membership(
         })
         .await
     {
-        warn!(%err, "failed to upsert membership while processing join");
+        Ok(true) => {}
+        Ok(false) => {
+            warn!(
+                %space_id,
+                %subject_peer_id,
+                %issuer,
+                "membership upsert rejected: an existing row for this subject has a different, unrelated issuer"
+            );
+        }
+        Err(err) => {
+            warn!(%err, "failed to upsert membership while processing join");
+        }
     }
 }

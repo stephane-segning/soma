@@ -20,7 +20,7 @@ pub(super) enum EventKindLabel {
     JoinDecisionDeliveryAck,
     JoinDecisionDeliveryFailed,
     JoinFailed,
-    DocumentBlobAdded,
+    BlobAnnounceReceived,
     BlobResponseReceived,
 }
 
@@ -47,7 +47,7 @@ impl EventKindLabel {
             Self::JoinDecisionDeliveryAck => "join_decision_delivery_ack",
             Self::JoinDecisionDeliveryFailed => "join_decision_delivery_failed",
             Self::JoinFailed => "join_failed",
-            Self::DocumentBlobAdded => "document_blob_added",
+            Self::BlobAnnounceReceived => "blob_announce_received",
             Self::BlobResponseReceived => "blob_response_received",
         }
     }

@@ -58,11 +58,8 @@ export class StageConfigService {
 
 	resolve(): StageRuntimeConfig {
 		const appName = (this.options.appName ?? DEFAULT_APP_NAME).trim();
-		const unixAppName = (
-			this.options.unixAppName ?? appName.toLowerCase()
-		).trim();
-		const databaseFileName =
-			this.options.databaseFileName ?? DEFAULT_DATABASE_FILE;
+		const unixAppName = (this.options.unixAppName ?? appName.toLowerCase()).trim();
+		const databaseFileName = this.options.databaseFileName ?? DEFAULT_DATABASE_FILE;
 		const platform = this.options.platform ?? process.platform;
 		const home = this.options.homeDir ?? homedir();
 		const env = this.options.env ?? process.env;
@@ -94,10 +91,7 @@ export class StageConfigService {
 			return normalizeStage(envStage);
 		}
 
-		const fromName = this.stageFromAppName(
-			this.options.appNameForStage,
-			appName,
-		);
+		const fromName = this.stageFromAppName(this.options.appNameForStage, appName);
 		if (fromName) {
 			return normalizeStage(fromName);
 		}
@@ -105,10 +99,7 @@ export class StageConfigService {
 		return this.options.isDev ? "dev" : "prod";
 	}
 
-	private stageFromAppName(
-		appNameForStage: string | undefined,
-		appName: string,
-	): string | null {
+	private stageFromAppName(appNameForStage: string | undefined, appName: string): string | null {
 		if (!appNameForStage) {
 			return null;
 		}
@@ -142,12 +133,7 @@ export class StageConfigService {
 		const suffix = stage === "prod" ? "" : `-${stage}`;
 
 		if (platform === "darwin") {
-			return join(
-				home,
-				"Library",
-				"Application Support",
-				`${appName}${suffix}`,
-			);
+			return join(home, "Library", "Application Support", `${appName}${suffix}`);
 		}
 
 		if (platform === "win32") {
@@ -161,9 +147,7 @@ export class StageConfigService {
 	}
 }
 
-export function resolveStageConfig(
-	options: StageConfigOptions = {},
-): StageRuntimeConfig {
+export function resolveStageConfig(options: StageConfigOptions = {}): StageRuntimeConfig {
 	return new StageConfigService(options).resolve();
 }
 

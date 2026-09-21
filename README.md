@@ -84,11 +84,16 @@ For a fuller walkthrough, see `docs/src/getting-started/index.md`.
 
 ## Docker Compose
 
+Runs the `somad` image built by `Dockerfile` / published by `.github/workflows/release-server.yml`
+— one image, one binary, mode selected per service via `command:` (`relay`, `rendezvous`, `bot`,
+`bff`; see AGENTS.md § "Server: `somad`"). The bot defaults to `SOMA_MODE=bot` (read-only,
+auto-approve-only); no admin token is needed unless you opt into `SOMA_MODE=admin`.
+
 - Default stack: `docker compose up -d`
 - If your Compose version does not support `include`, use:
 
 ```bash
-docker compose -f compose/backend.infra.yml -f compose/backend.botd.yml -f compose/backend.bffd.yml up -d
+docker compose -f compose/backend.infra.yml -f compose/backend.bot.yml -f compose/backend.bff.yml up -d
 ```
 
 ## License

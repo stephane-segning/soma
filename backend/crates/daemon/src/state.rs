@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use libp2p::{PeerId, identity::Keypair};
 use soma_peer::PeerCommand;
+use soma_peer::blob::BlobResolver;
 use soma_proto_build::daemon;
 use soma_storage::RepositoryProvider;
 use soma_vdfs::fs::FsBlobStore;
@@ -18,6 +19,9 @@ pub struct DaemonState {
     pub repos: Arc<dyn RepositoryProvider>,
     pub signer: Keypair,
     pub blob_store: FsBlobStore,
+    /// Peer-to-peer fallback for `DaemonHandle::read_blob` on a local miss.
+    /// See `soma_peer::blob` for the resolver design.
+    pub blob_resolver: Arc<dyn BlobResolver>,
     pub space_manager: Arc<dyn SpaceManager>,
     pub identify_keys: Mutex<std::collections::HashMap<PeerId, libp2p::identity::PublicKey>>,
 }

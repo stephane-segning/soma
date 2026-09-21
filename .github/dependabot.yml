@@ -1,7 +1,10 @@
 version: 2
 updates:
   - package-ecosystem: cargo
-    directory: "/backend"
+    # The workspace root manifest lives at the repo root, not /backend (which
+    # has no Cargo.toml of its own) — this was silently producing zero cargo
+    # update PRs.
+    directory: "/"
     schedule:
       interval: weekly
       time: "08:00"

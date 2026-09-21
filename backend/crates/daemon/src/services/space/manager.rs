@@ -32,7 +32,7 @@ impl DefaultSpaceManager {
     }
 
     pub(super) fn normalize_display_name(name: Option<String>) -> Option<String> {
-        let Some(name) = name else { return None };
+        let name = name?;
         let trimmed = name.trim();
         if trimmed.is_empty() {
             None

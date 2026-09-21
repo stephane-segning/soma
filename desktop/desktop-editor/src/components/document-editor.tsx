@@ -2,7 +2,7 @@ import { LimitPercentage } from "./limit-percentage";
 import { useLowlight } from "../hooks/lowlight";
 import { ContextualMenu, type NodeAITrigger, type QuickActionRequest, type QuickActionResponse } from "../menus/contextual-menu";
 import type { JSONContent } from "@tiptap/core";
-import { EditorContent, useEditor } from "@tiptap/react";
+import { EditorContent, type Editor, useEditor } from "@tiptap/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { defaultCommands } from "../commands/default-commands";
 import type { BlobFileUploadResult } from "../extensions/blob-file";
@@ -24,6 +24,17 @@ export type DocumentEditorProps = {
 	uploadFile?: (file: File) => Promise<BlobFileUploadResult>;
 	onOpenPageLink?: (pageId: string, title?: string, href?: string) => void;
 	onRenamePageLink?: (pageId: string, nextTitle: string, currentTitle?: string) => string | null | Promise<string | null>;
+	/**
+	 * Called from the "+" add-menu's "Page link" item instead of a
+	 * synchronous insert — there's no host-native picker for "which page",
+	 * so the host app owns that UI (search this space, or create a new
+	 * sub-page) and is responsible for inserting the `pageLink` node
+	 * itself once the user picks. See `onInsertImage`/`onInsertFile` for
+	 * the shape this mirrors; unlike those two there's no in-package
+	 * adapter (`file-pickers.ts`) to wrap it in, since there's no "pure"
+	 * data-fetch step to share — the whole interaction is host-owned.
+	 */
+	onInsertPageLink?: (editor: Editor, insertPos: number) => Promise<void>;
 	mentionProviders?: MentionProvider[];
 	onChange?: (doc: JSONContent) => void;
 	limit?: number;
@@ -46,6 +57,7 @@ export function DocumentEditor({
 	uploadFile,
 	onOpenPageLink,
 	onRenamePageLink,
+	onInsertPageLink,
 	mentionProviders,
 	onChange,
 	limit,
@@ -132,6 +144,7 @@ export function DocumentEditor({
 					editor={editor}
 					onInsertFile={(targetEditor, insertPos) => insertFileFromPicker(targetEditor, insertPos, uploadFile)}
 					onInsertImage={(targetEditor, insertPos) => insertImageFromPicker(targetEditor, insertPos, uploadImage)}
+					onInsertPageLink={onInsertPageLink}
 					onAskAIForNode={onQuickAction ? handleAskAIForNode : undefined}
 				/>
 				<EditorContent editor={editor} />

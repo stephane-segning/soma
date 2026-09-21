@@ -3,6 +3,7 @@ use std::sync::Arc;
 use axum::{
     Json,
     extract::{Query, State},
+    http::HeaderMap,
     http::StatusCode,
 };
 use libp2p::PeerId;
@@ -10,18 +11,19 @@ use serde::Deserialize;
 use soma_membership::create_space;
 use soma_storage::membership::MembershipRepository;
 
-use super::{BotState, JsonResult, auth::authorize};
+use super::{
+    BotState, JsonResult,
+    auth::{authorize, bearer_token},
+};
 
 #[derive(Deserialize)]
 pub(super) struct CreateSpacePayload {
-    admin_token: Option<String>,
     space_id: Option<String>,
     display_name: Option<String>,
 }
 
 #[derive(Deserialize)]
 pub(super) struct ListSpacesQuery {
-    admin_token: Option<String>,
     limit: Option<u32>,
     offset: Option<u32>,
     owner_peer_id: Option<String>,
@@ -32,10 +34,11 @@ pub(super) struct ListSpacesQuery {
 
 pub(super) async fn create_handler(
     State(state): State<Arc<BotState>>,
+    headers: HeaderMap,
     payload: Json<CreateSpacePayload>,
     admin_token: Option<String>,
 ) -> JsonResult {
-    authorize(&admin_token, payload.admin_token.clone())?;
+    authorize(&admin_token, bearer_token(&headers))?;
 
     let space_id = payload
         .space_id
@@ -65,10 +68,11 @@ pub(super) async fn create_handler(
 
 pub(super) async fn list_handler(
     State(state): State<Arc<BotState>>,
+    headers: HeaderMap,
     Query(params): Query<ListSpacesQuery>,
     admin_token: Option<String>,
 ) -> JsonResult {
-    authorize(&admin_token, params.admin_token.clone())?;
+    authorize(&admin_token, bearer_token(&headers))?;
 
     let limit = params.limit.unwrap_or(50).clamp(1, 200);
     let offset = params.offset.unwrap_or(0);

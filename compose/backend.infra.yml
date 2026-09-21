@@ -1,7 +1,10 @@
 services:
-  soma-relayd:
-    image: ${SOMA_BACKEND_IMAGE_PREFIX:-ghcr.io/stephane-segning/soma-backend}-relayd:${SOMA_TAG:-latest}
+  soma-relay:
+    image: ${SOMA_IMAGE:-ghcr.io/stephane-segning/somad}:${SOMA_TAG:-latest}
     pull_policy: always
+    # `somad` dispatches on a mandatory subcommand (backend/bins/somad/src/commands/mod.rs) —
+    # there is no bare/default mode, so every service here selects one explicitly.
+    command: ["relay"]
     environment:
       RUST_LOG: info
       HTTP_ADDR: 0.0.0.0:8081
@@ -12,11 +15,12 @@ services:
       - "14103:14103/tcp"
       - "14203:14203/udp"
     volumes:
-      - relayd-data:/data
+      - relay-data:/data
 
-  soma-rendezvousd:
-    image: ${SOMA_BACKEND_IMAGE_PREFIX:-ghcr.io/stephane-segning/soma-backend}-rendezvousd:${SOMA_TAG:-latest}
+  soma-rendezvous:
+    image: ${SOMA_IMAGE:-ghcr.io/stephane-segning/somad}:${SOMA_TAG:-latest}
     pull_policy: always
+    command: ["rendezvous"]
     environment:
       RUST_LOG: info
       HTTP_ADDR: 0.0.0.0:8082
@@ -27,8 +31,8 @@ services:
       - "14104:14104/tcp"
       - "4204:4204/udp"
     volumes:
-      - rendezvousd-data:/data
+      - rendezvous-data:/data
 
 volumes:
-  relayd-data: {}
-  rendezvousd-data: {}
+  relay-data: {}
+  rendezvous-data: {}

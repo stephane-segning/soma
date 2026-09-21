@@ -59,6 +59,23 @@ jobs:
       - name: cargo test --workspace
         run: cargo test --workspace --locked
 
+      # `cargo test` above runs `desktop-app`'s `emit_typescript_bindings`
+      # test as a side effect, which regenerates
+      # desktop/desktop-sdk/src/bindings/index.ts from the live Rust command
+      # graph (see desktop/desktop-app/src-tauri/src/bindings.rs). This step
+      # is what actually makes good on that file's own doc comment ("CI then
+      # asserts the working tree stays clean") — a drifted DTO/command
+      # surface fails the build instead of silently shipping a stale SDK.
+      - name: Verify specta bindings are up to date
+        run: |
+          if ! git diff --exit-code -- desktop/desktop-sdk/src/bindings/; then
+            echo "::error::Generated TypeScript bindings are stale. Run \`cargo test -p desktop-app emit_typescript_bindings\` and commit the result." >&2
+            exit 1
+          fi
+
+      - name: cargo clippy --workspace
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
   unit:
     name: Unit tests + coverage
     runs-on: ubuntu-latest
@@ -101,6 +118,42 @@ jobs:
           path: desktop/desktop-editor/coverage
           if-no-files-found: ignore
           retention-days: 14
+
+      # No test:coverage script here (unlike @soma/ui / @soma/editor) — @soma/sdk
+      # doesn't have a coverage config, so this is a plain pass/fail gate.
+      - name: Run @soma/sdk vitest
+        run: pnpm --filter @soma/sdk run test
+
+  ui:
+    # @soma/ui (desktop/desktop-ui) is the largest package in the repo, but
+    # no workflow ever typechecked or linted it — only its vitest coverage
+    # (job `unit`, above) and the Storybook build (job `e2e`, below) ran in
+    # CI. That gap is exactly how ~20 biome errors accumulated unnoticed.
+    # This job closes it, mirroring the `renderer` job below for
+    # @soma/desktop-app.
+    name: "@soma/ui (typecheck + lint)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 9.0.0
+          run_install: false
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install workspace deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm --filter @soma/ui run typecheck
+
+      - name: Lint
+        run: pnpm --filter @soma/ui run lint:ci
 
   e2e:
     name: UI E2E (Cucumber × Playwright)
@@ -146,3 +199,86 @@ jobs:
           path: desktop/desktop-e2e/playwright-report
           if-no-files-found: ignore
           retention-days: 14
+
+  renderer:
+    # The desktop app's own TS (React/Vite renderer under
+    # desktop/desktop-app/src/) was never typechecked, linted, or built by
+    # any workflow — it was only ever compiled as a side effect of the
+    # manual, workflow_dispatch-only release-desktop.yml. This job closes
+    # that gap on every push/PR.
+    name: Desktop app renderer (typecheck + lint + build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 9.0.0
+          run_install: false
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install workspace deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm --filter @soma/desktop-app run typecheck
+
+      - name: Lint
+        run: pnpm --filter @soma/desktop-app run lint:ci
+
+      - name: Build
+        run: pnpm --filter @soma/desktop-app run build
+
+  cargo-deny:
+    # Rust supply-chain gate: RustSec advisories, license policy, banned/
+    # duplicate crates, and untrusted sources. Policy lives in the root
+    # `deny.toml`.
+    #
+    # Installed directly rather than via `EmbarkStudios/cargo-deny-action`.
+    # That action builds a Docker image whose Dockerfile pipes
+    # `curl --silent -L <release tarball>` straight into `tar`, with no
+    # `-f`, no retry and no checksum. When GitHub's release CDN hiccups,
+    # curl writes the HTML error body to stdout and the job dies with
+    # `gzip: invalid magic` — which is how this gate failed on #156 for
+    # reasons that had nothing to do with any dependency. Doing it here
+    # buys three things the action does not: `-f` so an HTTP error is an
+    # error, `--retry` so a blip is survivable, and a pinned sha256 so the
+    # job that exists to police the supply chain stops fetching its own
+    # tool unverified.
+    #
+    # Version lives here, not in a moving `@v2` tag. Bump VERSION and
+    # SHA256 together — the digest is published next to the asset as
+    # `<file>.sha256`.
+    name: Dependency audit (cargo-deny)
+    runs-on: ubuntu-latest
+    env:
+      CARGO_DENY_VERSION: "0.20.2"
+      CARGO_DENY_SHA256: "9f12ed4c49936e09b48bf862b595cde2fe64fcbd9d74dfacac6131ca824c8d5f"
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install cargo-deny
+        run: |
+          set -euo pipefail
+          slug="cargo-deny-${CARGO_DENY_VERSION}-x86_64-unknown-linux-musl"
+          curl -fL --retry 5 --retry-all-errors --retry-delay 2 \
+            -o "${RUNNER_TEMP}/${slug}.tar.gz" \
+            "https://github.com/EmbarkStudios/cargo-deny/releases/download/${CARGO_DENY_VERSION}/${slug}.tar.gz"
+          echo "${CARGO_DENY_SHA256}  ${RUNNER_TEMP}/${slug}.tar.gz" | sha256sum -c -
+          mkdir -p "${RUNNER_TEMP}/bin"
+          tar -xzf "${RUNNER_TEMP}/${slug}.tar.gz" -C "${RUNNER_TEMP}/bin" \
+            --strip-components=1 "${slug}/cargo-deny"
+          echo "${RUNNER_TEMP}/bin" >> "$GITHUB_PATH"
+          "${RUNNER_TEMP}/bin/cargo-deny" --version
+
+      # No `--all-features`: this matches how the rest of CI actually builds
+      # (no workflow anywhere passes it) and what `deny.toml`'s own
+      # `[graph] all-features = false` is written against. The old action
+      # defaulted to `--all-features`, which is why it was overridden with
+      # `arguments: ""`.
+      - name: cargo deny check
+        run: cargo deny check

@@ -95,7 +95,7 @@ export const Surfaces: Story = {
 					Translucent + blur. No shadow by default.
 				</p>
 			</div>
-			<div className="glass-panel shadow-elevated p-4">
+			<div className="glass-panel p-4 shadow-elevated">
 				<div className="font-semibold text-sm">
 					glass-panel + shadow-elevated
 				</div>

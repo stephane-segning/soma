@@ -35,6 +35,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("cargo:rerun-if-changed={}", proto_file.display());
     }
 
-    tonic_prost_build::configure().compile_protos(&proto_files, &[proto_root])?;
+    tonic_prost_build::configure()
+        // `large_enum_variant`: both oneofs mix a small notification/event
+        // payload with one variant that embeds a full domain message
+        // (JoinDecision / JoinDecisionEvent), so the enum's own size is
+        // dominated by its biggest member (~672-696 bytes vs ~128-272 for
+        // the others). Boxing the variant would fix that, but it also
+        // reshapes the generated Rust API (`Foo(T)` -> `Foo(Box<T>)`) for
+        // every construction/match site — several of which live in crates
+        // this change does not own and must not edit (backend/crates/daemon,
+        // backend/crates/peer). These are wire DTOs decoded rarely (a join
+        // decision, a bot status change), never in a hot loop, so the extra
+        // few hundred stack bytes per value is immaterial; a scoped allow is
+        // the honest fix here, not a workspace-wide one.
+        .enum_attribute(
+            ".space.v1.MailboxItem.payload",
+            "#[allow(clippy::large_enum_variant)]",
+        )
+        .enum_attribute(
+            ".daemon.v1.DaemonEvent.event",
+            "#[allow(clippy::large_enum_variant)]",
+        )
+        .compile_protos(&proto_files, &[proto_root])?;
     Ok(())
 }

@@ -1,5 +1,5 @@
 /**
- * Tauri V2 shell router — Phase 1 foundation.
+ * Shell router — Phase 1 foundation.
  *
  * Stubs the route tree we need for the desktop shell rebuild: a top-level
  * `app-layout` that owns the 3-column `DesktopShell`, with nested
@@ -9,56 +9,79 @@
  *
  * Real space data, the right-column chat sidebar, command palette,
  * tabs bar, splash, and deep-link landing are deferred to later phases.
+ *
+ * Router choice depends on the runtime: Tauri ships a webview with no
+ * address bar and no server behind it, so `createMemoryRouter` (history
+ * kept in-process, seeded at `"/"`) is the only router that makes sense
+ * there. A plain browser tab (the web build) gets `createBrowserRouter`
+ * instead — real URLs, working back/forward, and a refresh that
+ * survives, as long as whatever serves the static bundle rewrites
+ * unmatched paths to `index.html` (every client-routed SPA needs that,
+ * regardless of which router drives it).
  */
-import { Empty } from "@soma/ui/components/primitives/empty";
-import { useTranslation } from "react-i18next";
-import type { RouteObject } from "react-router";
-import { createMemoryRouter, useParams } from "react-router";
+
+import { isTauri } from "@tauri-apps/api/core";
+import type { LoaderFunctionArgs, RouteObject } from "react-router";
+import { createBrowserRouter, createMemoryRouter, redirect } from "react-router";
+import { RouteErrorBoundary } from "../components/error-boundary/route-error-boundary";
+import { backend } from "../lib/backend";
 import { AppLayout } from "./app-layout";
+import { JoinSpacePage } from "./join-space";
 import { NotFound } from "./not-found";
 import { PageView } from "./page-view";
+import { PracticePage } from "./practice";
 import { rootRedirectLoader } from "./root-redirect";
 import { SettingsPage } from "./settings";
+import { SpaceSettingsPage } from "./space-settings";
 import { SpaceView } from "./space-view";
 import { SpacesIndex } from "./spaces-index";
 import { SpikeEditor } from "./spike-editor";
 
 /**
- * Lightweight placeholder routes for the per-space `members` and `info`
- * surfaces. The real screens land alongside the membership and join-
- * decision flows; until then we render an `Empty` so the deep links
- * from chips and breadcrumbs still resolve to something coherent.
+ * `/spaces/:spaceId/members` used to render an inert `Empty` placeholder
+ * (`SpaceMembersPlaceholder`, removed). It now has a real successor — the
+ * Members tab of `spaces/:spaceId/settings` — so old links/bookmarks
+ * redirect there instead of 404ing. `/spaces/:spaceId/info` had no
+ * matching successor built (there is no "space info" tab in this pass)
+ * and is deliberately NOT redirected — it falls through to the `*` route
+ * (`NotFound`) below rather than landing users on a tab with nothing to
+ * do with "info".
  */
-function SpaceMembersPlaceholder() {
-	const { t } = useTranslation();
-	const { spaceId } = useParams<{ spaceId: string }>();
-	return (
-		<main className="mx-auto w-full max-w-4xl px-8 py-10">
-			<Empty
-				headline={t("pages.space_members.placeholder")}
-				subtext={spaceId ? <span className="font-mono text-xs">{spaceId}</span> : undefined}
-			/>
-		</main>
-	);
+function spaceMembersRedirectLoader({ params }: LoaderFunctionArgs): Response {
+	return redirect(`/spaces/${params.spaceId}/settings`);
 }
 
-function SpaceInfoPlaceholder() {
-	const { t } = useTranslation();
-	const { spaceId } = useParams<{ spaceId: string }>();
-	return (
-		<main className="mx-auto w-full max-w-4xl px-8 py-10">
-			<Empty
-				headline={t("pages.space_info.placeholder")}
-				subtext={spaceId ? <span className="font-mono text-xs">{spaceId}</span> : undefined}
-			/>
-		</main>
-	);
+/**
+ * `/practice` (flat, no space id) used to 404 outright — the route was
+ * dropped in the Electron→Tauri rewrite and never restored. Its real
+ * home is `spaces/:spaceId/practice` (practice content is per-space,
+ * same as pages), so this loader picks a space the same way a brand
+ * new session lands on one at all: the first space the SDK returns.
+ * Zero spaces means there's nowhere to practice yet, same reasoning
+ * `rootRedirectLoader` already applies — land on `/spaces` instead.
+ */
+async function practiceRedirectLoader(): Promise<Response> {
+	try {
+		const result = await backend.spaces.list({ q: null, limit: 1 });
+		const first = result.spaces[0];
+		if (first) return redirect(`/spaces/${first.spaceId}/practice`);
+	} catch (err) {
+		console.error("[router] practice redirect: spaces.list failed", err);
+	}
+	return redirect("/spaces");
 }
 
 const routes: RouteObject[] = [
 	{
 		path: "/",
 		Component: AppLayout,
+		// Root-level net: only reachable if `AppLayout` itself throws (a
+		// child route throwing is caught by that route's own errorElement
+		// below instead, without unmounting AppLayout's shell). No shell
+		// survives an AppLayout crash, so this is the one route that gets
+		// the "fatal" (hard-reload-only) fallback — see
+		// `RouteErrorBoundary`'s doc comment.
+		errorElement: <RouteErrorBoundary variant="fatal" />,
 		children: [
 			{
 				index: true,
@@ -68,30 +91,59 @@ const routes: RouteObject[] = [
 			{
 				path: "spaces",
 				Component: SpacesIndex,
+				errorElement: <RouteErrorBoundary />,
+			},
+			{
+				// Invitee-side redeem/confirmation screen — reachable from
+				// `SpacesIndex`'s "Join a space" CTA, the command palette, and
+				// (pre-filled) a `soma://invite/...` deep link via
+				// `components/deep-link/deep-link-listener.tsx`. Flat, not
+				// space-scoped: the whole point is that the user doesn't know
+				// which space they're joining until `inspect()` tells them.
+				path: "join",
+				Component: JoinSpacePage,
+				errorElement: <RouteErrorBoundary />,
 			},
 			{
 				path: "spaces/:spaceId",
 				Component: SpaceView,
+				errorElement: <RouteErrorBoundary />,
 			},
 			{
 				path: "spaces/:spaceId/pages/:pageId",
 				Component: PageView,
+				errorElement: <RouteErrorBoundary />,
+			},
+			{
+				path: "spaces/:spaceId/practice",
+				Component: PracticePage,
+				errorElement: <RouteErrorBoundary />,
+			},
+			{
+				path: "spaces/:spaceId/settings",
+				Component: SpaceSettingsPage,
+				errorElement: <RouteErrorBoundary />,
 			},
 			{
 				path: "spaces/:spaceId/members",
-				Component: SpaceMembersPlaceholder,
+				loader: spaceMembersRedirectLoader,
+				Component: () => null,
 			},
 			{
-				path: "spaces/:spaceId/info",
-				Component: SpaceInfoPlaceholder,
+				// Flat convenience path — see `practiceRedirectLoader` above.
+				path: "practice",
+				loader: practiceRedirectLoader,
+				Component: () => null,
 			},
 			{
 				path: "settings",
 				Component: SettingsPage,
+				errorElement: <RouteErrorBoundary />,
 			},
 			{
 				path: "spike/editor",
 				Component: SpikeEditor,
+				errorElement: <RouteErrorBoundary />,
 			},
 			{
 				path: "*",
@@ -101,4 +153,4 @@ const routes: RouteObject[] = [
 	},
 ];
 
-export const router = createMemoryRouter(routes, { initialEntries: ["/"] });
+export const router = isTauri() ? createMemoryRouter(routes, { initialEntries: ["/"] }) : createBrowserRouter(routes);

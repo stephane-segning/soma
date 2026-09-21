@@ -23,7 +23,10 @@ impl DaemonHandle {
     ///
     /// `buffer` sizes the mpsc capacity; pick something matching the
     /// expected burst rate from the renderer.
-    pub fn subscribe_events(&self, buffer: usize) -> tokio::sync::mpsc::Receiver<DaemonEventRecord> {
+    pub fn subscribe_events(
+        &self,
+        buffer: usize,
+    ) -> tokio::sync::mpsc::Receiver<DaemonEventRecord> {
         let (tx, rx) = tokio::sync::mpsc::channel(buffer.max(1));
         let mut stream = BroadcastStream::new(self.state.events.subscribe());
         tokio::spawn(async move {

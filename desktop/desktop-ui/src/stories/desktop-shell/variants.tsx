@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { CheckCircle, Info, Sliders } from "react-feather";
 import { DesktopShell } from "../../components/layout/desktop-shell";
-import { Pill } from "../../components/primitives/pill";
 import { StatusBadge } from "../../components/presence/status-badge";
+import { Pill } from "../../components/primitives/pill";
 import { InfoPanel, NavigationPanel, ShellHeader } from "./common";
 
 export function SidebarRender() {
@@ -127,6 +127,7 @@ export function PersistentWidthsRender() {
 				{Array.from({ length: 12 }, (_, idx) => (
 					<ContentCard
 						body={`Content block ${idx + 1}`}
+						// biome-ignore lint/suspicious/noArrayIndexKey: static demo data — count is fixed, order never changes, items carry no identity beyond position
 						key={`content-${idx}`}
 					/>
 				))}

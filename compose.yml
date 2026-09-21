@@ -2,5 +2,5 @@
 # If you're on an older version, use the multi-file invocation listed in README.md.
 include:
   - compose/backend.infra.yml
-  - compose/backend.botd.yml
-  - compose/backend.bffd.yml
+  - compose/backend.bot.yml
+  - compose/backend.bff.yml

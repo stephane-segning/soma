@@ -1,13 +1,16 @@
+pub mod agent_config;
 pub mod blobs;
 pub mod bootstrap;
 pub mod documents;
 mod filesystem;
+pub mod invites;
 pub mod issuer;
 pub mod mailbox;
 pub mod membership;
 pub mod pages;
 pub mod peers;
 mod repositories;
+pub mod search;
 
 pub use filesystem::Storage;
 pub use repositories::{RepositoryFactory, RepositoryProvider};

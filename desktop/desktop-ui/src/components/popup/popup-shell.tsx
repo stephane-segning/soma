@@ -28,7 +28,7 @@
  * the glyph cluster carries `data-no-drag` so the buttons are
  * clickable through the drag region.
  */
-import { type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { CornerUpLeft, RotateCcw, X } from "react-feather";
 import { useT } from "../../i18n/use-t";
 import { cn } from "../../utils/cn";
@@ -237,6 +237,7 @@ function PinIcon({
 			strokeWidth={2}
 			viewBox="0 0 24 24"
 		>
+			<title>Pin</title>
 			<path d="M12 17v5" />
 			<path d="M9 10.76V5h6v5.76l2.41 4.13a1 1 0 0 1-.86 1.51H7.45a1 1 0 0 1-.86-1.51L9 10.76z" />
 		</svg>

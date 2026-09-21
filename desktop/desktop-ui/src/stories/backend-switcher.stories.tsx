@@ -15,17 +15,17 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 const OLLAMA_MARK = (
-	<span className="grid size-3.5 place-items-center rounded-full bg-info text-info-content text-[8px] font-bold">
+	<span className="grid size-3.5 place-items-center rounded-full bg-info font-bold text-[8px] text-info-content">
 		O
 	</span>
 );
 const LMSTUDIO_MARK = (
-	<span className="grid size-3.5 place-items-center rounded-full bg-warning text-warning-content text-[8px] font-bold">
+	<span className="grid size-3.5 place-items-center rounded-full bg-warning font-bold text-[8px] text-warning-content">
 		L
 	</span>
 );
 const OPENAI_MARK = (
-	<span className="grid size-3.5 place-items-center rounded-full bg-success text-success-content text-[8px] font-bold">
+	<span className="grid size-3.5 place-items-center rounded-full bg-success font-bold text-[8px] text-success-content">
 		A
 	</span>
 );

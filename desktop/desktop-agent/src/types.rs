@@ -4,17 +4,12 @@
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Type)]
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq, Type)]
 #[serde(rename_all = "kebab-case")]
 pub enum AgentProvider {
     /// Any HTTP endpoint speaking the OpenAI REST shape (Ollama, vLLM, OpenAI proper, etc.).
+    #[default]
     OpenAiCompatible,
-}
-
-impl Default for AgentProvider {
-    fn default() -> Self {
-        Self::OpenAiCompatible
-    }
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Type)]

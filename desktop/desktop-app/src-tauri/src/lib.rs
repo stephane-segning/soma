@@ -4,7 +4,6 @@
 // build state, register plugins, register commands, run the app loop. All
 // business logic lives in the `desktop-*` library crates.
 
-mod agent_config_source;
 mod bindings;
 mod startup;
 
@@ -12,7 +11,8 @@ use std::sync::{Arc, OnceLock};
 
 use desktop_agent::events::{self as agent_events, RuntimeEventStream};
 use desktop_agent::runtime::AgentRuntime;
-use desktop_agent::service::AgentService;
+use desktop_agent::service::{AgentService, DbConfigSource};
+use desktop_api::agent_config_store::DaemonBackedAgentConfigStore;
 use desktop_commands::AppState;
 use desktop_daemon::blob_reader::DaemonBlobReader;
 use desktop_daemon::events::{self as daemon_events, EventBridge};
@@ -23,10 +23,10 @@ use desktop_services::logger::{self, LoggerGuards, LoggerOptions};
 use desktop_services::practice::PracticeService;
 use tauri::Manager;
 
-use crate::agent_config_source::StoreBackedConfigSource;
 use crate::startup::deep_link;
 #[cfg(desktop)]
 use crate::startup::menu as app_menu;
+#[cfg(desktop)]
 use crate::startup::splash::Splash;
 
 const MAIN_WINDOW_LABEL: &str = "main";
@@ -82,7 +82,7 @@ pub fn run() {
     #[cfg(desktop)]
     {
         builder = builder
-            .menu(|app| app_menu::build(app))
+            .menu(app_menu::build)
             .on_menu_event(app_menu::on_event);
     }
 
@@ -108,14 +108,20 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_shell::init())
-        .plugin(tauri_plugin_process::init())
-        .plugin(tauri_plugin_store::Builder::default().build());
+        .plugin(tauri_plugin_store::Builder::default().build())
+        // Supported on Android + iOS as well as desktop (unlike the other
+        // plugins below); the desktop-only *dynamic* registration call is
+        // further down in `setup`.
+        .plugin(tauri_plugin_deep_link::init());
 
+    // No Android/iOS support in `tauri-plugin-process`; mobile OSes already
+    // enforce single-instance, so `tauri-plugin-single-instance` has no
+    // mobile-side counterpart either.
     #[cfg(desktop)]
     {
         builder = builder
+            .plugin(tauri_plugin_process::init())
             .plugin(tauri_plugin_window_state::Builder::default().build())
-            .plugin(tauri_plugin_deep_link::init())
             .plugin(tauri_plugin_updater::Builder::default().build());
     }
 
@@ -141,12 +147,26 @@ pub fn run() {
                 is_dev: cfg!(debug_assertions),
             })?;
 
+            #[cfg(desktop)]
             let splash = Splash::open(&app.handle().clone()).ok();
+            // No second-window splash on mobile (single-Activity/Scene) —
+            // the platform launch screen covers the boot gap instead.
+            #[cfg(mobile)]
+            let splash = Option::<()>::None;
 
             let daemon = Arc::new(DaemonRuntime::new(DaemonRuntimeOptions::new(&user_data_dir)));
             let agent_runtime = Arc::new(AgentRuntime::new());
 
-            let config_source = Arc::new(StoreBackedConfigSource::new(app.handle().clone()));
+            // Agent config lives in the same SQLite database the embedded
+            // daemon owns (one DB shared by both runtimes — see AGENTS.md's
+            // "Storage" section), reached through `DaemonHandle` rather than
+            // `tauri-plugin-store`. `DbConfigSource` re-resolves on every
+            // call, so config changes (including from another window /
+            // `desktop-bff`, since it's the same on-disk DB) take effect
+            // with no restart.
+            let config_source = Arc::new(DbConfigSource::new(Arc::new(DaemonBackedAgentConfigStore::new(Arc::clone(
+                &daemon,
+            )))));
             let agent_service = AgentService::new(config_source, Arc::clone(&agent_runtime));
             // Practice is process-local state (no daemon backing) — built
             // up-front so AppState is ready by the time the renderer
@@ -160,45 +180,86 @@ pub fn run() {
                 agent_stream: tokio::sync::Mutex::new(None),
             });
 
+            // Every domain/agent event this process will ever see, from
+            // every source, flows onto these two channels — see
+            // `desktop_api::state::AppState`'s doc comment ("one event
+            // pipeline, two presenters"). Created up front (before the
+            // setup task below) so both the event-stream bridges and the
+            // `app.emit` forwarders can be wired against the same
+            // senders/receivers, rather than each shell independently
+            // deciding what counts as a domain event. The BFF's
+            // WebSocket handler subscribes to the equivalent pair of
+            // channels on its own `AppState` independently — see
+            // `desktop_bff::ws`.
+            let (domain_events_tx, mut domain_events_rx) =
+                tokio::sync::broadcast::channel(desktop_commands::DOMAIN_EVENT_CHANNEL_CAPACITY);
+            let (agent_events_tx, mut agent_events_rx) =
+                tokio::sync::broadcast::channel(desktop_commands::AGENT_EVENT_CHANNEL_CAPACITY);
+
             let app_handle = app.handle().clone();
             let daemon_for_setup = Arc::clone(&daemon);
             let agent_runtime_for_setup = Arc::clone(&agent_runtime);
             let agent_service_for_setup = Arc::clone(&agent_service);
+            let domain_events_tx_for_setup = domain_events_tx.clone();
+            let agent_events_tx_for_setup = agent_events_tx.clone();
             tauri::async_runtime::spawn(async move {
+                tracing::info!("setup: boot task entered, starting daemon runtime");
                 if let Err(err) = daemon_for_setup.start().await {
                     tracing::error!(?err, "daemon runtime failed to start");
                 }
+                tracing::info!("setup: starting agent runtime");
                 if let Err(err) = agent_runtime_for_setup.start().await {
                     tracing::error!(?err, "agent runtime failed to start");
                 }
-                start_event_streams(&app_handle, &daemon_for_setup, agent_service_for_setup).await;
+                tracing::info!("setup: starting event streams");
+                start_event_streams(
+                    &app_handle,
+                    &daemon_for_setup,
+                    agent_service_for_setup,
+                    domain_events_tx_for_setup,
+                    agent_events_tx_for_setup,
+                )
+                .await;
                 reveal_main_window(&app_handle);
-                drop(splash);
+                let _ = splash;
             });
 
-            // Renderer-source domain-event channel. Handlers in
-            // `desktop-api` push to it; we install a forwarder below
-            // that drains it into `app.emit(DOMAIN_EVENT, ...)` so the
-            // Tauri webview reacts the same way it always did. The BFF
-            // will subscribe to the same channel from its SSE handler.
-            let (domain_events_tx, mut domain_events_rx) =
-                tokio::sync::broadcast::channel(desktop_commands::DOMAIN_EVENT_CHANNEL_CAPACITY);
-            let forwarder_handle = app.handle().clone();
+            // Forward the unified channels into `app.emit` so the Tauri
+            // webview keeps working exactly as before — it never talks to
+            // `desktop-daemon`/`desktop-agent` directly, only to these two
+            // presenter-local loops.
+            let domain_forwarder_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 use desktop_services::events::DomainEventsBroadcaster;
                 loop {
                     match domain_events_rx.recv().await {
                         Ok(event) => {
-                            if let Err(err) = DomainEventsBroadcaster::broadcast(&forwarder_handle, &event) {
+                            if let Err(err) = DomainEventsBroadcaster::broadcast(&domain_forwarder_handle, &event) {
                                 tracing::warn!(?err, "renderer-source domain_event broadcast failed");
                             }
                         }
                         // `Lagged` means our forwarder fell behind the
                         // channel capacity. Trace and keep going so the
-                        // SSE / webview consumers stay live; the dropped
+                        // webview consumers stay live; the dropped
                         // events would have been the oldest.
                         Err(tokio::sync::broadcast::error::RecvError::Lagged(n)) => {
                             tracing::warn!(dropped = n, "domain_event forwarder lagged");
+                        }
+                        Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
+                    }
+                }
+            });
+            let agent_forwarder_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                loop {
+                    match agent_events_rx.recv().await {
+                        Ok(event) => {
+                            if let Err(err) = AgentEventsBroadcaster::broadcast(&agent_forwarder_handle, &event) {
+                                tracing::warn!(?err, "agent_event broadcast failed");
+                            }
+                        }
+                        Err(tokio::sync::broadcast::error::RecvError::Lagged(n)) => {
+                            tracing::warn!(dropped = n, "agent_event forwarder lagged");
                         }
                         Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
                     }
@@ -211,6 +272,7 @@ pub fn run() {
                 Arc::clone(&agent_service),
                 practice,
                 domain_events_tx,
+                agent_events_tx,
             ));
             // `agent_service` is also kept as standalone state so the event
             // stream tasks (which only need the service) can reach it without
@@ -218,9 +280,16 @@ pub fn run() {
             app.manage(agent_service);
             app.manage(BootState { logger_guards });
 
-            #[cfg(desktop)]
             {
                 use tauri_plugin_deep_link::DeepLinkExt;
+                // Dynamic scheme registration is a Linux/Windows-only
+                // concept (no-op/unsupported on macOS and mobile); on
+                // mobile + macOS the scheme is already declared statically
+                // via `plugins.deep-link.{mobile,desktop}` in
+                // `tauri.conf.json`, which the plugin's build script writes
+                // into Info.plist / AndroidManifest.xml / the desktop
+                // template at compile time.
+                #[cfg(desktop)]
                 for scheme in deep_link::configured_schemes(app.handle()) {
                     let _ = app.deep_link().register(&scheme);
                 }
@@ -254,23 +323,38 @@ pub fn run() {
 }
 
 /// Boot-time helper: subscribe to the daemon firehose + start the agent
-/// event poll. Stashes each stream under `BridgeState` so
-/// `shutdown_runtimes` can stop them in order.
+/// event poll, both wired onto the shared `domain_events`/`agent_events`
+/// channels (not directly to `app.emit` — see the two forwarder tasks in
+/// `run`, which are the only things that talk to the webview). Stashes
+/// each stream under `BridgeState` so `shutdown_runtimes` can stop them
+/// in order.
 async fn start_event_streams<R: tauri::Runtime>(
     app_handle: &tauri::AppHandle<R>,
     daemon: &Arc<DaemonRuntime>,
     agent_service: Arc<AgentService>,
+    domain_events_tx: tokio::sync::broadcast::Sender<desktop_daemon::events::DomainEvent>,
+    agent_events_tx: tokio::sync::broadcast::Sender<desktop_agent::types::AgentRuntimeEvent>,
 ) {
-    if let Ok(handle) = daemon.handle().await {
-        let bridge = daemon_events::spawn(app_handle.clone(), handle, 256);
-        if let Some(state) = app_handle.try_state::<BridgeState>() {
-            *state.daemon_bridge.lock().await = Some(bridge);
+    match daemon.handle().await {
+        Ok(handle) => {
+            let bridge = daemon_events::spawn(domain_events_tx, handle, 256);
+            if let Some(state) = app_handle.try_state::<BridgeState>() {
+                *state.daemon_bridge.lock().await = Some(bridge);
+            }
+        }
+        // Not just a boot-time race (the doc comment below on the agent
+        // stream describes that case) — if `daemon.start()` itself failed
+        // or timed out, this is permanent: the daemon firehose bridge
+        // never starts and every daemon-sourced domain event (joins, blob
+        // adds, bot status) silently never reaches the renderer. Loud on
+        // purpose — this used to be the one branch with no `else` at all.
+        Err(err) => {
+            tracing::error!(?err, "daemon handle unavailable; domain-event bridge not started");
         }
     }
-    let broadcaster_handle = app_handle.clone();
     let stream = agent_events::spawn(agent_service, move |event| {
-        if let Err(err) = AgentEventsBroadcaster::broadcast(&broadcaster_handle, &event) {
-            tracing::warn!(?err, "agent_event broadcast failed");
+        if let Err(err) = agent_events_tx.send(event) {
+            tracing::debug!(?err, "agent_event publish dropped: channel closed or no subscribers yet");
         }
     });
     if let Some(state) = app_handle.try_state::<BridgeState>() {
@@ -283,7 +367,7 @@ fn reveal_main_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
         // Tag <html> with the host platform so global CSS (notably the
         // macOS traffic-light gutter) can react. Cheaper than a JS bridge
         // call from the renderer and keeps the shell self-contained.
-        let _ = window.eval(&format!(
+        let _ = window.eval(format!(
             "document.documentElement.setAttribute('data-shell-platform', '{}')",
             shell_platform()
         ));
@@ -308,7 +392,21 @@ const fn shell_platform() -> &'static str {
     {
         "linux"
     }
-    #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
+    #[cfg(target_os = "ios")]
+    {
+        "ios"
+    }
+    #[cfg(target_os = "android")]
+    {
+        "android"
+    }
+    #[cfg(not(any(
+        target_os = "macos",
+        target_os = "windows",
+        target_os = "linux",
+        target_os = "ios",
+        target_os = "android"
+    )))]
     {
         "other"
     }
@@ -347,7 +445,18 @@ async fn handle_blob_request(
         Response::builder()
             .status(status)
             .body(Vec::new())
-            .expect("status response is valid")
+            .unwrap_or_else(|err| {
+                // Only reachable if `status` were ever an invalid HTTP status code, which
+                // it never is here (503/400/404 literals below) — but this runs on every
+                // failed blob-fetch request, so it degrades to a bare 200/empty response
+                // instead of panicking the host's protocol-handler task.
+                tracing::error!(
+                    ?err,
+                    status,
+                    "failed to build blob-protocol status response"
+                );
+                Response::new(Vec::new())
+            })
     };
 
     let Some(reader) = reader else { return mk(503) };

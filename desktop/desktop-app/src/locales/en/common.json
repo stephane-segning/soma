@@ -2,7 +2,10 @@
 	"app": {
 		"title": "Soma",
 		"subtitle": "Soma desktop",
-		"runtime": "Runtime: {{name}} {{version}} on Tauri {{tauri}}"
+		"runtime": "Runtime: {{name}} {{version}} on Tauri {{tauri}}",
+		"daemonStarting": "Starting backend…",
+		"daemonUnavailable": "Backend unavailable: {{message}}",
+		"daemonRetry": "Retry"
 	},
 	"editor": {
 		"placeholder": "Start writing. Press / for the slash menu…",
@@ -24,13 +27,15 @@
 			"empty_no_space": "Select a space",
 			"empty_no_pages": "No pages yet",
 			"loading": "Loading…",
-			"error": "Could not load pages"
+			"error": "Could not load pages",
+			"creating": "Creating…",
+			"create_error": "Couldn't create page: {{message}}"
 		},
 		"nav": {
 			"title": "Nav",
 			"settings": "Settings",
-			"members": "Members",
-			"meta_info": "Meta info"
+			"practice": "Practice",
+			"space_settings": "Space settings"
 		},
 		"chat": {
 			"title": "Chat",
@@ -53,23 +58,93 @@
 			"open_editor_probe": "Open Editor (focus probe)",
 			"new_page": "New Page",
 			"new_space": "New Space",
+			"join_space": "Join a Space",
+			"go_to_practice": "Go to Practice",
 			"toggle_spaces_rail": "Toggle Spaces Rail",
 			"toggle_chat_sidebar": "Toggle Chat Sidebar"
 		}
 	},
 	"pages": {
+		"untitled": "Untitled",
 		"spaces_index": {
 			"headline": "No space selected",
-			"empty": "Pick a space from the rail, or create one to get started."
+			"empty": "Pick a space from the rail, or create one to get started.",
+			"join_cta": "Join a space",
+			"need_space_for_page": "Pick or create a space before adding a page.",
+			"create_error": "Couldn't create a space: {{message}}"
+		},
+		"join_space": {
+			"title": "Join a space",
+			"subtitle": "Paste an invite link to see exactly what it grants before you join.",
+			"linkField": {
+				"label": "Invite link",
+				"placeholder": "soma://invite/…"
+			},
+			"inspecting": "Checking the invite…",
+			"inspectError": "Couldn't check this invite: {{message}}",
+			"validity": {
+				"valid": {
+					"headline": "You're about to join {{space}}",
+					"body": "This is what the invite's signature verifies — review it before you confirm.",
+					"pill": "Valid"
+				},
+				"expired": {
+					"headline": "This invite to {{space}} has expired",
+					"body": "Its signature checks out, but it's past its expiry. Ask the space owner for a new link.",
+					"pill": "Expired"
+				},
+				"invalidSignature": {
+					"headline": "This invite's signature doesn't verify",
+					"body": "It may have been altered after it was issued. Joining is disabled.",
+					"pill": "Signature invalid",
+					"claimsCaption": "Claimed by the link — not verified"
+				},
+				"malformed": {
+					"headline": "This isn't a valid Soma invite link",
+					"body": "Double-check you copied the whole soma://invite/… link.",
+					"pill": "Not a valid link"
+				}
+			},
+			"fields": {
+				"space": "Space",
+				"role": "Role you'll be granted",
+				"issuer": "Issued by",
+				"expires": "Expires"
+			},
+			"expiry": {
+				"never": "Never",
+				"active": "{{date}}",
+				"expired": "Expired {{date}}"
+			},
+			"tryDifferentLink": "Try a different link",
+			"form": {
+				"displayName": {
+					"label": "Display name",
+					"placeholder": "Optional — how others will see you"
+				},
+				"deviceName": {
+					"label": "Device name",
+					"placeholder": "Optional — e.g. Work laptop"
+				},
+				"submit": "Join space",
+				"submitting": "Sending request…"
+			},
+			"submitted": {
+				"headline": "Request sent",
+				"body": "Waiting for the space owner to approve it."
+			},
+			"decided": {
+				"approved": "You're in — welcome to {{space}}.",
+				"thisSpace": "this space",
+				"openSpace": "Open space",
+				"rejected": "Your request was declined.",
+				"blocked": "Your request was blocked.",
+				"unknown": "A decision came back, but its outcome wasn't recognized."
+			},
+			"dialFailed": "Couldn't reach the invite issuer: {{message}}"
 		},
 		"space_view": {
-			"placeholder": "Space content placeholder — pages, members, and editor land here in a later phase."
-		},
-		"space_members": {
-			"placeholder": "Members and roles will appear here."
-		},
-		"space_info": {
-			"placeholder": "Space metadata will appear here."
+			"empty": "No page open yet."
 		},
 		"page_view": {
 			"loading": "Loading document…",
@@ -77,7 +152,41 @@
 			"parse_error": "Could not load this page",
 			"try_again": "Try again",
 			"not_found": "Page not found",
-			"back_to_space": "Back to space"
+			"back_to_space": "Back to space",
+			"page_link": {
+				"new_subpage": "New sub-page",
+				"creating": "Creating…",
+				"loading": "Loading pages…",
+				"error": "Could not load pages"
+			}
+		},
+		"practice": {
+			"title": "Practice",
+			"loading": "Loading exercises…",
+			"error": "Couldn't load practice: {{message}}",
+			"retry": "Try again",
+			"difficulty": {
+				"beginner": "Beginner",
+				"intermediate": "Intermediate",
+				"advanced": "Advanced"
+			},
+			"input_label": "Typing input",
+			"input_placeholder": "Start typing the text above…",
+			"restart": "Restart",
+			"finish": "Finish",
+			"result": {
+				"headline": "Session complete",
+				"wpm": "WPM",
+				"accuracy": "Accuracy",
+				"save_error": "Couldn't save this attempt: {{message}}",
+				"again": "Practice again",
+				"toast": "Practice complete · {{wpm}} WPM · {{accuracy}} accuracy"
+			},
+			"leaderboard": {
+				"title": "Leaderboard",
+				"empty": "No attempts yet",
+				"anonymous": "Anonymous"
+			}
 		},
 		"settings": {
 			"placeholder": "Settings placeholder."
@@ -94,8 +203,8 @@
 			"aria_label": "Settings sections",
 			"general": "General",
 			"account": "Account",
+			"assistant": "Assistant",
 			"appearance": "Appearance",
-			"capabilities": "Capabilities",
 			"network": "Network",
 			"advanced": "Advanced"
 		},
@@ -139,6 +248,9 @@
 				"label": "Transport"
 			}
 		},
+		"assistant": {
+			"description": "The default AI provider every space inherits from, unless a space overrides it below."
+		},
 		"appearance": {
 			"description": "Surface controls — theme, density, and accent.",
 			"theme": {
@@ -155,9 +267,6 @@
 				"description": "Override the primary accent across the shell."
 			}
 		},
-		"capabilities": {
-			"description": "Issue a scoped capability to a bot or peer."
-		},
 		"network": {
 			"description": "Manually connect to a peer when discovery is unavailable.",
 			"peer": {
@@ -170,5 +279,207 @@
 			"coming_soon": "Advanced settings coming soon",
 			"cta": "Open diagnostics"
 		}
+	},
+	"spaceSettings": {
+		"title": "Space settings",
+		"notFound": "Space not found",
+		"tabs": {
+			"ariaLabel": "Space settings sections",
+			"members": "Members",
+			"invites": "Invites",
+			"bots": "Bots",
+			"assistant": "Assistant"
+		},
+		"roles": {
+			"unspecified": "Unspecified",
+			"owner": "Owner",
+			"editor": "Editor",
+			"viewer": "Viewer",
+			"member": "Member",
+			"bot": "Bot"
+		},
+		"members": {
+			"loading": "Loading members…",
+			"error": "Failed to load members: {{message}}",
+			"roster": {
+				"title": "Members",
+				"description": "Everyone with access to this space, their role, and when their membership expires.",
+				"empty": "No members yet",
+				"you": "You",
+				"revoke": "Revoke",
+				"cannotRevokeSelf": "You can't revoke your own membership here.",
+				"expiry": {
+					"never": "Never expires",
+					"active": "Expires {{date}}",
+					"expired": "Expired {{date}}"
+				},
+				"revokeConfirm": {
+					"title": "Revoke this member",
+					"description": "They immediately lose access to this space. This can't be undone from here.",
+					"slugLabel": "Type {{slug}} to confirm",
+					"cancel": "Cancel",
+					"confirm": "Revoke member"
+				}
+			},
+			"joinRequests": {
+				"title": "Pending join requests",
+				"description": "People asking to join this space. Approving grants the role they requested.",
+				"empty": "No pending requests",
+				"unknownRequester": "Unknown requester",
+				"approve": "Approve",
+				"reject": "Reject"
+			}
+		},
+		"invites": {
+			"title": "Invites",
+			"description": "Shareable links that grant access to this space.",
+			"loading": "Loading invites…",
+			"error": "Failed to load invites: {{message}}",
+			"create": {
+				"cta": "Create invite",
+				"cancel": "Cancel",
+				"role": {
+					"label": "Role"
+				},
+				"label": {
+					"label": "Label",
+					"placeholder": "Optional — e.g. \"Design team\""
+				},
+				"ttl": {
+					"label": "Expires",
+					"presets": {
+						"1h": "1 hour",
+						"1d": "1 day",
+						"7d": "7 days",
+						"30d": "30 days",
+						"never": "Never"
+					}
+				},
+				"multiUse": {
+					"label": "Allow multiple people to redeem this link"
+				},
+				"submit": "Create invite",
+				"submitting": "Creating…"
+			},
+			"roster": {
+				"empty": "No invites yet",
+				"addressNote": "Copied links include the network addresses used to reach you — share them only with people you trust.",
+				"unlabeled": "{{role}} invite",
+				"unused": "Not redeemed yet",
+				"exhausted": "Fully redeemed",
+				"redeemed_one": "Redeemed once",
+				"redeemed_other": "Redeemed {{count}} times",
+				"copy": "Copy",
+				"copied": "Copied",
+				"revoke": "Revoke",
+				"expiry": {
+					"never": "Never expires",
+					"active": "Expires {{date}}",
+					"expired": "Expired {{date}}"
+				},
+				"status": {
+					"active": "Active",
+					"exhausted": "Redeemed",
+					"expired": "Expired",
+					"revoked": "Revoked"
+				}
+			},
+			"revokeConfirm": {
+				"title": "Revoke this invite",
+				"description": "The link stops working immediately. Anyone who already joined through it keeps their membership.",
+				"slugLabel": "Type {{slug}} to confirm",
+				"cancel": "Cancel",
+				"confirm": "Revoke invite"
+			}
+		},
+		"bots": {
+			"title": "Bots",
+			"description": "Programmable peers authorized to act in this space, added by pasting their peer address.",
+			"loading": "Loading bots…",
+			"error": "Failed to load bots: {{message}}",
+			"addBot": {
+				"cta": "Add bot",
+				"cancel": "Cancel",
+				"peerAddress": {
+					"label": "Bot peer address"
+				},
+				"errors": {
+					"missing-p2p-suffix": "Address must include a /p2p/<peer-id> suffix.",
+					"empty-peer-id": "Address is missing a peer id after /p2p/."
+				},
+				"scopes": {
+					"group": "Membership",
+					"issueMembership": {
+						"label": "Auto-approve joins",
+						"description": "Lets this bot approve join requests for this space on your behalf."
+					}
+				}
+			},
+			"revokeConfirm": {
+				"title": "Revoke {{alias}}",
+				"description": "This bot immediately loses its capability in this space. This can't be undone from here.",
+				"slugLabel": "Type {{slug}} to confirm",
+				"cancel": "Cancel",
+				"confirm": "Revoke bot"
+			}
+		}
+	},
+	"assistant": {
+		"loading": "Loading assistant configuration…",
+		"error": "Couldn't load the assistant configuration: {{message}}",
+		"readOnlyNotOwner": "Only the space owner can change these settings.",
+		"cards": {
+			"connection": "Connection",
+			"models": "Models",
+			"advanced": "Advanced"
+		},
+		"fields": {
+			"inheritedHint": "Inherits {{value}} from your default assistant configuration",
+			"builtinHint": "Not set — Soma uses a built-in default",
+			"baseUrl": {
+				"label": "Base URL",
+				"placeholder": "http://127.0.0.1:11434/v1",
+				"validating": "Checking connection…",
+				"validateOk": "Connected · {{count}} models"
+			},
+			"apiKey": {
+				"label": "API key",
+				"placeholderOwn": "Unchanged — leave blank to keep the current key",
+				"placeholderInherited": "Inherits the key from your default assistant configuration",
+				"placeholderNone": "No key configured",
+				"inheritedHint": "Inherits the API key from your default assistant configuration",
+				"noneHint": "No API key configured anywhere",
+				"clear": "Clear stored key"
+			},
+			"chatModel": {
+				"label": "Chat model",
+				"placeholder": "e.g. llama3.1"
+			},
+			"embedModel": {
+				"label": "Embed model",
+				"placeholder": "e.g. nomic-embed-text"
+			},
+			"requestTimeoutMs": {
+				"label": "Request timeout (ms)",
+				"placeholder": "30000"
+			},
+			"pollIntervalMs": {
+				"label": "Poll interval (ms)",
+				"placeholder": "60000"
+			}
+		}
+	},
+	"errors": {
+		"route": {
+			"headline": "This screen hit a problem",
+			"subtext": "You can head back to Spaces and try again.",
+			"cta": "Back to Spaces"
+		},
+		"fatal": {
+			"headline": "Soma needs a restart",
+			"subtext": "Something went wrong outside the normal recovery path.",
+			"cta": "Reload Soma"
+		},
+		"details": "Technical details"
 	}
 }

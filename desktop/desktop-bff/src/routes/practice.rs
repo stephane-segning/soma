@@ -6,11 +6,7 @@
 
 use std::sync::Arc;
 
-use axum::{
-    Json, Router,
-    extract::State,
-    routing::post,
-};
+use axum::{Json, Router, extract::State, routing::post};
 use desktop_api::{AppState, practice};
 use serde::Deserialize;
 
@@ -18,10 +14,22 @@ use crate::error::ApiError;
 
 pub(super) fn router() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/api/v1/practice_list_exercises", post(practice_list_exercises))
-        .route("/api/v1/practice_save_exercise", post(practice_save_exercise))
-        .route("/api/v1/practice_record_session", post(practice_record_session))
-        .route("/api/v1/practice_generate_exercise", post(practice_generate_exercise))
+        .route(
+            "/api/v1/practice_list_exercises",
+            post(practice_list_exercises),
+        )
+        .route(
+            "/api/v1/practice_save_exercise",
+            post(practice_save_exercise),
+        )
+        .route(
+            "/api/v1/practice_record_session",
+            post(practice_record_session),
+        )
+        .route(
+            "/api/v1/practice_generate_exercise",
+            post(practice_generate_exercise),
+        )
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -45,14 +53,20 @@ async fn practice_save_exercise(
     State(app): State<Arc<AppState>>,
     Json(args): Json<practice::ExerciseDraft>,
 ) -> Result<Json<practice::Exercise>, ApiError> {
-    practice::save_exercise(&app, args).await.map(Json).map_err(ApiError::from)
+    practice::save_exercise(&app, args)
+        .await
+        .map(Json)
+        .map_err(ApiError::from)
 }
 
 async fn practice_record_session(
     State(app): State<Arc<AppState>>,
     Json(args): Json<practice::ExerciseAttempt>,
 ) -> Result<Json<practice::RecordSessionResponse>, ApiError> {
-    practice::record_session(&app, args).await.map(Json).map_err(ApiError::from)
+    practice::record_session(&app, args)
+        .await
+        .map(Json)
+        .map_err(ApiError::from)
 }
 
 async fn practice_generate_exercise(

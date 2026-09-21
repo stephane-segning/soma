@@ -1,9 +1,10 @@
 use crate::codec::{
-    BlobCodec, IssuerCapabilityAck, IssuerOfferCodec, JoinCodec, JoinDecisionAck, JoinDecisionCodec,
+    BlobAnnounce, BlobAnnounceAck, BlobAnnounceCodec, BlobCodec, IssuerCapabilityAck,
+    IssuerOfferCodec, JoinCodec, JoinDecisionAck, JoinDecisionCodec,
 };
 use crate::protocol::{
-    AGENT_PROTOCOL, build_blob_behaviour, build_issuer_offer_behaviour, build_join_behaviour,
-    build_join_decision_behaviour,
+    AGENT_PROTOCOL, build_blob_announce_behaviour, build_blob_behaviour,
+    build_issuer_offer_behaviour, build_join_behaviour, build_join_decision_behaviour,
 };
 use libp2p::{
     identify, identity, mdns, ping, relay, rendezvous, request_response as reqres,
@@ -17,11 +18,26 @@ pub(crate) fn build_app_behaviour(
     keypair: identity::Keypair,
     relay_client: relay::client::Behaviour,
 ) -> AppBehaviour {
+    // `mdns::tokio::Behaviour::new` opens a UDP multicast socket, which can
+    // fail on a platform that gates or forbids raw multicast (notably iOS,
+    // where it's tied to the user-facing "Local Network" permission — see
+    // `Info.ios.plist`'s `NSLocalNetworkUsageDescription`). This runs on
+    // the swarm-building task inside `spawn_peer`'s `tokio::spawn`, which
+    // is *detached* from `DaemonRuntime::start()`'s own await chain — a
+    // panic here used to abort only that task, silently, with the rest of
+    // the daemon (DB, space creation) still reporting "ready". Degrade
+    // instead: no local-network discovery beats a half-dead peer task.
     let mdns_behaviour = if enable_mdns {
-        Some(
-            mdns::tokio::Behaviour::new(mdns::Config::default(), keypair.public().to_peer_id())
-                .expect("mdns behaviour"),
-        )
+        match mdns::tokio::Behaviour::new(mdns::Config::default(), keypair.public().to_peer_id()) {
+            Ok(behaviour) => Some(behaviour),
+            Err(err) => {
+                tracing::warn!(
+                    %err,
+                    "mdns unavailable on this platform/sandbox; continuing without local-network peer discovery"
+                );
+                None
+            }
+        }
     } else {
         None
     };
@@ -33,14 +49,13 @@ pub(crate) fn build_app_behaviour(
             keypair.public().clone(),
         )),
         mdns: mdns_behaviour.into(),
-        rendezvous: rendezvous::client::Behaviour::new(
-            keypair.clone().try_into().expect("to libp2p keypair"),
-        ),
+        rendezvous: rendezvous::client::Behaviour::new(keypair.clone()),
         relay_client,
         join: build_join_behaviour(),
         join_decision: build_join_decision_behaviour(),
         issuer_offer: build_issuer_offer_behaviour(),
         blob: build_blob_behaviour(),
+        blob_announce: build_blob_announce_behaviour(),
     }
 }
 
@@ -56,6 +71,7 @@ pub(crate) struct AppBehaviour {
     pub(crate) join_decision: reqres::Behaviour<JoinDecisionCodec>,
     pub(crate) issuer_offer: reqres::Behaviour<IssuerOfferCodec>,
     pub(crate) blob: reqres::Behaviour<BlobCodec>,
+    pub(crate) blob_announce: reqres::Behaviour<BlobAnnounceCodec>,
 }
 
 #[derive(Debug)]
@@ -69,6 +85,7 @@ pub(crate) enum AppEvent {
     JoinDecision(reqres::Event<space::JoinDecision, JoinDecisionAck>),
     IssuerOffer(reqres::Event<space::IssuerCapability, IssuerCapabilityAck>),
     Blob(reqres::Event<BlobRequest, BlobResponse>),
+    BlobAnnounce(reqres::Event<BlobAnnounce, BlobAnnounceAck>),
 }
 
 impl From<ping::Event> for AppEvent {
@@ -122,5 +139,11 @@ impl From<reqres::Event<space::IssuerCapability, IssuerCapabilityAck>> for AppEv
 impl From<reqres::Event<BlobRequest, BlobResponse>> for AppEvent {
     fn from(event: reqres::Event<BlobRequest, BlobResponse>) -> Self {
         AppEvent::Blob(event)
+    }
+}
+
+impl From<reqres::Event<BlobAnnounce, BlobAnnounceAck>> for AppEvent {
+    fn from(event: reqres::Event<BlobAnnounce, BlobAnnounceAck>) -> Self {
+        AppEvent::BlobAnnounce(event)
     }
 }

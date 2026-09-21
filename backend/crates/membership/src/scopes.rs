@@ -62,3 +62,20 @@
 /// The bot may auto-approve membership (join-request) decisions for the
 /// space.  This is the only scope enforced in the current implementation.
 pub const SCOPE_ISSUE_MEMBERSHIP: &str = "issue:membership";
+
+/// Placeholder scope persisted for an `IssuerCapability` that arrived over
+/// the wire (inbound issuer-offer ingest -- `persist_inbound_capability` /
+/// `issuer_inbound.rs`) and has had no local operator review.
+///
+/// This is deliberately **not** an empty `Vec` and does **not** contain
+/// [`SCOPE_ISSUE_MEMBERSHIP`], so [`crate::issuer::check_issue_membership_scope`]
+/// rejects it by default. Empty-means-unrestricted (see the module doc
+/// above) is reserved for genuinely pre-#92, LOCALLY owner-authored rows —
+/// there the "no restriction" meaning is safe because a local operator
+/// (the space owner, on their own machine) made that write. A capability
+/// this process just received from a remote peer has had no such local
+/// decision made about it at all, so it must fail closed instead of
+/// silently inheriting the legacy meaning of empty. An operator can
+/// explicitly grant `issue:membership` afterwards through the normal local
+/// issuance UI/API once they've reviewed the delegation.
+pub const SCOPE_PENDING_REVIEW: &str = "review:required";

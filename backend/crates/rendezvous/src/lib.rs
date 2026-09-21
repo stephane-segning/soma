@@ -60,6 +60,12 @@ pub struct RendezvousMetrics {
     listeners: Family<(), Counter>,
 }
 
+impl Default for RendezvousMetrics {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RendezvousMetrics {
     pub fn new() -> Self {
         let mut registry = prometheus_client::registry::Registry::with_prefix("rendezvous");
@@ -153,7 +159,7 @@ where
                 match event {
                     SwarmEvent::NewListenAddr { address, .. } => {
                         metrics.listeners.get_or_create(&()).inc();
-                        let p2p = address.clone().with(Protocol::P2p(peer_id.into()));
+                        let p2p = address.clone().with(Protocol::P2p(peer_id));
                         info!(listen_addr=%address, p2p=%p2p, "rendezvous listening");
                     }
                     SwarmEvent::ListenerClosed { reason, .. } => {

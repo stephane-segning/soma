@@ -5,11 +5,7 @@
 
 use std::sync::Arc;
 
-use axum::{
-    Json, Router,
-    extract::State,
-    routing::post,
-};
+use axum::{Json, Router, extract::State, routing::post};
 use desktop_api::{AppState, daemon};
 
 use crate::error::ApiError;
@@ -39,5 +35,8 @@ async fn daemon_control(
     State(app): State<Arc<AppState>>,
     Json(args): Json<daemon::ControlArgs>,
 ) -> Result<Json<daemon::ControlResult>, ApiError> {
-    daemon::control(&app, args).await.map(Json).map_err(ApiError::from)
+    daemon::control(&app, args)
+        .await
+        .map(Json)
+        .map_err(ApiError::from)
 }

@@ -22,12 +22,11 @@
 import {
 	InteractionMode,
 	StaticTreeDataProvider,
-	type TreeItem,
 	Tree,
+	type TreeItem,
 	UncontrolledTreeEnvironment,
 } from "react-complex-tree";
 import "react-complex-tree/lib/style-modern.css";
-import { ChevronRight, FileText, Search, Star } from "react-feather";
 import {
 	type MouseEvent,
 	type ReactNode,
@@ -36,6 +35,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { ChevronRight, FileText, Search, Star } from "react-feather";
 import { useT } from "../../i18n/use-t";
 import { cn } from "../../utils/cn";
 import { Kbd } from "../primitives/kbd";
@@ -183,8 +183,11 @@ export function TreePopover({
 	// `react-complex-tree`'s UncontrolledTreeEnvironment uses `viewState`
 	// as a SEED — the library forks it into its own internal state on
 	// mount. Passing a fresh object literal each render makes the
-	// library think the seed has changed and resets expansion. Memo
-	// the seed so its identity is stable across renders.
+	// library think the seed has changed and resets expansion. Memo the
+	// seed so its identity is stable across renders. `currentId`
+	// shouldn't reset expansion mid-session — only used as the initial
+	// selection seed on mount.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: intentional one-shot seed — `currentId` only seeds the initial selection on mount; adding it would re-seed `viewState` (and reset tree expansion, per the comment above) every time the open document changes.
 	const initialViewState = useMemo(
 		() => ({
 			"soma-tree": {
@@ -192,9 +195,6 @@ export function TreePopover({
 				selectedItems: currentId ? [currentId] : ([] as string[]),
 			},
 		}),
-		// `currentId` shouldn't reset expansion mid-session — only used
-		// as the initial selection seed on mount.
-		// biome-ignore lint/correctness/useExhaustiveDependencies: intentional one-shot seed
 		[],
 	);
 
@@ -205,7 +205,7 @@ export function TreePopover({
 				defaultMessage: "Document picker",
 			})}
 			className={cn(
-				"glass-panel shadow-elevated w-80 flex flex-col gap-2 p-2",
+				"glass-panel flex w-80 flex-col gap-2 p-2 shadow-elevated",
 				className,
 			)}
 			ref={containerRef}
@@ -404,6 +404,12 @@ function DocRow({
 				active ? "bg-primary/10 text-primary" : "hover:bg-base-200",
 			)}
 			onClick={handleClick}
+			// `aria-selected` is only valid on an option-like role — each
+			// DocRow is one selectable document in this picker's Recent /
+			// Starred / All-pages / filtered-matches lists, so "option" is
+			// the correct (and only) semantic here, unlike MenuItem which
+			// is shared across both true-menu and listbox-style surfaces.
+			role="option"
 			type="button"
 		>
 			<FileText

@@ -51,8 +51,14 @@ describe("MenuItem", () => {
 	});
 
 	it("applies active styling when active=true", () => {
-		const { getByRole } = render(<MenuItem active label="Active" />);
-		const button = getByRole("button");
+		// `role="option"` matches how real callers (SlashMenu, SelectionAIBar,
+		// MentionPicker) render an active/keyboard-highlighted row — plain
+		// `role="button"` items (ContextMenu) never set `active`, and
+		// `aria-selected` is only a valid ARIA prop on an option-like role.
+		const { getByRole } = render(
+			<MenuItem active label="Active" role="option" />,
+		);
+		const button = getByRole("option");
 		expect(button.className).toContain("bg-base-200");
 		expect(button.getAttribute("aria-selected")).toBe("true");
 	});

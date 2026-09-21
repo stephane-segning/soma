@@ -44,9 +44,9 @@ impl PeerEventHandler<BotState> for MailboxOutboxHandler {
             PeerEvent::JoinDecisionDeliveryFailed { delivery_id, .. } => {
                 soma_membership::outbox::requeue_or_dead(&ctx.repos, delivery_id).await;
             }
-            PeerEvent::YooptaBlobAdded { .. } => {
-                // Mirror bots could enqueue fetch here once blob protocols are wired.
-            }
+            // Blob-announce reaction lives in its own handler
+            // (`BlobAnnounceFetchHandler`) — mailbox outbox is about join
+            // delivery retries, a different responsibility.
             _ => {}
         }
     }

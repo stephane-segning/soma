@@ -23,6 +23,15 @@
  * right. The explicit `onMouseDown={startWindowDrag}` keeps Tauri's
  * window-drag working regardless of the auto-attached listener's
  * timing (see PR #129). Language selection lives in Settings → General.
+ *
+ * `leftExpanded` / `rightExpanded` are also the app's real "rail
+ * open/close" state — the ⌘/ and ⌘⇧/ shortcuts (native menu, raw
+ * keydown, command palette) need to flip it from `CommandPaletteRoot`,
+ * which is mounted outside the router and can't reach this component's
+ * state directly. Rather than forking a second store, `toggleSpacesRail`
+ * / `toggleChatSidebar` below are published into `useShellControls`
+ * (`../lib/shell-controls.tsx`) on mount, which `CommandPaletteRoot`
+ * reads back out.
  */
 
 import { DesktopShell } from "@soma/ui/components/layout/desktop-shell";
@@ -31,10 +40,16 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { type MouseEvent, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Outlet, useNavigate } from "react-router";
+import { DaemonStatusLine } from "../components/daemon-status-line";
 import { NavIcon, PagesIcon, SettingsIcon } from "../components/icons";
 import { LEFT_RAIL_DEFAULT_EXPANDED, LEFT_RAIL_PANEL_IDS, LeftInnerRail } from "../components/left-inner-rail";
 import { RIGHT_RAIL_PANEL_IDS, RightRail, rightRailChipDescriptors } from "../components/right-rail";
 import { SpacesRailContainer } from "../components/spaces-rail-container";
+import { type ShellControls, useRegisterShellControls } from "../lib/shell-controls";
+import { useWindowTitle } from "../lib/use-window-title";
+
+/** Mirrors `RightRail`'s own internal default — kept here too since that constant isn't exported (only `RIGHT_RAIL_PANEL_IDS` is). */
+const RIGHT_RAIL_DEFAULT_EXPANDED: ReadonlyArray<string> = [RIGHT_RAIL_PANEL_IDS.chat, RIGHT_RAIL_PANEL_IDS.bots];
 
 /**
  * Explicit drag handler so we don't depend on Tauri's auto-attached
@@ -54,14 +69,18 @@ export function AppLayout() {
 	const { t } = useTranslation();
 	const navigate = useNavigate();
 
+	// Reflects the active space/page in the OS window title (Cmd-Tab /
+	// Mission Control / Dock) and `document.title` — see
+	// `useWindowTitle`'s own doc comment for the native-title caveat
+	// (needs a `src-tauri` capability grant this change doesn't own).
+	useWindowTitle(t("app.title"));
+
 	// Lifted expansion state for both rails. The matching `PanelChipBar`
 	// in the main column corners re-opens panels the user collapsed via
 	// the panel header's `−` button — and is the *only* way back once a
 	// rail has collapsed to zero width.
 	const [leftExpanded, setLeftExpanded] = useState<Set<string>>(() => new Set(LEFT_RAIL_DEFAULT_EXPANDED));
-	const [rightExpanded, setRightExpanded] = useState<Set<string>>(
-		() => new Set([RIGHT_RAIL_PANEL_IDS.chat, RIGHT_RAIL_PANEL_IDS.bots]),
-	);
+	const [rightExpanded, setRightExpanded] = useState<Set<string>>(() => new Set(RIGHT_RAIL_DEFAULT_EXPANDED));
 
 	const toggleLeftPanel = useCallback((id: string) => {
 		setLeftExpanded((prev) => {
@@ -79,6 +98,26 @@ export function AppLayout() {
 			return next;
 		});
 	}, []);
+
+	// Whole-rail toggles for the ⌘/ and ⌘⇧/ shortcuts (native menu, raw
+	// keydown, and command palette all funnel through these — see
+	// `CommandPaletteRoot`). Collapsing to an empty set forgets which
+	// individual panels were open; re-toggling restores the default
+	// pair rather than the exact prior subset. No persistence layer
+	// exists for "remembered subset" today, and the default pair is the
+	// same one `PanelChipBar` already lets the user reach one click at a
+	// time, so this stays simple on purpose.
+	const toggleSpacesRail = useCallback(() => {
+		setLeftExpanded((prev) => (prev.size > 0 ? new Set() : new Set(LEFT_RAIL_DEFAULT_EXPANDED)));
+	}, []);
+	const toggleChatSidebar = useCallback(() => {
+		setRightExpanded((prev) => (prev.size > 0 ? new Set() : new Set(RIGHT_RAIL_DEFAULT_EXPANDED)));
+	}, []);
+	const shellControls = useMemo<ShellControls>(
+		() => ({ toggleSpacesRail, toggleChatSidebar }),
+		[toggleSpacesRail, toggleChatSidebar],
+	);
+	useRegisterShellControls(shellControls);
 
 	const leftChipPanels = useMemo(
 		() => [
@@ -110,7 +149,13 @@ export function AppLayout() {
 			header={() => (
 				// biome-ignore lint/a11y/noStaticElementInteractions: window drag region is inherently mouse-only chrome, not a focusable control
 				<header
-					className="sticky top-0 z-40 flex h-12 select-none items-center gap-2 border-base-300 border-b bg-base-100/95 backdrop-blur"
+					// `min-h-12` (not `h-12`): on iOS the header also carries
+					// `padding-top: env(safe-area-inset-top)` (styles.css) to clear
+					// the notch/Dynamic Island. A fixed height would hold the box
+					// at 48px while that padding pushed the title past its bottom
+					// edge — content overflowing into the rail/main below instead
+					// of the header actually reserving the space it needs.
+					className="sticky top-0 z-40 flex min-h-12 select-none items-center gap-2 border-base-300 border-b bg-base-100/95 backdrop-blur"
 					data-tauri-drag-region
 					onMouseDown={startWindowDrag}
 					style={{ paddingLeft: "var(--shell-titlebar-pad-left, 80px)", paddingRight: "0.5rem" }}
@@ -140,7 +185,12 @@ export function AppLayout() {
 			leftGutter={<SpacesRailContainer />}
 			leftMaxWidth={420}
 			leftMinWidth={220}
-			mainClassName="flex min-h-screen flex-col"
+			// Tight/very-small width tiers (phone-sized viewports) render
+			// `leftColumn`/`rightColumn` as a scrim-backed overlay instead of
+			// a docked rail (ADR-0005 §2); these let the scrim tap / the
+			// fullscreen variant's back button actually close it, same as
+			// each panel's own header close button already does.
+			leftSummonKey={[...leftExpanded].sort().join(",")}
 			mainTopLeft={
 				<PanelChipBar
 					expandedIds={leftExpanded}
@@ -149,6 +199,9 @@ export function AppLayout() {
 					placement="top-left"
 				/>
 			}
+			// Narrow tiers need to know *which* panels are being asked for,
+			// not just that some are — with two panels sharing a column the
+			// boolean never changes and the rail can't be summoned at all.
 			mainTopRight={
 				<PanelChipBar
 					expandedIds={rightExpanded}
@@ -157,12 +210,18 @@ export function AppLayout() {
 					placement="top-right"
 				/>
 			}
+			onLeftOverlayDismiss={() => setLeftExpanded(new Set())}
+			onRightOverlayDismiss={() => setRightExpanded(new Set())}
 			rightColumn={
 				rightExpanded.size > 0 ? <RightRail expandedIds={rightExpanded} onCollapse={toggleRightPanel} /> : null
 			}
+			rightSummonKey={[...rightExpanded].sort().join(",")}
 		>
-			<div className="flex-1 overflow-auto">
-				<Outlet />
+			<div className="flex min-h-0 flex-1 flex-col">
+				<DaemonStatusLine />
+				<div className="flex-1 overflow-auto">
+					<Outlet />
+				</div>
 			</div>
 		</DesktopShell>
 	);

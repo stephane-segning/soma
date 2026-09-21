@@ -2,7 +2,10 @@
 	"app": {
 		"title": "Soma",
 		"subtitle": "Soma bureau",
-		"runtime": "Exécution : {{name}} {{version}} sur Tauri {{tauri}}"
+		"runtime": "Exécution : {{name}} {{version}} sur Tauri {{tauri}}",
+		"daemonStarting": "Démarrage du backend…",
+		"daemonUnavailable": "Backend indisponible : {{message}}",
+		"daemonRetry": "Réessayer"
 	},
 	"editor": {
 		"placeholder": "Commencez à écrire. Tapez / pour le menu…",
@@ -24,13 +27,15 @@
 			"empty_no_space": "Sélectionnez un espace",
 			"empty_no_pages": "Aucune page",
 			"loading": "Chargement…",
-			"error": "Impossible de charger les pages"
+			"error": "Impossible de charger les pages",
+			"creating": "Création…",
+			"create_error": "Impossible de créer la page : {{message}}"
 		},
 		"nav": {
 			"title": "Navigation",
 			"settings": "Paramètres",
-			"members": "Membres",
-			"meta_info": "Méta-infos"
+			"practice": "Entraînement",
+			"space_settings": "Paramètres de l'espace"
 		},
 		"chat": {
 			"title": "Chat",
@@ -53,23 +58,93 @@
 			"open_editor_probe": "Ouvrir l'éditeur (test de focus)",
 			"new_page": "Nouvelle page",
 			"new_space": "Nouvel espace",
+			"join_space": "Rejoindre un espace",
+			"go_to_practice": "Aller à l'entraînement",
 			"toggle_spaces_rail": "Basculer la barre Espaces",
 			"toggle_chat_sidebar": "Basculer le panneau de chat"
 		}
 	},
 	"pages": {
+		"untitled": "Sans titre",
 		"spaces_index": {
 			"headline": "Aucun espace sélectionné",
-			"empty": "Choisissez un espace dans la barre, ou créez-en un pour commencer."
+			"empty": "Choisissez un espace dans la barre, ou créez-en un pour commencer.",
+			"join_cta": "Rejoindre un espace",
+			"need_space_for_page": "Choisissez ou créez un espace avant d'ajouter une page.",
+			"create_error": "Impossible de créer l'espace : {{message}}"
+		},
+		"join_space": {
+			"title": "Rejoindre un espace",
+			"subtitle": "Collez un lien d'invitation pour voir exactement ce qu'il accorde avant de rejoindre.",
+			"linkField": {
+				"label": "Lien d'invitation",
+				"placeholder": "soma://invite/…"
+			},
+			"inspecting": "Vérification de l'invitation…",
+			"inspectError": "Impossible de vérifier cette invitation : {{message}}",
+			"validity": {
+				"valid": {
+					"headline": "Vous êtes sur le point de rejoindre {{space}}",
+					"body": "Voici ce que la signature de l'invitation confirme — vérifiez avant de confirmer.",
+					"pill": "Valide"
+				},
+				"expired": {
+					"headline": "Cette invitation pour {{space}} a expiré",
+					"body": "Sa signature est valide, mais elle a dépassé sa date d'expiration. Demandez un nouveau lien au propriétaire de l'espace.",
+					"pill": "Expirée"
+				},
+				"invalidSignature": {
+					"headline": "La signature de cette invitation n'est pas valide",
+					"body": "Elle a peut-être été modifiée après son émission. Rejoindre l'espace est désactivé.",
+					"pill": "Signature invalide",
+					"claimsCaption": "Affirmé par le lien — non vérifié"
+				},
+				"malformed": {
+					"headline": "Ce n'est pas un lien d'invitation Soma valide",
+					"body": "Vérifiez que vous avez copié le lien soma://invite/… en entier.",
+					"pill": "Lien non valide"
+				}
+			},
+			"fields": {
+				"space": "Espace",
+				"role": "Rôle qui vous sera accordé",
+				"issuer": "Émis par",
+				"expires": "Expiration"
+			},
+			"expiry": {
+				"never": "Jamais",
+				"active": "{{date}}",
+				"expired": "Expiré le {{date}}"
+			},
+			"tryDifferentLink": "Essayer un autre lien",
+			"form": {
+				"displayName": {
+					"label": "Nom affiché",
+					"placeholder": "Optionnel — comment les autres vous verront"
+				},
+				"deviceName": {
+					"label": "Nom de l'appareil",
+					"placeholder": "Optionnel — ex. Ordinateur portable professionnel"
+				},
+				"submit": "Rejoindre l'espace",
+				"submitting": "Envoi de la demande…"
+			},
+			"submitted": {
+				"headline": "Demande envoyée",
+				"body": "En attente de l'approbation du propriétaire de l'espace."
+			},
+			"decided": {
+				"approved": "Vous y êtes — bienvenue dans {{space}}.",
+				"thisSpace": "cet espace",
+				"openSpace": "Ouvrir l'espace",
+				"rejected": "Votre demande a été refusée.",
+				"blocked": "Votre demande a été bloquée.",
+				"unknown": "Une décision est arrivée, mais son résultat n'a pas été reconnu."
+			},
+			"dialFailed": "Impossible de joindre l'émetteur de l'invitation : {{message}}"
 		},
 		"space_view": {
-			"placeholder": "Contenu de l'espace — les pages, membres et l'éditeur arriveront dans une phase suivante."
-		},
-		"space_members": {
-			"placeholder": "Les membres et leurs rôles s'afficheront ici."
-		},
-		"space_info": {
-			"placeholder": "Les métadonnées de l'espace s'afficheront ici."
+			"empty": "Aucune page ouverte."
 		},
 		"page_view": {
 			"loading": "Chargement du document…",
@@ -77,7 +152,41 @@
 			"parse_error": "Impossible de charger cette page",
 			"try_again": "Réessayer",
 			"not_found": "Page introuvable",
-			"back_to_space": "Retour à l'espace"
+			"back_to_space": "Retour à l'espace",
+			"page_link": {
+				"new_subpage": "Nouvelle sous-page",
+				"creating": "Création…",
+				"loading": "Chargement des pages…",
+				"error": "Impossible de charger les pages"
+			}
+		},
+		"practice": {
+			"title": "Entraînement",
+			"loading": "Chargement des exercices…",
+			"error": "Impossible de charger l'entraînement : {{message}}",
+			"retry": "Réessayer",
+			"difficulty": {
+				"beginner": "Débutant",
+				"intermediate": "Intermédiaire",
+				"advanced": "Avancé"
+			},
+			"input_label": "Champ de saisie",
+			"input_placeholder": "Commencez à taper le texte ci-dessus…",
+			"restart": "Recommencer",
+			"finish": "Terminer",
+			"result": {
+				"headline": "Session terminée",
+				"wpm": "MPM",
+				"accuracy": "Précision",
+				"save_error": "Impossible d'enregistrer cette tentative : {{message}}",
+				"again": "Recommencer une session",
+				"toast": "Entraînement terminé · {{wpm}} MPM · {{accuracy}} de précision"
+			},
+			"leaderboard": {
+				"title": "Classement",
+				"empty": "Aucune tentative pour l'instant",
+				"anonymous": "Anonyme"
+			}
 		},
 		"settings": {
 			"placeholder": "Paramètres (placeholder)."
@@ -94,8 +203,8 @@
 			"aria_label": "Sections des paramètres",
 			"general": "Général",
 			"account": "Compte",
+			"assistant": "Assistant",
 			"appearance": "Apparence",
-			"capabilities": "Capacités",
 			"network": "Réseau",
 			"advanced": "Avancé"
 		},
@@ -139,6 +248,9 @@
 				"label": "Transport"
 			}
 		},
+		"assistant": {
+			"description": "Le fournisseur d'IA par défaut dont hérite chaque espace, sauf s'il le remplace ci-dessous."
+		},
 		"appearance": {
 			"description": "Contrôles de surface — thème, densité, accent.",
 			"theme": {
@@ -155,9 +267,6 @@
 				"description": "Remplace l'accent primaire dans tout le bureau."
 			}
 		},
-		"capabilities": {
-			"description": "Émettez une capacité scopée pour un bot ou un pair."
-		},
 		"network": {
 			"description": "Se connecter manuellement à un pair quand la découverte échoue.",
 			"peer": {
@@ -170,5 +279,207 @@
 			"coming_soon": "Paramètres avancés à venir",
 			"cta": "Ouvrir les diagnostics"
 		}
+	},
+	"spaceSettings": {
+		"title": "Paramètres de l'espace",
+		"notFound": "Espace introuvable",
+		"tabs": {
+			"ariaLabel": "Sections des paramètres de l'espace",
+			"members": "Membres",
+			"invites": "Invitations",
+			"bots": "Bots",
+			"assistant": "Assistant"
+		},
+		"roles": {
+			"unspecified": "Non spécifié",
+			"owner": "Propriétaire",
+			"editor": "Éditeur",
+			"viewer": "Lecteur",
+			"member": "Membre",
+			"bot": "Bot"
+		},
+		"members": {
+			"loading": "Chargement des membres…",
+			"error": "Impossible de charger les membres : {{message}}",
+			"roster": {
+				"title": "Membres",
+				"description": "Toutes les personnes ayant accès à cet espace, leur rôle, et l'expiration de leur adhésion.",
+				"empty": "Aucun membre pour l'instant",
+				"you": "Vous",
+				"revoke": "Révoquer",
+				"cannotRevokeSelf": "Vous ne pouvez pas révoquer votre propre adhésion ici.",
+				"expiry": {
+					"never": "N'expire jamais",
+					"active": "Expire le {{date}}",
+					"expired": "Expiré le {{date}}"
+				},
+				"revokeConfirm": {
+					"title": "Révoquer ce membre",
+					"description": "Il perd immédiatement l'accès à cet espace. Cette action est irréversible depuis cet écran.",
+					"slugLabel": "Tapez {{slug}} pour confirmer",
+					"cancel": "Annuler",
+					"confirm": "Révoquer le membre"
+				}
+			},
+			"joinRequests": {
+				"title": "Demandes d'adhésion en attente",
+				"description": "Les personnes demandant à rejoindre cet espace. Approuver leur accorde le rôle demandé.",
+				"empty": "Aucune demande en attente",
+				"unknownRequester": "Demandeur inconnu",
+				"approve": "Approuver",
+				"reject": "Refuser"
+			}
+		},
+		"invites": {
+			"title": "Invitations",
+			"description": "Liens partageables donnant accès à cet espace.",
+			"loading": "Chargement des invitations…",
+			"error": "Impossible de charger les invitations : {{message}}",
+			"create": {
+				"cta": "Créer une invitation",
+				"cancel": "Annuler",
+				"role": {
+					"label": "Rôle"
+				},
+				"label": {
+					"label": "Libellé",
+					"placeholder": "Optionnel — ex. « Équipe design »"
+				},
+				"ttl": {
+					"label": "Expiration",
+					"presets": {
+						"1h": "1 heure",
+						"1d": "1 jour",
+						"7d": "7 jours",
+						"30d": "30 jours",
+						"never": "Jamais"
+					}
+				},
+				"multiUse": {
+					"label": "Autoriser plusieurs personnes à utiliser ce lien"
+				},
+				"submit": "Créer l'invitation",
+				"submitting": "Création…"
+			},
+			"roster": {
+				"empty": "Aucune invitation pour l'instant",
+				"addressNote": "Les liens copiés incluent les adresses réseau permettant de vous joindre — ne les partagez qu'avec des personnes de confiance.",
+				"unlabeled": "Invitation : {{role}}",
+				"unused": "Pas encore utilisée",
+				"exhausted": "Entièrement utilisée",
+				"redeemed_one": "Utilisée une fois",
+				"redeemed_other": "Utilisée {{count}} fois",
+				"copy": "Copier",
+				"copied": "Copié",
+				"revoke": "Révoquer",
+				"expiry": {
+					"never": "N'expire jamais",
+					"active": "Expire le {{date}}",
+					"expired": "Expiré le {{date}}"
+				},
+				"status": {
+					"active": "Active",
+					"exhausted": "Utilisée",
+					"expired": "Expirée",
+					"revoked": "Révoquée"
+				}
+			},
+			"revokeConfirm": {
+				"title": "Révoquer cette invitation",
+				"description": "Le lien cesse de fonctionner immédiatement. Les personnes déjà arrivées grâce à lui conservent leur adhésion.",
+				"slugLabel": "Tapez {{slug}} pour confirmer",
+				"cancel": "Annuler",
+				"confirm": "Révoquer l'invitation"
+			}
+		},
+		"bots": {
+			"title": "Bots",
+			"description": "Pairs programmables autorisés à agir dans cet espace, ajoutés en collant leur adresse de pair.",
+			"loading": "Chargement des bots…",
+			"error": "Impossible de charger les bots : {{message}}",
+			"addBot": {
+				"cta": "Ajouter un bot",
+				"cancel": "Annuler",
+				"peerAddress": {
+					"label": "Adresse de pair du bot"
+				},
+				"errors": {
+					"missing-p2p-suffix": "L'adresse doit contenir un suffixe /p2p/<peer-id>.",
+					"empty-peer-id": "Il manque un identifiant de pair après /p2p/."
+				},
+				"scopes": {
+					"group": "Adhésion",
+					"issueMembership": {
+						"label": "Approbation automatique des adhésions",
+						"description": "Permet à ce bot d'approuver les demandes d'adhésion de cet espace en votre nom."
+					}
+				}
+			},
+			"revokeConfirm": {
+				"title": "Révoquer {{alias}}",
+				"description": "Ce bot perd immédiatement sa capacité dans cet espace. Cette action est irréversible depuis cet écran.",
+				"slugLabel": "Tapez {{slug}} pour confirmer",
+				"cancel": "Annuler",
+				"confirm": "Révoquer le bot"
+			}
+		}
+	},
+	"assistant": {
+		"loading": "Chargement de la configuration de l'assistant…",
+		"error": "Impossible de charger la configuration de l'assistant : {{message}}",
+		"readOnlyNotOwner": "Seul le propriétaire de l'espace peut modifier ces paramètres.",
+		"cards": {
+			"connection": "Connexion",
+			"models": "Modèles",
+			"advanced": "Avancé"
+		},
+		"fields": {
+			"inheritedHint": "Hérite de {{value}} depuis votre configuration d'assistant par défaut",
+			"builtinHint": "Non défini — Soma utilise une valeur par défaut intégrée",
+			"baseUrl": {
+				"label": "URL de base",
+				"placeholder": "http://127.0.0.1:11434/v1",
+				"validating": "Vérification de la connexion…",
+				"validateOk": "Connecté · {{count}} modèles"
+			},
+			"apiKey": {
+				"label": "Clé API",
+				"placeholderOwn": "Inchangée — laissez vide pour conserver la clé actuelle",
+				"placeholderInherited": "Hérite de la clé de votre configuration d'assistant par défaut",
+				"placeholderNone": "Aucune clé configurée",
+				"inheritedHint": "Hérite de la clé API de votre configuration d'assistant par défaut",
+				"noneHint": "Aucune clé API configurée nulle part",
+				"clear": "Supprimer la clé enregistrée"
+			},
+			"chatModel": {
+				"label": "Modèle de conversation",
+				"placeholder": "ex. llama3.1"
+			},
+			"embedModel": {
+				"label": "Modèle d'embedding",
+				"placeholder": "ex. nomic-embed-text"
+			},
+			"requestTimeoutMs": {
+				"label": "Délai d'expiration des requêtes (ms)",
+				"placeholder": "30000"
+			},
+			"pollIntervalMs": {
+				"label": "Intervalle d'interrogation (ms)",
+				"placeholder": "60000"
+			}
+		}
+	},
+	"errors": {
+		"route": {
+			"headline": "Cet écran a rencontré un problème",
+			"subtext": "Vous pouvez retourner aux Espaces et réessayer.",
+			"cta": "Retour aux Espaces"
+		},
+		"fatal": {
+			"headline": "Soma doit redémarrer",
+			"subtext": "Une erreur est survenue en dehors du parcours de récupération normal.",
+			"cta": "Redémarrer Soma"
+		},
+		"details": "Détails techniques"
 	}
 }

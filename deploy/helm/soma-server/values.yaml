@@ -1,36 +1,275 @@
-controllers:
-  serverd:
-    annotations: {}
-    containers:
-      app:
-        image:
-          repository: ghcr.io/example/soma-server
-          tag: "0.1.0"
-          pullPolicy: IfNotPresent
-        env: []
-        probes:
-          liveness:
-            enabled: false
-          readiness:
-            enabled: false
-        service:
-          ports:
-            http:
+# Values for the bjw-s app-template dependency (see Chart.yaml). Everything under the
+# `app-template:` key below is scoped to that subchart per Helm's normal dependency-value
+# namespacing; nothing outside it is read by any template.
+#
+# All four controllers run the SAME `somad` image (AGENTS.md: "Five per-service Docker images
+# -> one `somad` image") and select their mode via the mandatory clap subcommand
+# (backend/bins/somad/src/commands/mod.rs:22-25 — a bare `somad` with no subcommand exits with a
+# usage error, so every controller below sets `args`).
+#
+# Port numbers are taken from the real defaults in code, not just AGENTS.md's docs (which
+# disagree with themselves in one place — see the "Server: somad" section's per-subcommand
+# "Default listen addrs" vs its own "Docker (server)" table; the table + these values match
+# backend/crates/relay/src/lib.rs and backend/crates/rendezvous/src/lib.rs):
+#   bot:        8080 http + 14005/tcp + 14105/tcp(ws) + 14205/udp(quic)
+#   relay:      8081 http + 14003/tcp + 14103/tcp(ws) + 14203/udp(quic)
+#   rendezvous: 8082 http + 14004/tcp + 14104/tcp(ws) +  4204/udp(quic)
+#   bff:        8083 http (no libp2p by default)
+#
+# Admin mode: `somad bot --mode admin` needs SOMA_ADMIN_TOKEN (fails closed without one — see
+# backend/bins/somad/src/commands/bot/config.rs). The default mode below is "bot", which needs
+# no token at all. To run a bot as the authenticated control plane instead:
+#   1. kubectl create secret generic soma-bot-admin --from-literal=admin-token="$(openssl rand -hex 32)"
+#   2. override controllers.bot.containers.app.env.SOMA_MODE to "admin" in your own values file
+# The token is never written to this file — only a secretKeyRef indirection.
+
+imageDefaults: &somad-image
+  repository: ghcr.io/stephane-segning/somad
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+logDefaults: &log-env
+  RUST_LOG: info
+
+probeTiming: &probe-timing
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+app-template:
+  controllers:
+    bot:
+      containers:
+        app:
+          image: *somad-image
+          args: ["bot"]
+          env:
+            <<: *log-env
+            HTTP_ADDR: "0.0.0.0:8080"
+            SOMA_DATA_DIR: /data
+            SOMA_BLOB_DIR: /blobs
+            # DbFactory::any() (backend/crates/core/src/db.rs) requires a URL with an explicit
+            # scheme; somad's own bare-path fallback ("./botd.db") would not parse as one, so
+            # this stays fully qualified rather than relying on the default.
+            SOMA_DATABASE_URL: sqlite:///data/bot.db
+            SOMA_MODE: bot
+            SOMA_ADMIN_TOKEN:
+              secretKeyRef:
+                name: soma-bot-admin
+                key: admin-token
+          probes:
+            liveness:
               enabled: true
-              port: 8080
+              custom: true
+              spec:
+                <<: *probe-timing
+                httpGet:
+                  path: /healthz
+                  port: 8080
+            readiness:
+              enabled: true
+              custom: true
+              spec:
+                <<: *probe-timing
+                httpGet:
+                  path: /healthz
+                  port: 8080
 
-service:
-  main:
-    controller: serverd
-    ports:
-      http:
-        enabled: true
-        port: 8080
+    relay:
+      containers:
+        app:
+          image: *somad-image
+          args: ["relay"]
+          env:
+            <<: *log-env
+            HTTP_ADDR: "0.0.0.0:8081"
+            SOMA_DATA_DIR: /data
+          probes:
+            liveness:
+              enabled: true
+              custom: true
+              spec:
+                <<: *probe-timing
+                httpGet:
+                  path: /healthz
+                  port: 8081
+            readiness:
+              enabled: true
+              custom: true
+              spec:
+                <<: *probe-timing
+                httpGet:
+                  path: /healthz
+                  port: 8081
 
-ingress:
-  main:
-    enabled: false
+    rendezvous:
+      containers:
+        app:
+          image: *somad-image
+          args: ["rendezvous"]
+          env:
+            <<: *log-env
+            HTTP_ADDR: "0.0.0.0:8082"
+            SOMA_DATA_DIR: /data
+          probes:
+            liveness:
+              enabled: true
+              custom: true
+              spec:
+                <<: *probe-timing
+                httpGet:
+                  path: /healthz
+                  port: 8082
+            readiness:
+              enabled: true
+              custom: true
+              spec:
+                <<: *probe-timing
+                httpGet:
+                  path: /healthz
+                  port: 8082
 
-persistence: {}
+    bff:
+      containers:
+        app:
+          image: *somad-image
+          args: ["bff"]
+          env:
+            <<: *log-env
+            HTTP_ADDR: "0.0.0.0:8083"
+          probes:
+            liveness:
+              enabled: true
+              custom: true
+              spec:
+                <<: *probe-timing
+                httpGet:
+                  path: /healthz
+                  port: 8083
+            readiness:
+              enabled: true
+              custom: true
+              spec:
+                <<: *probe-timing
+                httpGet:
+                  path: /healthz
+                  port: 8083
 
-resources: {}
+  service:
+    bot:
+      controller: bot
+      type: ClusterIP
+      ports:
+        http:
+          port: 8080
+          protocol: TCP
+    bot-p2p:
+      controller: bot
+      # LoadBalancer: a bot is only useful as an always-on space mirror (AGENTS.md "Bots and
+      # always-on availability") if other libp2p peers can actually dial it from outside the
+      # cluster — a bare ClusterIP cannot be. Override per environment (e.g. NodePort on
+      # clusters without a cloud LB controller).
+      type: LoadBalancer
+      ports:
+        p2p-tcp:
+          port: 14005
+          protocol: TCP
+        p2p-ws:
+          port: 14105
+          protocol: TCP
+        p2p-quic:
+          port: 14205
+          protocol: UDP
+
+    relay:
+      controller: relay
+      type: ClusterIP
+      ports:
+        http:
+          port: 8081
+          protocol: TCP
+    relay-p2p:
+      controller: relay
+      # Relay's entire purpose is NAT traversal for other peers; it must be publicly dialable.
+      type: LoadBalancer
+      ports:
+        p2p-tcp:
+          port: 14003
+          protocol: TCP
+        p2p-ws:
+          port: 14103
+          protocol: TCP
+        p2p-quic:
+          port: 14203
+          protocol: UDP
+
+    rendezvous:
+      controller: rendezvous
+      type: ClusterIP
+      ports:
+        http:
+          port: 8082
+          protocol: TCP
+    rendezvous-p2p:
+      controller: rendezvous
+      type: LoadBalancer
+      ports:
+        p2p-tcp:
+          port: 14004
+          protocol: TCP
+        p2p-ws:
+          port: 14104
+          protocol: TCP
+        p2p-quic:
+          port: 4204
+          protocol: UDP
+
+    bff:
+      controller: bff
+      type: ClusterIP
+      ports:
+        http:
+          port: 8083
+          protocol: TCP
+
+  persistence:
+    # somad's identity path (backend/crates/net/src/lib.rs) is ${SOMA_DATA_DIR}/<service>/identity.key
+    # — losing it on every reschedule would rotate the peer ID. The bot additionally keeps its
+    # SQLx SQLite DB under the same dir, plus a separate cache-only blob directory.
+    bot-data:
+      enabled: true
+      type: persistentVolumeClaim
+      accessMode: ReadWriteOnce
+      size: 5Gi
+      advancedMounts:
+        bot:
+          app:
+            - path: /data
+    bot-blobs:
+      enabled: true
+      type: persistentVolumeClaim
+      accessMode: ReadWriteOnce
+      size: 20Gi
+      advancedMounts:
+        bot:
+          app:
+            - path: /blobs
+    relay-data:
+      enabled: true
+      type: persistentVolumeClaim
+      accessMode: ReadWriteOnce
+      size: 1Gi
+      advancedMounts:
+        relay:
+          app:
+            - path: /data
+    rendezvous-data:
+      enabled: true
+      type: persistentVolumeClaim
+      accessMode: ReadWriteOnce
+      size: 1Gi
+      advancedMounts:
+        rendezvous:
+          app:
+            - path: /data

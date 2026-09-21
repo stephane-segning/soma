@@ -19,6 +19,12 @@ pub enum DesktopError {
     Daemon { message: String },
     #[error("agent: {message}")]
     Agent { message: String },
+    /// Caller did not present a valid credential. Maps to HTTP 401 at the
+    /// BFF boundary (`desktop-bff::error::ApiError::status`). The Tauri
+    /// presenter never produces this variant — the in-process command
+    /// surface has no network boundary to authenticate across.
+    #[error("unauthenticated: {message}")]
+    Unauthenticated { message: String },
     #[error("{message}")]
     Other { message: String },
 }
@@ -36,6 +42,11 @@ impl DesktopError {
     }
     pub fn other(err: impl std::fmt::Display) -> Self {
         Self::Other {
+            message: err.to_string(),
+        }
+    }
+    pub fn unauthenticated(err: impl std::fmt::Display) -> Self {
+        Self::Unauthenticated {
             message: err.to_string(),
         }
     }

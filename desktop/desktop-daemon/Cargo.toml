@@ -11,7 +11,6 @@ authors.workspace = true
 desktop-core = { workspace = true }
 desktop-services = { workspace = true }
 soma-daemon = { workspace = true }
-tauri = { workspace = true }
 async-trait = { workspace = true }
 anyhow = { workspace = true }
 serde = { workspace = true }

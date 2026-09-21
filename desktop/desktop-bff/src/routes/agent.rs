@@ -6,19 +6,16 @@
 //! `ChatResponse` rather than a stream of deltas (the renderer that
 //! actually wants tokens-as-they-arrive uses OpenAI HTTP directly, see
 //! the AGENTS.md note on the deferred `chat_stream`). When a real
-//! streaming surface lands it will get its own SSE/WebSocket route — for
-//! now this one keeps the SDK call site working against the BFF.
+//! streaming surface lands it will ride the existing `ws` event stream
+//! (see `crate::ws`) rather than a new transport — for now this route
+//! keeps the SDK call site working against the BFF.
 
 use std::sync::Arc;
 
-use axum::{
-    Json, Router,
-    extract::State,
-    routing::post,
-};
+use axum::{Json, Router, extract::State, routing::post};
 use desktop_agent::{
-    BackgroundTask, ChatResponse, EnqueueBackgroundTaskParams, ListBackgroundTasksParams, RerankParams, RerankResult,
-    ResolveDriftParams, ResolveDriftResult,
+    BackgroundTask, ChatResponse, EnqueueBackgroundTaskParams, ListBackgroundTasksParams,
+    RerankParams, RerankResult, ResolveDriftParams, ResolveDriftResult,
 };
 use desktop_api::{AppState, agent};
 use serde::Deserialize;
@@ -53,14 +50,16 @@ struct OptionalSpaceIdBody {
     space_id: Option<String>,
 }
 
-
 // --- Handlers ---------------------------------------------------------------
 
 async fn agent_chat_stream(
     State(app): State<Arc<AppState>>,
     Json(args): Json<agent::ChatStreamArgs>,
 ) -> Result<Json<ChatResponse>, ApiError> {
-    agent::chat_stream(&app, args).await.map(Json).map_err(ApiError::from)
+    agent::chat_stream(&app, args)
+        .await
+        .map(Json)
+        .map_err(ApiError::from)
 }
 
 async fn agent_list_models(
@@ -77,14 +76,20 @@ async fn agent_rerank(
     State(app): State<Arc<AppState>>,
     Json(args): Json<RerankParams>,
 ) -> Result<Json<Vec<RerankResult>>, ApiError> {
-    agent::rerank(&app, args).await.map(Json).map_err(ApiError::from)
+    agent::rerank(&app, args)
+        .await
+        .map(Json)
+        .map_err(ApiError::from)
 }
 
 async fn agent_resolve_drift(
     State(app): State<Arc<AppState>>,
     Json(args): Json<ResolveDriftParams>,
 ) -> Result<Json<ResolveDriftResult>, ApiError> {
-    agent::resolve_drift(&app, args).await.map(Json).map_err(ApiError::from)
+    agent::resolve_drift(&app, args)
+        .await
+        .map(Json)
+        .map_err(ApiError::from)
 }
 
 async fn agent_enqueue_background_task(

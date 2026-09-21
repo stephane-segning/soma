@@ -1,8 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useEffect, useState } from "react";
-
-import { CharDisplay } from "../components/tapia/char-display";
 import { PopupShell } from "../components/popup/popup-shell";
+import { CharDisplay } from "../components/tapia/char-display";
 
 const meta = {
 	title: "Popup/PopupShell",
@@ -54,6 +53,7 @@ function TypingPopupDemo() {
 						<label className="flex w-full max-w-xs flex-col gap-1 text-base-content/60 text-xs">
 							<span>Type the phrase above to advance the bar.</span>
 							<input
+								// biome-ignore lint/a11y/noAutofocus: this story simulates a typing drill popup — the whole point is to start typing immediately, same justification accepted for the real drill in practice.tsx
 								autoFocus
 								className="rounded-md border border-base-300 bg-base-100 px-2 py-1 font-mono text-sm outline-none focus-visible:border-primary"
 								onChange={(event) => setTyped(event.target.value)}

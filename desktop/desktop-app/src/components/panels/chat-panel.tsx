@@ -27,7 +27,8 @@ import { type BackendOption, BackendSwitcher } from "@soma/ui/components/chat/ba
 import { AiInput } from "@soma/ui/components/forms/ai-input";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useParams } from "react-router";
+import { useLocation } from "react-router";
+import { parseActiveSpaceId } from "../../lib/active-space";
 import { backend } from "../../lib/backend";
 
 const BACKENDS: BackendOption[] = [
@@ -44,7 +45,17 @@ function newId(): string {
 
 export function ChatPanel(): React.JSX.Element {
 	const { t } = useTranslation();
-	const { spaceId } = useParams<{ spaceId?: string }>();
+	// NOT `useParams()`. `ChatPanel` renders inside `RightRail`, which
+	// `AppLayout` passes as its `rightColumn` prop — a *sibling* of
+	// `<Outlet />`, not a descendant. Route params from the nested
+	// `spaces/:spaceId` route are only visible to components rendered
+	// through that route's own outlet chain, so `useParams()` here
+	// resolved to `{}` and `spaceId` was silently always `null`. Every
+	// chat call therefore lost its space context, and no per-space agent
+	// config could ever take effect. Derive it from the live pathname
+	// instead — the same source `CommandPaletteRoot` uses.
+	const { pathname } = useLocation();
+	const spaceId = parseActiveSpaceId(pathname);
 	const [messages, setMessages] = useState<UiChatMessage[]>([]);
 	const [draft, setDraft] = useState("");
 	const [activeBackend, setActiveBackend] = useState<string>(BACKENDS[0].id);

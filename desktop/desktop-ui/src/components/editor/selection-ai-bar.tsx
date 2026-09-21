@@ -113,6 +113,7 @@ export function SelectionAIBar({
 	const flat = useMemo(() => grouped.flatMap((g) => g.items), [grouped]);
 
 	const [activeIndex, setActiveIndex] = useState(0);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: `flat` is a deliberate re-run trigger — resets the highlighted action back to the top match whenever the filtered/grouped list changes; it isn't read inside the effect body.
 	useEffect(() => {
 		setActiveIndex(0);
 	}, [flat]);
@@ -158,6 +159,12 @@ export function SelectionAIBar({
 		};
 		window.addEventListener("keydown", onKeyDown);
 		return () => window.removeEventListener("keydown", onKeyDown);
+		// `metadata` is genuinely read in the Enter-key branch below (the
+		// `action.run({ ..., metadata })` call) and callers document it as
+		// carrying the live selection range — a stale closure here would
+		// dispatch an action against the wrong range. This effect already
+		// re-subscribes on every keystroke (via `prompt`/`activeIndex`), so
+		// adding one more dependency doesn't change its stability.
 	}, [
 		flat,
 		activeIndex,
@@ -166,6 +173,7 @@ export function SelectionAIBar({
 		prompt,
 		onClose,
 		onCustomPrompt,
+		metadata,
 	]);
 
 	// Click-outside dismissal. Listen on `mousedown` (not click) so we
@@ -190,7 +198,7 @@ export function SelectionAIBar({
 			})}
 			aria-modal="true"
 			className={cn(
-				"glass-panel shadow-elevated w-96 flex flex-col gap-1 p-1",
+				"glass-panel flex w-96 flex-col gap-1 p-1 shadow-elevated",
 				className,
 			)}
 			ref={containerRef}
@@ -199,6 +207,7 @@ export function SelectionAIBar({
 			<div className="flex items-center gap-2 rounded-md bg-base-100 px-2 py-1.5">
 				<Star aria-hidden className="size-4 shrink-0 text-info" />
 				<input
+					// biome-ignore lint/a11y/noAutofocus: this bar only mounts once the user explicitly invokes inline AI (⌘J, the SelectionBubble "Ask AI" chip, or the SlashMenu input row — ADR-0005 §13) — the interaction is to type or pick an action immediately, same rationale as CommandPalette's search input.
 					autoFocus
 					className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-base-content/40"
 					onChange={(event) => setPrompt(event.target.value)}
@@ -225,13 +234,13 @@ export function SelectionAIBar({
 				</div>
 			) : (
 				<ActionList
-					grouped={grouped}
 					activeIndex={activeIndex}
-					setActiveIndex={setActiveIndex}
-					sectionLabel={sectionLabel}
-					nodeType={nodeType}
-					selectedText={selectedText}
+					grouped={grouped}
 					metadata={metadata}
+					nodeType={nodeType}
+					sectionLabel={sectionLabel}
+					selectedText={selectedText}
+					setActiveIndex={setActiveIndex}
 				/>
 			)}
 		</div>

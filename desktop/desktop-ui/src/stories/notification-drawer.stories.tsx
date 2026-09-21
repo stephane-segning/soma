@@ -2,8 +2,8 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { Bell, CheckCircle, Zap } from "react-feather";
 import { PolymorphButton } from "../components/actions/polymorph-button";
-import { NotificationDrawer } from "../components/overlays/notification-drawer";
 import type { NotificationItem } from "../components/overlays/notification-drawer";
+import { NotificationDrawer } from "../components/overlays/notification-drawer";
 
 const meta: Meta<typeof NotificationDrawer> = {
 	title: "Overlays/NotificationDrawer",

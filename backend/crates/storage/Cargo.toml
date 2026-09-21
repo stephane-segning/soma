@@ -15,3 +15,9 @@ serde_json = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt"] }
+# Extra sqlx capabilities needed only by this crate's own tests (an
+# in-memory SQLite pool + running the embedded migrator directly) — kept
+# dev-only so the production `soma-storage` library build stays lean; the
+# real app runs migrations through `soma-daemon`'s own `sqlx::migrate!`.
+sqlx = { workspace = true, features = ["sqlite", "migrate", "runtime-tokio-rustls"] }

@@ -4,7 +4,7 @@
  * the Rust broadcasters use.
  */
 
-import type { AgentRuntimeEvent, DomainEvent } from "./bindings";
+import type { AgentRuntimeEvent, DeepLinkRoute, DomainEvent } from "./bindings";
 import type { Transport } from "./transport";
 
 const DOMAIN_EVENT = "domain_event";
@@ -15,6 +15,12 @@ export function events(t: Transport) {
 	return {
 		onDomain: (h: (e: DomainEvent) => void) => t.subscribe<DomainEvent>(DOMAIN_EVENT, h),
 		onAgent: (h: (e: AgentRuntimeEvent) => void) => t.subscribe<AgentRuntimeEvent>(AGENT_EVENT, h),
-		onDeepLink: (h: (url: string) => void) => t.subscribe<string>(DEEP_LINK_EVENT, h),
+		/**
+		 * A parsed `soma://` deep link — `route.kind` is `"invite"` (with
+		 * `route.link`, the full link ready for `backend.invites.inspect`)
+		 * or `"unknown"` (with the raw `route.url`, for anything that
+		 * didn't match a known route).
+		 */
+		onDeepLink: (h: (route: DeepLinkRoute) => void) => t.subscribe<DeepLinkRoute>(DEEP_LINK_EVENT, h),
 	};
 }

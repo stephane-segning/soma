@@ -58,17 +58,17 @@ export function BubbleToolbar({
 					// overwrite that transform and the toolbar would drift away
 					// from the anchor. Opacity-only is the safe, minimalist path.
 					<motion.div
-						ref={refs.setFloating}
-						style={floatingStyles}
 						animate={{ opacity: 1 }}
 						className="pointer-events-auto z-50"
 						exit={{ opacity: 0 }}
 						initial={{ opacity: 0 }}
+						ref={refs.setFloating}
+						style={floatingStyles}
 						transition={{ duration: 0.12, ease: "easeOut" }}
 					>
 						<div
 							className={cn(
-								"glass-panel shadow-elevated flex items-center gap-1 p-1",
+								"glass-panel flex items-center gap-1 p-1 shadow-elevated",
 								className,
 							)}
 						>

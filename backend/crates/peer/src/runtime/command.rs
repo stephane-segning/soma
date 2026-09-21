@@ -1,4 +1,5 @@
 use crate::PeerCommand;
+use crate::codec::BlobAnnounce;
 use crate::protocol::BLOB_CHUNK_BYTES;
 use crate::runtime::RuntimeState;
 use soma_vdfs::BlobRequest;
@@ -110,6 +111,32 @@ pub(super) async fn handle_command(state: &mut RuntimeState, cmd: PeerCommand) -
                 .behaviour_mut()
                 .blob
                 .send_request(&target, request);
+        }
+        PeerCommand::AnnounceBlob {
+            space_id,
+            cid,
+            mime,
+            size,
+        } => {
+            let announce = BlobAnnounce {
+                space_id,
+                cid,
+                mime,
+                size,
+            };
+            // Fan out to every currently connected peer. Not space-scoped:
+            // the announce is only a hint (space_id + cid + mime + size),
+            // and the actual bytes stay gated by `SpaceAuthorizer` on
+            // fetch — see AGENTS.md's "Blobs" section. A peer outside the
+            // space can see the hint but can't fetch the bytes.
+            let peers: Vec<_> = state.swarm.connected_peers().copied().collect();
+            for peer in peers {
+                let _ = state
+                    .swarm
+                    .behaviour_mut()
+                    .blob_announce
+                    .send_request(&peer, announce.clone());
+            }
         }
         PeerCommand::Shutdown => {
             info!("peer shutdown requested");

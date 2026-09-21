@@ -64,7 +64,7 @@ impl MembershipRepository for SqlMembershipRepository {
         spaces::delete_space(&self.pool, space_id).await
     }
 
-    async fn upsert_membership(&self, membership: &SpaceMembership) -> SomaResult<()> {
+    async fn upsert_membership(&self, membership: &SpaceMembership) -> SomaResult<bool> {
         space_memberships::upsert_membership(&self.pool, membership).await
     }
 
@@ -134,6 +134,14 @@ impl MembershipRepository for SqlMembershipRepository {
             offset,
         )
         .await
+    }
+
+    async fn find_outgoing_join_request(
+        &self,
+        space_id: &str,
+        target_peer_id: &str,
+    ) -> SomaResult<Option<JoinRequest>> {
+        join_requests::find_outgoing_join_request(&self.pool, space_id, target_peer_id).await
     }
 }
 

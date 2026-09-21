@@ -1,0 +1,140 @@
+# cargo-deny — supply-chain policy for the SOMA workspace.
+#
+# Checks: advisories (RustSec), licenses, bans (duplicate/banned crates), and
+# sources (where crates may come from).
+#
+# Run locally with:  cargo deny check
+# CI runs the same command on every push/PR (see .github/workflows/test.yml).
+#
+# This is a first pass, grounded in an actual `cargo deny check` +
+# `cargo deny list` run against the committed Cargo.lock (2026-09-21), not a
+# speculative template. Every `ignore` entry below names the RUSTSEC ID, the
+# crate that pulls the flagged dependency in, and why it isn't fixed outright.
+# Third-party dependency *versions* live only in the root Cargo.toml
+# (`[workspace.dependencies]`); this file does not and must not pin any.
+
+[graph]
+# Matches how CI actually builds (no `--all-features` anywhere in
+# .github/workflows/), so this doesn't flag advisories reachable only under
+# a feature combination nothing here ever turns on.
+all-features = false
+no-default-features = false
+
+[output]
+feature-depth = 1
+
+# ---------------------------------------------------------------------------
+# Advisories — RustSec vulnerability + unmaintained-crate database
+# ---------------------------------------------------------------------------
+[advisories]
+ignore = [
+    # --- Real vulnerabilities (DoS-class), fix requires a minor-incompatible
+    # bump of a *transitive* crate that isn't declared in the root
+    # Cargo.toml directly — only reachable by bumping the direct dependency
+    # that pulls it (libp2p, plist's own upstream), which is out of scope
+    # for this change. Flagged here instead of silently working around it.
+    { id = "RUSTSEC-2026-0118", reason = "hickory-proto 0.25.2, via libp2p-mdns (LAN peer discovery) and hickory-resolver: NSEC3 unbounded-loop DoS. No fix released upstream yet (any version)." },
+    { id = "RUSTSEC-2026-0119", reason = "hickory-proto 0.25.2, via libp2p-mdns and hickory-resolver: O(n^2) name-compression CPU-exhaustion DoS. Fixed at >=0.26.1, a minor-incompatible bump only reachable by bumping libp2p in the root Cargo.toml." },
+    { id = "RUSTSEC-2026-0194", reason = "quick-xml 0.38.4, via plist (macOS packaging/icon metadata, parses files we generate ourselves at build time, not attacker-controlled input): quadratic-runtime DoS on malicious XML. Fixed at >=0.41.0, a minor-incompatible bump only reachable via plist's own upstream." },
+    { id = "RUSTSEC-2026-0195", reason = "quick-xml 0.38.4, via plist, same path/exposure as RUSTSEC-2026-0194: unbounded namespace-declaration allocation DoS. Same fix/blocker as above." },
+
+    # --- Unmaintained-crate notices (no CVE, no known exploit) — all
+    # deep transitive proc-macro/data crates with no drop-in replacement
+    # reachable without bumping the direct dependency that pulls them in.
+    { id = "RUSTSEC-2026-0105", reason = "core2 0.4.0, via multihash (libp2p content-addressing): unmaintained, all versions yanked, no maintained fork adopted upstream yet. Also covered by the yanked-crate ignore below." },
+    { id = "RUSTSEC-2024-0436", reason = "paste 1.0.15, via specta and sqlx-utils: unmaintained proc-macro helper with no replacement API; extremely widely used across the ecosystem as-is." },
+    { id = "RUSTSEC-2024-0370", reason = "proc-macro-error 1.0.4, via glib-macros -> glib -> gtk -> muda (Tauri's Linux tray-menu stack, GTK-only): unmaintained. Not ours to swap out of muda/gtk." },
+    { id = "RUSTSEC-2026-0173", reason = "proc-macro-error2 2.0.1, via sqlx-utils-macro and syn_derive: unmaintained successor crate, same situation as proc-macro-error." },
+    { id = "RUSTSEC-2026-0206", reason = "rustybuzz 0.20.1, via usvg (resvg's SVG-to-icon rendering, used for desktop icon generation): unmaintained. No replacement adopted by usvg upstream." },
+    { id = "RUSTSEC-2026-0215", reason = "smallstr 0.3.1, via yrs (Yjs CRDT engine): unmaintained. No replacement adopted by yrs upstream." },
+    { id = "RUSTSEC-2026-0192", reason = "ttf-parser 0.25.1, via fontdb and rustybuzz (resvg's font stack): unmaintained. No replacement adopted upstream." },
+    { id = "RUSTSEC-2025-0081", reason = "unic-char-property 0.9.0, via unic-ucd-ident (urlpattern's Unicode ident tables): unmaintained `unic-*` family, no replacement adopted by urlpattern upstream." },
+    { id = "RUSTSEC-2025-0075", reason = "unic-char-range 0.9.0, via unic-char-property/unic-ucd-ident: same unmaintained `unic-*` family as above." },
+    { id = "RUSTSEC-2025-0080", reason = "unic-common 0.9.0, via unic-ucd-version: same unmaintained `unic-*` family as above." },
+    { id = "RUSTSEC-2025-0100", reason = "unic-ucd-ident 0.9.0, via urlpattern: same unmaintained `unic-*` family as above." },
+    { id = "RUSTSEC-2025-0098", reason = "unic-ucd-version 0.9.0, via unic-ucd-ident: same unmaintained `unic-*` family as above." },
+
+    # Yanked-version warnings not already resolved by a lockfile update.
+    { crate = "core2@0.4.0", reason = "yanked alongside the unmaintained notice above (RUSTSEC-2026-0105); no non-yanked version exists." },
+]
+
+# ---------------------------------------------------------------------------
+# Licenses — permissive allow-list (+ MPL-2.0, justified below)
+# ---------------------------------------------------------------------------
+[licenses]
+confidence-threshold = 0.9
+
+# Derived from an actual `cargo deny list` over the current lockfile, not a
+# speculative superset. Every entry here is permissive and fine to ship in a
+# closed, unpublished binary (this workspace is `publish = false` — see
+# `[licenses.private]` below).
+#
+# MPL-2.0 is the one non-purely-permissive entry: it's file-level (weak)
+# copyleft. Obligations only attach to modifications of the MPL-covered
+# files themselves; using an unmodified MPL crate as a linked dependency in
+# a larger binary does not require the binary's own source to be disclosed.
+# We don't patch any of the MPL-2.0 crates below (attohttpc, cssparser,
+# cssparser-macros, dtoa-short, option-ext, selectors — all transitive, via
+# the resvg/servo-derived SVG rendering stack), so this is safe as-is.
+#
+# Deliberately ABSENT (so adding such a dependency fails CI and forces a
+# conversation): (L)GPL/AGPL as a *sole* license, SSPL, BUSL, CC-BY-SA, and
+# anything "custom"/unlicensed. (LGPL-2.1-or-later shows up transitively via
+# `r-efi`, but r-efi is multi-licensed `MIT OR Apache-2.0 OR
+# LGPL-2.1-or-later` — MIT alone in the allow list already satisfies that
+# OR-expression, so LGPL doesn't need to be, and isn't, allowed here.)
+allow = [
+    "0BSD",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-1-Clause",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "BSL-1.0",
+    "CC0-1.0",
+    "CDLA-Permissive-2.0",
+    "ISC",
+    "MIT",
+    "MIT-0",
+    "MPL-2.0",
+    "Unicode-3.0",
+    "Unlicense",
+    "Zlib",
+]
+
+[licenses.private]
+# Our own workspace crates (`soma-*`, `desktop-*`, `xtask`) are
+# `publish = false` (root Cargo.toml `[workspace.package]`) and never ship
+# to a registry, so they don't need a cleared license the way a third-party
+# dependency does. Without this, `xtask` (which sets no `license` field —
+# it's internal dev tooling) fails as "unlicensed".
+ignore = true
+
+# ---------------------------------------------------------------------------
+# Bans — duplicate versions and crates we never want linked in
+# ---------------------------------------------------------------------------
+[bans]
+# WARN, not deny: this tree legitimately carries duplicate versions pulled
+# in transitively (the usual windows-sys/syn/base64-style split across an
+# ~970-crate graph). None are ours to unify from here, and denying would
+# make CI red for reasons no reviewer of this PR could act on.
+multiple-versions = "warn"
+# A `*` version requirement means "whatever resolves today", defeating the
+# lockfile for a genuine registry dependency. Verified zero such hits
+# against the current tree — the only "wildcards" cargo-deny finds without
+# the line below are our own internal `{ workspace = true }` path deps
+# (soma-core, desktop-core, ...), which have no registry version to pin by
+# design (AGENTS.md's Dependency Policy) and aren't a supply-chain risk.
+wildcards = "deny"
+allow-wildcard-paths = true
+
+# ---------------------------------------------------------------------------
+# Sources — where crates are allowed to come from
+# ---------------------------------------------------------------------------
+[sources]
+# Anything not from crates.io is a supply-chain question, not a default.
+# Verified zero hits against the current tree (no git dependencies).
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []

@@ -95,16 +95,21 @@ pub fn normalize_sqlite_url(input: &str) -> String {
 pub fn prepare_sqlite_path(url: &str) -> SomaResult<()> {
     if let Some(stripped) = url.strip_prefix("sqlite://") {
         let path = Path::new(stripped);
-        if let Some(parent) = path.parent() {
-            if !parent.as_os_str().is_empty() {
-                std::fs::create_dir_all(parent).map_err(Error::Io)?;
-            }
+        if let Some(parent) = path.parent()
+            && !parent.as_os_str().is_empty()
+        {
+            std::fs::create_dir_all(parent).map_err(Error::Io)?;
         }
-        // Touch the file to surface permissions issues early.
+        // Touch the file to surface permissions issues early. Never truncate: this
+        // runs on every `DbFactory::build_*()` call (i.e. every app/service startup),
+        // so truncating here would silently wipe an existing SQLite database back to
+        // zero bytes each time the process starts. `.truncate(false)` just makes the
+        // (already-correct) default explicit instead of leaving it implicit.
         let _ = std::fs::OpenOptions::new()
             .create(true)
             .write(true)
             .read(true)
+            .truncate(false)
             .open(path)
             .map_err(Error::Io)?;
     }

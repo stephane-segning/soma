@@ -8,15 +8,22 @@
 		"dev": "vite",
 		"build": "tsc && vite build",
 		"preview": "vite preview",
+		"dev:web": "vite --mode web",
+		"build:web": "tsc && vite build --mode web",
+		"preview:web": "vite preview --mode web",
 		"tauri": "tauri",
 		"tauri:dev": "tauri dev --features devtools --config src-tauri/tauri.dev.conf.json",
 		"tauri:build": "tauri build",
 		"format": "biome format --write .",
 		"lint": "biome check --write .",
-		"typecheck": "tsc --noEmit"
+		"lint:ci": "biome ci .",
+		"typecheck": "tsc --noEmit",
+		"test": "vitest run",
+		"test:watch": "vitest"
 	},
 	"dependencies": {
 		"@floating-ui/react": "^0.27.17",
+		"@paralleldrive/cuid2": "^3.3.0",
 		"@soma/editor": "workspace:*",
 		"@soma/sdk": "workspace:*",
 		"@soma/ui": "workspace:*",
@@ -55,6 +62,7 @@
 		"tailwind-scrollbar": "^4.0.2",
 		"tailwindcss": "^4.3.0",
 		"typescript": "~5.8.3",
-		"vite": "npm:rolldown-vite@latest"
+		"vite": "npm:rolldown-vite@latest",
+		"vitest": "^4.1.6"
 	}
 }

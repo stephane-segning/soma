@@ -9,15 +9,17 @@
 
 use std::sync::Arc;
 
-use axum::{Router, routing::get};
+use axum::Router;
 use desktop_api::AppState;
 
-use crate::sse;
+use crate::ws;
 
 mod agent;
+mod agent_config;
 mod blobs;
 mod daemon;
 mod documents;
+mod invites;
 mod practice;
 mod search;
 mod spaces;
@@ -33,11 +35,16 @@ pub(crate) const BLOB_UPLOAD_MAX_BYTES: usize = 100 * 1024 * 1024;
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .merge(spaces::router())
+        .merge(invites::router())
         .merge(documents::router())
         .merge(blobs::router())
         .merge(daemon::router())
         .merge(agent::router())
+        .merge(agent_config::router())
         .merge(practice::router())
         .merge(search::router())
-        .route("/api/v1/events", get(sse::events_sse))
+        // `any`, not `get`: WebSocket upgrades are `GET` on HTTP/1.1 but
+        // `CONNECT` from HTTP/2 clients onward — see the axum `ws` module
+        // docs. SSE is gone (hard cutover, no dual SSE+WS path).
+        .route("/api/v1/ws", ws::route())
 }

@@ -3,20 +3,24 @@ use std::sync::Arc;
 use sqlx_utils::types::Pool;
 
 use crate::{
-    blobs::BlobRepository, documents::DocumentRepository, issuer::IssuerRepository,
-    mailbox::MailboxRepository, membership::MembershipRepository, pages::PageRepository,
-    peers::PeerPublicKeyRepository,
+    agent_config::AgentConfigRepository, blobs::BlobRepository, documents::DocumentRepository,
+    invites::InviteRepository, issuer::IssuerRepository, mailbox::MailboxRepository,
+    membership::MembershipRepository, pages::PageRepository, peers::PeerPublicKeyRepository,
+    search::SearchRepository,
 };
 
 /// Abstraction over repositories needed by controllers/services.
 pub trait RepositoryProvider: Send + Sync {
     fn membership_repo(&self) -> Arc<dyn MembershipRepository>;
     fn issuer_repo(&self) -> Arc<dyn IssuerRepository>;
+    fn invite_repo(&self) -> Arc<dyn InviteRepository>;
     fn mailbox_repo(&self) -> Arc<dyn MailboxRepository>;
     fn peer_keys_repo(&self) -> Arc<dyn PeerPublicKeyRepository>;
     fn document_repo(&self) -> Arc<dyn DocumentRepository>;
     fn page_repo(&self) -> Arc<dyn PageRepository>;
     fn blob_repo(&self) -> Arc<dyn BlobRepository>;
+    fn agent_config_repo(&self) -> Arc<dyn AgentConfigRepository>;
+    fn search_repo(&self) -> Arc<dyn SearchRepository>;
     fn pool(&self) -> Pool;
 }
 
@@ -43,6 +47,10 @@ impl RepositoryFactory {
         crate::issuer::SqlIssuerRepository::new(self.pool.clone())
     }
 
+    pub fn invites(&self) -> crate::invites::SqlInviteRepository {
+        crate::invites::SqlInviteRepository::new(self.pool.clone())
+    }
+
     pub fn mailbox(&self) -> crate::mailbox::SqlMailboxRepository {
         crate::mailbox::SqlMailboxRepository::new(self.pool.clone())
     }
@@ -62,6 +70,14 @@ impl RepositoryFactory {
     pub fn blobs(&self) -> crate::blobs::SqlBlobRepository {
         crate::blobs::SqlBlobRepository::new(self.pool.clone())
     }
+
+    pub fn agent_config(&self) -> crate::agent_config::SqlAgentConfigRepository {
+        crate::agent_config::SqlAgentConfigRepository::new(self.pool.clone())
+    }
+
+    pub fn search(&self) -> crate::search::SqlSearchRepository {
+        crate::search::SqlSearchRepository::new(self.pool.clone())
+    }
 }
 
 impl RepositoryProvider for RepositoryFactory {
@@ -71,6 +87,10 @@ impl RepositoryProvider for RepositoryFactory {
 
     fn issuer_repo(&self) -> Arc<dyn IssuerRepository> {
         Arc::new(self.issuer())
+    }
+
+    fn invite_repo(&self) -> Arc<dyn InviteRepository> {
+        Arc::new(self.invites())
     }
 
     fn mailbox_repo(&self) -> Arc<dyn MailboxRepository> {
@@ -93,6 +113,14 @@ impl RepositoryProvider for RepositoryFactory {
         Arc::new(self.blobs())
     }
 
+    fn agent_config_repo(&self) -> Arc<dyn AgentConfigRepository> {
+        Arc::new(self.agent_config())
+    }
+
+    fn search_repo(&self) -> Arc<dyn SearchRepository> {
+        Arc::new(self.search())
+    }
+
     fn pool(&self) -> Pool {
         self.pool()
     }
@@ -108,6 +136,10 @@ where
 
     fn issuer_repo(&self) -> Arc<dyn IssuerRepository> {
         (**self).issuer_repo()
+    }
+
+    fn invite_repo(&self) -> Arc<dyn InviteRepository> {
+        (**self).invite_repo()
     }
 
     fn mailbox_repo(&self) -> Arc<dyn MailboxRepository> {
@@ -128,6 +160,14 @@ where
 
     fn blob_repo(&self) -> Arc<dyn BlobRepository> {
         (**self).blob_repo()
+    }
+
+    fn agent_config_repo(&self) -> Arc<dyn AgentConfigRepository> {
+        (**self).agent_config_repo()
+    }
+
+    fn search_repo(&self) -> Arc<dyn SearchRepository> {
+        (**self).search_repo()
     }
 
     fn pool(&self) -> Pool {

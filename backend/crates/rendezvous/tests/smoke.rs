@@ -60,5 +60,5 @@ async fn rendezvous_smoke_health_and_metrics() {
 
     let _ = shutdown_tx.send(());
     let _ = svc.await.unwrap();
-    let _ = http.abort();
+    http.abort();
 }

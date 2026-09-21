@@ -62,6 +62,12 @@ pub struct RelayMetrics {
     listeners: Family<(), Counter>,
 }
 
+impl Default for RelayMetrics {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RelayMetrics {
     pub fn new() -> Self {
         let mut registry = prometheus_client::registry::Registry::with_prefix("relay");
@@ -155,7 +161,7 @@ where
                 match event {
                     SwarmEvent::NewListenAddr { address, .. } => {
                         metrics.listeners.get_or_create(&()).inc();
-                        let p2p = address.clone().with(Protocol::P2p(peer_id.into()));
+                        let p2p = address.clone().with(Protocol::P2p(peer_id));
                         info!(listen_addr=%address, p2p=%p2p, "relay listening");
                     }
                     SwarmEvent::ListenerClosed { reason, .. } => {

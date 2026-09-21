@@ -77,8 +77,7 @@ impl SqlIssuerRepository {
 #[async_trait]
 impl IssuerRepository for SqlIssuerRepository {
     async fn upsert(&self, cap: &IssuerCapability) -> SomaResult<()> {
-        let scopes_json = serde_json::to_string(&cap.scopes)
-            .unwrap_or_else(|_| "[]".to_string());
+        let scopes_json = serde_json::to_string(&cap.scopes).unwrap_or_else(|_| "[]".to_string());
         sqlx::query(
             r#"
             INSERT INTO issuer_capabilities (

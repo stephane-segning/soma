@@ -1,14 +1,18 @@
 use async_trait::async_trait;
-use soma_membership::apply_join_decision;
+use libp2p::PeerId;
+use libp2p::identity::PublicKey;
+use soma_membership::{PeerKeyResolver, verify_and_apply_inbound_join_decision};
 use soma_peer::{
     PeerEvent,
     events::{PeerEventHandler, PeerEventKind},
 };
+use soma_storage::peers::PeerPublicKeyRepository;
 use tracing::warn;
 
 use crate::commands::bot::http::BotState;
 
-/// Applies accepted join decisions to local storage (requester side).
+/// Verifies and applies accepted join decisions to local storage
+/// (requester side).
 pub(super) struct JoinDecisionApplyHandler;
 
 #[async_trait]
@@ -32,8 +36,46 @@ impl PeerEventHandler<BotState> for JoinDecisionApplyHandler {
             return;
         }
 
-        if let Err(err) = apply_join_decision(&ctx.repos, decision).await {
-            warn!(%err, "failed to apply join decision");
+        // All verification (correlation against our own outgoing
+        // join_requests, trust-anchor binding, signature + delegation
+        // chain) happens inside `soma_membership`. This handler owns only
+        // resolving peer public keys and applying the outcome. Previously
+        // this called `apply_join_decision` directly with NO verification
+        // at all.
+        let resolver = BotPeerKeyResolver(ctx);
+        if let Err(err) = verify_and_apply_inbound_join_decision(
+            &ctx.repos.membership(),
+            &resolver,
+            from,
+            &ctx.peer_id,
+            decision,
+        )
+        .await
+        {
+            warn!(%err, peer = %from, "rejected inbound join decision");
         }
+    }
+}
+
+/// Resolves a peer's authenticated public key from the bot's persisted
+/// `peer_public_keys` table — populated from libp2p Identify by
+/// `event_handlers::identify_store::IdentifyStorePersistHandler` (see the
+/// identically-named resolver in `issuer_inbound.rs`). A decision from a
+/// peer the bot has no key on file for (Identify hasn't happened yet, or
+/// failed) is correctly rejected — `PeerKeyResolver`'s contract treats
+/// `None` as a verification failure, never a default-allow.
+struct BotPeerKeyResolver<'a>(&'a BotState);
+
+#[async_trait]
+impl PeerKeyResolver for BotPeerKeyResolver<'_> {
+    async fn resolve(&self, peer: &PeerId) -> Option<PublicKey> {
+        self.0
+            .repos
+            .peer_keys()
+            .get(&peer.to_string())
+            .await
+            .ok()
+            .flatten()
+            .and_then(|row| PublicKey::try_decode_protobuf(&row.public_key).ok())
     }
 }

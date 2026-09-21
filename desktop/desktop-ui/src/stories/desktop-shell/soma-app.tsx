@@ -298,10 +298,17 @@ function PagesPanel({
 	activeId: string;
 	onSelect: (id: string) => void;
 }) {
+	// `role="option"` needs a non-semantic host — biome's
+	// noNoninteractiveElementToInteractiveRole rejects an interactive role
+	// on `<ul>`/`<li>` (both have a fixed, non-interactive implicit role),
+	// so this uses `<div>` instead, matching biome's own suggested fix.
+	// `tabIndex`/`onKeyDown` make it keyboard-operable, same as the real
+	// DenseRow primitive; "option" mirrors the real TreePopover DocRow
+	// pattern for a pick-one list.
 	return (
-		<ul className="list list-dense bg-base-100">
+		<div className="list list-dense bg-base-100">
 			{PAGES.map((page) => (
-				<li
+				<div
 					aria-selected={page.id === activeId}
 					className={`cursor-pointer list-row hover:bg-base-200 ${
 						page.id === activeId
@@ -310,12 +317,20 @@ function PagesPanel({
 					}`}
 					key={page.id}
 					onClick={() => onSelect(page.id)}
+					onKeyDown={(event) => {
+						if (event.key === "Enter" || event.key === " ") {
+							event.preventDefault();
+							onSelect(page.id);
+						}
+					}}
+					role="option"
+					tabIndex={0}
 				>
 					<span aria-hidden>{page.emoji}</span>
 					<span className="list-col-grow truncate">{page.title}</span>
-				</li>
+				</div>
 			))}
-		</ul>
+		</div>
 	);
 }
 

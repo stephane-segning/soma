@@ -8,76 +8,36 @@
 //!
 //! Routes that need a live daemon get a 500-with-`{kind: "daemon"}`
 //! payload (covered by `ApiError`'s tests); routes that don't (`daemon`,
-//! `search`, `practice_*`) return a fully-formed 200.
+//! `practice_*`) return a fully-formed 200.
+//!
+//! Every request here authenticates with `support::TEST_TOKEN` — see
+//! `auth.rs` for the tests that specifically cover rejection.
 
-use std::net::SocketAddr;
-use std::sync::Arc;
+mod support;
 
-use desktop_agent::config::AgentRuntimeConfig;
-use desktop_agent::runtime::AgentRuntime;
-use desktop_agent::service::{AgentService, StaticConfigSource};
-use desktop_api::{AppState, DOMAIN_EVENT_CHANNEL_CAPACITY};
-use desktop_bff::{BffConfig, build_router};
-use desktop_daemon::runtime::{DaemonRuntime, DaemonRuntimeOptions};
-use desktop_services::practice::PracticeService;
-use tempfile::TempDir;
-use tokio::net::TcpListener;
-use tokio::sync::broadcast;
+use support::{TEST_TOKEN, http_base, spawn_router};
 
-/// Boots a router on a random port without starting the daemon. Returns
-/// the address the test client should hit plus the tempdir so it's not
-/// dropped (and the spawned axum task so the test can abort it).
-struct Harness {
-    addr: SocketAddr,
-    _tmp: TempDir,
-    server: tokio::task::JoinHandle<()>,
-}
-
-impl Drop for Harness {
-    fn drop(&mut self) {
-        self.server.abort();
-    }
-}
-
-async fn spawn_router() -> Harness {
-    let tmp = TempDir::new().expect("tempdir");
-    let daemon = Arc::new(DaemonRuntime::new(DaemonRuntimeOptions::new(tmp.path())));
-    let agent_runtime = Arc::new(AgentRuntime::new());
-    let config_source = Arc::new(StaticConfigSource(AgentRuntimeConfig::default()));
-    let agent_service = AgentService::new(config_source, Arc::clone(&agent_runtime));
-    let practice = Arc::new(PracticeService::new());
-    let (tx, _rx) = broadcast::channel(DOMAIN_EVENT_CHANNEL_CAPACITY);
-    let state = Arc::new(AppState::new(daemon, agent_runtime, agent_service, practice, tx));
-
-    let config = BffConfig {
-        user_data_dir: tmp.path().to_path_buf(),
-        ..BffConfig::default()
-    };
-    let router = build_router(state, &config);
-    let listener = TcpListener::bind("127.0.0.1:0").await.expect("bind");
-    let addr = listener.local_addr().expect("local_addr");
-    let server = tokio::spawn(async move {
-        axum::serve(listener, router).await.expect("serve");
-    });
-    Harness { addr, _tmp: tmp, server }
-}
-
-/// `search` has no daemon backing — it always returns `[]`. Pinning this
-/// is the cheapest smoke test that "the new route exists and dispatches
-/// to the handler" without spinning up the daemon.
+/// `search` is daemon-backed (it scopes results to the caller's own
+/// space memberships, which live in the same DB the embedded daemon
+/// owns — see `soma_daemon::DaemonHandle::search`). With no daemon
+/// running this must dispatch (no 404) and surface the same
+/// `{kind: "daemon"}` envelope every other daemon-backed route does —
+/// same shape as `spaces_list_returns_daemon_error_when_daemon_idle`
+/// below.
 #[tokio::test]
-async fn search_route_returns_empty_list() {
+async fn search_returns_daemon_error_when_daemon_idle() {
     let h = spawn_router().await;
     let resp = reqwest::Client::new()
-        .post(format!("http://{}/api/v1/search", h.addr))
+        .post(format!("{}/api/v1/search", http_base(h.addr)))
+        .bearer_auth(TEST_TOKEN)
         .header("Content-Type", "application/json")
-        .body("{}")
+        .body(r#"{"query":"roadmap"}"#)
         .send()
         .await
         .expect("post");
-    assert_eq!(resp.status(), 200);
+    assert_eq!(resp.status(), 500);
     let body: serde_json::Value = resp.json().await.expect("json");
-    assert_eq!(body, serde_json::json!([]));
+    assert_eq!(body["kind"], "daemon");
 }
 
 /// `daemon_ready` is contracted to be a structured boolean even when the
@@ -87,7 +47,8 @@ async fn search_route_returns_empty_list() {
 async fn daemon_ready_returns_false_when_daemon_idle() {
     let h = spawn_router().await;
     let resp = reqwest::Client::new()
-        .post(format!("http://{}/api/v1/daemon_ready", h.addr))
+        .post(format!("{}/api/v1/daemon_ready", http_base(h.addr)))
+        .bearer_auth(TEST_TOKEN)
         .header("Content-Type", "application/json")
         .body("{}")
         .send()
@@ -104,7 +65,8 @@ async fn daemon_ready_returns_false_when_daemon_idle() {
 async fn practice_list_exercises_returns_empty_list() {
     let h = spawn_router().await;
     let resp = reqwest::Client::new()
-        .post(format!("http://{}/api/v1/practice_list_exercises", h.addr))
+        .post(format!("{}/api/v1/practice_list_exercises", http_base(h.addr)))
+        .bearer_auth(TEST_TOKEN)
         .header("Content-Type", "application/json")
         .body("{}")
         .send()
@@ -124,7 +86,8 @@ async fn practice_list_exercises_returns_empty_list() {
 async fn spaces_list_returns_daemon_error_when_daemon_idle() {
     let h = spawn_router().await;
     let resp = reqwest::Client::new()
-        .post(format!("http://{}/api/v1/spaces_list", h.addr))
+        .post(format!("{}/api/v1/spaces_list", http_base(h.addr)))
+        .bearer_auth(TEST_TOKEN)
         .header("Content-Type", "application/json")
         .body("{}")
         .send()
@@ -136,6 +99,26 @@ async fn spaces_list_returns_daemon_error_when_daemon_idle() {
     assert!(body["message"].is_string(), "expected a daemon error message, got {body}");
 }
 
+/// `daemon::status` is contracted to *never* error — it returns a
+/// structured `{ reachable: false, ... }` snapshot when the daemon
+/// handle isn't ready. This test guards against that contract regressing
+/// (any 5xx here would mean the SDK's status card silently breaks).
+#[tokio::test]
+async fn daemon_status_returns_200_with_unreachable_when_daemon_idle() {
+    let h = spawn_router().await;
+    let resp = reqwest::Client::new()
+        .post(format!("{}/api/v1/daemon_status", http_base(h.addr)))
+        .bearer_auth(TEST_TOKEN)
+        .header("Content-Type", "application/json")
+        .body("{}")
+        .send()
+        .await
+        .expect("post");
+    assert_eq!(resp.status(), 200);
+    let body: serde_json::Value = resp.json().await.expect("json");
+    assert_eq!(body["reachable"], false);
+}
+
 /// Missing route → 404 (not 405 / 500). Guards against typos in the
 /// route table by pinning that something that shouldn't exist really
 /// doesn't.
@@ -143,11 +126,129 @@ async fn spaces_list_returns_daemon_error_when_daemon_idle() {
 async fn unknown_route_returns_404() {
     let h = spawn_router().await;
     let resp = reqwest::Client::new()
-        .post(format!("http://{}/api/v1/does_not_exist", h.addr))
+        .post(format!("{}/api/v1/does_not_exist", http_base(h.addr)))
+        .bearer_auth(TEST_TOKEN)
         .header("Content-Type", "application/json")
         .body("{}")
         .send()
         .await
         .expect("post");
     assert_eq!(resp.status(), 404);
+}
+
+/// `GET /api/v1/blobs/{space_id}/{cid}` with no daemon running maps to
+/// the same `{kind: "daemon"}` 500 envelope every other daemon-backed
+/// route does — the route dispatches correctly (no 404) and surfaces the
+/// underlying error instead of panicking.
+#[tokio::test]
+async fn blobs_get_returns_daemon_error_when_daemon_idle() {
+    let h = spawn_router().await;
+    let resp = reqwest::Client::new()
+        .get(format!("{}/api/v1/blobs/space-1/bafy-some-cid", http_base(h.addr)))
+        .bearer_auth(TEST_TOKEN)
+        .send()
+        .await
+        .expect("get");
+    assert_eq!(resp.status(), 500);
+    let body: serde_json::Value = resp.json().await.expect("json");
+    assert_eq!(body["kind"], "daemon");
+}
+
+/// The query-token fallback exists specifically for this route (browsers
+/// can't attach headers to `<img src>`); confirm it actually works end to
+/// end rather than only unit-testing `extract_token` in isolation.
+#[tokio::test]
+async fn blobs_get_accepts_query_token() {
+    let h = spawn_router().await;
+    let resp = reqwest::Client::new()
+        .get(format!(
+            "{}/api/v1/blobs/space-1/bafy-some-cid?token={TEST_TOKEN}",
+            http_base(h.addr)
+        ))
+        .send()
+        .await
+        .expect("get");
+    // No daemon running, so this still 500s — the point is that it's a
+    // 500 (request accepted, dispatched to the handler) and not a 401
+    // (request rejected by auth).
+    assert_eq!(resp.status(), 500);
+    let body: serde_json::Value = resp.json().await.expect("json");
+    assert_eq!(body["kind"], "daemon");
+}
+
+/// The query-token fallback must not leak to any other route — a POST
+/// route must still 401 even if a caller tries to smuggle the token in
+/// the query string instead of a header.
+#[tokio::test]
+async fn query_token_is_not_honored_outside_the_blob_bytes_route() {
+    let h = spawn_router().await;
+    let resp = reqwest::Client::new()
+        .post(format!("{}/api/v1/search?token={TEST_TOKEN}", http_base(h.addr)))
+        .header("Content-Type", "application/json")
+        .body("{}")
+        .send()
+        .await
+        .expect("post");
+    assert_eq!(resp.status(), 401);
+}
+
+/// `agent_config_get_default` is daemon-backed (the config lives in the
+/// same DB the embedded daemon owns) — with no daemon running this must
+/// dispatch (no 404) and surface the same `{kind: "daemon"}` envelope
+/// every other daemon-backed route does.
+#[tokio::test]
+async fn agent_config_get_default_returns_daemon_error_when_daemon_idle() {
+    let h = spawn_router().await;
+    let resp = reqwest::Client::new()
+        .post(format!("{}/api/v1/agent_config_get_default", http_base(h.addr)))
+        .bearer_auth(TEST_TOKEN)
+        .header("Content-Type", "application/json")
+        .body("{}")
+        .send()
+        .await
+        .expect("post");
+    assert_eq!(resp.status(), 500);
+    let body: serde_json::Value = resp.json().await.expect("json");
+    assert_eq!(body["kind"], "daemon");
+}
+
+/// Same as above for the space-scoped GET, which additionally proves the
+/// `{"spaceId": ...}` body shape deserializes correctly (a malformed body
+/// would 422 before ever reaching the daemon-unavailable branch).
+#[tokio::test]
+async fn agent_config_get_space_returns_daemon_error_when_daemon_idle() {
+    let h = spawn_router().await;
+    let resp = reqwest::Client::new()
+        .post(format!("{}/api/v1/agent_config_get_space", http_base(h.addr)))
+        .bearer_auth(TEST_TOKEN)
+        .header("Content-Type", "application/json")
+        .body(r#"{"spaceId":"space-1"}"#)
+        .send()
+        .await
+        .expect("post");
+    assert_eq!(resp.status(), 500);
+    let body: serde_json::Value = resp.json().await.expect("json");
+    assert_eq!(body["kind"], "daemon");
+}
+
+/// `agent_config_validate` needs no daemon at all — it probes the given
+/// endpoint directly through the agent runtime's own HTTP client. An
+/// unreachable target must come back as a *structured* `ok: false`
+/// result (200), never a 500 — the whole point of this endpoint is to
+/// let the settings UI show an inline error without a thrown exception.
+#[tokio::test]
+async fn agent_config_validate_reports_a_structured_failure_for_an_unreachable_endpoint() {
+    let h = spawn_router().await;
+    let resp = reqwest::Client::new()
+        .post(format!("{}/api/v1/agent_config_validate", http_base(h.addr)))
+        .bearer_auth(TEST_TOKEN)
+        .header("Content-Type", "application/json")
+        .body(r#"{"baseUrl":"http://127.0.0.1:1","requestTimeoutMs":500}"#)
+        .send()
+        .await
+        .expect("post");
+    assert_eq!(resp.status(), 200);
+    let body: serde_json::Value = resp.json().await.expect("json");
+    assert_eq!(body["ok"], false);
+    assert!(body["error"].is_string(), "expected a human-readable reason, got {body}");
 }

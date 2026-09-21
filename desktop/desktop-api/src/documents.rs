@@ -5,8 +5,8 @@
 use desktop_core::error::{DesktopError, DesktopResult};
 use desktop_core::time::now_ms;
 use serde::{Deserialize, Serialize};
-use specta::Type;
 use soma_daemon::handle_types as dt;
+use specta::Type;
 
 use crate::state::AppState;
 
@@ -180,7 +180,9 @@ pub struct DraftRecord {
 // --- Handlers ----------------------------------------------------------------
 
 fn err(e: impl std::fmt::Display) -> DesktopError {
-    DesktopError::Daemon { message: e.to_string() }
+    DesktopError::Daemon {
+        message: e.to_string(),
+    }
 }
 
 pub async fn upsert(state: &AppState, args: UpsertDocumentArgs) -> DesktopResult<()> {
@@ -197,15 +199,27 @@ pub async fn upsert(state: &AppState, args: UpsertDocumentArgs) -> DesktopResult
         .map_err(err)
 }
 
-pub async fn get(state: &AppState, space_id: String, document_id: String) -> DesktopResult<Option<StoredDocument>> {
+pub async fn get(
+    state: &AppState,
+    space_id: String,
+    document_id: String,
+) -> DesktopResult<Option<StoredDocument>> {
     let handle = state.daemon.handle().await?;
-    let record = handle.get_document(&space_id, &document_id).await.map_err(err)?;
+    let record = handle
+        .get_document(&space_id, &document_id)
+        .await
+        .map_err(err)?;
     Ok(record.map(StoredDocument::from))
 }
 
+/// Like the draft handlers below, broadcasts a renderer-source
+/// `pages-changed` event via `events::publish` after the daemon write
+/// succeeds — see that section's comment for why the presenter doesn't
+/// need to know about events at all.
 pub async fn ensure_page(state: &AppState, args: EnsurePageArgs) -> DesktopResult<StoredPage> {
     let handle = state.daemon.handle().await?;
     let now = now_ms();
+    let space_id = args.space_id.clone();
     let page = handle
         .ensure_page(dt::EnsurePageInput {
             space_id: args.space_id,
@@ -217,6 +231,10 @@ pub async fn ensure_page(state: &AppState, args: EnsurePageArgs) -> DesktopResul
         })
         .await
         .map_err(err)?;
+    crate::events::publish(
+        state,
+        crate::events::pages_changed(space_id, "documents_ensure_page"),
+    );
     Ok(page.into())
 }
 
@@ -226,21 +244,35 @@ pub async fn list_pages(state: &AppState, space_id: String) -> DesktopResult<Vec
     Ok(pages.into_iter().map(StoredPage::from).collect())
 }
 
-pub async fn update_page_title(state: &AppState, args: UpdatePageTitleArgs) -> DesktopResult<Option<StoredPage>> {
+pub async fn update_page_title(
+    state: &AppState,
+    args: UpdatePageTitleArgs,
+) -> DesktopResult<Option<StoredPage>> {
     let handle = state.daemon.handle().await?;
     let page = handle
         .update_page_title(&args.space_id, &args.page_id, &args.title)
         .await
         .map_err(err)?;
+    crate::events::publish(
+        state,
+        crate::events::pages_changed(args.space_id, "documents_update_page_title"),
+    );
     Ok(page.map(StoredPage::from))
 }
 
-pub async fn set_page_parents(state: &AppState, args: SetPageParentsArgs) -> DesktopResult<Option<StoredPage>> {
+pub async fn set_page_parents(
+    state: &AppState,
+    args: SetPageParentsArgs,
+) -> DesktopResult<Option<StoredPage>> {
     let handle = state.daemon.handle().await?;
     let page = handle
         .set_page_parents(&args.space_id, &args.page_id, &args.parent_page_ids)
         .await
         .map_err(err)?;
+    crate::events::publish(
+        state,
+        crate::events::pages_changed(args.space_id, "documents_set_page_parents"),
+    );
     Ok(page.map(StoredPage::from))
 }
 
@@ -288,12 +320,19 @@ pub async fn queue_daemon_sync(state: &AppState, args: QueueDaemonSyncArgs) -> D
         .map_err(err)?;
     crate::events::publish(
         state,
-        crate::events::document_changed(args.space_id, args.document_id, "documents_queue_daemon_sync"),
+        crate::events::document_changed(
+            args.space_id,
+            args.document_id,
+            "documents_queue_daemon_sync",
+        ),
     );
     Ok(())
 }
 
-pub async fn sync_published(state: &AppState, args: SyncPublishedDocumentArgs) -> DesktopResult<SyncPublishedDocumentResult> {
+pub async fn sync_published(
+    state: &AppState,
+    args: SyncPublishedDocumentArgs,
+) -> DesktopResult<SyncPublishedDocumentResult> {
     let handle = state.daemon.handle().await?;
     handle
         .upsert_document(dt::UpsertDocumentInput {
@@ -307,7 +346,11 @@ pub async fn sync_published(state: &AppState, args: SyncPublishedDocumentArgs) -
         .map_err(err)?;
     crate::events::publish(
         state,
-        crate::events::document_changed(args.space_id, args.document_id, "documents_sync_published"),
+        crate::events::document_changed(
+            args.space_id,
+            args.document_id,
+            "documents_sync_published",
+        ),
     );
     // Mirror the Electron stub: the daemon's `upsertDocument` doesn't
     // return a count, so we hard-code `1` so the renderer's "uploaded"
@@ -317,7 +360,10 @@ pub async fn sync_published(state: &AppState, args: SyncPublishedDocumentArgs) -
 
 pub async fn get_draft(state: &AppState, args: GetDraftArgs) -> DesktopResult<Option<DraftRecord>> {
     let handle = state.daemon.handle().await?;
-    let record = handle.get_document(&args.space_id, &args.document_id).await.map_err(err)?;
+    let record = handle
+        .get_document(&args.space_id, &args.document_id)
+        .await
+        .map_err(err)?;
     Ok(record.map(|r| DraftRecord {
         space_id: r.space_id,
         document_id: r.document_id,

@@ -49,10 +49,10 @@ impl Storage {
         let mut entries = Vec::new();
         for entry in fs::read_dir(&self.blobs)? {
             let entry = entry?;
-            if entry.file_type()?.is_file() {
-                if let Some(name) = entry.file_name().to_str() {
-                    entries.push(name.to_string());
-                }
+            if entry.file_type()?.is_file()
+                && let Some(name) = entry.file_name().to_str()
+            {
+                entries.push(name.to_string());
             }
         }
         entries.sort();

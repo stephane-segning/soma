@@ -9,6 +9,7 @@ export type { DocumentEditorProps } from "./components/document-editor";
 export { DocumentEditor } from "./components/document-editor";
 
 export type { JSONContent } from "@tiptap/core";
+export type { Editor } from "@tiptap/react";
 
 export type { BlobFileUploadResult } from "./extensions/blob-file";
 export { BlobFileNode } from "./extensions/blob-file";

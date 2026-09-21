@@ -6,6 +6,7 @@ import * as FoundationStories from "../foundation.stories";
 import * as PeerAddressInputStories from "../peer-address-input.stories";
 import * as PillStories from "../pill.stories";
 import * as PolymorphButtonStories from "../polymorph-button.stories";
+import * as SecretInputStories from "../secret-input.stories";
 
 // Portable-stories smoke harness: every story listed here is composed through
 // the Storybook annotations (decorators/parameters) and rendered into jsdom.
@@ -17,6 +18,7 @@ const allStories = {
 	Foundation: composeStories(FoundationStories),
 	PolymorphButton: composeStories(PolymorphButtonStories),
 	PeerAddressInput: composeStories(PeerAddressInputStories),
+	SecretInput: composeStories(SecretInputStories),
 	Empty: composeStories(EmptyStories),
 };
 

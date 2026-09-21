@@ -14,4 +14,5 @@
 pub mod deep_link;
 #[cfg(desktop)]
 pub mod menu;
+#[cfg(desktop)]
 pub mod splash;

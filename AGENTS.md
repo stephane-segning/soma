@@ -11,9 +11,9 @@ Two build artifacts. One source tree.
 **Server** — `somad`: the only server binary. Subcommands select behavior; subcommand options pass mode-specific configuration. Same shared crates the desktop host embeds; mode is purely a runtime concern.
 
 ```
-somad bot         [--http-addr ...] [--db-path ...] [--mode bot|admin] [--listen-addr ...]
-somad relay       [--http-addr ...] [--data-dir ...]
-somad rendezvous  [--http-addr ...] [--data-dir ...]
+somad bot         [--http-addr ...] [--db-url ...] [--mode bot|admin] [--listen-addrs ...]
+somad relay       [--http-addr ...]     # data dir comes from SOMA_DATA_DIR
+somad rendezvous  [--http-addr ...]     # data dir comes from SOMA_DATA_DIR
 somad bff         [--http-addr ...] [--provider ...]
 somad all         --config server.toml      # composes multiple modes in one process
 ```
@@ -66,7 +66,7 @@ When this document says "today" or describes current behavior in present tense, 
   - `crates/agentd/` (`soma-agentd`) — desktop agent runtime, library only. Embedded by the Tauri host (`desktop-agent`); no standalone binary.
   - `crates/peer/` — libp2p peer behaviour, event types, request/response protocols.
   - `crates/agent/` — local LLM/embed/Yjs reconciliation runtime.
-  - `crates/storage/` — repositories + schema; consumes the `.cstack` schema via `cratestack-rusqlite`.
+  - `crates/storage/` — repositories + schema. **SQLx today** (ten migrations under `migrations/`); the CrateStack plan below is not started.
   - `crates/core/` — domain types, `DbFactory`, telemetry, shared utilities.
   - `crates/net/` — libp2p swarm builder (typestate transport order: TCP → QUIC → DNS → WS → Behaviour).
   - `crates/membership/`, `crates/api/`, `crates/cache/`, `crates/common/`, `crates/metrics/`, `crates/vdfs/`, `crates/relay/`, `crates/rendezvous/`, `crates/bff/`, `crates/proto-build/` — unchanged in role.
@@ -106,7 +106,8 @@ Where to put new code:
 
 - **Rust** — the Tauri desktop host (`src-tauri` + `desktop-*` crates) and all server backends. New crates default to **edition 2024**; existing crates migrate opportunistically.
 - **Tauri V2** — desktop shell. Rust host process exposes `#[tauri::command]`s to the renderer; plugins (`fs`, `dialog`, `shell`, `os`, `process`, `store`, `log`, `opener`, `deep-link`, `single-instance`, `updater`, `window-state`) provide native capabilities. `tauri-specta` walks the command graph to emit the `@soma/sdk` TypeScript bindings.
-- **CrateStack (`cratestack-rusqlite`)** — schema-first SQLite layer. One `.cstack` schema is the source of truth for the embedded database; generated via `include_embedded_schema!`. Sync API, bundled SQLite, no tokio on the data path. Repo at `~/dev/cratestack`.
+- **SQLx (`sqlite` + `postgres` via `AnyPool`)** — the storage layer in use everywhere today, desktop and server alike, with conventional migrations embedded by `sqlx::migrate!`.
+- **CrateStack (`cratestack-rusqlite`) — PLANNED, NOT STARTED.** No `.cstack` file exists anywhere in the tree and `cratestack` appears in zero `Cargo.toml`/`Cargo.lock` entries. Treat every CrateStack reference in this document as a design target, never as current behaviour. Repo at `~/dev/cratestack`.
 - **Tauri + React + TypeScript** — desktop UI. `strict` TS. pnpm workspace.
 - **Cargo workspace**, `resolver = "3"`, all third-party versions under `[workspace.dependencies]` in root `Cargo.toml`.
 - **Tokio** — single runtime per process. The Tauri host owns the desktop runtime; server binaries each own theirs.
@@ -134,18 +135,19 @@ Conventions:
 - **Embedded runtimes, single Tokio runtime per process.** The host links `soma-daemon` + `soma-agentd` as libraries and runs them in-process; no child processes, no sockets, no napi.
 - **Streaming** uses Tauri events: the daemon event bridge and agent runtime event poll push to the renderer; both are stopped explicitly on `RunEvent::ExitRequested` to avoid racing shutdown.
 - **TypeScript types are generated** from the Rust command graph via specta / `tauri-specta` into `desktop/desktop-sdk/src/bindings/`; the renderer consumes them through `@soma/sdk`, never by hand-writing wire types.
-- One SQLite database shared by both runtimes. Schema declared in a single `.cstack` file consumed via `include_embedded_schema!`.
+- One SQLite database shared by both runtimes, at `<app_data_dir>/daemon/daemon.db`, created and migrated by SQLx.
 
-## Storage (CrateStack)
+## Storage
 
-One `.cstack` schema describes the embedded database. Lives at `backend/crates/storage/schema.cstack` (or `backend/crates/soma-schema/schema.cstack` — finalized in P3).
+**Current state: SQLx everywhere.** The desktop host and `somad bot` both run the same ten migrations under `backend/crates/storage/migrations/`, embedded via `sqlx::migrate!`. The rest of this section describes the intended CrateStack migration, which **has not been started** — verify against the migrations directory, not against this text.
 
-- The **desktop host** consumes the schema via `cratestack::include_embedded_schema!("schema.cstack")`.
+- Target: the desktop host consumes a `.cstack` schema via `cratestack::include_embedded_schema!("schema.cstack")`. No such file exists yet.
 - **`somad bot` stays on SQLx for now.** Migrating botd's Postgres + SQLite paths to CrateStack is its own phase; the one-macro-per-crate constraint (`include_server_schema!` vs `include_embedded_schema!`) needs a deliberate design choice for that.
 - Single database file per install at `~/Library/Application Support/Soma/soma.db` on macOS, `~/.local/share/soma/soma.db` on Linux. Stage-specific (`-dev`, `-staging`) suffixes via `@soma/desktop-config`.
-- Tables (target schema — verify against the `.cstack` file): `spaces`, `space_memberships`, `join_decisions`, `join_requests`, `issuer_capabilities`, `mailbox`, `documents`, `pages`, `blobs`, `blob_refs`, `peer_public_keys`, plus agent-runtime tables (chat sessions, embeddings, etc.) that previously lived in `agentd.db`.
+- Tables (verify against `backend/crates/storage/migrations/`): `spaces`, `space_memberships`, `join_decisions`, `join_requests`, `issuer_capabilities`, `mailbox`, `documents`, `pages`, `blobs`, `blob_refs`, `peer_public_keys`, plus agent-runtime tables (chat sessions, embeddings, etc.) that previously lived in `agentd.db`.
 - `cratestack-rusqlite` provides the sync data API; the host wraps reads/writes in `spawn_blocking` only where contention is real (it usually isn't — rusqlite is fast).
-- No SQLx migrations directory on the desktop side; CrateStack generates schema from the `.cstack` source. Migration is a separate concern handled at host start (DDL + version table).
+- Target: no SQLx migrations directory on the desktop side; CrateStack generates schema from the `.cstack` source. Today the desktop side *does* use the shared SQLx migrations directory.
+- **Never edit an already-committed file under `migrations/` once it could plausibly have been applied to any real database — not even a comment-only change.** `sqlx::migrate!` records a checksum of each migration's full byte content in `_sqlx_migrations` the first time it runs; if the file's content later changes, every database that already applied it fails *every future startup* with `migration {version} was previously applied but has been modified` — fast, permanent (no retry recovers it), and by design not schema-related (SQLx can't tell a comment edit from a real one). This is exactly what happened to `20251220000000_documents.sql` (a doc-comment-only "Yoopta" → "Tiptap" edit landed in a later commit and bricked the daemon on any device/simulator that had already run an earlier build — see the iOS "daemon never becomes ready" regression). The file's comment is deliberately left saying "Yoopta" even though the project has moved to Tiptap — restoring the original byte content was the fix, and it must stay byte-identical. A schema correction (including a comment fix) belongs in a *new* migration file, never an edit to an existing one.
 
 ## Desktop App (Soma)
 
@@ -161,7 +163,7 @@ Conventions:
 
 - Filenames are **kebab-case** for `.ts`/`.tsx`.
 - IDs are **CUIDs**, not UUIDs.
-- `@soma/ui` has **no root export** — import via subpaths (`@soma/ui/components/*`, `@soma/ui/hooks/*`, `@soma/ui/utils/*`, `@soma/ui/yoopta`, `@soma/ui/types`). The shell is composed from `@soma/ui`'s `DesktopShell` and its rail/panel primitives.
+- `@soma/ui` has **no root export** — import via subpaths (`@soma/ui/components/*`, `@soma/ui/hooks/*`, `@soma/ui/utils/*`, `@soma/ui/i18n`, `@soma/ui/types`). The shell is composed from `@soma/ui`'s `DesktopShell` and its rail/panel primitives.
 - Routing: `react-router` core (`src/routes/router.tsx`), not `react-router-dom`.
 - Frameless window: `decorations: false`, `titleBarStyle: "Overlay"`, `hiddenTitle: true` in `tauri.conf.json`. Drag with `data-drag-region`, opt out with `data-no-drag`.
 - Deep links: `soma://...` via `tauri-plugin-deep-link`; secondary launches routed through `tauri-plugin-single-instance` (`src-tauri/src/startup/deep_link.rs`).
@@ -179,9 +181,12 @@ Blob protocol:
 
 Agent runtime configuration:
 
-- Source of truth: the Tauri store (`tauri-plugin-store`) via the host's config source (`src-tauri/src/agent_config_source.rs`), surfaced to the renderer through `@soma/sdk`.
+- Source of truth: a scope-keyed table (`agent_provider_configs`) in the same SQLite database the embedded daemon owns — **not** the Tauri store (the store held it until the per-space provider config work; that source was fully cut over, no dual-read). Scope is either the process-wide default (`"default"`) or a space id; every overridable column (`provider`, `base_url`, `api_key`, `chat_model`, `embed_model`, `request_timeout_ms`; `poll_interval_ms` is default-scope-only) is nullable, meaning "inherit" — resolution order is space row -> default row -> `AgentRuntimeConfig::default()`'s compiled-in constants, resolved fresh on every call (`desktop_agent::service::ConfigSource::resolve`, implemented by `DbConfigSource`).
+- Storage: `soma-storage::agent_config` (repository) + `soma-daemon::DaemonHandle::agent_config_{get,upsert,clear}_{default,space}` (read/write/clear, space-scope writes gated to the space's owner — see `soma-daemon/src/handle/agent_config.rs`'s module doc for the authorization rule). `desktop-agent`'s `DbConfigSource` reads through `AgentConfigStore`, adapted onto `DaemonHandle` by `desktop_api::agent_config_store::DaemonBackedAgentConfigStore` — the same adapter backs both `desktop-app/src-tauri` and `desktop-bff`.
+- The API key is write-only end-to-end: no handler/DTO/command/route/SDK method ever returns it, only `hasApiKey: bool`. Clearing it is a distinct operation from never setting it (`ApiKeyInput`/`ApiKeyWrite`'s `Clear` vs `Unchanged` variants).
+- Client surface: `desktop-api::agent_config` (get/set/clear for both scopes + `validate`, which probes `GET {base_url}/models` for blur-time validation per ADR-0005 §3), exposed identically through `desktop-commands` (Tauri) and `desktop-bff` (HTTP) — see `@soma/sdk`'s `backend.agentConfig` namespace.
 - Default provider: OpenAI-compatible at `http://127.0.0.1:11434/v1` (Ollama-style).
-- Supported provider kinds: `agentd` (the embedded agent runtime), `openai-compatible`.
+- Supported provider kinds: `openai-compatible` (the only variant of `AgentProvider` that exists). `soma-agentd` deliberately does **not** serve chat/embed/rerank — it returns an error for model-backed RPCs — so it is not a selectable provider; its live role is Yjs drift resolution.
 - Provider/model docs: `docs/src/development/agentd-models.md`.
 
 Practice route (merged Tapia):
@@ -210,27 +215,27 @@ The only headless peer. Absorbs the former `soma-daemon` server-side use case.
 Two operating sub-modes via `--mode bot|admin`:
 
 - **`bot` (default)** — peer + read-only HTTP (`/info`, `/healthz`, `/metrics`). No `/v1/*` endpoints. Auto-approves joins **only** when it holds a valid issuer capability for the space; otherwise records the request for manual approval elsewhere.
-- **`admin`** — peer + authenticated control plane (`POST /v1/join/request`, `GET /v1/join/requests`, `POST /v1/join/decide`, `POST /v1/space/revoke`, `POST /v1/space/issuer-capability`, etc.). HTTP write endpoints must be authn/authz-gated.
+- **`admin`** — peer + authenticated control plane (`POST /v1/join/request`, `GET /v1/join/requests`, `POST /v1/join/decide`, `POST /v1/spaces`, `GET /v1/spaces`, `POST /v1/spaces/issuer-capability/issue`, `POST /v1/spaces/issuer-capability/import`, `GET /v1/space/members`, `GET /v1/memberships` — see `bins/somad/src/commands/bot/http.rs` for the authoritative route list; there is no `/v1/space/revoke`, bot revocation is a desktop-host-only operation today, see "Joins, Memberships, Capabilities" below). HTTP write endpoints must be authn/authz-gated: the caller-supplied token goes in the `Authorization: Bearer <token>` header (not the JSON body or query string), and the process refuses to start `--mode admin` at all without `--admin-token` / `SOMA_ADMIN_TOKEN` configured — there is no insecure/tokenless admin mode.
 
 Internals (under `bins/somad/src/commands/bot/`):
 
 - Runtime + dispatcher wiring; peer event handlers (`MetricsHandler` covers all `PeerEventKind`s; `LoggingHandler` is selective); Prometheus metrics; join decider.
 - Add new handlers by implementing `PeerEventHandler` and registering in `build_dispatcher`.
-- Storage: SQLx AnyPool via `soma_core::db::DbFactory`. `--db-path` / `SOMA_DATABASE_URL`; defaults to `./botd.db` SQLite. Migrations under `backend/crates/storage/migrations`, embedded with `sqlx::migrate!`; startup fails if migration fails.
+- Storage: SQLx AnyPool via `soma_core::db::DbFactory`. `--db-url` / `SOMA_DATABASE_URL`; defaults to `./botd.db` SQLite. (That default is a bare path, which `connect_any()` cannot dispatch — it needs a scheme, e.g. `sqlite:///data/bot.db`. Supply one explicitly in any real deployment.) Migrations under `backend/crates/storage/migrations`, embedded with `sqlx::migrate!`; startup fails if migration fails.
 - Join decider: auto-approves only on valid issuer capability (role/expiry enforced) and signs the membership capability with the bot's libp2p identity key.
 
 ### `somad relay`
 
 libp2p circuit relay v2 + Axum HTTP (`/healthz`, `/metrics`). Uses `crates/relay`.
 Metrics prefix `relay_`: `relay_reservations_total`, `relay_circuits_total`, `relay_listen_events_total`.
-Default listen addrs: `/ip4/0.0.0.0/tcp/4001`, `/ip4/0.0.0.0/udp/4001/quic-v1`, `/ip4/0.0.0.0/tcp/4003/ws`.
+Default listen addrs: `/ip4/0.0.0.0/tcp/14003`, `/ip4/0.0.0.0/tcp/14103/ws`, `/ip4/0.0.0.0/udp/14203/quic-v1` (see `crates/relay/src/lib.rs`; the "Docker (server)" table below matches these).
 Identity persists at `${SOMA_DATA_DIR}/relay/identity.key` (ECDSA).
 
 ### `somad rendezvous`
 
 libp2p rendezvous discovery + Axum HTTP (`/healthz`, `/metrics`). Uses `crates/rendezvous`.
 Metrics prefix `rendezvous_`: `rendezvous_discover_total`, `rendezvous_registrations_total`, `rendezvous_listen_events_total`.
-Default listen addrs: `/ip4/0.0.0.0/tcp/4004`, `/ip4/0.0.0.0/udp/4004/quic-v1`, `/ip4/0.0.0.0/tcp/4004/ws`.
+Default listen addrs: `/ip4/0.0.0.0/tcp/14004`, `/ip4/0.0.0.0/tcp/14104/ws`, `/ip4/0.0.0.0/udp/4204/quic-v1` (see `crates/rendezvous/src/lib.rs`; the "Docker (server)" table below matches these).
 Identity persists at `${SOMA_DATA_DIR}/rendezvous/identity.key` (ECDSA).
 
 ### `somad bff`
@@ -252,14 +257,14 @@ The desktop peer is online only while Soma is open. Permanent availability for a
 - Maintains a local `blob-cache-dir` (cache-only, populated via fetch).
 - Attempts to keep all referenced CIDs for configured spaces present locally.
 - Learns "what to cache" via:
-  - **Announce-driven** — when a peer stores a blob and writes a Yoopta reference, it publishes a lightweight "blob announce" (`space_id + cid + mime + size`). Mirror bots enqueue a fetch.
+  - **Announce-driven** — when a peer stores a blob and writes an editor reference, it publishes a lightweight "blob announce" (`space_id + cid + mime + size`). Mirror bots enqueue a fetch.
   - **Crawl/reconcile** — periodic scan of space state; extract references; fetch missing; optionally evict unreferenced with TTL.
 - Fetch strategy: try any reachable peer (peerstore/Identify, rendezvous, relay) until one serves the CID; DB-backed retry queue (mailbox-style) for transient failures.
 - Cache policy: prefer retention for referenced blobs; eviction bounded by size/TTL/"unreferenced for N days". Never accepts uploads; the cache is filled only by pulling verified bytes (CID match).
 
 ## Blobs (content-addressed, host-owned)
 
-Binary assets (files, images, attachments, Yoopta-related assets) are **content-addressed objects** stored outside Yjs/Yoopta. Collaborative documents store **references** to blobs, never bytes.
+Binary assets (files, images, attachments, editor-related assets) are **content-addressed objects** stored outside the document JSON. Collaborative documents store **references** to blobs, never bytes.
 
 Roles and rules:
 
@@ -269,9 +274,9 @@ Roles and rules:
 
 Upload (host-internal):
 
-- Entrypoint: the renderer invokes an upload command (`@soma/sdk` → `desktop-commands` → `desktop-api`) with `{ spaceId, bytes, contentType, name, yooptaContext? }`.
+- Entrypoint: the renderer invokes an upload command (`@soma/sdk` → `desktop-commands` → `desktop-api`) with `{ spaceId, bytes, mime, fileName, docId? }`.
 - The host persists bytes into the configured blob pool (space-scoped layout) and records minimal metadata (size, content type, original name) in SQLite.
-- A peer event is emitted **only** when the blob is associated with Yoopta content (i.e. upload includes Yoopta context like `document_id` / `node_id`). Non-Yoopta blobs are stored but generate no Yoopta-related events.
+- A peer event is emitted **only** when the blob is associated with document content (i.e. the upload includes a `docId`). Blobs staged without one are stored but generate no document-related events.
 
 Read and serve:
 
@@ -281,16 +286,16 @@ Read and serve:
 Network distribution (fetch + cache):
 
 - Peers retrieve blobs from each other by CID over libp2p (`/soma/blob/1` request/response).
-- When a Yoopta document starts referencing a blob, the writer publishes a "blob availability hint" so other peers know what to fetch/cache.
+- When a document starts referencing a blob, the writer publishes a "blob availability hint" so other peers know what to fetch/cache.
 - `somad bot` as a mirror participates in serve + on-demand fetch + LRU/TTL eviction.
 
 Non-goals / guardrails:
 
 - No HTTP upload endpoints in `somad bot` in any mode.
 - No network "push bytes to bot" protocol; blob transfer is pull-based by CID.
-- Do **not** embed multiaddrs in Yoopta content; do **not** assume every user has a bot — references must resolve via any reachable peer.
+- Do **not** embed multiaddrs in document content; do **not** assume every user has a bot — references must resolve via any reachable peer.
 
-Yoopta integration:
+Editor integration:
 
 - References include at least `cid`, `mime`, `size`, optional `name`, plus renderer-specific fields.
 - Dialing happens at runtime: peers fetch by CID using `/soma/blob/1` from any reachable peer that has it.
@@ -326,7 +331,7 @@ Open security work (currently provisional):
 
 ## Storage schema (target)
 
-A single SQLite database per install, schema declared in one `.cstack` file. Tables (ER overview):
+A single SQLite database per install. All eleven tables below exist today via SQLx migrations — the relational shape is accurate; only the declaration *mechanism* (a `.cstack` file) is still aspirational. Tables (ER overview):
 
 - `spaces(space_id)` — display_name, created_at.
 - `space_memberships(space_id, subject_peer_id)` — role, issuer_peer_id, issued_at, expires_at, capability blob.
@@ -334,11 +339,12 @@ A single SQLite database per install, schema declared in one `.cstack` file. Tab
 - `join_requests(request_id)` — incoming (approver-side, `is_outgoing=0`, `status=pending`) and outgoing (requester-side, `is_outgoing=1`, retry state).
 - `issuer_capabilities(space_id, delegate_peer_id)` — issuer_peer_id, issued_at, expires_at, capability blob.
 - `mailbox(id)` — kind, space_id?, subject_peer_id?, status (queued|leased|done|dead), attempts, available_at, lease_until?, leased_by?, payload blob, created_at.
-- `documents(space_id, document_id)` — Yoopta JSON content (mutable).
+- `documents(space_id, document_id)` — Tiptap/ProseMirror JSON content (mutable).
 - `pages(space_id, page_id)` — page navigation metadata (title + parents).
 - `blobs(space_id, cid)` — blob metadata (size/mime/name, timestamps).
 - `blob_refs(space_id, cid, document_id)` — document→blob references (for listing + safe GC).
 - `peer_public_keys(peer_id)` — Identify public keys observed for peers.
+- `agent_provider_configs(scope)` — per-scope (`"default"` or a space id) AI provider overrides (provider, base URL, API key, chat/embed model, timeouts); every column nullable, meaning inherit. See "Agent runtime configuration" above.
 - Agent tables (chat sessions, embeddings, etc.) — folded in from the former `agentd.db`.
 
 `somad bot` keeps its current SQLx migrations at `backend/crates/storage/migrations` until that runtime is migrated to CrateStack.

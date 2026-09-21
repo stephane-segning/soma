@@ -32,6 +32,7 @@ impl ApiError {
             DesktopError::Io { .. } => StatusCode::INTERNAL_SERVER_ERROR,
             DesktopError::Daemon { .. } => StatusCode::INTERNAL_SERVER_ERROR,
             DesktopError::Agent { .. } => StatusCode::INTERNAL_SERVER_ERROR,
+            DesktopError::Unauthenticated { .. } => StatusCode::UNAUTHORIZED,
             DesktopError::Other { .. } => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
@@ -53,9 +54,9 @@ mod tests {
 
     #[test]
     fn status_codes_match_sdk_error_kinds() {
-        // The SDK distinguishes `not-found` (404) and `invalid-input` (400);
-        // every other variant collapses to 500 so the renderer treats them
-        // uniformly.
+        // The SDK distinguishes `not-found` (404), `invalid-input` (400),
+        // and `unauthenticated` (401); every other variant collapses to
+        // 500 so the renderer treats them uniformly.
         assert_eq!(
             ApiError(DesktopError::NotFound {
                 message: "x".into()
@@ -69,6 +70,13 @@ mod tests {
             })
             .status(),
             StatusCode::BAD_REQUEST
+        );
+        assert_eq!(
+            ApiError(DesktopError::Unauthenticated {
+                message: "x".into()
+            })
+            .status(),
+            StatusCode::UNAUTHORIZED
         );
         for err in [
             DesktopError::Io { message: "x".into() },

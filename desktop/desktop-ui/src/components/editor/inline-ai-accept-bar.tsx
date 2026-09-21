@@ -44,19 +44,18 @@ export function InlineAIAcceptBar({
 }: InlineAIAcceptBarProps) {
 	const t = useT();
 	return (
-		<div
+		<fieldset
 			aria-label={t({
 				id: "inline-ai-accept-bar.aria-label",
 				defaultMessage: "AI suggestion actions",
 			})}
 			className={cn(
-				"glass-panel shadow-elevated flex flex-wrap items-center gap-1 p-1",
+				"glass-panel flex flex-wrap items-center gap-1 p-1 shadow-elevated",
 				className,
 			)}
-			// `role="group"` not `toolbar`: we rely on the default tab
-			// order between buttons and don't implement the arrow-key
-			// focus management the WAI-ARIA toolbar pattern requires.
-			role="group"
+			// `<fieldset>`'s implicit role is "group" (not "toolbar"): we rely on
+			// the default tab order between buttons and don't implement the
+			// arrow-key focus management the WAI-ARIA toolbar pattern requires.
 		>
 			{prompt ? (
 				<span className="px-2 py-0.5 text-base-content/60 text-xs">
@@ -99,7 +98,7 @@ export function InlineAIAcceptBar({
 				<X aria-hidden className="size-3.5" />
 				{t({ id: "inline-ai-accept-bar.discard", defaultMessage: "Discard" })}
 			</SecondaryButton>
-		</div>
+		</fieldset>
 	);
 }
 

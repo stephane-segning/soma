@@ -7,39 +7,33 @@
  * with a "Select a space" message instead of an empty `BotList` so the
  * panel never silently looks broken.
  *
+ * NOT `useParams()` for the active space. `BotsPanel` renders inside
+ * `RightRail`, which `AppLayout` passes as its `rightColumn` prop — a
+ * *sibling* of `<Outlet />`, not a descendant, so route params from the
+ * nested `spaces/:spaceId` route were never visible here: `spaceId` was
+ * silently always `null`, so this panel could never show a single bot
+ * for any space (same bug `chat-panel.tsx` had before its fix — see
+ * that file's doc comment, and `nav-panel.tsx`'s for the same fix
+ * applied there too). Derive it from the live pathname instead.
+ *
  * Click handling on rows is a TODO — once a bot-detail surface exists,
  * `onSelect` should navigate to it. For now we just `console.info` so
  * the wire-up is visible without committing to a route shape.
  */
 
-import type { StoredSpaceBot } from "@soma/sdk";
 import type { Bot } from "@soma/ui/components/lists/bot-list";
 import { BotList } from "@soma/ui/components/lists/bot-list";
 import { type ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useParams } from "react-router";
+import { useLocation } from "react-router";
+import { parseActiveSpaceId } from "../../lib/active-space";
 import { backend } from "../../lib/backend";
+import { toUiBot } from "../../lib/space-settings";
 
 /** Inline muted status line — one row, no centered placard. Matches the
  *  pages-panel empty-state vocabulary so every rail panel reads alike. */
 function BotsLine({ children }: { children: ReactNode }) {
 	return <div className="px-3 py-2 text-base-content/55 text-xs">{children}</div>;
-}
-
-function asBotStatus(status: string): Bot["status"] {
-	if (status === "active" || status === "pending" || status === "failed" || status === "expired") {
-		return status;
-	}
-	return "pending";
-}
-
-function toUiBot(stored: StoredSpaceBot): Bot {
-	return {
-		id: stored.peerId,
-		alias: stored.alias ?? stored.peerId.slice(0, 8),
-		peerId: stored.peerId,
-		status: asBotStatus(stored.status),
-	};
 }
 
 type LoadState =
@@ -50,7 +44,8 @@ type LoadState =
 
 export function BotsPanel(): React.JSX.Element {
 	const { t } = useTranslation();
-	const { spaceId } = useParams<{ spaceId?: string }>();
+	const { pathname } = useLocation();
+	const spaceId = parseActiveSpaceId(pathname);
 	const [state, setState] = useState<LoadState>({ phase: "idle" });
 
 	useEffect(() => {

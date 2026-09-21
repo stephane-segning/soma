@@ -9,6 +9,7 @@ authors.workspace = true
 
 [dependencies]
 desktop-core = { workspace = true }
+soma-vdfs = { workspace = true }
 anyhow = { workspace = true }
 async-trait = { workspace = true }
 serde = { workspace = true }

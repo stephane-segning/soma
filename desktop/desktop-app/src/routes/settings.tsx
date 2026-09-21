@@ -4,19 +4,34 @@
  * Composes the real settings surface from `@soma/ui` primitives:
  * `SettingsTabs` for section navigation, `Switcher` for picker-shaped
  * controls (language, theme), `LauncherCard` for the appearance card
- * stack, `CapabilityForm` for the capability-issuing surface, and
- * `PeerAddressInput` for the manual peer-connect example.
+ * stack, and `PeerAddressInput` for the manual peer-connect example.
  *
  * Real wiring is light on purpose — auto-save semantics, persistence,
  * and provider-backed validation land alongside the broader settings
  * IPC. This page exists today to (a) prove the `@soma/ui` stack
  * actually composes into a usable settings surface, and (b) give the
  * shell something to land on when the user hits `⌘,`.
+ *
+ * There used to be a "Capabilities" tab here (`CapabilityForm` wired
+ * against a hardcoded demo peer id, `onIssue` doing `console.info`).
+ * It's gone: the real capability-issuing flow now lives in the Bots tab
+ * of `spaces/:spaceId/settings` (`components/settings/bots-tab.tsx`),
+ * issuing against an actual pasted peer address instead of a fake one.
+ * Keeping both would leave a second, half-working surface for the same
+ * task — AGENTS.md's "no dormant code" — so this one was removed rather
+ * than wired up in place.
+ *
+ * The "Assistant" tab is the default-scope half of AI provider config
+ * (`components/settings/assistant-provider-form.tsx`); the space-scope
+ * half is the Assistant tab of `spaces/:spaceId/settings`. Before this
+ * landed there was no AI settings UI anywhere in the app, so "a space
+ * inherits the default" meant "inherits hardcoded constants the user
+ * could never see or change" — this tab is what makes that default
+ * actually configurable.
  */
 
-import type { DaemonStatus } from "@soma/sdk";
+import type { AgentProviderConfigView, DaemonStatus, ValidateAgentProviderConfigArgs } from "@soma/sdk";
 import { LauncherCard } from "@soma/ui/components/cards/launcher-card";
-import { CapabilityForm, type CapabilityFormValue, type ScopeGroup } from "@soma/ui/components/forms/capability-form";
 import { PeerAddressInput, type PeerAddressValidation } from "@soma/ui/components/forms/peer-address-input";
 import { Switcher, type SwitcherItem } from "@soma/ui/components/forms/switcher";
 import { SettingsTabs } from "@soma/ui/components/nav/settings-tabs";
@@ -27,9 +42,13 @@ import { Pill } from "@soma/ui/components/primitives/pill";
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { AssistantProviderForm } from "../components/settings/assistant-provider-form";
+import { SectionCard } from "../components/settings/section-card";
+import type { DefaultAssistantFormState } from "../lib/assistant-config";
+import { buildDefaultSaveArgs } from "../lib/assistant-config";
 import { backend } from "../lib/backend";
 
-type TabId = "general" | "account" | "appearance" | "capabilities" | "network" | "advanced";
+type TabId = "general" | "account" | "assistant" | "appearance" | "network" | "advanced";
 
 type ThemeChoice = "light" | "dark" | "system";
 
@@ -46,8 +65,8 @@ export function SettingsPage() {
 		() => [
 			{ id: "general", label: t("settings.tabs.general") },
 			{ id: "account", label: t("settings.tabs.account") },
+			{ id: "assistant", label: t("settings.tabs.assistant") },
 			{ id: "appearance", label: t("settings.tabs.appearance") },
-			{ id: "capabilities", label: t("settings.tabs.capabilities") },
 			{ id: "network", label: t("settings.tabs.network") },
 			{ id: "advanced", label: t("settings.tabs.advanced") },
 		],
@@ -72,36 +91,13 @@ export function SettingsPage() {
 				<div className="mt-6 flex flex-col gap-4">
 					{active === "general" ? <GeneralSection /> : null}
 					{active === "account" ? <AccountSection /> : null}
+					{active === "assistant" ? <AssistantSection /> : null}
 					{active === "appearance" ? <AppearanceSection /> : null}
-					{active === "capabilities" ? <CapabilitiesSection /> : null}
 					{active === "network" ? <NetworkSection /> : null}
 					{active === "advanced" ? <AdvancedSection /> : null}
 				</div>
 			</main>
 		</DensityProvider>
-	);
-}
-
-function SectionCard({
-	title,
-	description,
-	children,
-}: {
-	title: ReactNode;
-	description?: ReactNode;
-	children: ReactNode;
-}) {
-	// Flat section — no card chrome. The page surface + the SettingsTabs
-	// strip already provide enough separation; a bordered, shadowed card
-	// on top of the tinted main surface read as "card stuffed in a card."
-	return (
-		<section>
-			<header className="mb-4 flex flex-col gap-1">
-				<h2 className="font-medium text-base">{title}</h2>
-				{description ? <p className="text-base-content/60 text-sm">{description}</p> : null}
-			</header>
-			{children}
-		</section>
 	);
 }
 
@@ -252,6 +248,56 @@ function AccountSection() {
 	);
 }
 
+function AssistantSection() {
+	const { t } = useTranslation();
+	const [state, setState] = useState<
+		{ phase: "loading" } | { phase: "error"; message: string } | { phase: "ready"; view: AgentProviderConfigView }
+	>({ phase: "loading" });
+
+	useEffect(() => {
+		let cancelled = false;
+		setState({ phase: "loading" });
+		(async () => {
+			try {
+				const view = await backend.agent.config.getDefault();
+				if (!cancelled) setState({ phase: "ready", view });
+			} catch (err) {
+				if (!cancelled) setState({ phase: "error", message: err instanceof Error ? err.message : String(err) });
+			}
+		})();
+		return () => {
+			cancelled = true;
+		};
+	}, []);
+
+	const handleSave = useCallback(
+		(form: DefaultAssistantFormState) => backend.agent.config.setDefault(buildDefaultSaveArgs(form)),
+		[],
+	);
+	const handleValidate = useCallback(
+		(args: ValidateAgentProviderConfigArgs) => backend.agent.config.validate(args),
+		[],
+	);
+
+	return (
+		<SectionCard description={t("settings.assistant.description")} title={t("settings.tabs.assistant")}>
+			{state.phase === "loading" ? (
+				<Empty headline={t("assistant.loading")} variant="compact" />
+			) : state.phase === "error" ? (
+				<Empty headline={t("assistant.error", { message: state.message })} />
+			) : (
+				<AssistantProviderForm
+					inherited={null}
+					onSave={handleSave}
+					onValidate={handleValidate}
+					showPollInterval={true}
+					view={state.view}
+				/>
+			)}
+		</SectionCard>
+	);
+}
+
 function AppearanceSection() {
 	const { t } = useTranslation();
 	return (
@@ -271,49 +317,6 @@ function AppearanceSection() {
 					title={t("settings.appearance.accent.title")}
 				/>
 			</div>
-		</SectionCard>
-	);
-}
-
-const DEMO_SCOPE_GROUPS: ScopeGroup[] = [
-	{
-		id: "documents",
-		label: "Documents",
-		scopes: [
-			{ id: "docs.read", label: "Read documents" },
-			{ id: "docs.write", label: "Edit documents" },
-		],
-	},
-	{
-		id: "messages",
-		label: "Messages",
-		scopes: [
-			{ id: "msg.read", label: "Read messages" },
-			{ id: "msg.write", label: "Send messages" },
-		],
-	},
-];
-
-function CapabilitiesSection() {
-	const { t } = useTranslation();
-	const [value, setValue] = useState<CapabilityFormValue>({
-		alias: "",
-		grantedScopeIds: [],
-		expiryDate: null,
-	});
-	return (
-		<SectionCard description={t("settings.capabilities.description")} title={t("settings.tabs.capabilities")}>
-			<CapabilityForm
-				onChange={setValue}
-				onIssue={() => {
-					// Stub action — wire to `backend.spaces.issueIssuerCapability`
-					// once the space-picker lands.
-					console.info("[settings] capability issue stub", value);
-				}}
-				peerId="12D3KooW…example"
-				scopeGroups={DEMO_SCOPE_GROUPS}
-				value={value}
-			/>
 		</SectionCard>
 	);
 }
