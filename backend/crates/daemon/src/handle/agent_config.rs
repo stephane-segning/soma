@@ -121,7 +121,8 @@ impl DaemonHandle {
             ));
         }
         self.authorize_space_owner(space_id).await?;
-        self.upsert_agent_config_scope(space_id, input, api_key).await
+        self.upsert_agent_config_scope(space_id, input, api_key)
+            .await
     }
 
     /// Reset the default scope to fully inherit the compiled-in
@@ -143,7 +144,12 @@ impl DaemonHandle {
     pub async fn agent_config_clear_space(&self, space_id: &str) -> SomaResult<bool> {
         reject_default_sentinel(space_id)?;
         self.authorize_space_owner(space_id).await?;
-        let rows = self.state.repos.agent_config_repo().delete(space_id).await?;
+        let rows = self
+            .state
+            .repos
+            .agent_config_repo()
+            .delete(space_id)
+            .await?;
         Ok(rows > 0)
     }
 
@@ -204,7 +210,10 @@ mod tests {
     /// rejected.
     #[test]
     fn unrelated_caller_is_not_authorized() {
-        assert!(!caller_is_space_owner(Some("owner-peer"), "random-third-party"));
+        assert!(!caller_is_space_owner(
+            Some("owner-peer"),
+            "random-third-party"
+        ));
     }
 
     #[test]

@@ -223,6 +223,86 @@ pub struct RevokeIssuerCapabilityInput {
 }
 
 #[derive(Debug, Clone)]
+pub struct CreateInviteInput {
+    pub space_id: String,
+    /// Role string ("owner"/"editor"/"viewer"/"member"/"bot"); empty or
+    /// unrecognized defaults to "member".
+    pub role: String,
+    /// Seconds from now until expiry. `0` means "never expires".
+    pub ttl_secs: i64,
+    /// Optional label for UX (e.g. "Form 4 Maths"). Empty is fine.
+    pub label: String,
+    /// `false` (the default/recommended choice) makes the invite
+    /// redeemable exactly once; `true` allows unlimited redemptions
+    /// until revoked or expired. See `soma_membership::invite`'s module
+    /// doc comment for the full rationale.
+    pub multi_use: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct InviteRecord {
+    pub space_id: String,
+    /// Opaque id `RevokeInviteInput::id` takes back.
+    pub id: String,
+    /// The full `soma://invite/...` link, ready to share.
+    pub link: String,
+    pub issuer_peer_id: String,
+    pub role: String,
+    /// Unix-seconds; `0` means never expires.
+    pub expires_at: i64,
+    pub label: String,
+    pub multi_use: bool,
+    pub created_at: i64,
+    /// Unix-seconds; `0` means not revoked.
+    pub revoked_at: i64,
+    pub redeemed_count: i64,
+}
+
+#[derive(Debug, Clone)]
+pub struct RevokeInviteInput {
+    pub space_id: String,
+    pub id: String,
+}
+
+/// Why an inspected invite link is or isn't usable — mirrors
+/// `soma_membership::InviteValidity` one-to-one (kept as a distinct type
+/// per this module's "no proto, no soma_membership types" contract; see
+/// the module doc comment).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum InviteValidity {
+    Valid,
+    InvalidSignature,
+    Expired,
+    Malformed,
+}
+
+/// Result of decoding + offline-verifying a `soma://invite/...` link.
+/// Every field beyond `validity` is `None`/empty precisely when it isn't
+/// knowable (e.g. every field but `validity` is absent for a
+/// [`InviteValidity::Malformed`] link).
+#[derive(Debug, Clone)]
+pub struct InviteInspectionRecord {
+    pub validity: InviteValidity,
+    pub space_id: Option<String>,
+    pub space_label: Option<String>,
+    pub role: Option<String>,
+    /// The verified issuer when `validity == Valid`; the UNVERIFIED
+    /// claimed signer otherwise (UI display only — never a trust
+    /// decision unless `validity == Valid`).
+    pub issuer_peer_id: Option<String>,
+    /// Unix-seconds. `None` means "never expires".
+    pub expires_at: Option<i64>,
+    pub bootstrap_multiaddrs: Vec<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct RedeemInviteInput {
+    pub link: String,
+    pub display_name: String,
+    pub device_name: String,
+}
+
+#[derive(Debug, Clone)]
 pub struct IssueIssuerCapabilityInput {
     pub space_id: String,
     pub target_peer_id: String,

@@ -39,7 +39,6 @@ impl DaemonHandle {
             return Err(invalid("target_multiaddrs required"));
         }
 
-        let request_id = format!("{:016x}", rand::random::<u64>());
         let join_request = space::JoinRequest {
             space_id: Some(space::SpaceId {
                 value: space_id.clone(),
@@ -55,60 +54,7 @@ impl DaemonHandle {
             created_at: Some(Timestamp::from(SystemTime::now())),
         };
 
-        // Durably record that THIS peer itself asked `target_peer_id`
-        // about `space_id`. This is the local, attacker-uncontrolled
-        // ground truth `soma_membership::verify_and_apply_inbound_join_decision`
-        // correlates an eventual inbound `JoinDecision` against — without
-        // it, any connectable peer could push an unsolicited decision and
-        // have it accepted. See the membership-forgery fix report.
-        record_outgoing_join_request(
-            &self.state.repos,
-            &request_id,
-            &space_id,
-            &self.state.peer_id.to_string(),
-            &target_peer_id.to_string(),
-            join_request.requested_role,
-        )
-        .await;
-
-        let delivery_id = enqueue_outgoing_join_request(
-            &self.state.repos,
-            &target_peer_id,
-            &request_id,
-            &addrs,
-            &join_request,
-        )
-        .await
-        .map_err(|_| invalid("failed to enqueue join request"))?;
-
-        lease_mailbox_delivery(self, &delivery_id).await;
-
-        self.state
-            .peer_commands
-            .send(PeerCommand::SendJoinRequest {
-                target: target_peer_id,
-                addrs,
-                delivery_id,
-                request_id: request_id.clone(),
-                request: join_request,
-            })
-            .await
-            .map_err(|_| invalid("peer task is not running"))?;
-
-        self.state
-            .publish(soma_proto_build::daemon::DaemonEvent {
-                event: Some(
-                    soma_proto_build::daemon::daemon_event::Event::JoinSubmitted(
-                        soma_proto_build::daemon::JoinSubmitEvent {
-                            request_id: request_id.clone(),
-                            target_peer_id: target_peer_id.to_string(),
-                        },
-                    ),
-                ),
-            })
-            .await;
-
-        Ok(request_id)
+        dispatch_join_request(self, &space_id, target_peer_id, addrs, join_request).await
     }
 
     pub async fn list_join_requests(&self) -> SomaResult<Vec<JoinRequestRecord>> {
@@ -160,6 +106,82 @@ impl DaemonHandle {
         try_send_join_decision(self, &decision).await;
         Ok(to_decision_record(decision))
     }
+}
+
+/// Shared tail for every "submit a `JoinRequest` to a target peer" flow —
+/// today [`DaemonHandle::join_space`] (manual peer id + multiaddrs) and
+/// `DaemonHandle::redeem_invite` (target derived from a verified invite
+/// link) — factored out so the two don't duplicate the
+/// record-outgoing-request / enqueue / lease / dispatch / publish
+/// sequence. Both callers have already built a complete `JoinRequest`
+/// (with or without `invite_proof`) and resolved a dial target; this
+/// function only handles delivery bookkeeping, never validates or
+/// constructs the request itself.
+pub(super) async fn dispatch_join_request(
+    handle: &DaemonHandle,
+    space_id: &str,
+    target_peer_id: PeerId,
+    addrs: Vec<libp2p::Multiaddr>,
+    join_request: space::JoinRequest,
+) -> SomaResult<String> {
+    let request_id = format!("{:016x}", rand::random::<u64>());
+
+    // Durably record that THIS peer itself asked `target_peer_id` about
+    // `space_id`. This is the local, attacker-uncontrolled ground truth
+    // `soma_membership::verify_and_apply_inbound_join_decision` correlates
+    // an eventual inbound `JoinDecision` against — without it, any
+    // connectable peer could push an unsolicited decision and have it
+    // accepted. See the membership-forgery fix report.
+    record_outgoing_join_request(
+        &handle.state.repos,
+        &request_id,
+        space_id,
+        &handle.state.peer_id.to_string(),
+        &target_peer_id.to_string(),
+        join_request.requested_role,
+    )
+    .await;
+
+    let delivery_id = enqueue_outgoing_join_request(
+        &handle.state.repos,
+        &target_peer_id,
+        &request_id,
+        &addrs,
+        &join_request,
+    )
+    .await
+    .map_err(|_| invalid("failed to enqueue join request"))?;
+
+    lease_mailbox_delivery(handle, &delivery_id).await;
+
+    handle
+        .state
+        .peer_commands
+        .send(PeerCommand::SendJoinRequest {
+            target: target_peer_id,
+            addrs,
+            delivery_id,
+            request_id: request_id.clone(),
+            request: join_request,
+        })
+        .await
+        .map_err(|_| invalid("peer task is not running"))?;
+
+    handle
+        .state
+        .publish(soma_proto_build::daemon::DaemonEvent {
+            event: Some(
+                soma_proto_build::daemon::daemon_event::Event::JoinSubmitted(
+                    soma_proto_build::daemon::JoinSubmitEvent {
+                        request_id: request_id.clone(),
+                        target_peer_id: target_peer_id.to_string(),
+                    },
+                ),
+            ),
+        })
+        .await;
+
+    Ok(request_id)
 }
 
 /// Persist an outgoing (`is_outgoing = true`) `join_requests` row so a

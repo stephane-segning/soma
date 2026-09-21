@@ -27,3 +27,20 @@ export function parseActiveSpaceId(pathname: string): string | null {
 	if (!match) return null;
 	return decodeURIComponent(match[1]);
 }
+
+const PAGE_ID_PATTERN = /^\/spaces\/[^/]+\/pages\/([^/]+)(?:\/|$)/;
+
+/**
+ * Same idea as `parseActiveSpaceId`, one level deeper: "what page is the
+ * user currently looking at", derived from the route rather than a
+ * second store. `null` outside `/spaces/:spaceId/pages/:pageId`.
+ *
+ * Added for `useWindowTitle` (`use-window-title.ts`), which — like the
+ * command palette / shortcut registry — needs this from places that
+ * aren't always a rendered `PageView` with `useParams()` available.
+ */
+export function parseActivePageId(pathname: string): string | null {
+	const match = PAGE_ID_PATTERN.exec(pathname);
+	if (!match) return null;
+	return decodeURIComponent(match[1]);
+}

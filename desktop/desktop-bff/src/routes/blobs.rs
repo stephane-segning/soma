@@ -54,7 +54,10 @@ pub(super) fn router() -> Router<Arc<AppState>> {
             "/api/v1/blobs_stage_payload",
             post(blobs_stage_payload).layer(DefaultBodyLimit::max(BLOB_UPLOAD_MAX_BYTES)),
         )
-        .route("/api/v1/blobs_stage_from_payload", post(blobs_stage_from_payload))
+        .route(
+            "/api/v1/blobs_stage_from_payload",
+            post(blobs_stage_from_payload),
+        )
         .route("/api/v1/blobs/{space_id}/{cid}", get(blobs_get))
 }
 
@@ -73,7 +76,10 @@ async fn blobs_upload(
     State(app): State<Arc<AppState>>,
     Json(args): Json<blobs::UploadBlobArgs>,
 ) -> Result<Json<blobs::UploadBlobResult>, ApiError> {
-    blobs::upload(&app, args).await.map(Json).map_err(ApiError::from)
+    blobs::upload(&app, args)
+        .await
+        .map(Json)
+        .map_err(ApiError::from)
 }
 
 /// Read a blob's raw bytes by `(space_id, cid)`. Returns
@@ -107,9 +113,13 @@ async fn blobs_read(
     State(app): State<Arc<AppState>>,
     Json(body): Json<BlobReadBody>,
 ) -> Result<Response, ApiError> {
-    let bytes = blobs::read(&app, body.space_id, body.cid).await.map_err(ApiError::from)?;
+    let bytes = blobs::read(&app, body.space_id, body.cid)
+        .await
+        .map_err(ApiError::from)?;
     match bytes {
-        Some(data) => Ok(([(header::CONTENT_TYPE, "application/octet-stream")], data).into_response()),
+        Some(data) => {
+            Ok(([(header::CONTENT_TYPE, "application/octet-stream")], data).into_response())
+        }
         None => Ok(StatusCode::NOT_FOUND.into_response()),
     }
 }
@@ -119,10 +129,14 @@ async fn blobs_stage_upload(
     Extension(auth): Extension<AuthContext>,
     Json(args): Json<blobs::StageUploadArgs>,
 ) -> Result<Json<StagedUpload>, ApiError> {
-    blobs::stage_upload(user_data_dir.path().to_path_buf(), Some(&auth.session_scope), args)
-        .await
-        .map(Json)
-        .map_err(ApiError::from)
+    blobs::stage_upload(
+        user_data_dir.path().to_path_buf(),
+        Some(&auth.session_scope),
+        args,
+    )
+    .await
+    .map(Json)
+    .map_err(ApiError::from)
 }
 
 async fn blobs_stage(
@@ -143,10 +157,14 @@ async fn blobs_stage_payload(
     Extension(auth): Extension<AuthContext>,
     Json(args): Json<blobs::StageUploadArgs>,
 ) -> Result<Json<StagedUpload>, ApiError> {
-    blobs::stage_upload(user_data_dir.path().to_path_buf(), Some(&auth.session_scope), args)
-        .await
-        .map(Json)
-        .map_err(ApiError::from)
+    blobs::stage_upload(
+        user_data_dir.path().to_path_buf(),
+        Some(&auth.session_scope),
+        args,
+    )
+    .await
+    .map(Json)
+    .map_err(ApiError::from)
 }
 
 async fn blobs_stage_from_payload(
@@ -193,7 +211,9 @@ async fn blobs_get(
     State(app): State<Arc<AppState>>,
     Path((space_id, cid)): Path<(String, String)>,
 ) -> Result<Response, ApiError> {
-    let bytes = blobs::read_with_mime(&app, space_id, cid).await.map_err(ApiError::from)?;
+    let bytes = blobs::read_with_mime(&app, space_id, cid)
+        .await
+        .map_err(ApiError::from)?;
     match bytes {
         Some(blob) => {
             let content_type = if blob.mime.is_empty() {
@@ -204,7 +224,10 @@ async fn blobs_get(
             Ok((
                 [
                     (header::CONTENT_TYPE, content_type),
-                    (header::CACHE_CONTROL, "public, max-age=31536000, immutable".to_string()),
+                    (
+                        header::CACHE_CONTROL,
+                        "public, max-age=31536000, immutable".to_string(),
+                    ),
                 ],
                 blob.data,
             )

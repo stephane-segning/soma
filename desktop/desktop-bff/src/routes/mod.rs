@@ -19,6 +19,7 @@ mod agent_config;
 mod blobs;
 mod daemon;
 mod documents;
+mod invites;
 mod practice;
 mod search;
 mod spaces;
@@ -34,6 +35,7 @@ pub(crate) const BLOB_UPLOAD_MAX_BYTES: usize = 100 * 1024 * 1024;
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .merge(spaces::router())
+        .merge(invites::router())
         .merge(documents::router())
         .merge(blobs::router())
         .merge(daemon::router())

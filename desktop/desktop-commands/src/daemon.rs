@@ -21,6 +21,9 @@ pub async fn daemon_ready(state: State<'_, AppState>) -> DesktopResult<bool> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn daemon_control(state: State<'_, AppState>, args: ControlArgs) -> DesktopResult<ControlResult> {
+pub async fn daemon_control(
+    state: State<'_, AppState>,
+    args: ControlArgs,
+) -> DesktopResult<ControlResult> {
     api::control(state.inner(), args).await
 }

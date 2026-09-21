@@ -27,7 +27,8 @@ pub enum WindowControlAction {
 
 fn window(app: &tauri::AppHandle) -> DesktopResult<tauri::WebviewWindow> {
     use tauri::Manager;
-    app.get_webview_window("main").ok_or_else(|| DesktopError::other("no main window"))
+    app.get_webview_window("main")
+        .ok_or_else(|| DesktopError::other("no main window"))
 }
 
 // `minimize`/`maximize`/`unmaximize` only exist on `tauri::WebviewWindow`

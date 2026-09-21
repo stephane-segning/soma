@@ -9,8 +9,8 @@ use desktop_core::error::{DesktopError, DesktopResult};
 use desktop_services::blob_processing::zip_single_file;
 use desktop_services::upload_payload_store::{StagedUpload, UploadPayloadStore};
 use serde::{Deserialize, Serialize};
-use specta::Type;
 use soma_daemon::handle_types as dt;
+use specta::Type;
 
 use crate::state::AppState;
 
@@ -84,7 +84,9 @@ pub struct StageUploadArgs {
 }
 
 fn err(e: impl std::fmt::Display) -> DesktopError {
-    DesktopError::Daemon { message: e.to_string() }
+    DesktopError::Daemon {
+        message: e.to_string(),
+    }
 }
 
 pub async fn upload(state: &AppState, args: UploadBlobArgs) -> DesktopResult<UploadBlobResult> {
@@ -103,7 +105,11 @@ pub async fn upload(state: &AppState, args: UploadBlobArgs) -> DesktopResult<Upl
     Ok(res.into())
 }
 
-pub async fn read(state: &AppState, space_id: String, cid: String) -> DesktopResult<Option<Vec<u8>>> {
+pub async fn read(
+    state: &AppState,
+    space_id: String,
+    cid: String,
+) -> DesktopResult<Option<Vec<u8>>> {
     let handle = state.daemon.handle().await?;
     let res = handle.read_blob(&space_id, &cid).await.map_err(err)?;
     Ok(res.map(|r| r.data))
@@ -121,10 +127,17 @@ pub struct BlobBytes {
     pub mime: String,
 }
 
-pub async fn read_with_mime(state: &AppState, space_id: String, cid: String) -> DesktopResult<Option<BlobBytes>> {
+pub async fn read_with_mime(
+    state: &AppState,
+    space_id: String,
+    cid: String,
+) -> DesktopResult<Option<BlobBytes>> {
     let handle = state.daemon.handle().await?;
     let res = handle.read_blob(&space_id, &cid).await.map_err(err)?;
-    Ok(res.map(|r| BlobBytes { data: r.data, mime: r.mime }))
+    Ok(res.map(|r| BlobBytes {
+        data: r.data,
+        mime: r.mime,
+    }))
 }
 
 /// Namespaces the on-disk upload-staging directory under a
@@ -153,7 +166,9 @@ pub async fn stage_upload(
 ) -> DesktopResult<StagedUpload> {
     check_blob_size(args.bytes.len())?;
     let store = UploadPayloadStore::new(uploads_dir(&user_data_dir, upload_scope));
-    store.stage(&args.bytes, &args.mime, args.file_name.as_deref()).await
+    store
+        .stage(&args.bytes, &args.mime, args.file_name.as_deref())
+        .await
 }
 
 /// Args for the mime-aware {@link stage} handler. Mirrors the renderer's
@@ -241,7 +256,11 @@ fn synth_blob_url(style: BlobUrlStyle, space_id: &str, cid: &str) -> String {
 /// payloads are zipped first and uploaded as `application/zip`. The result
 /// carries a synthesized URL (shape controlled by `url_style`) the
 /// renderer can hand straight to `<img>` / `<a>` tags.
-pub async fn stage(state: &AppState, args: StageBlobArgs, url_style: BlobUrlStyle) -> DesktopResult<StageBlobResult> {
+pub async fn stage(
+    state: &AppState,
+    args: StageBlobArgs,
+    url_style: BlobUrlStyle,
+) -> DesktopResult<StageBlobResult> {
     check_blob_size(args.bytes.len())?;
     let handle = state.daemon.handle().await?;
     let space_id = args.space_id;

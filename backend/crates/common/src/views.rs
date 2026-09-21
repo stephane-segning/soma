@@ -1,12 +1,14 @@
 use ciborium::ser::into_writer;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use soma_core::{Error, SomaResult};
-use soma_proto_build::space::{IssuerCapability, MembershipCapability, SpaceGenesisArtifact};
+use soma_proto_build::space::{
+    InviteState, IssuerCapability, MembershipCapability, SpaceGenesisArtifact,
+};
 
-#[derive(Serialize)]
-struct TimestampView {
-    seconds: i64,
-    nanos: i32,
+#[derive(Serialize, Deserialize)]
+pub(crate) struct TimestampView {
+    pub(crate) seconds: i64,
+    pub(crate) nanos: i32,
 }
 
 #[derive(Serialize)]
@@ -42,6 +44,33 @@ pub(crate) struct SpaceGenesisSigningView(
     Option<TimestampView>,
 );
 
+/// Signing view for `InviteState`. Field order matches the proto
+/// declaration order minus `signed` (never included -- you can't sign a
+/// value that contains its own signature), exactly like every other
+/// `*SigningView` in this file.
+#[derive(Serialize)]
+pub(crate) struct InviteStateSigningView(
+    Option<String>,        // space_id
+    i32,                   // default_role
+    Option<TimestampView>, // expires_at
+    Vec<String>,           // bootstrap_multiaddrs
+    Vec<u8>,               // invite_nonce
+    String,                // space_label
+);
+
+/// Signing view for the requester-side `InviteProof`. Not derived from a
+/// single proto message (the proof is built fresh per redemption, not
+/// decoded from one) -- see `soma_common::build_invite_proof`. Mirrors the
+/// proto doc comment on `InviteProof`: "signature by requester over
+/// (peer_id || ts || nonce || hash(state_signing_view))".
+#[derive(Serialize)]
+pub(crate) struct InviteProofSigningView(
+    String,        // requester peer id
+    TimestampView, // ts
+    Vec<u8>,       // nonce
+    Vec<u8>,       // sha256(state.signed.cbor)
+);
+
 pub(crate) fn membership_view(cap: &MembershipCapability) -> MembershipSigningView {
     MembershipSigningView(
         cap.space_id.as_ref().map(|s| s.value.clone()),
@@ -75,6 +104,31 @@ pub(crate) fn issuer_view(cap: &IssuerCapability) -> IssuerCapabilitySigningView
         cap.max_member_expires_at.as_ref().map(ts_view),
         nonzero(cap.max_issues_per_hour),
         cap.owner_peer_id.as_ref().map(|s| s.value.clone()),
+    )
+}
+
+pub(crate) fn invite_view(state: &InviteState) -> InviteStateSigningView {
+    InviteStateSigningView(
+        state.space_id.as_ref().map(|s| s.value.clone()),
+        state.default_role,
+        state.expires_at.as_ref().map(ts_view),
+        state.bootstrap_multiaddrs.clone(),
+        state.invite_nonce.clone(),
+        state.space_label.clone(),
+    )
+}
+
+pub(crate) fn invite_proof_view(
+    requester_peer_id: &str,
+    ts: &prost_types::Timestamp,
+    nonce: &[u8],
+    state_hash: &[u8],
+) -> InviteProofSigningView {
+    InviteProofSigningView(
+        requester_peer_id.to_string(),
+        ts_view(ts),
+        nonce.to_vec(),
+        state_hash.to_vec(),
     )
 }
 

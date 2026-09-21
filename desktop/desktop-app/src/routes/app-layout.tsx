@@ -45,6 +45,7 @@ import { LEFT_RAIL_DEFAULT_EXPANDED, LEFT_RAIL_PANEL_IDS, LeftInnerRail } from "
 import { RIGHT_RAIL_PANEL_IDS, RightRail, rightRailChipDescriptors } from "../components/right-rail";
 import { SpacesRailContainer } from "../components/spaces-rail-container";
 import { type ShellControls, useRegisterShellControls } from "../lib/shell-controls";
+import { useWindowTitle } from "../lib/use-window-title";
 
 /** Mirrors `RightRail`'s own internal default — kept here too since that constant isn't exported (only `RIGHT_RAIL_PANEL_IDS` is). */
 const RIGHT_RAIL_DEFAULT_EXPANDED: ReadonlyArray<string> = [RIGHT_RAIL_PANEL_IDS.chat, RIGHT_RAIL_PANEL_IDS.bots];
@@ -66,6 +67,12 @@ function startWindowDrag(event: MouseEvent<HTMLElement>): void {
 export function AppLayout() {
 	const { t } = useTranslation();
 	const navigate = useNavigate();
+
+	// Reflects the active space/page in the OS window title (Cmd-Tab /
+	// Mission Control / Dock) and `document.title` — see
+	// `useWindowTitle`'s own doc comment for the native-title caveat
+	// (needs a `src-tauri` capability grant this change doesn't own).
+	useWindowTitle(t("app.title"));
 
 	// Lifted expansion state for both rails. The matching `PanelChipBar`
 	// in the main column corners re-opens panels the user collapsed via

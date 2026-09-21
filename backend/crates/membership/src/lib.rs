@@ -2,6 +2,7 @@ pub mod bot_status;
 pub mod outbox;
 pub mod scopes;
 
+mod invite;
 mod issuer;
 mod join_decider;
 mod join_decisions;
@@ -17,6 +18,10 @@ mod trust;
 #[cfg(test)]
 mod test_support;
 
+pub use invite::{
+    InviteInspection, InviteRedemption, InviteSummary, InviteValidity, create_invite,
+    inspect_invite_link, list_invites, redeem_invite, revoke_invite,
+};
 pub use issuer::{issue_issuer_capability_to_storage, issue_owned_issuer_capability_to_storage};
 pub use join_decider::{JoinPolicy, build_join_decider};
 pub use join_decisions::{enqueue_outgoing_join_decision, verify_and_apply_inbound_join_decision};

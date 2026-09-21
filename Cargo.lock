@@ -7195,11 +7195,14 @@ dependencies = [
 name = "soma-common"
 version = "0.1.2"
 dependencies = [
+ "base64 0.22.1",
  "ciborium",
  "libp2p",
  "prost-types",
+ "rand 0.9.5",
  "serde",
  "serde_json",
+ "sha2",
  "soma-core",
  "soma-proto-build",
 ]
@@ -7250,6 +7253,7 @@ name = "soma-membership"
 version = "0.1.2"
 dependencies = [
  "async-trait",
+ "base64 0.22.1",
  "libp2p",
  "prost",
  "prost-types",

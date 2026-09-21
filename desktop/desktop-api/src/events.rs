@@ -26,7 +26,10 @@ pub fn publish(state: &AppState, event: DomainEvent) {
         // and the underlying buffer was dropped). At that point we're
         // either shutting down or the presenter hasn't installed its
         // forwarder yet — neither is fatal, but worth tracing.
-        tracing::debug!(?err, "domain-event publish dropped: channel closed or no subscribers yet");
+        tracing::debug!(
+            ?err,
+            "domain-event publish dropped: channel closed or no subscribers yet"
+        );
     }
 }
 
@@ -34,7 +37,11 @@ pub fn publish(state: &AppState, event: DomainEvent) {
 /// `source: renderer`. Every renderer-triggered document mutation
 /// (`upsert_draft`, `queue_daemon_sync`, `sync_published`) emits this,
 /// so it deserves its own helper.
-pub fn document_changed(space_id: String, document_id: String, reason: &'static str) -> DomainEvent {
+pub fn document_changed(
+    space_id: String,
+    document_id: String,
+    reason: &'static str,
+) -> DomainEvent {
     DomainEvent::DocumentChanged {
         source: DomainEventSource::Renderer,
         at_ms: desktop_core::time::now_ms(),

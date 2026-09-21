@@ -3,6 +3,7 @@ pub mod blobs;
 pub mod bootstrap;
 pub mod documents;
 mod filesystem;
+pub mod invites;
 pub mod issuer;
 pub mod mailbox;
 pub mod membership;

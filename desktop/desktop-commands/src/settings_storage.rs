@@ -27,7 +27,11 @@ pub async fn db_storage_get(app: tauri::AppHandle, key: String) -> DesktopResult
 
 #[tauri::command]
 #[specta::specta]
-pub async fn db_storage_set(app: tauri::AppHandle, key: String, value: String) -> DesktopResult<()> {
+pub async fn db_storage_set(
+    app: tauri::AppHandle,
+    key: String,
+    value: String,
+) -> DesktopResult<()> {
     AppStore::open(&app)?.react_db_set(&key, value)
 }
 
@@ -78,7 +82,10 @@ fn to_str(v: &serde_json::Value) -> DesktopResult<String> {
 
 #[tauri::command]
 #[specta::specta]
-pub async fn settings_get(app: tauri::AppHandle, args: SettingsGetArgs) -> DesktopResult<Option<String>> {
+pub async fn settings_get(
+    app: tauri::AppHandle,
+    args: SettingsGetArgs,
+) -> DesktopResult<Option<String>> {
     let store = AppStore::open(&app)?;
     let Some(value) = store.setting(&args.key) else {
         return Ok(None);

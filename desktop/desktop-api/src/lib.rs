@@ -23,6 +23,7 @@ pub mod blobs;
 pub mod daemon;
 pub mod documents;
 pub mod events;
+pub mod invites;
 pub mod practice;
 pub mod search;
 pub mod spaces;

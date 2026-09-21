@@ -147,6 +147,7 @@ pub(super) async fn delete_space(pool: &Pool, space_id: &str) -> SomaResult<u64>
         "space_memberships",
         "join_decisions",
         "issuer_capabilities",
+        "invites",
         "mailbox",
         "documents",
         "join_requests",

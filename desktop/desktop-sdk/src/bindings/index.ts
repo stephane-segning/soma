@@ -41,6 +41,15 @@ export const commands = {
 	spacesRevokeMember: (args: RevokeMemberArgs) => typedError<boolean, DesktopError>(__TAURI_INVOKE("spaces_revoke_member", { args })),
 	spacesRevokeBot: (args: RevokeBotArgs) => typedError<boolean, DesktopError>(__TAURI_INVOKE("spaces_revoke_bot", { args })),
 	spacesIssueIssuerCapability: (args: IssueIssuerCapabilityArgs) => typedError<boolean, DesktopError>(__TAURI_INVOKE("spaces_issue_issuer_capability", { args })),
+	invitesCreate: (args: CreateInviteArgs) => typedError<StoredInvite, DesktopError>(__TAURI_INVOKE("invites_create", { args })),
+	invitesList: (spaceId: string) => typedError<StoredInvite[], DesktopError>(__TAURI_INVOKE("invites_list", { spaceId })),
+	invitesRevoke: (args: RevokeInviteArgs) => typedError<boolean, DesktopError>(__TAURI_INVOKE("invites_revoke", { args })),
+	/**
+	 *  Decode + offline-verify a `soma://invite/...` link. Touches no
+	 *  network — safe to call before the user chooses to redeem it.
+	 */
+	invitesInspect: (link: string) => typedError<InviteInspection, DesktopError>(__TAURI_INVOKE("invites_inspect", { link })),
+	invitesRedeem: (args: RedeemInviteArgs) => typedError<RedeemInviteResult, DesktopError>(__TAURI_INVOKE("invites_redeem", { args })),
 	documentsUpsert: (args: UpsertDocumentArgs) => typedError<null, DesktopError>(__TAURI_INVOKE("documents_upsert", { args })),
 	documentsGet: (spaceId: string, documentId: string) => typedError<{
 	spaceId: string,
@@ -294,6 +303,20 @@ export type ControlResult = {
 	message: string | null,
 };
 
+export type CreateInviteArgs = {
+	spaceId: string,
+	/**
+	 *  Role string ("owner"/"editor"/"viewer"/"member"/"bot"); empty
+	 *  defaults to "member".
+	 */
+	role?: string,
+	/**  Seconds from now until expiry. `0` means "never expires". */
+	ttlSecs: number,
+	label?: string,
+	/**  `false` (the default) makes the invite redeemable exactly once. */
+	multiUse?: boolean,
+};
+
 export type CreateSpaceArgs = {
 	spaceId?: string | null,
 	displayName?: string | null,
@@ -347,6 +370,31 @@ export type DecideJoinResult = {
 	reason: string,
 	approved: boolean,
 };
+
+/**
+ *  A parsed `soma://` deep link, emitted on [`DEEP_LINK_EVENT`] in place
+ *  of the raw URL string — see `startup::deep_link::dispatch` (the
+ *  `desktop-app` binary) for the route table that produces this. Unlike
+ *  [`DOMAIN_EVENT`] / [`AGENT_EVENT`], whose payload shapes are owned by
+ *  `soma-daemon`/`soma-agentd` and kept out of this dependency-light
+ *  crate, `DeepLinkRoute` genuinely belongs here: it's OS/URL-routing
+ *  concern, not a daemon/agent-runtime concept, and keeping it a real
+ *  type (rather than `serde_json::Value`) is what lets `desktop-app`
+ *  register it with `tauri-specta` for a properly typed `@soma/sdk`
+ *  binding.
+ */
+export type DeepLinkRoute = 
+/**
+ *  `soma://invite/<payload>` — a space invite link. `link` is the
+ *  full original URL, ready to pass straight to
+ *  `backend.invites.inspect({ link })`.
+ */
+{ kind: "invite"; link: string } | 
+/**
+ *  Any `soma://...` URL that didn't match a known route — carries the
+ *  raw URL so nothing is silently dropped.
+ */
+{ kind: "unknown"; url: string };
 
 export type DesktopError = { kind: "io"; message: string } | { kind: "invalid-input"; message: string } | { kind: "not-found"; message: string } | { kind: "daemon"; message: string } | { kind: "agent"; message: string } | 
 /**
@@ -468,6 +516,38 @@ export type GetDraftArgs = {
 	documentId: string,
 };
 
+/**
+ *  Result of decoding + offline-verifying a `soma://invite/...` link —
+ *  see `inspect`'s doc comment: this never touches the network.
+ */
+export type InviteInspection = {
+	validity: InviteValidity,
+	spaceId: string | null,
+	spaceLabel: string | null,
+	role: string | null,
+	/**
+	 *  The verified issuer when `validity == "valid"`; the UNVERIFIED
+	 *  claimed signer otherwise (UI display only — never a trust
+	 *  decision unless `validity == "valid"`).
+	 */
+	issuerPeerId: string | null,
+	/**  Unix-seconds. `null` means "never expires". */
+	expiresAt: number | null,
+	bootstrapMultiaddrs: string[],
+};
+
+/**  Why an inspected invite link is or isn't usable. */
+export type InviteValidity = "valid" | 
+/**
+ *  Decoded, but the signature doesn't verify (forged, corrupted, or
+ *  hand-edited).
+ */
+"invalidSignature" | 
+/**  Decoded and signature-valid, but past its expiry. */
+"expired" | 
+/**  Not a well-formed `soma://invite/...` link at all. */
+"malformed";
+
 export type IssueIssuerCapabilityArgs = {
 	spaceId: string,
 	targetPeerId: string,
@@ -538,6 +618,16 @@ export type RecordSessionResponse = {
 	leaderboard: LeaderboardEntry[],
 };
 
+export type RedeemInviteArgs = {
+	link: string,
+	displayName?: string,
+	deviceName?: string,
+};
+
+export type RedeemInviteResult = {
+	requestId: string,
+};
+
 export type RerankCandidate = {
 	id: string,
 	content: string,
@@ -570,6 +660,11 @@ export type RevokeBotArgs = {
 	spaceId: string,
 	delegatePeerId: string,
 	reason?: string,
+};
+
+export type RevokeInviteArgs = {
+	spaceId: string,
+	id: string,
 };
 
 export type RevokeMemberArgs = {
@@ -735,6 +830,24 @@ export type StoredDocument = {
 	contentJson: string,
 	published: boolean,
 	updatedAtMs: number,
+};
+
+export type StoredInvite = {
+	spaceId: string,
+	/**  Opaque id `RevokeInviteArgs.id` takes back. */
+	id: string,
+	/**  The full `soma://invite/...` link, ready to share. */
+	link: string,
+	issuerPeerId: string,
+	role: string,
+	/**  Unix-seconds; `0` means never expires. */
+	expiresAt: number,
+	label: string,
+	multiUse: boolean,
+	createdAt: number,
+	/**  Unix-seconds; `0` means not revoked. */
+	revokedAt: number,
+	redeemedCount: number,
 };
 
 export type StoredJoinRequest = {

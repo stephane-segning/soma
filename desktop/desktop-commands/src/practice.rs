@@ -2,7 +2,10 @@
 
 use desktop_api::{
     AppState,
-    practice::{self as api, Exercise, ExerciseAttempt, ExerciseDraft, GenerateExerciseInput, RecordSessionResponse},
+    practice::{
+        self as api, Exercise, ExerciseAttempt, ExerciseDraft, GenerateExerciseInput,
+        RecordSessionResponse,
+    },
 };
 use desktop_core::error::DesktopResult;
 use tauri::State;
@@ -18,7 +21,10 @@ pub async fn practice_list_exercises(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn practice_save_exercise(state: State<'_, AppState>, args: ExerciseDraft) -> DesktopResult<Exercise> {
+pub async fn practice_save_exercise(
+    state: State<'_, AppState>,
+    args: ExerciseDraft,
+) -> DesktopResult<Exercise> {
     api::save_exercise(state.inner(), args).await
 }
 

@@ -14,3 +14,6 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 prost-types = { workspace = true }
 ciborium = { workspace = true }
+base64 = { workspace = true }
+sha2 = { workspace = true }
+rand = { workspace = true }

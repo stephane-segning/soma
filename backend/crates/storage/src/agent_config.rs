@@ -277,7 +277,9 @@ mod tests {
             request_timeout_ms: None,
             poll_interval_ms: None,
         };
-        repo.upsert("space-1", &full, 1_000).await.expect("first upsert");
+        repo.upsert("space-1", &full, 1_000)
+            .await
+            .expect("first upsert");
 
         // A second whole-state upsert with `base_url: None` must clear
         // it, proving this is a full replace, not a sparse patch that
@@ -295,7 +297,11 @@ mod tests {
 
         let row = repo.get("space-1").await.expect("get").expect("row exists");
         assert_eq!(row.base_url, None);
-        assert_eq!(row.chat_model.as_deref(), Some("gpt-x"), "untouched field survives");
+        assert_eq!(
+            row.chat_model.as_deref(),
+            Some("gpt-x"),
+            "untouched field survives"
+        );
     }
 
     #[tokio::test]
@@ -318,7 +324,11 @@ mod tests {
 
         let row = repo.get("default").await.expect("get").expect("row exists");
         assert_eq!(row.api_key.as_deref(), Some("sk-secret"));
-        assert_eq!(row.chat_model.as_deref(), Some("gpt-x"), "unrelated column preserved");
+        assert_eq!(
+            row.chat_model.as_deref(),
+            Some("gpt-x"),
+            "unrelated column preserved"
+        );
         assert_eq!(row.updated_at_ms, 2_000);
     }
 
@@ -345,20 +355,33 @@ mod tests {
         repo.upsert("space-a", &AgentProviderConfigPatch::default(), 1_000)
             .await
             .expect("upsert a");
-        assert_eq!(repo.get("space-a").await.expect("get a").unwrap().api_key, None);
+        assert_eq!(
+            repo.get("space-a").await.expect("get a").unwrap().api_key,
+            None
+        );
 
         // Set, then explicitly cleared.
         repo.set_api_key("space-b", Some("sk-secret"), 1_000)
             .await
             .expect("set b");
         assert_eq!(
-            repo.get("space-b").await.expect("get b").unwrap().api_key.as_deref(),
+            repo.get("space-b")
+                .await
+                .expect("get b")
+                .unwrap()
+                .api_key
+                .as_deref(),
             Some("sk-secret")
         );
-        repo.set_api_key("space-b", None, 2_000).await.expect("clear b");
+        repo.set_api_key("space-b", None, 2_000)
+            .await
+            .expect("clear b");
         let cleared = repo.get("space-b").await.expect("get b again").unwrap();
         assert_eq!(cleared.api_key, None);
-        assert_eq!(cleared.updated_at_ms, 2_000, "clearing still bumps updated_at_ms");
+        assert_eq!(
+            cleared.updated_at_ms, 2_000,
+            "clearing still bumps updated_at_ms"
+        );
     }
 
     #[tokio::test]

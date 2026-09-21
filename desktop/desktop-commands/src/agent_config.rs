@@ -3,8 +3,9 @@
 use desktop_api::{
     AppState,
     agent_config::{
-        self as api, AgentProviderConfigView, SetDefaultAgentProviderConfigArgs, SetSpaceAgentProviderConfigArgs,
-        ValidateAgentProviderConfigArgs, ValidateAgentProviderConfigResult,
+        self as api, AgentProviderConfigView, SetDefaultAgentProviderConfigArgs,
+        SetSpaceAgentProviderConfigArgs, ValidateAgentProviderConfigArgs,
+        ValidateAgentProviderConfigResult,
     },
 };
 use desktop_core::error::DesktopResult;
@@ -12,7 +13,9 @@ use tauri::State;
 
 #[tauri::command]
 #[specta::specta]
-pub async fn agent_config_get_default(state: State<'_, AppState>) -> DesktopResult<AgentProviderConfigView> {
+pub async fn agent_config_get_default(
+    state: State<'_, AppState>,
+) -> DesktopResult<AgentProviderConfigView> {
     api::get_default(state.inner()).await
 }
 
@@ -51,7 +54,10 @@ pub async fn agent_config_clear_default(state: State<'_, AppState>) -> DesktopRe
 
 #[tauri::command]
 #[specta::specta]
-pub async fn agent_config_clear_space(state: State<'_, AppState>, space_id: String) -> DesktopResult<bool> {
+pub async fn agent_config_clear_space(
+    state: State<'_, AppState>,
+    space_id: String,
+) -> DesktopResult<bool> {
     api::clear_space(state.inner(), space_id).await
 }
 

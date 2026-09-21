@@ -4,14 +4,15 @@ use sqlx_utils::types::Pool;
 
 use crate::{
     agent_config::AgentConfigRepository, blobs::BlobRepository, documents::DocumentRepository,
-    issuer::IssuerRepository, mailbox::MailboxRepository, membership::MembershipRepository,
-    pages::PageRepository, peers::PeerPublicKeyRepository,
+    invites::InviteRepository, issuer::IssuerRepository, mailbox::MailboxRepository,
+    membership::MembershipRepository, pages::PageRepository, peers::PeerPublicKeyRepository,
 };
 
 /// Abstraction over repositories needed by controllers/services.
 pub trait RepositoryProvider: Send + Sync {
     fn membership_repo(&self) -> Arc<dyn MembershipRepository>;
     fn issuer_repo(&self) -> Arc<dyn IssuerRepository>;
+    fn invite_repo(&self) -> Arc<dyn InviteRepository>;
     fn mailbox_repo(&self) -> Arc<dyn MailboxRepository>;
     fn peer_keys_repo(&self) -> Arc<dyn PeerPublicKeyRepository>;
     fn document_repo(&self) -> Arc<dyn DocumentRepository>;
@@ -42,6 +43,10 @@ impl RepositoryFactory {
 
     pub fn issuer(&self) -> crate::issuer::SqlIssuerRepository {
         crate::issuer::SqlIssuerRepository::new(self.pool.clone())
+    }
+
+    pub fn invites(&self) -> crate::invites::SqlInviteRepository {
+        crate::invites::SqlInviteRepository::new(self.pool.clone())
     }
 
     pub fn mailbox(&self) -> crate::mailbox::SqlMailboxRepository {
@@ -76,6 +81,10 @@ impl RepositoryProvider for RepositoryFactory {
 
     fn issuer_repo(&self) -> Arc<dyn IssuerRepository> {
         Arc::new(self.issuer())
+    }
+
+    fn invite_repo(&self) -> Arc<dyn InviteRepository> {
+        Arc::new(self.invites())
     }
 
     fn mailbox_repo(&self) -> Arc<dyn MailboxRepository> {
@@ -117,6 +126,10 @@ where
 
     fn issuer_repo(&self) -> Arc<dyn IssuerRepository> {
         (**self).issuer_repo()
+    }
+
+    fn invite_repo(&self) -> Arc<dyn InviteRepository> {
+        (**self).invite_repo()
     }
 
     fn mailbox_repo(&self) -> Arc<dyn MailboxRepository> {

@@ -31,6 +31,7 @@
 		"nav": {
 			"title": "Navigation",
 			"settings": "Paramètres",
+			"practice": "Entraînement",
 			"space_settings": "Paramètres de l'espace"
 		},
 		"chat": {
@@ -54,6 +55,8 @@
 			"open_editor_probe": "Ouvrir l'éditeur (test de focus)",
 			"new_page": "Nouvelle page",
 			"new_space": "Nouvel espace",
+			"join_space": "Rejoindre un espace",
+			"go_to_practice": "Aller à l'entraînement",
 			"toggle_spaces_rail": "Basculer la barre Espaces",
 			"toggle_chat_sidebar": "Basculer le panneau de chat"
 		}
@@ -63,8 +66,79 @@
 		"spaces_index": {
 			"headline": "Aucun espace sélectionné",
 			"empty": "Choisissez un espace dans la barre, ou créez-en un pour commencer.",
+			"join_cta": "Rejoindre un espace",
 			"need_space_for_page": "Choisissez ou créez un espace avant d'ajouter une page.",
 			"create_error": "Impossible de créer l'espace : {{message}}"
+		},
+		"join_space": {
+			"title": "Rejoindre un espace",
+			"subtitle": "Collez un lien d'invitation pour voir exactement ce qu'il accorde avant de rejoindre.",
+			"linkField": {
+				"label": "Lien d'invitation",
+				"placeholder": "soma://invite/…"
+			},
+			"inspecting": "Vérification de l'invitation…",
+			"inspectError": "Impossible de vérifier cette invitation : {{message}}",
+			"validity": {
+				"valid": {
+					"headline": "Vous êtes sur le point de rejoindre {{space}}",
+					"body": "Voici ce que la signature de l'invitation confirme — vérifiez avant de confirmer.",
+					"pill": "Valide"
+				},
+				"expired": {
+					"headline": "Cette invitation pour {{space}} a expiré",
+					"body": "Sa signature est valide, mais elle a dépassé sa date d'expiration. Demandez un nouveau lien au propriétaire de l'espace.",
+					"pill": "Expirée"
+				},
+				"invalidSignature": {
+					"headline": "La signature de cette invitation n'est pas valide",
+					"body": "Elle a peut-être été modifiée après son émission. Rejoindre l'espace est désactivé.",
+					"pill": "Signature invalide",
+					"claimsCaption": "Affirmé par le lien — non vérifié"
+				},
+				"malformed": {
+					"headline": "Ce n'est pas un lien d'invitation Soma valide",
+					"body": "Vérifiez que vous avez copié le lien soma://invite/… en entier.",
+					"pill": "Lien non valide"
+				}
+			},
+			"fields": {
+				"space": "Espace",
+				"role": "Rôle qui vous sera accordé",
+				"issuer": "Émis par",
+				"expires": "Expiration"
+			},
+			"expiry": {
+				"never": "Jamais",
+				"active": "{{date}}",
+				"expired": "Expiré le {{date}}"
+			},
+			"tryDifferentLink": "Essayer un autre lien",
+			"form": {
+				"displayName": {
+					"label": "Nom affiché",
+					"placeholder": "Optionnel — comment les autres vous verront"
+				},
+				"deviceName": {
+					"label": "Nom de l'appareil",
+					"placeholder": "Optionnel — ex. Ordinateur portable professionnel"
+				},
+				"submit": "Rejoindre l'espace",
+				"submitting": "Envoi de la demande…"
+			},
+			"submitted": {
+				"headline": "Demande envoyée",
+				"body": "En attente de l'approbation du propriétaire de l'espace."
+			},
+			"decided": {
+				"approved": "Vous y êtes — bienvenue dans {{space}}.",
+				"thisSpace": "cet espace",
+				"openSpace": "Ouvrir l'espace",
+				"rejected": "Votre demande a été refusée.",
+				"blocked": "Votre demande a été bloquée.",
+				"unknown": "Une décision est arrivée, mais son résultat n'a pas été reconnu."
+			},
+			"dialFailed": "Impossible de joindre l'émetteur de l'invitation : {{message}}"
 		},
 		"space_view": {
 			"empty": "Aucune page ouverte."
@@ -81,6 +155,34 @@
 				"creating": "Création…",
 				"loading": "Chargement des pages…",
 				"error": "Impossible de charger les pages"
+			}
+		},
+		"practice": {
+			"title": "Entraînement",
+			"loading": "Chargement des exercices…",
+			"error": "Impossible de charger l'entraînement : {{message}}",
+			"retry": "Réessayer",
+			"difficulty": {
+				"beginner": "Débutant",
+				"intermediate": "Intermédiaire",
+				"advanced": "Avancé"
+			},
+			"input_label": "Champ de saisie",
+			"input_placeholder": "Commencez à taper le texte ci-dessus…",
+			"restart": "Recommencer",
+			"finish": "Terminer",
+			"result": {
+				"headline": "Session terminée",
+				"wpm": "MPM",
+				"accuracy": "Précision",
+				"save_error": "Impossible d'enregistrer cette tentative : {{message}}",
+				"again": "Recommencer une session",
+				"toast": "Entraînement terminé · {{wpm}} MPM · {{accuracy}} de précision"
+			},
+			"leaderboard": {
+				"title": "Classement",
+				"empty": "Aucune tentative pour l'instant",
+				"anonymous": "Anonyme"
 			}
 		},
 		"settings": {
@@ -181,6 +283,7 @@
 		"tabs": {
 			"ariaLabel": "Sections des paramètres de l'espace",
 			"members": "Membres",
+			"invites": "Invitations",
 			"bots": "Bots",
 			"assistant": "Assistant"
 		},
@@ -222,6 +325,68 @@
 				"unknownRequester": "Demandeur inconnu",
 				"approve": "Approuver",
 				"reject": "Refuser"
+			}
+		},
+		"invites": {
+			"title": "Invitations",
+			"description": "Liens partageables donnant accès à cet espace.",
+			"loading": "Chargement des invitations…",
+			"error": "Impossible de charger les invitations : {{message}}",
+			"create": {
+				"cta": "Créer une invitation",
+				"cancel": "Annuler",
+				"role": {
+					"label": "Rôle"
+				},
+				"label": {
+					"label": "Libellé",
+					"placeholder": "Optionnel — ex. « Équipe design »"
+				},
+				"ttl": {
+					"label": "Expiration",
+					"presets": {
+						"1h": "1 heure",
+						"1d": "1 jour",
+						"7d": "7 jours",
+						"30d": "30 jours",
+						"never": "Jamais"
+					}
+				},
+				"multiUse": {
+					"label": "Autoriser plusieurs personnes à utiliser ce lien"
+				},
+				"submit": "Créer l'invitation",
+				"submitting": "Création…"
+			},
+			"roster": {
+				"empty": "Aucune invitation pour l'instant",
+				"addressNote": "Les liens copiés incluent les adresses réseau permettant de vous joindre — ne les partagez qu'avec des personnes de confiance.",
+				"unlabeled": "Invitation : {{role}}",
+				"unused": "Pas encore utilisée",
+				"exhausted": "Entièrement utilisée",
+				"redeemed_one": "Utilisée une fois",
+				"redeemed_other": "Utilisée {{count}} fois",
+				"copy": "Copier",
+				"copied": "Copié",
+				"revoke": "Révoquer",
+				"expiry": {
+					"never": "N'expire jamais",
+					"active": "Expire le {{date}}",
+					"expired": "Expiré le {{date}}"
+				},
+				"status": {
+					"active": "Active",
+					"exhausted": "Utilisée",
+					"expired": "Expirée",
+					"revoked": "Révoquée"
+				}
+			},
+			"revokeConfirm": {
+				"title": "Révoquer cette invitation",
+				"description": "Le lien cesse de fonctionner immédiatement. Les personnes déjà arrivées grâce à lui conservent leur adhésion.",
+				"slugLabel": "Tapez {{slug}} pour confirmer",
+				"cancel": "Annuler",
+				"confirm": "Révoquer l'invitation"
 			}
 		},
 		"bots": {
@@ -300,5 +465,18 @@
 				"placeholder": "60000"
 			}
 		}
+	},
+	"errors": {
+		"route": {
+			"headline": "Cet écran a rencontré un problème",
+			"subtext": "Vous pouvez retourner aux Espaces et réessayer.",
+			"cta": "Retour aux Espaces"
+		},
+		"fatal": {
+			"headline": "Soma doit redémarrer",
+			"subtext": "Une erreur est survenue en dehors du parcours de récupération normal.",
+			"cta": "Redémarrer Soma"
+		},
+		"details": "Détails techniques"
 	}
 }

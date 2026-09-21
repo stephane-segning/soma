@@ -32,7 +32,10 @@ struct SpaceIdBody {
 async fn get_default(
     State(app): State<Arc<AppState>>,
 ) -> Result<Json<agent_config::AgentProviderConfigView>, ApiError> {
-    agent_config::get_default(&app).await.map(Json).map_err(ApiError::from)
+    agent_config::get_default(&app)
+        .await
+        .map(Json)
+        .map_err(ApiError::from)
 }
 
 async fn get_space(
@@ -49,18 +52,27 @@ async fn set_default(
     State(app): State<Arc<AppState>>,
     Json(args): Json<agent_config::SetDefaultAgentProviderConfigArgs>,
 ) -> Result<Json<agent_config::AgentProviderConfigView>, ApiError> {
-    agent_config::set_default(&app, args).await.map(Json).map_err(ApiError::from)
+    agent_config::set_default(&app, args)
+        .await
+        .map(Json)
+        .map_err(ApiError::from)
 }
 
 async fn set_space(
     State(app): State<Arc<AppState>>,
     Json(args): Json<agent_config::SetSpaceAgentProviderConfigArgs>,
 ) -> Result<Json<agent_config::AgentProviderConfigView>, ApiError> {
-    agent_config::set_space(&app, args).await.map(Json).map_err(ApiError::from)
+    agent_config::set_space(&app, args)
+        .await
+        .map(Json)
+        .map_err(ApiError::from)
 }
 
 async fn clear_default(State(app): State<Arc<AppState>>) -> Result<Json<bool>, ApiError> {
-    agent_config::clear_default(&app).await.map(Json).map_err(ApiError::from)
+    agent_config::clear_default(&app)
+        .await
+        .map(Json)
+        .map_err(ApiError::from)
 }
 
 async fn clear_space(
@@ -77,5 +89,8 @@ async fn validate(
     State(app): State<Arc<AppState>>,
     Json(args): Json<agent_config::ValidateAgentProviderConfigArgs>,
 ) -> Result<Json<agent_config::ValidateAgentProviderConfigResult>, ApiError> {
-    agent_config::validate(&app, args).await.map(Json).map_err(ApiError::from)
+    agent_config::validate(&app, args)
+        .await
+        .map(Json)
+        .map_err(ApiError::from)
 }

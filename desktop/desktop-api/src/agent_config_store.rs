@@ -45,7 +45,9 @@ impl AgentConfigStore for DaemonBackedAgentConfigStore {
             // `setup`). Degrade to "no overrides" rather than failing
             // the caller: `AgentRuntimeConfig::default()` covers the gap
             // identically to a fresh install with an empty default row.
-            tracing::debug!("agent config: daemon handle not ready yet; using compiled-in defaults");
+            tracing::debug!(
+                "agent config: daemon handle not ready yet; using compiled-in defaults"
+            );
             return AgentConfigOverrides::default();
         };
         match handle.agent_config_get_default().await {
@@ -59,7 +61,10 @@ impl AgentConfigStore for DaemonBackedAgentConfigStore {
 
     async fn space_overrides(&self, space_id: &str) -> AgentConfigOverrides {
         let Ok(handle) = self.daemon.handle().await else {
-            tracing::debug!(space_id, "agent config: daemon handle not ready yet; using compiled-in defaults");
+            tracing::debug!(
+                space_id,
+                "agent config: daemon handle not ready yet; using compiled-in defaults"
+            );
             return AgentConfigOverrides::default();
         };
         match handle.agent_config_get_space(space_id).await {

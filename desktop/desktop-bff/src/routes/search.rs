@@ -5,11 +5,7 @@
 
 use std::sync::Arc;
 
-use axum::{
-    Json, Router,
-    extract::State,
-    routing::post,
-};
+use axum::{Json, Router, extract::State, routing::post};
 use desktop_api::{AppState, search};
 use serde::Deserialize;
 
@@ -30,5 +26,8 @@ async fn search(
     State(_app): State<Arc<AppState>>,
     Json(body): Json<SearchBody>,
 ) -> Result<Json<Vec<search::SearchResult>>, ApiError> {
-    search::query(body.query).await.map(Json).map_err(ApiError::from)
+    search::query(body.query)
+        .await
+        .map(Json)
+        .map_err(ApiError::from)
 }

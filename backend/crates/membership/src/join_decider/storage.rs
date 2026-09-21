@@ -10,12 +10,13 @@ use soma_proto_build::space::{
     IssuerCapability, JoinDecision, JoinDecisionType, JoinRequest, SpaceId, SpaceRole,
 };
 use soma_storage::{
-    RepositoryProvider, issuer::IssuerRepository, membership::MembershipRepository,
-    peers::PeerPublicKeyRepository,
+    RepositoryProvider, invites::InviteRepository, issuer::IssuerRepository,
+    membership::MembershipRepository, peers::PeerPublicKeyRepository,
 };
 use tracing::warn;
 
 use crate::{
+    invite::try_auto_approve_via_invite,
     issuer::{check_issue_membership_scope, issuer_cap_valid},
     time::epoch_seconds,
     trust::StoragePeerKeyResolver,
@@ -46,6 +47,7 @@ pub fn build_join_decider(
 struct StorageBackedJoinDecider {
     membership_repo: Arc<dyn MembershipRepository>,
     issuer_repo: Arc<dyn IssuerRepository>,
+    invite_repo: Arc<dyn InviteRepository>,
     peer_keys_repo: Arc<dyn PeerPublicKeyRepository>,
     signer: Keypair,
     local_peer_id: PeerId,
@@ -62,6 +64,7 @@ impl StorageBackedJoinDecider {
         Self {
             membership_repo: repos.membership_repo(),
             issuer_repo: repos.issuer_repo(),
+            invite_repo: repos.invite_repo(),
             peer_keys_repo: repos.peer_keys_repo(),
             signer,
             local_peer_id,
@@ -119,6 +122,34 @@ impl JoinDecider for StorageBackedJoinDecider {
                 // further delegation chain needs to travel with the
                 // capability -- matches the `issuer_cap: None` branch in
                 // `verify_capability_against_anchor`.
+                None,
+                now_ts,
+                now_secs,
+            )
+            .await;
+        }
+
+        // Invite-based auto-approval: a JoinRequest carrying a proof over
+        // an invite THIS decider itself issued (looked up purely from
+        // local storage -- see `invite::try_auto_approve_via_invite`'s
+        // doc comment), unexpired, unrevoked, and with an unconsumed
+        // nonce, auto-approves at the invite's own `default_role`. A
+        // distinct trust decision from the delegation path below (traces
+        // to this decider's own prior `create_invite` call, not to a
+        // signed capability chain), so it's checked independently, ahead
+        // of the issuer-capability path -- cheap, local-only, no
+        // resolver round trip.
+        if let Some(role) =
+            try_auto_approve_via_invite(self.invite_repo.as_ref(), &space_id.value, request, now)
+                .await
+        {
+            return approve_with_delegation(
+                self.membership_repo.as_ref(),
+                &self.signer,
+                &self.local_peer_id,
+                space_id,
+                subject_peer_id,
+                role,
                 None,
                 now_ts,
                 now_secs,

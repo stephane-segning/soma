@@ -189,9 +189,15 @@ pub async fn get_default(state: &AppState) -> DesktopResult<AgentProviderConfigV
     Ok(view_from_record(record))
 }
 
-pub async fn get_space(state: &AppState, space_id: String) -> DesktopResult<AgentProviderConfigView> {
+pub async fn get_space(
+    state: &AppState,
+    space_id: String,
+) -> DesktopResult<AgentProviderConfigView> {
     let handle = state.daemon.handle().await?;
-    let record = handle.agent_config_get_space(&space_id).await.map_err(err)?;
+    let record = handle
+        .agent_config_get_space(&space_id)
+        .await
+        .map_err(err)?;
     Ok(view_from_record(record))
 }
 
@@ -247,7 +253,10 @@ pub async fn clear_default(state: &AppState) -> DesktopResult<bool> {
 
 pub async fn clear_space(state: &AppState, space_id: String) -> DesktopResult<bool> {
     let handle = state.daemon.handle().await?;
-    handle.agent_config_clear_space(&space_id).await.map_err(err)
+    handle
+        .agent_config_clear_space(&space_id)
+        .await
+        .map_err(err)
 }
 
 pub async fn validate(
@@ -263,7 +272,11 @@ pub async fn validate(
     }
     match state
         .agent
-        .validate_provider_config(&args.base_url, args.api_key.as_deref(), args.request_timeout_ms)
+        .validate_provider_config(
+            &args.base_url,
+            args.api_key.as_deref(),
+            args.request_timeout_ms,
+        )
         .await
     {
         Ok(models) => Ok(ValidateAgentProviderConfigResult {
@@ -303,7 +316,10 @@ mod tests {
         // fails if any future field addition ever smuggles the value
         // through, not just the fields checked explicitly above.
         let json = serde_json::to_string(&view).expect("serialize");
-        assert!(!json.contains("sk-super-secret"), "the API key value must never appear in the wire DTO: {json}");
+        assert!(
+            !json.contains("sk-super-secret"),
+            "the API key value must never appear in the wire DTO: {json}"
+        );
         assert!(json.contains("\"hasApiKey\":true"));
     }
 
@@ -316,7 +332,10 @@ mod tests {
 
     #[test]
     fn provider_round_trips_through_the_wire_string() {
-        assert_eq!(provider_from_wire(&provider_to_wire(AgentProvider::OpenAiCompatible)), Some(AgentProvider::OpenAiCompatible));
+        assert_eq!(
+            provider_from_wire(&provider_to_wire(AgentProvider::OpenAiCompatible)),
+            Some(AgentProvider::OpenAiCompatible)
+        );
         assert_eq!(provider_from_wire("not-a-real-provider"), None);
     }
 
@@ -330,6 +349,9 @@ mod tests {
         // `serde_json` (see `provider_to_wire`'s doc comment) makes that
         // class of drift impossible; this test is the tripwire in case
         // the delegation is ever reverted to a hand-rolled match.
-        assert_eq!(provider_to_wire(AgentProvider::OpenAiCompatible), "open-ai-compatible");
+        assert_eq!(
+            provider_to_wire(AgentProvider::OpenAiCompatible),
+            "open-ai-compatible"
+        );
     }
 }

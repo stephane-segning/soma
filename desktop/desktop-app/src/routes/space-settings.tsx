@@ -7,14 +7,20 @@
  * app-level `/settings` route's own shell shape (`routes/settings.tsx`)
  * so the two settings surfaces read as siblings.
  *
- * Three tabs — Members, Bots, Assistant — because those are the three
- * space-management backends that are fully built (see this feature's
- * own design brief: `spaces.members`/`joinRequests`/`decideJoin`/
- * `revokeMember`, `spaces.bots`/`issueIssuerCapability`/`revokeBot`, and
+ * Four tabs — Members, Invites, Bots, Assistant — because those are the
+ * four space-management backends that are fully built (see this
+ * feature's own design brief: `spaces.members`/`joinRequests`/
+ * `decideJoin`/`revokeMember`, `invites.create`/`list`/`revoke`,
+ * `spaces.bots`/`issueIssuerCapability`/`revokeBot`, and
  * `agent.config.getSpace`/`setSpace`/`clearSpace`/`validate` all existed
  * with zero UI call sites before this route). Each tab follows the same
  * shape: a `{ spaceId }`-prop component owning its own data-fetching
- * effect (`MembersTab`, `BotsTab`, `AssistantTab`).
+ * effect (`MembersTab`, `InvitesTab`, `BotsTab`, `AssistantTab`).
+ *
+ * Invites sits next to Members rather than as its own top-level concept
+ * — both are "who can get into this space" surfaces, and the pending
+ * join-request queue Members already hosts is the other half of the
+ * same lifecycle an invite link kicks off.
  *
  * `/spaces/:spaceId/members` redirects here (see `router.tsx`) — its
  * content is now the Members tab. `/spaces/:spaceId/info` had no
@@ -30,9 +36,10 @@ import { useTranslation } from "react-i18next";
 import { useParams } from "react-router";
 import { AssistantTab } from "../components/settings/assistant-tab";
 import { BotsTab } from "../components/settings/bots-tab";
+import { InvitesTab } from "../components/settings/invites-tab";
 import { MembersTab } from "../components/settings/members-tab";
 
-type SpaceSettingsTabId = "members" | "bots" | "assistant";
+type SpaceSettingsTabId = "members" | "invites" | "bots" | "assistant";
 
 export function SpaceSettingsPage() {
 	const { t } = useTranslation();
@@ -47,6 +54,7 @@ export function SpaceSettingsPage() {
 	const tabs = useMemo(
 		() => [
 			{ id: "members", label: t("spaceSettings.tabs.members") },
+			{ id: "invites", label: t("spaceSettings.tabs.invites") },
 			{ id: "bots", label: t("spaceSettings.tabs.bots") },
 			{ id: "assistant", label: t("spaceSettings.tabs.assistant") },
 		],
@@ -81,6 +89,7 @@ export function SpaceSettingsPage() {
 
 				<div className="mt-6">
 					{active === "members" ? <MembersTab spaceId={spaceId} /> : null}
+					{active === "invites" ? <InvitesTab spaceId={spaceId} /> : null}
 					{active === "bots" ? <BotsTab spaceId={spaceId} /> : null}
 					{active === "assistant" ? <AssistantTab spaceId={spaceId} /> : null}
 				</div>

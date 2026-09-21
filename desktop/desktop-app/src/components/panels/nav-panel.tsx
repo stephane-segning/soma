@@ -47,6 +47,11 @@ export function NavPanel() {
 		return [
 			settings,
 			{
+				id: "practice",
+				label: t("panels.nav.practice", "Practice"),
+				path: `/spaces/${spaceId}/practice`,
+			},
+			{
 				id: "space_settings",
 				label: t("panels.nav.space_settings", "Space settings"),
 				path: `/spaces/${spaceId}/settings`,

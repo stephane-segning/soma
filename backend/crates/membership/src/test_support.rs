@@ -320,6 +320,82 @@ impl soma_storage::issuer::IssuerRepository for FakeIssuerRepo {
     }
 }
 
+/// Minimal in-memory `InviteRepository` for the invite-redemption
+/// regression tests. Mirrors [`FakeIssuerRepo`]'s style exactly: only the
+/// methods the invite auto-approval path exercises are implemented with
+/// real behaviour (`get`/`insert`/`try_consume`), matching the real
+/// `SqlInviteRepository`'s guarded-`UPDATE` semantics for `try_consume` so
+/// the replay-protection tests exercise the actual conflict policy, not a
+/// simplified stand-in of it.
+#[derive(Default)]
+pub(crate) struct FakeInviteRepo {
+    invites: Mutex<HashMap<(String, String), soma_storage::invites::Invite>>,
+}
+
+impl FakeInviteRepo {
+    pub(crate) fn seed(&self, invite: soma_storage::invites::Invite) {
+        self.invites.lock().expect("invites lock").insert(
+            (invite.space_id.clone(), invite.invite_nonce.clone()),
+            invite,
+        );
+    }
+}
+
+#[async_trait]
+impl soma_storage::invites::InviteRepository for FakeInviteRepo {
+    async fn insert(&self, invite: &soma_storage::invites::Invite) -> SomaResult<()> {
+        self.seed(invite.clone());
+        Ok(())
+    }
+
+    async fn get(
+        &self,
+        space_id: &str,
+        invite_nonce: &str,
+    ) -> SomaResult<Option<soma_storage::invites::Invite>> {
+        Ok(self
+            .invites
+            .lock()
+            .expect("invites lock")
+            .get(&(space_id.to_string(), invite_nonce.to_string()))
+            .cloned())
+    }
+
+    async fn list_by_space(
+        &self,
+        _space_id: &str,
+    ) -> SomaResult<Vec<soma_storage::invites::Invite>> {
+        unimplemented!("not exercised by the invite-redemption regression tests")
+    }
+
+    async fn revoke(&self, space_id: &str, invite_nonce: &str, revoked_at: i64) -> SomaResult<u64> {
+        let mut invites = self.invites.lock().expect("invites lock");
+        match invites.get_mut(&(space_id.to_string(), invite_nonce.to_string())) {
+            Some(invite) if invite.revoked_at.is_none() => {
+                invite.revoked_at = Some(revoked_at);
+                Ok(1)
+            }
+            _ => Ok(0),
+        }
+    }
+
+    async fn try_consume(&self, space_id: &str, invite_nonce: &str, now: i64) -> SomaResult<bool> {
+        let mut invites = self.invites.lock().expect("invites lock");
+        let Some(invite) = invites.get_mut(&(space_id.to_string(), invite_nonce.to_string()))
+        else {
+            return Ok(false);
+        };
+        let eligible = invite.revoked_at.is_none()
+            && invite.expires_at.map(|exp| exp > now).unwrap_or(true)
+            && (invite.multi_use || invite.redeemed_count == 0);
+        if !eligible {
+            return Ok(false);
+        }
+        invite.redeemed_count += 1;
+        Ok(true)
+    }
+}
+
 /// An always-empty `PeerPublicKeyRepository`. `StorageBackedJoinDecider::new`
 /// constructs one unconditionally, but the bot-recruitment auto-approval
 /// path never calls `.resolve()` on it (that's the point of gating on
@@ -350,6 +426,7 @@ impl soma_storage::peers::PeerPublicKeyRepository for EmptyPeerKeyRepo {
 pub(crate) struct FakeRepositoryProvider {
     pub(crate) membership: std::sync::Arc<FakeMembershipRepo>,
     pub(crate) issuer: std::sync::Arc<FakeIssuerRepo>,
+    pub(crate) invites: std::sync::Arc<FakeInviteRepo>,
     pub(crate) peer_keys: std::sync::Arc<EmptyPeerKeyRepo>,
 }
 
@@ -360,6 +437,10 @@ impl soma_storage::RepositoryProvider for FakeRepositoryProvider {
 
     fn issuer_repo(&self) -> std::sync::Arc<dyn soma_storage::issuer::IssuerRepository> {
         self.issuer.clone()
+    }
+
+    fn invite_repo(&self) -> std::sync::Arc<dyn soma_storage::invites::InviteRepository> {
+        self.invites.clone()
     }
 
     fn mailbox_repo(&self) -> std::sync::Arc<dyn soma_storage::mailbox::MailboxRepository> {
@@ -382,7 +463,9 @@ impl soma_storage::RepositoryProvider for FakeRepositoryProvider {
         unimplemented!("not exercised by the bot-recruitment regression tests")
     }
 
-    fn agent_config_repo(&self) -> std::sync::Arc<dyn soma_storage::agent_config::AgentConfigRepository> {
+    fn agent_config_repo(
+        &self,
+    ) -> std::sync::Arc<dyn soma_storage::agent_config::AgentConfigRepository> {
         unimplemented!("not exercised by the bot-recruitment regression tests")
     }
 
