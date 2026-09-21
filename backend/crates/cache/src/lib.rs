@@ -66,11 +66,11 @@ where
     async fn get(&self, key: &K) -> Option<V> {
         let mut guard = self.inner.write().await;
         if let Some(entry) = guard.get(key) {
-            if let Some(exp) = entry.expires_at {
-                if Instant::now() >= exp {
-                    guard.remove(key);
-                    return None;
-                }
+            if let Some(exp) = entry.expires_at
+                && Instant::now() >= exp
+            {
+                guard.remove(key);
+                return None;
             }
             return Some(entry.value.clone());
         }

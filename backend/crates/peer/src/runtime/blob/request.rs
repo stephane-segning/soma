@@ -16,12 +16,12 @@ pub(super) async fn handle_blob_request(
         return;
     }
 
-    if let Some(authorizer) = state.space_authorizer.as_ref() {
-        if !authorizer.can_read_space(&peer, &request.space_id).await {
-            send_not_found(state, channel, request);
-            emit_connection_error(state, peer, "blob request denied (not a member)");
-            return;
-        }
+    if let Some(authorizer) = state.space_authorizer.as_ref()
+        && !authorizer.can_read_space(&peer, &request.space_id).await
+    {
+        send_not_found(state, channel, request);
+        emit_connection_error(state, peer, "blob request denied (not a member)");
+        return;
     }
 
     let requested_len = if request.length == 0 {

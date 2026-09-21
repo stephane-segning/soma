@@ -216,6 +216,13 @@ pub struct RevokeSpaceInput {
 }
 
 #[derive(Debug, Clone)]
+pub struct RevokeIssuerCapabilityInput {
+    pub space_id: String,
+    pub delegate_peer_id: String,
+    pub reason: String,
+}
+
+#[derive(Debug, Clone)]
 pub struct IssueIssuerCapabilityInput {
     pub space_id: String,
     pub target_peer_id: String,
@@ -231,6 +238,19 @@ pub struct IssueIssuerCapabilityInput {
     /// NOTE: scopes are NOT enforced at runtime — that is a separate,
     /// larger PR involving `validate_issuer_capability`.
     pub scopes: Vec<String>,
+    /// Multiaddrs to dial `target_peer_id` on before sending the offer.
+    /// Same shape and purpose as `JoinSpaceInput::target_multiaddrs`.
+    ///
+    /// A freshly-deployed remote bot has no prior connection to this
+    /// peer and (in the common case) no rendezvous config pointing at
+    /// it yet, so `PeerCommand::SendIssuerOffer` needs somewhere to
+    /// dial — without this, `send_request` can only reach a peer this
+    /// process happens to already be connected to or already has
+    /// addresses for in its peerstore, and the offer silently sits
+    /// until it times out and the row flips to `failed`. May be empty
+    /// when the target is already reachable some other way (already
+    /// connected, known via mDNS/rendezvous, etc).
+    pub target_multiaddrs: Vec<String>,
 }
 
 /// Plain-typed snapshot of one entry on the daemon's broadcast event stream.

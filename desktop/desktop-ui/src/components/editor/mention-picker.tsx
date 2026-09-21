@@ -179,7 +179,7 @@ export function MentionPicker({
 		return (
 			<div
 				className={cn(
-					"glass-panel shadow-elevated w-72 p-2 text-base-content/60 text-sm",
+					"glass-panel w-72 p-2 text-base-content/60 text-sm shadow-elevated",
 					className,
 				)}
 				ref={containerRef}
@@ -196,7 +196,7 @@ export function MentionPicker({
 	return (
 		<div
 			className={cn(
-				"glass-panel shadow-elevated w-72 flex flex-col gap-1 p-1",
+				"glass-panel flex w-72 flex-col gap-1 p-1 shadow-elevated",
 				className,
 			)}
 			ref={containerRef}

@@ -6,10 +6,7 @@ use soma_membership::{bot_status, issue_owned_issuer_capability_to_storage};
 use soma_peer::PeerCommand;
 use tracing::warn;
 
-use super::{
-    DaemonHandle, invalid,
-    types::IssueIssuerCapabilityInput,
-};
+use super::{DaemonHandle, invalid, parse_multiaddrs, types::IssueIssuerCapabilityInput};
 
 /// Maximum lifetime that the daemon will sign into an issuer capability,
 /// regardless of what the caller requests.
@@ -53,6 +50,7 @@ impl DaemonHandle {
             expires_at,
             alias,
             scopes,
+            target_multiaddrs,
         } = input;
 
         if space_id.trim().is_empty() {
@@ -63,6 +61,7 @@ impl DaemonHandle {
         }
         let target_peer_id =
             PeerId::from_str(&target_peer_id).map_err(|_| invalid("invalid target_peer_id"))?;
+        let addrs = parse_multiaddrs(target_multiaddrs)?;
 
         // Resolve `expires_at` against the daemon-side policy ceiling.
         //
@@ -125,13 +124,16 @@ impl DaemonHandle {
         // (space, delegate) pair at a time, so the natural composite
         // works without a separate id source.
         let delivery_id = format!("{}|{}", space_id, target_peer_id);
-        let send = self.state.peer_commands.try_send(PeerCommand::SendIssuerOffer {
-            target: target_peer_id,
-            addrs: Vec::new(),
-            delivery_id,
-            space_id: space_id.clone(),
-            capability: issuer_cap,
-        });
+        let send = self
+            .state
+            .peer_commands
+            .try_send(PeerCommand::SendIssuerOffer {
+                target: target_peer_id,
+                addrs,
+                delivery_id,
+                space_id: space_id.clone(),
+                capability: issuer_cap,
+            });
         if let Err(err) = send {
             // Peer task isn't running. The capability is persisted as
             // `pending` — operator can retry by re-issuing. We log and
@@ -141,11 +143,7 @@ impl DaemonHandle {
                 .state
                 .repos
                 .issuer_repo()
-                .update_status(
-                    &space_id,
-                    &target_peer_id.to_string(),
-                    bot_status::FAILED,
-                )
+                .update_status(&space_id, &target_peer_id.to_string(), bot_status::FAILED)
                 .await;
             self.state
                 .publish(soma_proto_build::daemon::DaemonEvent {
@@ -180,10 +178,7 @@ impl DaemonHandle {
 /// - `expires_at > 0 && expires_at <= now_secs` → already elapsed.
 /// - `expires_at > now_secs + MAX_ISSUER_CAPABILITY_LIFETIME_SECS` → exceeds
 ///   ceiling.
-pub(crate) fn resolve_expires_at(
-    expires_at: i64,
-    now_secs: i64,
-) -> Result<i64, soma_core::Error> {
+pub(crate) fn resolve_expires_at(expires_at: i64, now_secs: i64) -> Result<i64, soma_core::Error> {
     // `saturating_add` guards against a clock pushed near `i64::MAX`; in the
     // pathological case the ceiling clamps at `i64::MAX` and any non-zero
     // request still has to pass the `<= now_secs` and `> max_expires_at`
@@ -212,7 +207,10 @@ mod tests {
     #[test]
     fn zero_becomes_ceiling() {
         let resolved = resolve_expires_at(0, FAKE_NOW).unwrap();
-        assert_eq!(resolved, FAKE_NOW + MAX_ISSUER_CAPABILITY_LIFETIME_SECS as i64);
+        assert_eq!(
+            resolved,
+            FAKE_NOW + MAX_ISSUER_CAPABILITY_LIFETIME_SECS as i64
+        );
     }
 
     #[test]
@@ -246,10 +244,7 @@ mod tests {
         let past = FAKE_NOW - 1;
         let err = resolve_expires_at(past, FAKE_NOW).unwrap_err();
         let msg = err.to_string();
-        assert!(
-            msg.contains("future"),
-            "unexpected error message: {msg}"
-        );
+        assert!(msg.contains("future"), "unexpected error message: {msg}");
     }
 
     #[test]

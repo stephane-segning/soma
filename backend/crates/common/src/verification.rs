@@ -4,7 +4,29 @@ use soma_core::{Error, SomaResult};
 use soma_proto_build::space::{IssuerCapability, MembershipCapability};
 use std::time::SystemTime;
 
-/// Verify a membership capability signature, subject, and expiry.
+/// Verify a membership capability's signature, subject, and expiry.
+///
+/// # This proves self-consistency only — not authority
+///
+/// This function proves the capability is *internally consistent*: the
+/// signature over `cap`'s signing payload verifies against `signer_pub`,
+/// and `cap.issuer_peer_id` matches that same signer. It does **not**
+/// prove `signer_pub` is actually the space's owner, or anyone the owner
+/// delegated to — every field being cross-checked here can live inside
+/// the same attacker-authored payload. A caller that calls this alone and
+/// then trusts the result as "this signer may act for the space" has
+/// reproduced exactly the membership-forgery gap documented in
+/// `docs/src/security/threat-model.md` §"Unauthorized membership /
+/// capability forgery".
+///
+/// For anything reached over the network (e.g. an inbound
+/// `/soma/join-decision/1` message), use
+/// `soma_membership::verify_and_apply_inbound_join_decision` instead,
+/// which binds this check to a locally-pinned trust anchor before
+/// persisting anything. Call this function directly only when the caller
+/// already has independent, out-of-band grounds to trust `signer_pub`
+/// for this exact capability (e.g. it's the space's already-verified
+/// owner key).
 pub fn verify_membership_capability(
     cap: &MembershipCapability,
     signer_pub: &PublicKey,
@@ -16,8 +38,20 @@ pub fn verify_membership_capability(
 
 /// Verify a membership capability plus its owner -> issuer delegation chain.
 ///
-/// Use this when `cap.issuer_cap` is present and the owner public key is known
-/// from Identify or another trusted peer-key source.
+/// Use this when `cap.issuer_cap` is present and the owner public key is
+/// known from Identify or another trusted peer-key source.
+///
+/// The same self-consistency-only caveat as [`verify_membership_capability`]
+/// applies to `owner_pub` itself: this function verifies the delegation
+/// chain correctly *given* that `owner_pub` really is the space's owner —
+/// it has no way to check that premise. If `owner_pub` was resolved from
+/// a peer ID read out of the capability being verified (e.g.
+/// `issuer_cap.owner_peer_id`) rather than from a locally-pinned trust
+/// anchor, the caller has not actually verified anything about authority,
+/// only that *some* signature over *some* claimed owner is valid — see
+/// `soma_membership::verify_and_apply_inbound_join_decision` for the
+/// anchor-aware wrapper this is meant to be called from for any inbound,
+/// untrusted message.
 pub fn verify_membership_capability_with_owner_key(
     cap: &MembershipCapability,
     signer_pub: &PublicKey,
@@ -216,10 +250,7 @@ fn issuer_allows_role(issuer_cap: &IssuerCapability, role: i32) -> bool {
     if issuer_cap.allowed_roles.is_empty() {
         return true;
     }
-    issuer_cap
-        .allowed_roles
-        .iter()
-        .any(|allowed| *allowed == role)
+    issuer_cap.allowed_roles.contains(&role)
 }
 
 fn timestamp_gt(left: &prost_types::Timestamp, right: &prost_types::Timestamp) -> bool {

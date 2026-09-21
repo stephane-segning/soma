@@ -1,4 +1,4 @@
--- Documents (Yoopta editor JSON) stored by daemon/bot for persistence and sync.
+-- Documents (Tiptap/ProseMirror editor JSON) stored by daemon/bot for persistence and sync.
 CREATE TABLE IF NOT EXISTS documents (
     space_id TEXT NOT NULL,
     document_id TEXT NOT NULL,

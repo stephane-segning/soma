@@ -83,7 +83,7 @@ pub fn run() {
     #[cfg(desktop)]
     {
         builder = builder
-            .menu(|app| app_menu::build(app))
+            .menu(app_menu::build)
             .on_menu_event(app_menu::on_event);
     }
 
@@ -345,7 +345,7 @@ fn reveal_main_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
         // Tag <html> with the host platform so global CSS (notably the
         // macOS traffic-light gutter) can react. Cheaper than a JS bridge
         // call from the renderer and keeps the shell self-contained.
-        let _ = window.eval(&format!(
+        let _ = window.eval(format!(
             "document.documentElement.setAttribute('data-shell-platform', '{}')",
             shell_platform()
         ));

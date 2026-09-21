@@ -20,3 +20,9 @@ prost-types = { workspace = true }
 rand = { workspace = true }
 tracing = { workspace = true }
 tokio = { workspace = true, features = ["sync"] }
+
+[dev-dependencies]
+# Only needed to spell `RepositoryProvider::pool()`'s return type in
+# `test_support::FakeRepositoryProvider` — the fake never actually opens a
+# connection.
+sqlx-utils = { workspace = true }

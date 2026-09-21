@@ -83,8 +83,8 @@ impl PeerEventHandler<BotState> for MetricsHandler {
             PeerEvent::JoinDecisionDeliveryFailed { .. } => {
                 record_event(metrics, EventKindLabel::JoinDecisionDeliveryFailed);
             }
-            PeerEvent::YooptaBlobAdded { .. } => {
-                record_event(metrics, EventKindLabel::DocumentBlobAdded);
+            PeerEvent::BlobAnnounceReceived { .. } => {
+                record_event(metrics, EventKindLabel::BlobAnnounceReceived);
             }
             PeerEvent::BlobResponseReceived { .. } => {
                 record_event(metrics, EventKindLabel::BlobResponseReceived);

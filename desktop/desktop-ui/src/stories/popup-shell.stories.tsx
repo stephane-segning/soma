@@ -1,8 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useEffect, useState } from "react";
-
-import { CharDisplay } from "../components/tapia/char-display";
 import { PopupShell } from "../components/popup/popup-shell";
+import { CharDisplay } from "../components/tapia/char-display";
 
 const meta = {
 	title: "Popup/PopupShell",

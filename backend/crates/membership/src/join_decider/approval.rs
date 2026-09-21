@@ -10,6 +10,12 @@ use tracing::warn;
 
 use crate::{membership_store::persist_membership, roles::role_to_str};
 
+#[expect(
+    clippy::too_many_arguments,
+    reason = "pre-existing shape, predates the membership-forgery fix; the natural split (a \
+              request-context struct) touches call sites in join_decider/storage.rs only, but \
+              a signature refactor unrelated to the security fix is out of scope for this change"
+)]
 pub(super) async fn approve_with_delegation(
     repo: &dyn MembershipRepository,
     signer: &Keypair,
@@ -29,7 +35,7 @@ pub(super) async fn approve_with_delegation(
             .as_ref()
             .map(|cap| cap.default_permissions.clone())
             .unwrap_or_default(),
-        issued_at: Some(now_ts.clone()),
+        issued_at: Some(now_ts),
         expires_at: None,
         issuer_peer_id: Some(soma_proto_build::space::PeerId {
             value: local_peer_id.to_string(),

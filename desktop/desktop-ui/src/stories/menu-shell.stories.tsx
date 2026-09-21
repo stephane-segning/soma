@@ -48,16 +48,16 @@ export const AllTones: Story = {
 				<p className="mb-2 text-base-content/60 text-xs uppercase">Default</p>
 				<MenuShell>
 					<MenuItem label="Default row" />
-					<MenuItem label="Active row" active />
-					<MenuItem label="Disabled row" disabled />
+					<MenuItem active label="Active row" />
+					<MenuItem disabled label="Disabled row" />
 				</MenuShell>
 			</div>
 			<div className="space-y-1">
 				<p className="mb-2 text-base-content/60 text-xs uppercase">Danger</p>
 				<MenuShell>
 					<MenuItem label="Danger row" tone="danger" />
-					<MenuItem label="Active danger" tone="danger" active />
-					<MenuItem label="Disabled danger" tone="danger" disabled />
+					<MenuItem active label="Active danger" tone="danger" />
+					<MenuItem disabled label="Disabled danger" tone="danger" />
 				</MenuShell>
 			</div>
 		</div>
@@ -80,7 +80,7 @@ export const NoIcons: Story = {
 		<MenuShell>
 			<MenuItem label="Option A" />
 			<MenuItem label="Option B" />
-			<MenuItem label="Option C" active />
+			<MenuItem active label="Option C" />
 			<MenuItem label="Option D (danger)" tone="danger" />
 		</MenuShell>
 	),
@@ -100,9 +100,9 @@ export const WideShell: Story = {
 				label="Runbooks — incident response"
 			/>
 			<MenuItem
+				disabled
 				icon={<FileText size={14} />}
 				label="Wave 3 / PR review notes"
-				disabled
 			/>
 		</MenuShell>
 	),

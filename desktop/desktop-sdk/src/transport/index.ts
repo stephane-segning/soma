@@ -3,7 +3,7 @@
  * underneath. Two implementations ship with the SDK today:
  *
  * - {@link tauriTransport}  — `@tauri-apps/api` invoke + listen (desktop).
- * - {@link httpTransport}   — fetch + SSE (planned BFF).
+ * - {@link httpTransport}   — fetch + WebSocket (`desktop-bff`, and the web build).
  *
  * Renderer code never references either directly; it asks for a
  * `createBackend(transport)` value at boot and uses the resulting facade
@@ -11,6 +11,15 @@
  */
 
 export interface Transport {
+	/**
+	 * Which concrete implementation this is. Not used by `invoke`/`subscribe`
+	 * call sites — it exists so `createBackend` can decide, once, whether to
+	 * populate command groups that have no BFF route at all (`windowControls`,
+	 * `dbStorage`, `settings` — see `facade.ts`) rather than exposing a
+	 * namespace that would 404 on every call under `httpTransport`.
+	 */
+	readonly kind: "tauri" | "http";
+
 	/** Run a server-side command and resolve with its typed result. */
 	invoke<T>(command: string, args?: Record<string, unknown>): Promise<T>;
 

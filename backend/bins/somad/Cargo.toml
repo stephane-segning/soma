@@ -49,3 +49,9 @@ sqlx = { workspace = true, features = ["any", "postgres", "sqlite", "migrate", "
 sha2 = { workspace = true }
 toml = { workspace = true }
 once_cell = "1"
+
+[dev-dependencies]
+# Bot event-handler tests stand up a real (throwaway) SQLite-backed
+# RepositoryFactory — see `commands/bot/event_handlers/test_support.rs`
+# for why there's no lighter-weight fake available at that layer.
+tempfile = { workspace = true }

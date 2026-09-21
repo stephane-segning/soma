@@ -49,7 +49,7 @@ pub async fn decide_join_request(
     let now = SystemTime::now();
     let now_ts = Timestamp::from(now);
     let now_secs = epoch_seconds(now);
-    let mut membership_cap = new_membership_capability(&req, issuer_peer_id, role, now_ts.clone());
+    let mut membership_cap = new_membership_capability(&req, issuer_peer_id, role, now_ts);
 
     if approve {
         sign_membership_capability(&mut membership_cap, signer)?;
@@ -84,10 +84,10 @@ fn validate_request_target(req: &StoredJoinRequest, issuer_peer_id: &PeerId) -> 
         ));
     }
 
-    if let Some(target) = req.target_peer_id.as_deref() {
-        if target != issuer_peer_id.to_string() {
-            return Err(Error::service("join request not addressed to this peer"));
-        }
+    if let Some(target) = req.target_peer_id.as_deref()
+        && target != issuer_peer_id.to_string()
+    {
+        return Err(Error::service("join request not addressed to this peer"));
     }
 
     Ok(())

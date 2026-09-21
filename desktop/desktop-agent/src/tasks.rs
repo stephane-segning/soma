@@ -77,7 +77,7 @@ impl TaskStore for InMemoryTaskStore {
         let guard = self.inner.lock().await;
         let mut tasks: Vec<BackgroundTask> = guard
             .values()
-            .filter(|t| filter.space_id.as_deref().map_or(true, |id| t.space_id == id))
+            .filter(|t| filter.space_id.as_deref().is_none_or(|id| t.space_id == id))
             .cloned()
             .collect();
         tasks.sort_by_key(|t| std::cmp::Reverse(t.created_at_ms));

@@ -37,6 +37,19 @@ impl UploadPayloadStore {
     }
 
     pub async fn stage(&self, bytes: &[u8], mime: &str, file_name: Option<&str>) -> DesktopResult<StagedUpload> {
+        // Structural cap, independent of whatever check(s) run before this
+        // is called: this store must never write unbounded bytes to disk.
+        // Shared with the peer crate's network-receive cap
+        // (`soma_vdfs::MAX_BLOB_TOTAL_BYTES`) so the two ingress paths
+        // can't silently drift apart into two different magic numbers.
+        if bytes.len() as u64 > soma_vdfs::MAX_BLOB_TOTAL_BYTES {
+            return Err(DesktopError::invalid(format!(
+                "upload payload of {} bytes exceeds max {} bytes",
+                bytes.len(),
+                soma_vdfs::MAX_BLOB_TOTAL_BYTES
+            )));
+        }
+
         fs::create_dir_all(&self.base_dir).await?;
         let id = cuid2::create_id();
         let payload_path = self.base_dir.join(format!("{id}.bin"));

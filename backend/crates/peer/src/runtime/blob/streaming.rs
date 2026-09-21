@@ -65,7 +65,9 @@ pub(super) async fn abort_download(state: &mut RuntimeState, key: &(String, Stri
 
 fn emit_blob_received(state: &RuntimeState, response: &BlobResponse, found: bool, stored: bool) {
     let _ = state.event_tx.try_send(PeerEvent::BlobResponseReceived {
+        space_id: response.space_id.clone(),
         cid: response.cid.clone(),
+        mime: response.mime.clone(),
         size: response.size,
         found,
         stored,

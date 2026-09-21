@@ -125,6 +125,26 @@ pub(super) async fn get_join_request(
     Ok(row.map(map_join_request_row))
 }
 
+pub(super) async fn find_outgoing_join_request(
+    pool: &Pool,
+    space_id: &str,
+    target_peer_id: &str,
+) -> SomaResult<Option<JoinRequest>> {
+    let sql = format!(
+        "{} WHERE space_id = $1 AND target_peer_id = $2 AND is_outgoing = $3 ORDER BY created_at DESC LIMIT 1",
+        select_join_requests()
+    );
+    let row = sqlx::query(&sql)
+        .bind(space_id)
+        .bind(target_peer_id)
+        .bind(true as i64)
+        .fetch_optional(pool)
+        .await
+        .map_err(Error::service)?;
+
+    Ok(row.map(map_join_request_row))
+}
+
 fn select_join_requests() -> &'static str {
     r#"
     SELECT request_id, space_id, subject_peer_id, display_name, device_name, requested_role,

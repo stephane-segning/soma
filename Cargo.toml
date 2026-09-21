@@ -112,6 +112,10 @@ sha2 = "0.10"
 axum = { version = "0.8" }
 tower-http = { version = "0.6", features = ["cors", "trace"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal"] }
+# Pinned to the same version axum's own `ws` feature depends on (see its
+# Cargo.toml) so a WebSocket test client shares one copy in the build
+# graph instead of resolving two compatible-but-distinct versions.
+tokio-tungstenite = "0.28"
 dirs = "6"
 
 tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter", "json", "ansi", "serde_json"] }

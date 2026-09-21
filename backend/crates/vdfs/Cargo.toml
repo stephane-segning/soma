@@ -11,4 +11,7 @@ async-trait = { workspace = true }
 prost = { workspace = true }
 soma-core = { workspace = true }
 sha2 = { workspace = true }
-tokio = { workspace = true, features = ["fs"] }
+tokio = { workspace = true, features = ["fs", "io-util", "macros", "rt"] }
+
+[dev-dependencies]
+tempfile = { workspace = true }

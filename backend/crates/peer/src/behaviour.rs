@@ -1,9 +1,10 @@
 use crate::codec::{
-    BlobCodec, IssuerCapabilityAck, IssuerOfferCodec, JoinCodec, JoinDecisionAck, JoinDecisionCodec,
+    BlobAnnounce, BlobAnnounceAck, BlobAnnounceCodec, BlobCodec, IssuerCapabilityAck,
+    IssuerOfferCodec, JoinCodec, JoinDecisionAck, JoinDecisionCodec,
 };
 use crate::protocol::{
-    AGENT_PROTOCOL, build_blob_behaviour, build_issuer_offer_behaviour, build_join_behaviour,
-    build_join_decision_behaviour,
+    AGENT_PROTOCOL, build_blob_announce_behaviour, build_blob_behaviour,
+    build_issuer_offer_behaviour, build_join_behaviour, build_join_decision_behaviour,
 };
 use libp2p::{
     identify, identity, mdns, ping, relay, rendezvous, request_response as reqres,
@@ -33,14 +34,13 @@ pub(crate) fn build_app_behaviour(
             keypair.public().clone(),
         )),
         mdns: mdns_behaviour.into(),
-        rendezvous: rendezvous::client::Behaviour::new(
-            keypair.clone().try_into().expect("to libp2p keypair"),
-        ),
+        rendezvous: rendezvous::client::Behaviour::new(keypair.clone()),
         relay_client,
         join: build_join_behaviour(),
         join_decision: build_join_decision_behaviour(),
         issuer_offer: build_issuer_offer_behaviour(),
         blob: build_blob_behaviour(),
+        blob_announce: build_blob_announce_behaviour(),
     }
 }
 
@@ -56,6 +56,7 @@ pub(crate) struct AppBehaviour {
     pub(crate) join_decision: reqres::Behaviour<JoinDecisionCodec>,
     pub(crate) issuer_offer: reqres::Behaviour<IssuerOfferCodec>,
     pub(crate) blob: reqres::Behaviour<BlobCodec>,
+    pub(crate) blob_announce: reqres::Behaviour<BlobAnnounceCodec>,
 }
 
 #[derive(Debug)]
@@ -69,6 +70,7 @@ pub(crate) enum AppEvent {
     JoinDecision(reqres::Event<space::JoinDecision, JoinDecisionAck>),
     IssuerOffer(reqres::Event<space::IssuerCapability, IssuerCapabilityAck>),
     Blob(reqres::Event<BlobRequest, BlobResponse>),
+    BlobAnnounce(reqres::Event<BlobAnnounce, BlobAnnounceAck>),
 }
 
 impl From<ping::Event> for AppEvent {
@@ -122,5 +124,11 @@ impl From<reqres::Event<space::IssuerCapability, IssuerCapabilityAck>> for AppEv
 impl From<reqres::Event<BlobRequest, BlobResponse>> for AppEvent {
     fn from(event: reqres::Event<BlobRequest, BlobResponse>) -> Self {
         AppEvent::Blob(event)
+    }
+}
+
+impl From<reqres::Event<BlobAnnounce, BlobAnnounceAck>> for AppEvent {
+    fn from(event: reqres::Event<BlobAnnounce, BlobAnnounceAck>) -> Self {
+        AppEvent::BlobAnnounce(event)
     }
 }

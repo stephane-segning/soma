@@ -1,15 +1,5 @@
 import type { ContextMenuItem } from "@soma/ui/components/overlays/context-menu";
-import {
-	accordionBlock,
-	bulletListBlock,
-	carouselBlock,
-	headingBlock,
-	orderedListBlock,
-	pageLinkBlock,
-	paragraphBlock,
-	taskListBlock,
-	textRotateBlock,
-} from "./blocks";
+import { bulletListBlock, headingBlock, orderedListBlock, paragraphBlock, taskListBlock } from "./blocks";
 import type { CreateAddMenuItemsInput } from "./types";
 
 export function createAddMenuItems({
@@ -18,6 +8,7 @@ export function createAddMenuItems({
 	insertAt,
 	onInsertFile,
 	onInsertImage,
+	onInsertPageLink,
 }: CreateAddMenuItemsInput): ContextMenuItem[] {
 	return [
 		{ id: "add-paragraph", label: "Paragraph", onSelect: () => insertAt(paragraphBlock) },
@@ -41,9 +32,12 @@ export function createAddMenuItems({
 		},
 		{ id: "add-divider", label: "Divider", onSelect: () => insertAt({ type: "horizontalRule" }) },
 		{ id: "add-code", label: "Code block", onSelect: () => insertAt({ type: "codeBlock" }) },
-		{ id: "add-page-link", label: "Page link", onSelect: () => insertAt(pageLinkBlock) },
-		{ id: "add-text-rotate", label: "Text rotate (decorative)", onSelect: () => insertAt(textRotateBlock) },
-		{ id: "add-carousel", label: "Carousel (decorative)", onSelect: () => insertAt(carouselBlock) },
-		{ id: "add-accordion", label: "Accordion (decorative)", onSelect: () => insertAt(accordionBlock) },
+		{
+			id: "add-page-link",
+			label: "Page link",
+			onSelect: async () => {
+				if (editor && activeNode && onInsertPageLink) await onInsertPageLink(editor, activeNode.insertPos);
+			},
+		},
 	];
 }

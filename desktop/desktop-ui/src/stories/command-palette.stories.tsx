@@ -3,8 +3,8 @@ import { useState } from "react";
 import { Clock, FileText, Hash, Layers, Search, Settings } from "react-feather";
 
 import {
-	type CommandPaletteItem,
 	CommandPalette,
+	type CommandPaletteItem,
 } from "../components/overlays/command-palette";
 
 const meta = {

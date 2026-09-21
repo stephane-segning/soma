@@ -12,6 +12,14 @@ pub const BLOB_PROTOCOL: &str = "/soma/blob/1";
 pub const MAX_BLOB_MESSAGE_BYTES: usize = 8 * 1024 * 1024;
 /// Default chunk size used when streaming large blobs.
 pub const DEFAULT_BLOB_CHUNK_BYTES: usize = 2 * 1024 * 1024;
+/// Upper bound on the *total* size of a single blob, enforced at every
+/// ingress/egress boundary that accepts attacker- or peer-declared sizes
+/// (network streaming receive, host upload staging). `MAX_BLOB_MESSAGE_BYTES`
+/// only bounds one wire message; streaming exists specifically to allow
+/// blobs larger than that, so this is a separate, larger ceiling. Shared so
+/// every boundary enforces the same number instead of duplicating a magic
+/// constant.
+pub const MAX_BLOB_TOTAL_BYTES: u64 = 256 * 1024 * 1024;
 
 /// Range request for partial blob reads.
 #[derive(Clone, Copy, Debug)]
@@ -53,6 +61,15 @@ pub trait BlobWriteStream: Send + Sync {
 pub enum BlobWriteInit {
     Started(Box<dyn BlobWriteStream>),
     AlreadyPresent,
+}
+
+impl std::fmt::Debug for BlobWriteInit {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Started(_) => f.write_str("BlobWriteInit::Started(..)"),
+            Self::AlreadyPresent => f.write_str("BlobWriteInit::AlreadyPresent"),
+        }
+    }
 }
 
 /// Request to fetch a blob by CID.  The response includes bytes + metadata.
@@ -115,6 +132,11 @@ pub trait BlobProvider: Send + Sync {
     ) -> SomaResult<bool>;
 
     /// Begin a streaming write for large blobs. Returns `None` when streaming is unsupported.
+    ///
+    /// `total_size` is declared by the remote peer *before* any bytes are
+    /// verified. Implementations must reject it (return `Err`) when it
+    /// exceeds [`MAX_BLOB_TOTAL_BYTES`], so a remote peer can't make this
+    /// host allocate/write unbounded bytes ahead of CID verification.
     async fn open_streaming_put(
         &self,
         _expected_cid: &str,

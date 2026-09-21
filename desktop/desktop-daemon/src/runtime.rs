@@ -89,12 +89,14 @@ impl DaemonRuntime {
         let data_dir = self.opts.user_data_dir.join("daemon");
         let blob_dir = data_dir.join("blobs");
         tokio::fs::create_dir_all(&blob_dir).await?;
-        let mut config = RuntimeConfig::default();
-        config.db_path = data_dir.join("daemon.db");
-        config.blob_dir = blob_dir;
-        config.identity_path = data_dir.join("identity.key");
-        config.enable_mdns = self.opts.enable_mdns;
-        config.listen_addrs = parse_multiaddrs(&self.opts.listen_addrs)?;
+        let config = RuntimeConfig {
+            db_path: data_dir.join("daemon.db"),
+            blob_dir,
+            identity_path: data_dir.join("identity.key"),
+            enable_mdns: self.opts.enable_mdns,
+            listen_addrs: parse_multiaddrs(&self.opts.listen_addrs)?,
+            ..RuntimeConfig::default()
+        };
         Ok(config)
     }
 }

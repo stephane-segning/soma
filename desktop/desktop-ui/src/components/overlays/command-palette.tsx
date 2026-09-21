@@ -229,7 +229,7 @@ export function CommandPalette({
 								defaultMessage: "Command palette",
 							})}
 							aria-modal="true"
-							className="glass-panel shadow-elevated w-full max-w-2xl p-2"
+							className="glass-panel w-full max-w-2xl p-2 shadow-elevated"
 							exit={{ opacity: 0, y: 8 }}
 							initial={{ opacity: 0, y: 10 }}
 							onClick={(event) => event.stopPropagation()}

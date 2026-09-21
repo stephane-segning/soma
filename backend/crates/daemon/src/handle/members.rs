@@ -4,7 +4,10 @@ use soma_core::SomaResult;
 use soma_membership::bot_status;
 use soma_storage::membership::SpaceMembership;
 
-use super::{DaemonHandle, types::{SpaceBotRecord, SpaceMemberRecord}};
+use super::{
+    DaemonHandle,
+    types::{SpaceBotRecord, SpaceMemberRecord},
+};
 
 /// Map an `IssuerCapability` row onto `SpaceBotRecord`. `delegate_peer_id`
 /// is the bot; `expires_at: None` becomes `0` (the daemon's no-expiry
@@ -44,10 +47,7 @@ fn now_secs() -> i64 {
 }
 
 impl DaemonHandle {
-    pub async fn list_space_members(
-        &self,
-        space_id: &str,
-    ) -> SomaResult<Vec<SpaceMemberRecord>> {
+    pub async fn list_space_members(&self, space_id: &str) -> SomaResult<Vec<SpaceMemberRecord>> {
         let rows = self
             .state
             .repos
@@ -80,10 +80,7 @@ impl DaemonHandle {
     ///
     /// NOTE: `scopes` are stored + plumbed for forward-looking visibility
     /// only — runtime authorisation enforcement is NOT yet implemented.
-    pub async fn list_space_bots(
-        &self,
-        space_id: &str,
-    ) -> SomaResult<Vec<SpaceBotRecord>> {
+    pub async fn list_space_bots(&self, space_id: &str) -> SomaResult<Vec<SpaceBotRecord>> {
         let caps = self
             .state
             .repos

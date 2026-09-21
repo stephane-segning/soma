@@ -27,7 +27,7 @@ pub enum PeerEventKind {
     IssuerOfferAckReceived,
     IssuerOfferDeliveryFailed,
     IssuerOfferReceived,
-    YooptaBlobAdded,
+    BlobAnnounceReceived,
     BlobResponseReceived,
 }
 
@@ -57,7 +57,7 @@ impl PeerEventKind {
         PeerEventKind::IssuerOfferAckReceived,
         PeerEventKind::IssuerOfferDeliveryFailed,
         PeerEventKind::IssuerOfferReceived,
-        PeerEventKind::YooptaBlobAdded,
+        PeerEventKind::BlobAnnounceReceived,
         PeerEventKind::BlobResponseReceived,
     ];
 
@@ -95,7 +95,7 @@ impl PeerEventKind {
                 PeerEventKind::IssuerOfferDeliveryFailed
             }
             PeerEvent::IssuerOfferReceived { .. } => PeerEventKind::IssuerOfferReceived,
-            PeerEvent::YooptaBlobAdded { .. } => PeerEventKind::YooptaBlobAdded,
+            PeerEvent::BlobAnnounceReceived { .. } => PeerEventKind::BlobAnnounceReceived,
             PeerEvent::BlobResponseReceived { .. } => PeerEventKind::BlobResponseReceived,
         }
     }
@@ -126,7 +126,7 @@ impl PeerEventKind {
             PeerEventKind::IssuerOfferAckReceived => 20,
             PeerEventKind::IssuerOfferDeliveryFailed => 21,
             PeerEventKind::IssuerOfferReceived => 22,
-            PeerEventKind::YooptaBlobAdded => 23,
+            PeerEventKind::BlobAnnounceReceived => 23,
             PeerEventKind::BlobResponseReceived => 24,
         }
     }

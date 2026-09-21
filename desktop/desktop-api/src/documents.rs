@@ -203,9 +203,14 @@ pub async fn get(state: &AppState, space_id: String, document_id: String) -> Des
     Ok(record.map(StoredDocument::from))
 }
 
+/// Like the draft handlers below, broadcasts a renderer-source
+/// `pages-changed` event via `events::publish` after the daemon write
+/// succeeds — see that section's comment for why the presenter doesn't
+/// need to know about events at all.
 pub async fn ensure_page(state: &AppState, args: EnsurePageArgs) -> DesktopResult<StoredPage> {
     let handle = state.daemon.handle().await?;
     let now = now_ms();
+    let space_id = args.space_id.clone();
     let page = handle
         .ensure_page(dt::EnsurePageInput {
             space_id: args.space_id,
@@ -217,6 +222,7 @@ pub async fn ensure_page(state: &AppState, args: EnsurePageArgs) -> DesktopResul
         })
         .await
         .map_err(err)?;
+    crate::events::publish(state, crate::events::pages_changed(space_id, "documents_ensure_page"));
     Ok(page.into())
 }
 
@@ -232,6 +238,7 @@ pub async fn update_page_title(state: &AppState, args: UpdatePageTitleArgs) -> D
         .update_page_title(&args.space_id, &args.page_id, &args.title)
         .await
         .map_err(err)?;
+    crate::events::publish(state, crate::events::pages_changed(args.space_id, "documents_update_page_title"));
     Ok(page.map(StoredPage::from))
 }
 
@@ -241,6 +248,7 @@ pub async fn set_page_parents(state: &AppState, args: SetPageParentsArgs) -> Des
         .set_page_parents(&args.space_id, &args.page_id, &args.parent_page_ids)
         .await
         .map_err(err)?;
+    crate::events::publish(state, crate::events::pages_changed(args.space_id, "documents_set_page_parents"));
     Ok(page.map(StoredPage::from))
 }
 

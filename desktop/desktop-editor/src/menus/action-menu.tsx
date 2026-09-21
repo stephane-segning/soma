@@ -24,11 +24,13 @@ export function ActionMenu({
 	editor,
 	onInsertImage,
 	onInsertFile,
+	onInsertPageLink,
 	onAskAIForNode,
 }: {
 	editor: Editor | null;
 	onInsertImage?: (editor: Editor, insertPos: number) => Promise<void>;
 	onInsertFile?: (editor: Editor, insertPos: number) => Promise<void>;
+	onInsertPageLink?: (editor: Editor, insertPos: number) => Promise<void>;
 	/**
 	 * Called when the user clicks "AI" on the drag-handle menu for a block.
 	 * The caller (DocumentEditor) relays the trigger into ContextualMenu so
@@ -111,7 +113,7 @@ export function ActionMenu({
 		});
 	}, [editor, activeNode, onAskAIForNode]);
 
-	const addMenuItems = createAddMenuItems({ activeNode, editor, insertAt, onInsertFile, onInsertImage });
+	const addMenuItems = createAddMenuItems({ activeNode, editor, insertAt, onInsertFile, onInsertImage, onInsertPageLink });
 
 	// Convert-to picker — one row per block kind, mirrors the slash-menu
 	// transform commands. Clicking a row closes the picker and applies the

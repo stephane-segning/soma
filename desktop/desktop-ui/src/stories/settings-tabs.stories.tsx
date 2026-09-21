@@ -35,7 +35,7 @@ function Demo({ initial = "general" }: { initial?: string }) {
 	return (
 		<div className="flex flex-col gap-4">
 			<div className="flex flex-col gap-1">
-				<h1 className="font-medium text-lg text-base-content">
+				<h1 className="font-medium text-base-content text-lg">
 					Space settings
 				</h1>
 				<SettingsTabs

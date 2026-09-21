@@ -13,7 +13,7 @@ use super::{
 impl DaemonHandle {
     pub async fn list_spaces(&self, input: ListSpacesInput) -> SomaResult<ListSpacesOutput> {
         let ListSpacesInput { q, limit, offset } = input;
-        let limit = limit.max(1).min(200);
+        let limit = limit.clamp(1, 200);
         let (spaces, next_offset) = self
             .state
             .space_manager
@@ -91,4 +91,3 @@ fn to_space_record(space: ServiceSpaceRecord) -> SpaceRecord {
         created_at: space.created_at,
     }
 }
-

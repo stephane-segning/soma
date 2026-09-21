@@ -6,9 +6,20 @@
  *
  * The previous Phase-1 version rendered a hard-coded mock list; this
  * version is the production wiring.
+ *
+ * `onCreate` (the rail's trailing `+` button) calls
+ * `backend.spaces.create` directly and navigates to the new space. The
+ * same "New Space" command reachable via ⌘⇧N / the native menu / the
+ * command palette (`CommandPaletteRoot`) does the identical two steps —
+ * they're just not shared as one function since there's nothing to
+ * factor beyond a single SDK call. On failure this rail has no room for
+ * inline text (it's a 52px icon strip), so — same as the global
+ * command — it navigates to `/spaces` with an inline `notice`
+ * (ADR-0005 §6) rather than showing nothing or a toast.
  */
 import { type SpaceRailItem, SpacesRail } from "@soma/ui/components/nav/spaces-rail";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router";
 import { backend } from "../lib/backend";
 
@@ -43,6 +54,7 @@ function monogram(displayName: string): string {
 
 export function SpacesRailContainer() {
 	const navigate = useNavigate();
+	const { t } = useTranslation();
 	const { spaceId } = useParams<{ spaceId?: string }>();
 	const [items, setItems] = useState<SpaceRailItem[] | null>(null);
 
@@ -51,6 +63,9 @@ export function SpacesRailContainer() {
 	// compare their id against it and discard themselves so a slow earlier
 	// response can't overwrite a faster later one.
 	const latestRequestRef = useRef(0);
+	// Guards against a double-click firing two concurrent creates — the
+	// rail's `+` button has no busy/disabled visual of its own.
+	const creatingRef = useRef(false);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -90,6 +105,24 @@ export function SpacesRailContainer() {
 
 	const safeItems = useMemo(() => items ?? [], [items]);
 
+	const handleCreate = useCallback(async () => {
+		if (creatingRef.current) return;
+		creatingRef.current = true;
+		try {
+			const space = await backend.spaces.create(null);
+			navigate(`/spaces/${space.spaceId}`);
+		} catch (err) {
+			const message = err instanceof Error ? err.message : String(err);
+			navigate("/spaces", {
+				state: {
+					notice: t("pages.spaces_index.create_error", "Couldn't create a space: {{message}}", { message }),
+				},
+			});
+		} finally {
+			creatingRef.current = false;
+		}
+	}, [navigate, t]);
+
 	return (
 		<SpacesRail
 			activeId={spaceId ?? null}
@@ -99,11 +132,7 @@ export function SpacesRailContainer() {
 			// defaults to `bg-base-100`; twMerge lets this override win.)
 			className="bg-transparent"
 			items={safeItems}
-			onCreate={() => {
-				// TODO(palette): hook this into the `menu:new-space` command
-				// once the AppLayout exposes a create-space affordance.
-				console.info("[spaces-rail] create-space requested");
-			}}
+			onCreate={() => void handleCreate()}
 			onSelect={(id) => navigate(`/spaces/${id}`)}
 		/>
 	);

@@ -1,4 +1,5 @@
 mod behaviour;
+pub mod blob;
 pub mod bootstrap;
 mod codec;
 mod config;

@@ -4,8 +4,8 @@
 use desktop_api::{
     AppState,
     blobs::{
-        self as api, StageBlobArgs, StageBlobResult, StageFromPayloadArgs, StageUploadArgs, UploadBlobArgs,
-        UploadBlobResult,
+        self as api, BlobUrlStyle, StageBlobArgs, StageBlobResult, StageFromPayloadArgs, StageUploadArgs,
+        UploadBlobArgs, UploadBlobResult,
     },
 };
 use desktop_core::error::{DesktopError, DesktopResult};
@@ -37,7 +37,7 @@ pub async fn blobs_stage_upload(
     args: StageUploadArgs,
 ) -> DesktopResult<StagedUpload> {
     let user_data_dir = resolve_user_data_dir(&app)?;
-    api::stage_upload(user_data_dir, args).await
+    api::stage_upload(user_data_dir, None, args).await
 }
 
 /// Mime-aware stage: image payloads pass through verbatim, anything else
@@ -46,7 +46,7 @@ pub async fn blobs_stage_upload(
 #[tauri::command]
 #[specta::specta]
 pub async fn blobs_stage(state: State<'_, AppState>, args: StageBlobArgs) -> DesktopResult<StageBlobResult> {
-    api::stage(state.inner(), args).await
+    api::stage(state.inner(), args, BlobUrlStyle::SomaBlobScheme).await
 }
 
 /// Two-step upload's "stage to disk" leg. The wire shape matches
@@ -59,7 +59,7 @@ pub async fn blobs_stage_payload(
     args: StageUploadArgs,
 ) -> DesktopResult<StagedUpload> {
     let user_data_dir = resolve_user_data_dir(&app)?;
-    api::stage_upload(user_data_dir, args).await
+    api::stage_upload(user_data_dir, None, args).await
 }
 
 /// Two-step upload's "consume staged payload" leg. Reads the staged file,
@@ -73,5 +73,5 @@ pub async fn blobs_stage_from_payload(
     args: StageFromPayloadArgs,
 ) -> DesktopResult<StageBlobResult> {
     let user_data_dir = resolve_user_data_dir(&app)?;
-    api::stage_from_payload(state.inner(), user_data_dir, args).await
+    api::stage_from_payload(state.inner(), user_data_dir, None, args, BlobUrlStyle::SomaBlobScheme).await
 }

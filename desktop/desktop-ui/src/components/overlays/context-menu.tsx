@@ -75,21 +75,21 @@ export function ContextMenu({
 						 * and stays in sync with the rest of our overlay vocab.
 						 */}
 						<motion.div
-							ref={refs.setFloating}
-							style={floatingStyles}
 							animate={{ opacity: 1 }}
 							className="pointer-events-auto z-50"
 							exit={{ opacity: 0 }}
 							initial={{ opacity: 0 }}
 							onMouseDown={(event) => event.stopPropagation()}
+							ref={refs.setFloating}
+							style={floatingStyles}
 							transition={{ duration: 0.12, ease: "easeOut" }}
 						>
 							<MenuShell className={className}>
 								{items.map((item) => (
 									<MenuItem
-										key={item.id}
 										disabled={item.disabled}
 										icon={item.icon}
+										key={item.id}
 										label={item.label}
 										onClick={() => {
 											item.onSelect?.();

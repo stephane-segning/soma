@@ -50,6 +50,7 @@ pub fn build_specta() -> Builder<Wry> {
             desktop_commands::spaces::spaces_decide_join,
             desktop_commands::spaces::spaces_list_join_requests,
             desktop_commands::spaces::spaces_revoke_member,
+            desktop_commands::spaces::spaces_revoke_bot,
             desktop_commands::spaces::spaces_issue_issuer_capability,
             // Documents
             desktop_commands::documents::documents_upsert,

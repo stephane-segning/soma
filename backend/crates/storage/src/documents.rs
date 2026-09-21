@@ -3,7 +3,7 @@ use soma_core::{Error, SomaResult};
 use sqlx::Row;
 use sqlx_utils::types::Pool;
 
-/// Stored Yoopta document.
+/// Stored document (Tiptap/ProseMirror JSON).
 #[derive(Debug, Clone)]
 pub struct Document {
     pub space_id: String,

@@ -22,12 +22,11 @@
 import {
 	InteractionMode,
 	StaticTreeDataProvider,
-	type TreeItem,
 	Tree,
+	type TreeItem,
 	UncontrolledTreeEnvironment,
 } from "react-complex-tree";
 import "react-complex-tree/lib/style-modern.css";
-import { ChevronRight, FileText, Search, Star } from "react-feather";
 import {
 	type MouseEvent,
 	type ReactNode,
@@ -36,6 +35,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { ChevronRight, FileText, Search, Star } from "react-feather";
 import { useT } from "../../i18n/use-t";
 import { cn } from "../../utils/cn";
 import { Kbd } from "../primitives/kbd";
@@ -205,7 +205,7 @@ export function TreePopover({
 				defaultMessage: "Document picker",
 			})}
 			className={cn(
-				"glass-panel shadow-elevated w-80 flex flex-col gap-2 p-2",
+				"glass-panel flex w-80 flex-col gap-2 p-2 shadow-elevated",
 				className,
 			)}
 			ref={containerRef}

@@ -190,7 +190,7 @@ export function SelectionAIBar({
 			})}
 			aria-modal="true"
 			className={cn(
-				"glass-panel shadow-elevated w-96 flex flex-col gap-1 p-1",
+				"glass-panel flex w-96 flex-col gap-1 p-1 shadow-elevated",
 				className,
 			)}
 			ref={containerRef}
@@ -225,13 +225,13 @@ export function SelectionAIBar({
 				</div>
 			) : (
 				<ActionList
-					grouped={grouped}
 					activeIndex={activeIndex}
-					setActiveIndex={setActiveIndex}
-					sectionLabel={sectionLabel}
-					nodeType={nodeType}
-					selectedText={selectedText}
+					grouped={grouped}
 					metadata={metadata}
+					nodeType={nodeType}
+					sectionLabel={sectionLabel}
+					selectedText={selectedText}
+					setActiveIndex={setActiveIndex}
 				/>
 			)}
 		</div>

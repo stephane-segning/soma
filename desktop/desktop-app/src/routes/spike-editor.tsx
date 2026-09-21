@@ -70,8 +70,11 @@ export function SpikeEditor() {
 
 	useEffect(() => {
 		// One-time hydrate of the dbStorage cache so synchronous reads land
-		// the persisted values from the previous launch.
-		void backend.dbStorage.hydrate();
+		// the persisted values from the previous launch. `dbStorage` is
+		// `undefined` under the web build (no BFF route backs it — see
+		// `Backend.dbStorage`'s doc comment in `@soma/sdk`), so this is a
+		// deliberate no-op there rather than a hard dependency.
+		void backend.dbStorage?.hydrate();
 	}, []);
 
 	return (

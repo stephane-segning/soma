@@ -1,23 +1,24 @@
 use std::{sync::Arc, time::SystemTime};
 
-use axum::{Json, extract::State, http::StatusCode};
+use axum::{Json, extract::State, http::HeaderMap, http::StatusCode};
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD as B64;
 use libp2p::PeerId;
 use prost::Message;
 use serde::Deserialize;
 use soma_membership::{
-    bot_status, issue_issuer_capability_to_storage, parse_role_str,
-    scopes::SCOPE_ISSUE_MEMBERSHIP,
+    bot_status, issue_issuer_capability_to_storage, parse_role_str, scopes::SCOPE_ISSUE_MEMBERSHIP,
 };
 use soma_proto_build::space::SpaceRole;
 use soma_storage::issuer::IssuerRepository;
 
-use super::{BotState, JsonResult, auth::authorize};
+use super::{
+    BotState, JsonResult,
+    auth::{authorize, bearer_token},
+};
 
 #[derive(Deserialize)]
 pub(super) struct IssueIssuerCapPayload {
-    admin_token: Option<String>,
     space_id: String,
     delegate_peer_id: String,
     allowed_roles: Option<Vec<String>>,
@@ -26,7 +27,6 @@ pub(super) struct IssueIssuerCapPayload {
 
 #[derive(Deserialize)]
 pub(super) struct ImportIssuerCapPayload {
-    admin_token: Option<String>,
     space_id: String,
     delegate_peer_id: String,
     issuer_peer_id: String,
@@ -36,10 +36,11 @@ pub(super) struct ImportIssuerCapPayload {
 
 pub(super) async fn issue_handler(
     State(state): State<Arc<BotState>>,
+    headers: HeaderMap,
     payload: Json<IssueIssuerCapPayload>,
     admin_token: Option<String>,
 ) -> JsonResult {
-    authorize(&admin_token, payload.admin_token.clone())?;
+    authorize(&admin_token, bearer_token(&headers))?;
 
     let owner_peer_id = parse_peer_id(
         &state.info.peer_id,
@@ -101,10 +102,11 @@ pub(super) async fn issue_handler(
 
 pub(super) async fn import_handler(
     State(state): State<Arc<BotState>>,
+    headers: HeaderMap,
     payload: Json<ImportIssuerCapPayload>,
     admin_token: Option<String>,
 ) -> JsonResult {
-    authorize(&admin_token, payload.admin_token.clone())?;
+    authorize(&admin_token, bearer_token(&headers))?;
 
     let bytes = B64.decode(payload.capability_b64.as_bytes()).map_err(|_| {
         (

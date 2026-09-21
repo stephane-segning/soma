@@ -172,7 +172,7 @@ impl AgentService {
         self.tasks.insert(task.clone()).await;
         // Spawn the processor. We re-grab Self from the cached Arc so the
         // background future doesn't capture &self.
-        let svc = self.self_arc().await;
+        let svc = self.self_arc().await?;
         let task_id = task.task_id.clone();
         let model = params.model.clone();
         tokio::spawn(async move {
@@ -238,12 +238,14 @@ impl AgentService {
         resolve_workspace(&cfg, space_id)
     }
 
-    async fn self_arc(&self) -> Arc<AgentService> {
+    async fn self_arc(&self) -> DesktopResult<Arc<AgentService>> {
         self.self_handle
             .read()
             .await
             .clone()
-            .expect("AgentService self-handle must be populated by AgentService::new")
+            .ok_or_else(|| DesktopError::Agent {
+                message: "AgentService self-handle not populated".into(),
+            })
     }
 }
 

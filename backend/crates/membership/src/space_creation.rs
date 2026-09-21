@@ -267,7 +267,7 @@ mod tests {
             Ok(0)
         }
 
-        async fn upsert_membership(&self, _membership: &SpaceMembership) -> SomaResult<()> {
+        async fn upsert_membership(&self, _membership: &SpaceMembership) -> SomaResult<bool> {
             unimplemented!("not needed for space genesis tests")
         }
 
@@ -333,6 +333,14 @@ mod tests {
             _limit: Option<u32>,
             _offset: Option<u32>,
         ) -> SomaResult<Vec<JoinRequest>> {
+            unimplemented!("not needed for space genesis tests")
+        }
+
+        async fn find_outgoing_join_request(
+            &self,
+            _space_id: &str,
+            _target_peer_id: &str,
+        ) -> SomaResult<Option<JoinRequest>> {
             unimplemented!("not needed for space genesis tests")
         }
     }

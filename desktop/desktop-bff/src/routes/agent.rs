@@ -6,8 +6,9 @@
 //! `ChatResponse` rather than a stream of deltas (the renderer that
 //! actually wants tokens-as-they-arrive uses OpenAI HTTP directly, see
 //! the AGENTS.md note on the deferred `chat_stream`). When a real
-//! streaming surface lands it will get its own SSE/WebSocket route — for
-//! now this one keeps the SDK call site working against the BFF.
+//! streaming surface lands it will ride the existing `ws` event stream
+//! (see `crate::ws`) rather than a new transport — for now this route
+//! keeps the SDK call site working against the BFF.
 
 use std::sync::Arc;
 

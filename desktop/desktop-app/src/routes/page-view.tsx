@@ -22,14 +22,35 @@
  *    final keystrokes reach the daemon (fire-and-forget, errors logged);
  *  - the editor is force-remounted via `key={spaceId/pageId}` so the
  *    underlying ProseMirror instance never reuses content across docs.
+ *
+ * Blob uploads (images / files dropped, pasted, or added via the "+"
+ * menu) go through `backend.blobs.stage`, the mime-aware handler that
+ * zips non-image payloads and hands back a `soma-blob://` URL the
+ * editor can render directly (see AGENTS.md's "Blobs" section). Upload
+ * failures are *not* caught here — they propagate to `@soma/editor`'s
+ * own `uploadAndHydrate`, which already renders an inline error state
+ * on the placeholder node (`blob-image/hydrate.ts`, `blob-file.tsx`).
+ * Catching and swallowing them here would just hide that surface.
+ *
+ * "Page link" inserts go through `PageLinkPicker`, a small popover that
+ * lists this space's pages (or mints a new sub-page via the shared
+ * `createPage()` helper) and hands the chosen page back to
+ * `onInsertPageLink`'s pending `(editor, insertPos)`.
  */
 
-import { DocumentEditor, type JSONContent } from "@soma/editor";
+import {
+	type BlobFileUploadResult,
+	type BlobImageUploadResult,
+	DocumentEditor,
+	type Editor,
+	type JSONContent,
+} from "@soma/editor";
 import type { StoredSpaceMember } from "@soma/sdk";
 import { Empty } from "@soma/ui/components/primitives/empty";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router";
+import { PageLinkPicker, type PickedPage } from "../components/page-link-picker";
 import { backend } from "../lib/backend";
 
 type LoadState =
@@ -119,6 +140,36 @@ function pickEditable(members: StoredSpaceMember[], peerId: string | null): bool
 	const me = members.find((m) => m.peerId === peerId);
 	if (!me) return false;
 	return EDITABLE_ROLES.has(me.role.toLowerCase());
+}
+
+/** `bytes` over the wire is `number[]` (`Array.from(uint8)`) — see
+ *  `@soma/sdk`'s `blobs.ts` doc comment for why. */
+async function fileToBytes(file: File): Promise<number[]> {
+	const buffer = await file.arrayBuffer();
+	return Array.from(new Uint8Array(buffer));
+}
+
+/**
+ * Backend `stage` result carries `cid`/`size`/`mime`/`name`/`url` but
+ * not pixel dimensions (see `desktop-api::blobs::StageBlobResult`).
+ * Probe them client-side, the same way the `@soma/editor` Storybook
+ * reference (`document-editor-story/file-utils.ts`) does — from a
+ * local `URL.createObjectURL(file)` rather than the just-uploaded
+ * `soma-blob://` URL, so it resolves instantly instead of waiting on a
+ * second round-trip through the blob protocol handler.
+ */
+function loadImageDimensions(file: File): Promise<{ width: number; height: number } | null> {
+	return new Promise((resolve) => {
+		const objectUrl = URL.createObjectURL(file);
+		const image = new Image();
+		const done = (result: { width: number; height: number } | null) => {
+			URL.revokeObjectURL(objectUrl);
+			resolve(result);
+		};
+		image.onload = () => done({ width: image.naturalWidth, height: image.naturalHeight });
+		image.onerror = () => done(null);
+		image.src = objectUrl;
+	});
 }
 
 export function PageView() {
@@ -307,6 +358,22 @@ export function PageView() {
 		);
 	}
 
+	// `state.phase === "ready"` is only ever set after the load effect's
+	// own `!spaceId || !pageId` guard passed, so both are always defined
+	// here at runtime — but that invariant lives in a different closure
+	// than this render, so TS can't see it. Re-checking narrows the
+	// types for the `PageEditor` props below without resorting to a
+	// non-null assertion.
+	if (!spaceId || !pageId) {
+		return (
+			<div className={root}>
+				<div className={inner}>
+					<Empty headline={t("pages.page_view.not_found")} />
+				</div>
+			</div>
+		);
+	}
+
 	// Force-remount the editor when the route's target document changes
 	// so the underlying ProseMirror instance never carries old content
 	// into a new doc. `DocumentEditor` consumes `initialContent` only at
@@ -318,6 +385,8 @@ export function PageView() {
 			editable={state.editable}
 			key={`${spaceId}/${pageId}`}
 			onChange={handleChange}
+			pageId={pageId}
+			spaceId={spaceId}
 		/>
 	);
 }
@@ -326,11 +395,119 @@ function PageEditor({
 	content,
 	editable,
 	onChange,
+	pageId,
+	spaceId,
 }: {
 	content: JSONContent;
 	editable: boolean;
 	onChange: (next: JSONContent) => void;
+	pageId: string;
+	spaceId: string;
 }) {
+	const navigate = useNavigate();
+
+	const uploadImage = useCallback(
+		async (file: File): Promise<BlobImageUploadResult> => {
+			const [bytes, dimensions] = await Promise.all([fileToBytes(file), loadImageDimensions(file)]);
+			const staged = await backend.blobs.stage({
+				bytes,
+				docId: pageId,
+				fileName: file.name,
+				mime: file.type || "application/octet-stream",
+				spaceId,
+			});
+			return {
+				cid: staged.cid,
+				height: dimensions?.height,
+				mime: staged.mime,
+				name: staged.name,
+				size: staged.size,
+				src: staged.url,
+				variants: staged.variants?.map((variant) => ({
+					cid: variant.cid,
+					mime: variant.mime,
+					name: variant.name,
+					size: variant.size,
+					url: variant.url,
+					width: variant.width ?? undefined,
+					height: variant.height ?? undefined,
+				})),
+				width: dimensions?.width,
+			};
+		},
+		[pageId, spaceId],
+	);
+
+	const uploadFile = useCallback(
+		async (file: File): Promise<BlobFileUploadResult> => {
+			const bytes = await fileToBytes(file);
+			const staged = await backend.blobs.stage({
+				bytes,
+				docId: pageId,
+				fileName: file.name,
+				mime: file.type || "application/octet-stream",
+				spaceId,
+			});
+			return { cid: staged.cid, href: staged.url, mime: staged.mime, name: staged.name, size: staged.size };
+		},
+		[pageId, spaceId],
+	);
+
+	// Read-only viewers can still follow a page link (pure navigation,
+	// no mutation) — this one is intentionally not gated by `editable`.
+	const onOpenPageLink = useCallback(
+		(linkedPageId: string, _title?: string, href?: string) => {
+			navigate(href ?? `/spaces/${spaceId}/pages/${linkedPageId}`);
+		},
+		[navigate, spaceId],
+	);
+
+	const onRenamePageLink = useCallback(
+		async (linkedPageId: string, nextTitle: string): Promise<string | null> => {
+			try {
+				const updated = await backend.pages.updateTitle({ spaceId, pageId: linkedPageId, title: nextTitle });
+				return updated?.title ?? null;
+			} catch (err) {
+				// Same swallow-with-log convention as `persist` above — the
+				// link's displayed title just stays unchanged on failure.
+				console.error("[page-view] pages.updateTitle failed", err);
+				return null;
+			}
+		},
+		[spaceId],
+	);
+
+	// `onInsertPageLink` only has to open the picker and remember which
+	// `(editor, insertPos)` it was requested for — `ContextMenu` (the
+	// add-menu host) already closes itself synchronously on click
+	// regardless of when this promise settles, so there's nothing to
+	// await here. The actual `insertContentAt` happens later, whenever
+	// `PageLinkPicker` calls back via `onPick`/`onClose`.
+	const pendingInsertRef = useRef<{ editor: Editor; insertPos: number } | null>(null);
+	const [pickerOpen, setPickerOpen] = useState(false);
+	const onInsertPageLink = useCallback(async (targetEditor: Editor, insertPos: number) => {
+		pendingInsertRef.current = { editor: targetEditor, insertPos };
+		setPickerOpen(true);
+	}, []);
+	const closePicker = useCallback(() => {
+		pendingInsertRef.current = null;
+		setPickerOpen(false);
+	}, []);
+	const handlePagePicked = useCallback((picked: PickedPage) => {
+		const pending = pendingInsertRef.current;
+		pendingInsertRef.current = null;
+		setPickerOpen(false);
+		if (!pending) return;
+		pending.editor
+			.chain()
+			.focus()
+			.insertContentAt(pending.insertPos, {
+				type: "pageLink",
+				attrs: { pageId: picked.pageId, title: picked.title, href: picked.href },
+			})
+			.run();
+	}, []);
+
 	// Read-only path: pass `editable={false}` to `DocumentEditor` so
 	// ProseMirror itself disables `contenteditable` on the surface. The
 	// previous `inert` cage removed the entire subtree from the a11y
@@ -338,11 +515,33 @@ function PageEditor({
 	// prose selectable and screen-reader-reachable. The intrinsic
 	// `contenteditable="false"` ProseMirror sets is what AT actually
 	// reads, so we don't need a redundant `aria-readonly` here.
+	//
+	// Mutating capabilities (uploads, page-link insert/rename) are only
+	// wired when `editable` — mirrors the existing `onChange` gating
+	// just below so a read-only viewer can't trigger a write even if
+	// some other `@soma/editor` surface (e.g. the drag-handle) rendered
+	// for them.
 	return (
 		<div className="min-h-full w-full bg-base-100">
 			<div className="mx-auto w-full max-w-4xl px-8 py-10">
-				<DocumentEditor editable={editable} initialContent={content} onChange={editable ? onChange : undefined} />
+				<DocumentEditor
+					editable={editable}
+					initialContent={content}
+					onChange={editable ? onChange : undefined}
+					onInsertPageLink={editable ? onInsertPageLink : undefined}
+					onOpenPageLink={onOpenPageLink}
+					onRenamePageLink={editable ? onRenamePageLink : undefined}
+					uploadFile={editable ? uploadFile : undefined}
+					uploadImage={editable ? uploadImage : undefined}
+				/>
 			</div>
+			<PageLinkPicker
+				currentPageId={pageId}
+				onClose={closePicker}
+				onPick={handlePagePicked}
+				open={pickerOpen}
+				spaceId={spaceId}
+			/>
 		</div>
 	);
 }

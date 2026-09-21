@@ -3,9 +3,16 @@
 //! The owner sends a signed `space::IssuerCapability` to the delegate
 //! peer; the delegate replies with an empty `IssuerCapabilityAck`. The
 //! libp2p source-peer identity authenticates the ACK — no separate
-//! delegate signature is required at v0. The capability itself is
-//! already signed by the owner so the delegate can verify provenance
-//! before deciding to ACK.
+//! delegate signature is required at v0. The ACK itself is unconditional
+//! and happens synchronously here, before any verification: this codec
+//! never inspects `signed`, so it does not and cannot gate the ACK on
+//! provenance. Verification of the capability's signature — and of
+//! whether its claimed owner is actually this space's trusted owner —
+//! happens asynchronously afterwards, in the delegate's
+//! `IssuerOfferReceived` handler (`soma_membership::verify_inbound_issuer_capability`,
+//! called from `daemon::handlers::issuer_events` / `somad`'s
+//! `issuer_inbound` handler), which decides whether to persist the
+//! capability, not whether to ACK.
 
 use super::framing::{read_message_with_limit, write_message};
 use crate::protocol::MAX_ISSUER_OFFER_MESSAGE_BYTES;

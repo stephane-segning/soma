@@ -1,6 +1,6 @@
 use std::{sync::Arc, time::SystemTime};
 
-use axum::{Json, extract::State, http::StatusCode};
+use axum::{Json, extract::State, http::HeaderMap, http::StatusCode};
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD as B64;
 use libp2p::PeerId;
@@ -10,20 +10,19 @@ use soma_peer::PeerCommand;
 use soma_storage::mailbox::MailboxRepository;
 use soma_storage::membership::MembershipRepository;
 
-use super::{BotState, JsonResult, auth::authorize};
+use super::{
+    BotState, JsonResult,
+    auth::{authorize, bearer_token},
+};
 
 pub(super) async fn decide_handler(
     State(state): State<Arc<BotState>>,
+    headers: HeaderMap,
     payload: Json<serde_json::Value>,
     admin_token: Option<String>,
 ) -> JsonResult {
     let payload = payload.0;
-    authorize(
-        &admin_token,
-        payload
-            .get("admin_token")
-            .and_then(|v| v.as_str().map(|s| s.to_string())),
-    )?;
+    authorize(&admin_token, bearer_token(&headers))?;
 
     let request_id = required_str(&payload, "request_id")?.to_string();
     let approve = payload

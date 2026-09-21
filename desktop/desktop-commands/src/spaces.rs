@@ -4,9 +4,10 @@
 use desktop_api::{
     AppState,
     spaces::{
-        self as api, CreateSpaceArgs, DecideJoinArgs, DecideJoinResult, IssueIssuerCapabilityArgs, JoinSpaceArgs,
-        JoinSpaceResult, ListSpacesArgs, ListSpacesResult, RevokeMemberArgs, StoredJoinRequest, StoredSpace,
-        StoredSpaceBot, StoredSpaceMember, UpdateSpaceArgs,
+        self as api, CreateSpaceArgs, DecideJoinArgs, DecideJoinResult, IssueIssuerCapabilityArgs,
+        JoinSpaceArgs, JoinSpaceResult, ListSpacesArgs, ListSpacesResult, RevokeBotArgs,
+        RevokeMemberArgs, StoredJoinRequest, StoredSpace, StoredSpaceBot, StoredSpaceMember,
+        UpdateSpaceArgs,
     },
 };
 use desktop_core::error::DesktopResult;
@@ -14,25 +15,37 @@ use tauri::State;
 
 #[tauri::command]
 #[specta::specta]
-pub async fn spaces_list(state: State<'_, AppState>, args: Option<ListSpacesArgs>) -> DesktopResult<ListSpacesResult> {
+pub async fn spaces_list(
+    state: State<'_, AppState>,
+    args: Option<ListSpacesArgs>,
+) -> DesktopResult<ListSpacesResult> {
     api::list(state.inner(), args.unwrap_or_default()).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn spaces_create(state: State<'_, AppState>, args: Option<CreateSpaceArgs>) -> DesktopResult<StoredSpace> {
+pub async fn spaces_create(
+    state: State<'_, AppState>,
+    args: Option<CreateSpaceArgs>,
+) -> DesktopResult<StoredSpace> {
     api::create(state.inner(), args.unwrap_or_default()).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn spaces_get(state: State<'_, AppState>, space_id: String) -> DesktopResult<StoredSpace> {
+pub async fn spaces_get(
+    state: State<'_, AppState>,
+    space_id: String,
+) -> DesktopResult<StoredSpace> {
     api::get(state.inner(), space_id).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn spaces_update(state: State<'_, AppState>, args: UpdateSpaceArgs) -> DesktopResult<StoredSpace> {
+pub async fn spaces_update(
+    state: State<'_, AppState>,
+    args: UpdateSpaceArgs,
+) -> DesktopResult<StoredSpace> {
     api::update(state.inner(), args).await
 }
 
@@ -44,44 +57,72 @@ pub async fn spaces_delete(state: State<'_, AppState>, space_id: String) -> Desk
 
 #[tauri::command]
 #[specta::specta]
-pub async fn spaces_list_members(state: State<'_, AppState>, space_id: String) -> DesktopResult<Vec<StoredSpaceMember>> {
+pub async fn spaces_list_members(
+    state: State<'_, AppState>,
+    space_id: String,
+) -> DesktopResult<Vec<StoredSpaceMember>> {
     api::list_members(state.inner(), space_id).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn spaces_list_my_memberships(state: State<'_, AppState>) -> DesktopResult<Vec<StoredSpaceMember>> {
+pub async fn spaces_list_my_memberships(
+    state: State<'_, AppState>,
+) -> DesktopResult<Vec<StoredSpaceMember>> {
     api::list_my_memberships(state.inner()).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn spaces_list_bots(state: State<'_, AppState>, space_id: String) -> DesktopResult<Vec<StoredSpaceBot>> {
+pub async fn spaces_list_bots(
+    state: State<'_, AppState>,
+    space_id: String,
+) -> DesktopResult<Vec<StoredSpaceBot>> {
     api::list_bots(state.inner(), space_id).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn spaces_join(state: State<'_, AppState>, args: JoinSpaceArgs) -> DesktopResult<JoinSpaceResult> {
+pub async fn spaces_join(
+    state: State<'_, AppState>,
+    args: JoinSpaceArgs,
+) -> DesktopResult<JoinSpaceResult> {
     api::join(state.inner(), args).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn spaces_decide_join(state: State<'_, AppState>, args: DecideJoinArgs) -> DesktopResult<DecideJoinResult> {
+pub async fn spaces_decide_join(
+    state: State<'_, AppState>,
+    args: DecideJoinArgs,
+) -> DesktopResult<DecideJoinResult> {
     api::decide_join(state.inner(), args).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn spaces_list_join_requests(state: State<'_, AppState>) -> DesktopResult<Vec<StoredJoinRequest>> {
+pub async fn spaces_list_join_requests(
+    state: State<'_, AppState>,
+) -> DesktopResult<Vec<StoredJoinRequest>> {
     api::list_join_requests(state.inner()).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn spaces_revoke_member(state: State<'_, AppState>, args: RevokeMemberArgs) -> DesktopResult<bool> {
+pub async fn spaces_revoke_member(
+    state: State<'_, AppState>,
+    args: RevokeMemberArgs,
+) -> DesktopResult<bool> {
     api::revoke_member(state.inner(), args).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn spaces_revoke_bot(
+    state: State<'_, AppState>,
+    args: RevokeBotArgs,
+) -> DesktopResult<bool> {
+    api::revoke_bot(state.inner(), args).await
 }
 
 #[tauri::command]

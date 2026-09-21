@@ -59,7 +59,7 @@ export function PeerAddressInput({
 	return (
 		<div className={cn("flex flex-col gap-2", className)}>
 			{label ? (
-				<label className="text-sm text-base-content/80" htmlFor={inputId}>
+				<label className="text-base-content/80 text-sm" htmlFor={inputId}>
 					{label}
 				</label>
 			) : null}
@@ -108,7 +108,7 @@ function PreviewLine({ preview }: { preview: PeerAddressValidation }) {
 							defaultMessage: "Peer recognized",
 						})}
 					</span>
-					<span className="break-all font-mono text-xs text-base-content/60">
+					<span className="break-all font-mono text-base-content/60 text-xs">
 						{preview.peerId}
 						{preview.alias ? ` · ${preview.alias}` : ""}
 					</span>

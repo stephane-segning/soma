@@ -11,6 +11,7 @@ import type { Transport } from "./index";
 
 export function tauriTransport(): Transport {
 	return {
+		kind: "tauri",
 		async invoke<T>(command: string, args: Record<string, unknown> = {}): Promise<T> {
 			try {
 				return await invoke<T>(command, args);

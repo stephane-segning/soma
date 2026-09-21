@@ -9,10 +9,10 @@
 
 use std::sync::Arc;
 
-use axum::{Router, routing::get};
+use axum::Router;
 use desktop_api::AppState;
 
-use crate::sse;
+use crate::ws;
 
 mod agent;
 mod blobs;
@@ -39,5 +39,8 @@ pub fn router() -> Router<Arc<AppState>> {
         .merge(agent::router())
         .merge(practice::router())
         .merge(search::router())
-        .route("/api/v1/events", get(sse::events_sse))
+        // `any`, not `get`: WebSocket upgrades are `GET` on HTTP/1.1 but
+        // `CONNECT` from HTTP/2 clients onward — see the axum `ws` module
+        // docs. SSE is gone (hard cutover, no dual SSE+WS path).
+        .route("/api/v1/ws", ws::route())
 }

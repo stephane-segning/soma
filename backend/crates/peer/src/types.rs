@@ -47,10 +47,34 @@ pub enum PeerCommand {
         cid: String,
         space_id: Option<String>,
     },
+    /// Broadcast a lightweight "blob availability hint" to every currently
+    /// connected peer. Fire-and-forget: the payload matches AGENTS.md's
+    /// "Blobs" section exactly (`space_id + cid + mime + size`). Receivers
+    /// emit [`PeerEvent::BlobAnnounceReceived`] and may enqueue a fetch
+    /// (mirror bots do; see `somad bot`'s `BlobAnnounceFetchHandler`).
+    AnnounceBlob {
+        space_id: String,
+        cid: String,
+        mime: String,
+        size: u64,
+    },
     Shutdown,
 }
 
 /// Events emitted by the peer runtime for logging/metrics.
+///
+/// `large_enum_variant` is pre-existing here (not introduced by the blob
+/// work): the size spread comes from proto-generated `space::JoinDecision`
+/// / `space::IssuerCapability` payloads on the join/issuer variants, not
+/// from anything blob-related. Boxing those fields is a real fix, but it
+/// ripples through every join/issuer call site
+/// (`runtime/join.rs`, `runtime/issuer.rs`, daemon's `join_events.rs` /
+/// `issuer_events.rs` handlers, `somad bot`'s `join_decision_apply.rs`,
+/// metrics) — out of scope for a blob-subsystem change, and that surface
+/// is under active, unrelated development elsewhere right now. Silencing
+/// with a comment rather than leaving `-D warnings` broken for reasons
+/// this task didn't touch.
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone)]
 pub enum PeerEvent {
     NewListenAddr {
@@ -157,18 +181,26 @@ pub enum PeerEvent {
         space_id: String,
         capability: space::IssuerCapability,
     },
-    /// Emitted when a blob tied to Yoopta content is stored locally.
-    YooptaBlobAdded {
+    /// Emitted when a "blob availability hint" (see [`PeerCommand::AnnounceBlob`])
+    /// arrives from another peer. `from` is the announcing peer, so a
+    /// reaction (e.g. a mirror bot enqueueing a fetch) can target it
+    /// directly without any separate candidate-peer lookup. Was named
+    /// `YooptaBlobAdded` historically; the editor is Tiptap now, and the
+    /// old name also implied "stored locally" when this variant is only
+    /// ever constructed for an *inbound* network announce.
+    BlobAnnounceReceived {
+        from: PeerId,
         space_id: String,
-        doc_id: String,
         cid: String,
         mime: String,
         size: u64,
-        name: Option<String>,
     },
-    /// Emitted when we receive and persist a blob fetched over the network.
+    /// Emitted when we receive a blob fetch response over the network,
+    /// whether or not it was ultimately persisted.
     BlobResponseReceived {
+        space_id: String,
         cid: String,
+        mime: String,
         size: u64,
         found: bool,
         stored: bool,

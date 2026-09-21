@@ -1,6 +1,6 @@
 use std::{sync::Arc, time::SystemTime};
 
-use axum::{Json, extract::State, http::StatusCode};
+use axum::{Json, extract::State, http::HeaderMap, http::StatusCode};
 use libp2p::PeerId;
 use serde::Deserialize;
 use soma_membership::{enqueue_outgoing_join_request, parse_role_str};
@@ -10,11 +10,13 @@ use soma_storage::RepositoryFactory;
 use soma_storage::mailbox::MailboxRepository;
 use soma_storage::membership::MembershipRepository;
 
-use super::{BotState, JsonResult, auth::authorize};
+use super::{
+    BotState, JsonResult,
+    auth::{authorize, bearer_token},
+};
 
 #[derive(Deserialize)]
 pub(super) struct JoinRequestSubmitPayload {
-    admin_token: Option<String>,
     space_id: String,
     target_peer_id: String,
     target_multiaddrs: Vec<String>,
@@ -25,10 +27,11 @@ pub(super) struct JoinRequestSubmitPayload {
 
 pub(super) async fn submit_handler(
     State(state): State<Arc<BotState>>,
+    headers: HeaderMap,
     payload: Json<JoinRequestSubmitPayload>,
     admin_token: Option<String>,
 ) -> JsonResult {
-    authorize(&admin_token, payload.admin_token.clone())?;
+    authorize(&admin_token, bearer_token(&headers))?;
 
     let target_peer_id: PeerId = payload.target_peer_id.parse().map_err(|_| {
         (

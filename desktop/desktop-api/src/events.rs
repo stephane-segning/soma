@@ -45,8 +45,9 @@ pub fn document_changed(space_id: String, document_id: String, reason: &'static 
 }
 
 /// Convenience constructor for the `pages-changed` event with
-/// `source: renderer`. Triggered after ensure/update/set-parents.
-#[allow(dead_code)] // wired up alongside the pages-source broadcasts in a follow-up
+/// `source: renderer`. Triggered after ensure/update/set-parents — see
+/// `documents::ensure_page`, `documents::update_page_title`,
+/// `documents::set_page_parents`.
 pub fn pages_changed(space_id: String, reason: &'static str) -> DomainEvent {
     DomainEvent::PagesChanged {
         source: DomainEventSource::Renderer,

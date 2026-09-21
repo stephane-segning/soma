@@ -14,7 +14,12 @@ desktop-services = { workspace = true }
 desktop-agent = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-specta = { workspace = true }
+# `function` powers the `#[specta::specta]` attribute this crate puts on every
+# command adapter. Declared here rather than relied upon from the workspace
+# dep: without it the crate only compiles when something else in the build
+# graph (`tauri-specta`, via `desktop-app/src-tauri`) happens to unify the
+# feature on, so `cargo check -p desktop-commands` fails on its own.
+specta = { workspace = true, features = ["function"] }
 tokio = { workspace = true }
 tracing = { workspace = true }
 tauri = { workspace = true }

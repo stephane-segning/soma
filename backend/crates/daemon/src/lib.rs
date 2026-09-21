@@ -28,7 +28,7 @@ mod runtime;
 mod services;
 mod state;
 
-pub use handle::{DaemonHandle, DaemonStatus, types as handle_types};
+pub use handle::{DaemonHandle, DaemonStatus, blobs::MAX_BLOB_BYTES, types as handle_types};
 pub use state::DaemonState;
 
 use dispatch::build_dispatcher;
@@ -175,6 +175,12 @@ pub async fn run(config: RuntimeConfig) -> SomaResult<RuntimeHandle> {
         net_identity.keypair().clone(),
         peer_id,
     ));
+    let blob_resolver: Arc<dyn soma_peer::blob::BlobResolver> = Arc::new(
+        soma_peer::blob::PeerBlobResolver::with_default_directory(
+            peer.commands.clone(),
+            soma_peer::blob::BlobResolverConfig::default(),
+        ),
+    );
     let state = Arc::new(DaemonState {
         peer_id,
         peer_commands: peer.commands.clone(),
@@ -183,6 +189,7 @@ pub async fn run(config: RuntimeConfig) -> SomaResult<RuntimeHandle> {
         repos,
         signer: net_identity.keypair().clone(),
         blob_store,
+        blob_resolver,
         space_manager,
         identify_keys: Mutex::new(std::collections::HashMap::new()),
     });

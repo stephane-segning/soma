@@ -39,6 +39,7 @@ export const commands = {
 	spacesDecideJoin: (args: DecideJoinArgs) => typedError<DecideJoinResult, DesktopError>(__TAURI_INVOKE("spaces_decide_join", { args })),
 	spacesListJoinRequests: () => typedError<StoredJoinRequest[], DesktopError>(__TAURI_INVOKE("spaces_list_join_requests")),
 	spacesRevokeMember: (args: RevokeMemberArgs) => typedError<boolean, DesktopError>(__TAURI_INVOKE("spaces_revoke_member", { args })),
+	spacesRevokeBot: (args: RevokeBotArgs) => typedError<boolean, DesktopError>(__TAURI_INVOKE("spaces_revoke_bot", { args })),
 	spacesIssueIssuerCapability: (args: IssueIssuerCapabilityArgs) => typedError<boolean, DesktopError>(__TAURI_INVOKE("spaces_issue_issuer_capability", { args })),
 	documentsUpsert: (args: UpsertDocumentArgs) => typedError<null, DesktopError>(__TAURI_INVOKE("documents_upsert", { args })),
 	documentsGet: (spaceId: string, documentId: string) => typedError<{
@@ -309,7 +310,14 @@ export type DecideJoinResult = {
 	approved: boolean,
 };
 
-export type DesktopError = { kind: "io"; message: string } | { kind: "invalid-input"; message: string } | { kind: "not-found"; message: string } | { kind: "daemon"; message: string } | { kind: "agent"; message: string } | { kind: "other"; message: string };
+export type DesktopError = { kind: "io"; message: string } | { kind: "invalid-input"; message: string } | { kind: "not-found"; message: string } | { kind: "daemon"; message: string } | { kind: "agent"; message: string } | 
+/**
+ *  Caller did not present a valid credential. Maps to HTTP 401 at the
+ *  BFF boundary (`desktop-bff::error::ApiError::status`). The Tauri
+ *  presenter never produces this variant — the in-process command
+ *  surface has no network boundary to authenticate across.
+ */
+{ kind: "unauthenticated"; message: string } | { kind: "other"; message: string };
 
 /**
  *  Renderer-facing payload. Tagged on `kind` so the renderer can
@@ -329,7 +337,7 @@ export type DomainEvent = { kind: "document-blob-added"; spaceId: string; docId:
 
 /**
  *  Source tag for renderer-broadcast events.
- *
+ * 
  *  `Daemon` is reserved for events that originate from the daemon
  *  firehose; today every variant in `DomainEvent` that uses this tag is
  *  emitted with `Renderer` from a command handler.
@@ -428,6 +436,13 @@ export type IssueIssuerCapabilityArgs = {
 	expiresAt: number,
 	alias?: string | null,
 	scopes?: string[],
+	/**
+	 *  Multiaddrs to dial `target_peer_id` on before sending the offer —
+	 *  same shape/purpose as `JoinSpaceArgs.targetMultiaddrs`. Required
+	 *  for a freshly-deployed bot with no prior connection; may be left
+	 *  empty when the target is already reachable some other way.
+	 */
+	targetMultiaddrs?: string[],
 };
 
 export type JoinSpaceArgs = {
@@ -511,6 +526,12 @@ export type ResolveDriftParams = {
 
 export type ResolveDriftResult = {
 	mergedUpdateBase64: string,
+};
+
+export type RevokeBotArgs = {
+	spaceId: string,
+	delegatePeerId: string,
+	reason?: string,
 };
 
 export type RevokeMemberArgs = {

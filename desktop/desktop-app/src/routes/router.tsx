@@ -1,5 +1,5 @@
 /**
- * Tauri V2 shell router — Phase 1 foundation.
+ * Shell router — Phase 1 foundation.
  *
  * Stubs the route tree we need for the desktop shell rebuild: a top-level
  * `app-layout` that owns the 3-column `DesktopShell`, with nested
@@ -9,11 +9,22 @@
  *
  * Real space data, the right-column chat sidebar, command palette,
  * tabs bar, splash, and deep-link landing are deferred to later phases.
+ *
+ * Router choice depends on the runtime: Tauri ships a webview with no
+ * address bar and no server behind it, so `createMemoryRouter` (history
+ * kept in-process, seeded at `"/"`) is the only router that makes sense
+ * there. A plain browser tab (the web build) gets `createBrowserRouter`
+ * instead — real URLs, working back/forward, and a refresh that
+ * survives, as long as whatever serves the static bundle rewrites
+ * unmatched paths to `index.html` (every client-routed SPA needs that,
+ * regardless of which router drives it).
  */
+
 import { Empty } from "@soma/ui/components/primitives/empty";
+import { isTauri } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
 import type { RouteObject } from "react-router";
-import { createMemoryRouter, useParams } from "react-router";
+import { createBrowserRouter, createMemoryRouter, useParams } from "react-router";
 import { AppLayout } from "./app-layout";
 import { NotFound } from "./not-found";
 import { PageView } from "./page-view";
@@ -101,4 +112,4 @@ const routes: RouteObject[] = [
 	},
 ];
 
-export const router = createMemoryRouter(routes, { initialEntries: ["/"] });
+export const router = isTauri() ? createMemoryRouter(routes, { initialEntries: ["/"] }) : createBrowserRouter(routes);

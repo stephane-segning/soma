@@ -26,4 +26,4 @@ pub mod search;
 pub mod spaces;
 pub mod state;
 
-pub use state::{AppState, DOMAIN_EVENT_CHANNEL_CAPACITY};
+pub use state::{AGENT_EVENT_CHANNEL_CAPACITY, AppState, DOMAIN_EVENT_CHANNEL_CAPACITY};

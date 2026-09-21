@@ -13,8 +13,8 @@
  */
 import {
 	type ButtonHTMLAttributes,
-	type HTMLAttributes,
 	forwardRef,
+	type HTMLAttributes,
 	type ReactNode,
 } from "react";
 import { cn } from "../../utils/cn";
@@ -41,13 +41,13 @@ export const MenuShell = forwardRef<HTMLDivElement, MenuShellProps>(
 	) {
 		return (
 			<div
-				ref={ref}
-				role={role}
 				className={cn(
-					"glass-panel shadow-elevated flex flex-col gap-0.5 p-1",
+					"glass-panel flex flex-col gap-0.5 p-1 shadow-elevated",
 					width,
 					className,
 				)}
+				ref={ref}
+				role={role}
 				{...rest}
 			/>
 		);
@@ -90,16 +90,7 @@ export const MenuItem = forwardRef<HTMLButtonElement, MenuItemProps>(
 		const isDanger = tone === "danger";
 		return (
 			<button
-				ref={ref}
-				type="button"
-				disabled={disabled}
 				aria-selected={active || undefined}
-				// No transition on hover/active state. A 150ms colour fade on each
-				// row reads as the row "growing in" when the user moves the
-				// mouse over a menu — bg-color animating from transparent →
-				// base-200 across a sequence of hovered items looks like a wave
-				// of scaling. Snap the highlight instantly instead; the cursor
-				// motion itself supplies all the feedback we need.
 				className={cn(
 					"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm",
 					disabled && "cursor-not-allowed opacity-50",
@@ -112,6 +103,15 @@ export const MenuItem = forwardRef<HTMLButtonElement, MenuItemProps>(
 						"hover:bg-error hover:text-error-content",
 					className,
 				)}
+				disabled={disabled}
+				ref={ref}
+				// No transition on hover/active state. A 150ms colour fade on each
+				// row reads as the row "growing in" when the user moves the
+				// mouse over a menu — bg-color animating from transparent →
+				// base-200 across a sequence of hovered items looks like a wave
+				// of scaling. Snap the highlight instantly instead; the cursor
+				// motion itself supplies all the feedback we need.
+				type="button"
 				{...rest}
 			>
 				{icon != null ? (

@@ -77,7 +77,7 @@ export const Comparison: Story = {
 			{(["dense", "cozy", "oversized"] as const).map((density) => (
 				<DensityProvider density={density} key={density}>
 					<div className="min-w-40 space-y-1">
-						<p className="mb-2 font-semibold text-xs uppercase text-base-content/50">
+						<p className="mb-2 font-semibold text-base-content/50 text-xs uppercase">
 							{density}
 						</p>
 						<DensityAwareRow label="Row A" />

@@ -119,7 +119,7 @@ function Demo() {
 						{actions.map((action) => (
 							<li className="flex items-center justify-between" key={action.id}>
 								<span>
-									<span className="font-mono text-xs text-base-content/60">
+									<span className="font-mono text-base-content/60 text-xs">
 										{action.category}
 									</span>
 									{" · "}

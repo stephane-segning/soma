@@ -24,7 +24,9 @@
 			"empty_no_space": "Sélectionnez un espace",
 			"empty_no_pages": "Aucune page",
 			"loading": "Chargement…",
-			"error": "Impossible de charger les pages"
+			"error": "Impossible de charger les pages",
+			"creating": "Création…",
+			"create_error": "Impossible de créer la page : {{message}}"
 		},
 		"nav": {
 			"title": "Navigation",
@@ -58,12 +60,15 @@
 		}
 	},
 	"pages": {
+		"untitled": "Sans titre",
 		"spaces_index": {
 			"headline": "Aucun espace sélectionné",
-			"empty": "Choisissez un espace dans la barre, ou créez-en un pour commencer."
+			"empty": "Choisissez un espace dans la barre, ou créez-en un pour commencer.",
+			"need_space_for_page": "Choisissez ou créez un espace avant d'ajouter une page.",
+			"create_error": "Impossible de créer l'espace : {{message}}"
 		},
 		"space_view": {
-			"placeholder": "Contenu de l'espace — les pages, membres et l'éditeur arriveront dans une phase suivante."
+			"empty": "Aucune page ouverte."
 		},
 		"space_members": {
 			"placeholder": "Les membres et leurs rôles s'afficheront ici."
@@ -77,7 +82,13 @@
 			"parse_error": "Impossible de charger cette page",
 			"try_again": "Réessayer",
 			"not_found": "Page introuvable",
-			"back_to_space": "Retour à l'espace"
+			"back_to_space": "Retour à l'espace",
+			"page_link": {
+				"new_subpage": "Nouvelle sous-page",
+				"creating": "Création…",
+				"loading": "Chargement des pages…",
+				"error": "Impossible de charger les pages"
+			}
 		},
 		"settings": {
 			"placeholder": "Paramètres (placeholder)."

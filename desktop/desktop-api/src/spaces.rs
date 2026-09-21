@@ -4,8 +4,8 @@
 
 use desktop_core::error::{DesktopError, DesktopResult};
 use serde::{Deserialize, Serialize};
-use specta::Type;
 use soma_daemon::handle_types as dt;
+use specta::Type;
 
 use crate::state::AppState;
 
@@ -204,6 +204,15 @@ pub struct RevokeMemberArgs {
 
 #[derive(Debug, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
+pub struct RevokeBotArgs {
+    pub space_id: String,
+    pub delegate_peer_id: String,
+    #[serde(default)]
+    pub reason: String,
+}
+
+#[derive(Debug, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
 pub struct IssueIssuerCapabilityArgs {
     pub space_id: String,
     pub target_peer_id: String,
@@ -213,6 +222,12 @@ pub struct IssueIssuerCapabilityArgs {
     pub alias: Option<String>,
     #[serde(default)]
     pub scopes: Vec<String>,
+    /// Multiaddrs to dial `target_peer_id` on before sending the offer —
+    /// same shape/purpose as `JoinSpaceArgs.targetMultiaddrs`. Required
+    /// for a freshly-deployed bot with no prior connection; may be left
+    /// empty when the target is already reachable some other way.
+    #[serde(default)]
+    pub target_multiaddrs: Vec<String>,
 }
 
 // --- Handlers ----------------------------------------------------------------
@@ -220,7 +235,9 @@ pub struct IssueIssuerCapabilityArgs {
 const DEFAULT_LIST_LIMIT: u32 = 50;
 
 fn err(e: impl std::fmt::Display) -> DesktopError {
-    DesktopError::Daemon { message: e.to_string() }
+    DesktopError::Daemon {
+        message: e.to_string(),
+    }
 }
 
 pub async fn list(state: &AppState, args: ListSpacesArgs) -> DesktopResult<ListSpacesResult> {
@@ -228,7 +245,11 @@ pub async fn list(state: &AppState, args: ListSpacesArgs) -> DesktopResult<ListS
     let out = handle
         .list_spaces(dt::ListSpacesInput {
             q: args.q,
-            limit: if args.limit == 0 { DEFAULT_LIST_LIMIT } else { args.limit },
+            limit: if args.limit == 0 {
+                DEFAULT_LIST_LIMIT
+            } else {
+                args.limit
+            },
             offset: args.offset,
         })
         .await
@@ -275,7 +296,10 @@ pub async fn delete(state: &AppState, space_id: String) -> DesktopResult<bool> {
     handle.delete_space(&space_id).await.map_err(err)
 }
 
-pub async fn list_members(state: &AppState, space_id: String) -> DesktopResult<Vec<StoredSpaceMember>> {
+pub async fn list_members(
+    state: &AppState,
+    space_id: String,
+) -> DesktopResult<Vec<StoredSpaceMember>> {
     let handle = state.daemon.handle().await?;
     let members = handle.list_space_members(&space_id).await.map_err(err)?;
     Ok(members.into_iter().map(StoredSpaceMember::from).collect())
@@ -308,7 +332,10 @@ pub async fn join(state: &AppState, args: JoinSpaceArgs) -> DesktopResult<JoinSp
     Ok(JoinSpaceResult { request_id })
 }
 
-pub async fn decide_join(state: &AppState, args: DecideJoinArgs) -> DesktopResult<DecideJoinResult> {
+pub async fn decide_join(
+    state: &AppState,
+    args: DecideJoinArgs,
+) -> DesktopResult<DecideJoinResult> {
     let handle = state.daemon.handle().await?;
     let record = handle
         .decide_join(dt::DecideJoinInput {
@@ -340,7 +367,22 @@ pub async fn revoke_member(state: &AppState, args: RevokeMemberArgs) -> DesktopR
         .map_err(err)
 }
 
-pub async fn issue_issuer_capability(state: &AppState, args: IssueIssuerCapabilityArgs) -> DesktopResult<bool> {
+pub async fn revoke_bot(state: &AppState, args: RevokeBotArgs) -> DesktopResult<bool> {
+    let handle = state.daemon.handle().await?;
+    handle
+        .revoke_issuer_capability(dt::RevokeIssuerCapabilityInput {
+            space_id: args.space_id,
+            delegate_peer_id: args.delegate_peer_id,
+            reason: args.reason,
+        })
+        .await
+        .map_err(err)
+}
+
+pub async fn issue_issuer_capability(
+    state: &AppState,
+    args: IssueIssuerCapabilityArgs,
+) -> DesktopResult<bool> {
     let handle = state.daemon.handle().await?;
     handle
         .issue_issuer_capability(dt::IssueIssuerCapabilityInput {
@@ -349,6 +391,7 @@ pub async fn issue_issuer_capability(state: &AppState, args: IssueIssuerCapabili
             expires_at: args.expires_at,
             alias: args.alias,
             scopes: args.scopes,
+            target_multiaddrs: args.target_multiaddrs,
         })
         .await
         .map_err(err)

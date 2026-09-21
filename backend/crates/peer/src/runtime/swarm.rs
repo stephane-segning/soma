@@ -87,6 +87,9 @@ pub(super) async fn handle_swarm_event(state: &mut RuntimeState, event: SwarmEve
         SwarmEvent::Behaviour(AppEvent::Blob(event)) => {
             crate::runtime::blob::handle_blob_event(state, event).await;
         }
+        SwarmEvent::Behaviour(AppEvent::BlobAnnounce(event)) => {
+            crate::runtime::blob_announce::handle_blob_announce_event(state, event).await;
+        }
         _ => {}
     }
 }
@@ -96,14 +99,12 @@ fn handle_connection_established(state: &mut RuntimeState, remote: libp2p::PeerI
         .event_tx
         .try_send(PeerEvent::ConnectionEstablished { peer: remote });
 
-    if let Some(relay_addr) = state.relay_peers.get(&remote) {
-        if state.requested_reservations.insert(remote) {
-            if let Some(circuit) = relay_circuit_addr(&state.peer_id, relay_addr) {
-                if let Err(err) = state.swarm.listen_on(circuit.clone()) {
-                    warn!(?err, ?circuit, "failed to request relay reservation");
-                }
-            }
-        }
+    if let Some(relay_addr) = state.relay_peers.get(&remote)
+        && state.requested_reservations.insert(remote)
+        && let Some(circuit) = relay_circuit_addr(&state.peer_id, relay_addr)
+        && let Err(err) = state.swarm.listen_on(circuit.clone())
+    {
+        warn!(?err, ?circuit, "failed to request relay reservation");
     }
 
     if state.rendezvous_peers.contains(&remote) {

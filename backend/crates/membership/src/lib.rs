@@ -12,10 +12,14 @@ mod outgoing_join_requests;
 mod roles;
 mod space_creation;
 mod time;
+mod trust;
+
+#[cfg(test)]
+mod test_support;
 
 pub use issuer::{issue_issuer_capability_to_storage, issue_owned_issuer_capability_to_storage};
 pub use join_decider::{JoinPolicy, build_join_decider};
-pub use join_decisions::{apply_join_decision, enqueue_outgoing_join_decision};
+pub use join_decisions::{enqueue_outgoing_join_decision, verify_and_apply_inbound_join_decision};
 pub use join_requests::{decide_join_request, list_pending_join_requests};
 pub use outgoing_join_requests::{
     MAILBOX_KIND_JOIN_DECISION, MAILBOX_KIND_JOIN_REQUEST, OutgoingJoinRequest,
@@ -26,3 +30,4 @@ pub use space_creation::{
     build_space_genesis_artifact, create_space, create_space_with_genesis,
     verify_space_genesis_artifact,
 };
+pub use trust::{PeerKeyResolver, TrustAnchor, verify_inbound_issuer_capability};

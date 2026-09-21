@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { CheckCircle, Info, Sliders } from "react-feather";
 import { DesktopShell } from "../../components/layout/desktop-shell";
-import { Pill } from "../../components/primitives/pill";
 import { StatusBadge } from "../../components/presence/status-badge";
+import { Pill } from "../../components/primitives/pill";
 import { InfoPanel, NavigationPanel, ShellHeader } from "./common";
 
 export function SidebarRender() {

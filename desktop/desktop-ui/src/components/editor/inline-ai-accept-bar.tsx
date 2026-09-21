@@ -50,7 +50,7 @@ export function InlineAIAcceptBar({
 				defaultMessage: "AI suggestion actions",
 			})}
 			className={cn(
-				"glass-panel shadow-elevated flex flex-wrap items-center gap-1 p-1",
+				"glass-panel flex flex-wrap items-center gap-1 p-1 shadow-elevated",
 				className,
 			)}
 			// `role="group"` not `toolbar`: we rely on the default tab

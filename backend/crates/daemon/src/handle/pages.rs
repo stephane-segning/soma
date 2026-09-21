@@ -39,8 +39,16 @@ impl DaemonHandle {
             page_id,
             title,
             parent_page_ids,
-            created_at_ms: if created_at_ms == 0 { now } else { created_at_ms },
-            updated_at_ms: if updated_at_ms == 0 { now } else { updated_at_ms },
+            created_at_ms: if created_at_ms == 0 {
+                now
+            } else {
+                created_at_ms
+            },
+            updated_at_ms: if updated_at_ms == 0 {
+                now
+            } else {
+                updated_at_ms
+            },
         };
 
         let page = PagesService::new(self.state.repos.clone())

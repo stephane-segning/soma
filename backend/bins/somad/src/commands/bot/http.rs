@@ -3,7 +3,7 @@ use std::{path::PathBuf, sync::Arc};
 use axum::{
     Json, Router,
     extract::State,
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     routing::{get, post},
 };
 use libp2p::PeerId;
@@ -92,57 +92,85 @@ fn admin_routes(
     app = app
         .route(
             "/v1/join/request",
-            post(move |state: State<Arc<BotState>>, body| {
-                join_requests::submit_handler(state, body, token_join_request.clone())
-            }),
+            post(
+                move |state: State<Arc<BotState>>, headers: HeaderMap, body| {
+                    join_requests::submit_handler(state, headers, body, token_join_request.clone())
+                },
+            ),
         )
         .route(
             "/v1/spaces",
-            post(move |state: State<Arc<BotState>>, body| {
-                spaces::create_handler(state, body, token_create_space.clone())
-            }),
+            post(
+                move |state: State<Arc<BotState>>, headers: HeaderMap, body| {
+                    spaces::create_handler(state, headers, body, token_create_space.clone())
+                },
+            ),
         )
         .route(
             "/v1/spaces",
-            get(move |state: State<Arc<BotState>>, query| {
-                spaces::list_handler(state, query, token_list_spaces.clone())
-            }),
+            get(
+                move |state: State<Arc<BotState>>, headers: HeaderMap, query| {
+                    spaces::list_handler(state, headers, query, token_list_spaces.clone())
+                },
+            ),
         )
         .route(
             "/v1/spaces/issuer-capability/issue",
-            post(move |state: State<Arc<BotState>>, body| {
-                issuers::issue_handler(state, body, token_issue_issuer.clone())
-            }),
+            post(
+                move |state: State<Arc<BotState>>, headers: HeaderMap, body| {
+                    issuers::issue_handler(state, headers, body, token_issue_issuer.clone())
+                },
+            ),
         )
         .route(
             "/v1/spaces/issuer-capability/import",
-            post(move |state: State<Arc<BotState>>, body| {
-                issuers::import_handler(state, body, token_import_issuer.clone())
-            }),
+            post(
+                move |state: State<Arc<BotState>>, headers: HeaderMap, body| {
+                    issuers::import_handler(state, headers, body, token_import_issuer.clone())
+                },
+            ),
         )
         .route(
             "/v1/join/requests",
-            get(move |state: State<Arc<BotState>>, query| {
-                join_request_list::list_handler(state, query, token_requests.clone())
-            }),
+            get(
+                move |state: State<Arc<BotState>>, headers: HeaderMap, query| {
+                    join_request_list::list_handler(state, headers, query, token_requests.clone())
+                },
+            ),
         )
         .route(
             "/v1/join/decide",
-            post(move |state: State<Arc<BotState>>, body| {
-                join_decisions::decide_handler(state, body, token_decide.clone())
-            }),
+            post(
+                move |state: State<Arc<BotState>>, headers: HeaderMap, body| {
+                    join_decisions::decide_handler(state, headers, body, token_decide.clone())
+                },
+            ),
         )
         .route(
             "/v1/space/members",
-            get(move |state: State<Arc<BotState>>, query| {
-                memberships::list_space_members_handler(state, query, token_members.clone())
-            }),
+            get(
+                move |state: State<Arc<BotState>>, headers: HeaderMap, query| {
+                    memberships::list_space_members_handler(
+                        state,
+                        headers,
+                        query,
+                        token_members.clone(),
+                    )
+                },
+            ),
         )
         .route(
             "/v1/memberships",
-            get(move |state: State<Arc<BotState>>, query| {
-                memberships::list_my_memberships_handler(state, query, token_my_memberships.clone())
-            }),
+            get(
+                move |state: State<Arc<BotState>>, headers: HeaderMap, query| {
+                    memberships::list_my_memberships_handler(
+                        state,
+                        headers,
+                        query,
+                        token_my_memberships.clone(),
+                    )
+                },
+            ),
         );
 
     app

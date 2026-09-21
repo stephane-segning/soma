@@ -3,16 +3,19 @@ use std::sync::Arc;
 use axum::{
     Json,
     extract::{Query, State},
+    http::HeaderMap,
     http::StatusCode,
 };
 use serde::Deserialize;
 use soma_storage::membership::MembershipRepository;
 
-use super::{BotState, JsonResult, auth::authorize};
+use super::{
+    BotState, JsonResult,
+    auth::{authorize, bearer_token},
+};
 
 #[derive(Deserialize)]
 pub(super) struct JoinRequestsQuery {
-    admin_token: Option<String>,
     target_peer_id: Option<String>,
     outgoing: Option<bool>,
     limit: Option<u32>,
@@ -21,10 +24,11 @@ pub(super) struct JoinRequestsQuery {
 
 pub(super) async fn list_handler(
     State(state): State<Arc<BotState>>,
+    headers: HeaderMap,
     Query(params): Query<JoinRequestsQuery>,
     admin_token: Option<String>,
 ) -> JsonResult {
-    authorize(&admin_token, params.admin_token.clone())?;
+    authorize(&admin_token, bearer_token(&headers))?;
 
     let filtered = state
         .repos

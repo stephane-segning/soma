@@ -74,7 +74,12 @@ pub trait MembershipRepository: Send + Sync {
         offset: u32,
     ) -> SomaResult<Vec<Space>>;
     async fn delete_space(&self, space_id: &str) -> SomaResult<u64>;
-    async fn upsert_membership(&self, membership: &SpaceMembership) -> SomaResult<()>;
+    /// Insert or authority-gated-update a membership row. Returns `Ok(true)`
+    /// if the row was written, `Ok(false)` if an existing conflicting row
+    /// blocked the write (see the implementation's doc comment for the
+    /// exact conflict policy). Callers MUST check the return value rather
+    /// than assuming success.
+    async fn upsert_membership(&self, membership: &SpaceMembership) -> SomaResult<bool>;
     async fn delete_membership(&self, space_id: &str, subject_peer_id: &str) -> SomaResult<u64>;
     async fn get_membership(
         &self,
@@ -103,4 +108,17 @@ pub trait MembershipRepository: Send + Sync {
         limit: Option<u32>,
         offset: Option<u32>,
     ) -> SomaResult<Vec<JoinRequest>>;
+    /// Find an OUTGOING (`is_outgoing = true`) join request this peer
+    /// itself created, addressed to `target_peer_id`, for `space_id`.
+    ///
+    /// This is the correlation primitive that lets a receiver verify an
+    /// inbound `JoinDecision` was actually solicited: a message from a
+    /// peer this local process never asked to decide anything, for a
+    /// space it never asked about, has no matching row here and must be
+    /// rejected. See `soma_membership::verify_and_apply_inbound_join_decision`.
+    async fn find_outgoing_join_request(
+        &self,
+        space_id: &str,
+        target_peer_id: &str,
+    ) -> SomaResult<Option<JoinRequest>>;
 }

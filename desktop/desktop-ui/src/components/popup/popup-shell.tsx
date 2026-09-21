@@ -28,7 +28,7 @@
  * the glyph cluster carries `data-no-drag` so the buttons are
  * clickable through the drag region.
  */
-import { type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { CornerUpLeft, RotateCcw, X } from "react-feather";
 import { useT } from "../../i18n/use-t";
 import { cn } from "../../utils/cn";

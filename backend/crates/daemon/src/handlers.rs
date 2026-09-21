@@ -1,3 +1,4 @@
+mod blob_reconcile;
 mod identify_store;
 mod issuer_events;
 mod join_decision_persistence;
@@ -6,6 +7,7 @@ mod listen_addr;
 mod logging;
 mod mailbox_outbox;
 
+pub use blob_reconcile::BlobReconcileHandler;
 pub use identify_store::IdentifyStoreHandler;
 pub use issuer_events::IssuerEventsHandler;
 pub use join_decision_persistence::JoinDecisionPersistenceHandler;

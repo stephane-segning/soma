@@ -1,5 +1,8 @@
 mod writer;
 
+#[cfg(test)]
+mod tests;
+
 use std::{io::SeekFrom, path::PathBuf, sync::Arc};
 
 use soma_core::{Error, SomaResult};
@@ -8,8 +11,25 @@ use tokio::{
     io::{AsyncReadExt, AsyncSeekExt},
 };
 
-use crate::{BlobProvider, BlobRange, BlobResponse, BlobWriteInit, cid_for};
+use crate::{BlobProvider, BlobRange, BlobResponse, BlobWriteInit, MAX_BLOB_TOTAL_BYTES, cid_for};
 use writer::FsBlobWriter;
+
+/// The role a [`FsBlobStore`] plays, per AGENTS.md's "Terminology: VDF" and
+/// "Blobs" sections:
+///
+/// - [`SourceOfTruth`](BlobStoreRole::SourceOfTruth) — the desktop host's
+///   embedded peer. Accepts host-internal uploads (`write_local`) as well as
+///   network-verified writes.
+/// - [`CacheOnly`](BlobStoreRole::CacheOnly) — a VDF (`somad bot` in either
+///   `bot` or `admin` mode). Never a source of truth: `write_local` is
+///   refused structurally rather than merely "never called" by omission of
+///   an upload route. Network-verified writes (`put` / `open_streaming_put`)
+///   remain allowed — that's the point of a cache.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BlobStoreRole {
+    SourceOfTruth,
+    CacheOnly,
+}
 
 /// A filesystem-backed, content-addressed blob store.
 ///
@@ -19,6 +39,7 @@ use writer::FsBlobWriter;
 #[derive(Debug, Clone)]
 pub struct FsBlobStore {
     root: Arc<PathBuf>,
+    role: BlobStoreRole,
 }
 
 #[derive(Debug, Clone)]
@@ -29,17 +50,42 @@ pub struct BlobWriteResult {
 }
 
 impl FsBlobStore {
+    /// Source-of-truth store: accepts host-internal uploads. Use this for
+    /// the desktop host's embedded peer only.
     pub fn new(root: PathBuf) -> Self {
         Self {
             root: Arc::new(root),
+            role: BlobStoreRole::SourceOfTruth,
         }
+    }
+
+    /// Cache-only store: `write_local` is refused. Use this for every VDF
+    /// (`somad bot`, in both `bot` and `admin` mode) so "never accepts
+    /// uploads" is enforced in code rather than by the binary simply not
+    /// exposing an upload route.
+    pub fn new_cache_only(root: PathBuf) -> Self {
+        Self {
+            root: Arc::new(root),
+            role: BlobStoreRole::CacheOnly,
+        }
+    }
+
+    pub fn role(&self) -> BlobStoreRole {
+        self.role
     }
 
     pub fn path_for(&self, space_id: &str, cid: &str) -> PathBuf {
         self.root.join(space_id).join(cid)
     }
 
+    /// Host-internal upload path. Refused on a cache-only (VDF) store: see
+    /// [`BlobStoreRole::CacheOnly`].
     pub async fn write_local(&self, space_id: &str, bytes: &[u8]) -> SomaResult<BlobWriteResult> {
+        if self.role == BlobStoreRole::CacheOnly {
+            return Err(Error::service(
+                "cache-only blob store cannot accept local writes; VDFs are never a source of truth",
+            ));
+        }
         if space_id.is_empty() {
             return Err(Error::service("space_id required"));
         }
@@ -129,6 +175,11 @@ impl BlobProvider for FsBlobStore {
         expected_cid: &str,
         space_id: Option<&str>,
         bytes: &[u8],
+        // Content-addressed storage is bytes-only by design: the CID is a
+        // pure hash of `bytes`, and mime is metadata that belongs in SQL
+        // (see `soma_storage::blobs::BlobRepository`), not in the
+        // content-addressed layer. Callers that need mime persisted must
+        // record it separately, keyed by the returned CID.
         _mime: &str,
     ) -> SomaResult<bool> {
         let space = space_id.unwrap_or("");
@@ -152,6 +203,12 @@ impl BlobProvider for FsBlobStore {
         space_id: Option<&str>,
         total_size: u64,
     ) -> SomaResult<Option<BlobWriteInit>> {
+        if total_size > MAX_BLOB_TOTAL_BYTES {
+            return Err(Error::service(format!(
+                "declared blob size {total_size} exceeds max {MAX_BLOB_TOTAL_BYTES} bytes"
+            )));
+        }
+
         let space = space_id.unwrap_or("");
         if space.is_empty() {
             return Ok(None);

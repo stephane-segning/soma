@@ -49,8 +49,8 @@ pub struct AgentWorkspaceRuntimeConfig {
 
 impl AgentWorkspaceRuntimeConfig {
     pub fn is_empty(&self) -> bool {
-        self.chat_model.as_deref().map_or(true, str::is_empty)
-            && self.embed_model.as_deref().map_or(true, str::is_empty)
+        self.chat_model.as_deref().is_none_or(str::is_empty)
+            && self.embed_model.as_deref().is_none_or(str::is_empty)
             && self.model_capabilities.is_empty()
     }
 }

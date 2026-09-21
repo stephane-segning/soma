@@ -16,6 +16,32 @@ use crate::state::AppState;
 
 const ZIP_MIME: &str = "application/zip";
 
+/// Hard ceiling on a single blob's declared byte length, re-checked here
+/// at ingress (the host command API — AGENTS.md's Blobs "Security and
+/// limits" contract) rather than trusting the daemon's own internal cap
+/// ([`soma_daemon::MAX_BLOB_BYTES`], the true source of truth) to catch
+/// it eventually. Rejecting here means an oversized upload fails fast —
+/// before [`stage`] spends memory zipping a non-image payload, and
+/// before either presenter round-trips the whole buffer through
+/// `DaemonHandle`. Both `desktop-commands` (Tauri) and `desktop-bff`
+/// (HTTP) funnel through this module, so the check applies uniformly —
+/// see AGENTS.md's "Presenter / transport-agnostic handler" pattern.
+///
+/// Kept equal to (never greater than) `soma_daemon::MAX_BLOB_BYTES`: a
+/// larger value here would just be dead weight, since the daemon would
+/// still reject anything past its own cap — this constant only matters
+/// for how *early* the rejection happens.
+pub const MAX_BLOB_UPLOAD_BYTES: usize = soma_daemon::MAX_BLOB_BYTES;
+
+fn check_blob_size(byte_len: usize) -> DesktopResult<()> {
+    if byte_len > MAX_BLOB_UPLOAD_BYTES {
+        return Err(DesktopError::invalid(format!(
+            "blob too large: {byte_len} bytes exceeds the {MAX_BLOB_UPLOAD_BYTES}-byte max"
+        )));
+    }
+    Ok(())
+}
+
 #[derive(Debug, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct UploadBlobArgs {
@@ -62,6 +88,7 @@ fn err(e: impl std::fmt::Display) -> DesktopError {
 }
 
 pub async fn upload(state: &AppState, args: UploadBlobArgs) -> DesktopResult<UploadBlobResult> {
+    check_blob_size(args.bytes.len())?;
     let handle = state.daemon.handle().await?;
     let res = handle
         .upload_blob(dt::UploadBlobInput {
@@ -82,12 +109,50 @@ pub async fn read(state: &AppState, space_id: String, cid: String) -> DesktopRes
     Ok(res.map(|r| r.data))
 }
 
-/// Stage a renderer-sent payload under `<user_data>/tmp/uploads/<cuid>.bin`.
-/// `user_data` is supplied by the presenter (Tauri resolves it via
-/// `AppHandle::path()`; the HTTP route will pass an injected per-tenant
-/// upload dir).
-pub async fn stage_upload(user_data_dir: PathBuf, args: StageUploadArgs) -> DesktopResult<StagedUpload> {
-    let store = UploadPayloadStore::new(user_data_dir.join("tmp").join("uploads"));
+/// Bytes + mime for the HTTP blob-bytes route (`GET
+/// /api/v1/blobs/{space_id}/{cid}`), which needs the content type to set
+/// `Content-Type` correctly for `<img src>` consumption. Kept separate
+/// from [`read`] rather than changing its return shape, since `read` is
+/// also the Tauri `blobs_read` command's handler and the renderer already
+/// depends on that returning a bare `Option<Vec<u8>>`.
+#[derive(Debug, Clone)]
+pub struct BlobBytes {
+    pub data: Vec<u8>,
+    pub mime: String,
+}
+
+pub async fn read_with_mime(state: &AppState, space_id: String, cid: String) -> DesktopResult<Option<BlobBytes>> {
+    let handle = state.daemon.handle().await?;
+    let res = handle.read_blob(&space_id, &cid).await.map_err(err)?;
+    Ok(res.map(|r| BlobBytes { data: r.data, mime: r.mime }))
+}
+
+/// Namespaces the on-disk upload-staging directory under a
+/// caller-supplied scope, e.g. `tmp/uploads/<scope>/<cuid>.bin` instead of
+/// one shared `tmp/uploads/<cuid>.bin`. `None` preserves the historical
+/// flat layout (the Tauri shell: a single local user, no remote
+/// multi-caller concern). The BFF presenter passes `Some(session_scope)`,
+/// derived from the authenticated bearer token, so concurrent callers (or
+/// a future multi-token setup) never share a staging directory.
+fn uploads_dir(user_data_dir: &std::path::Path, upload_scope: Option<&str>) -> PathBuf {
+    let base = user_data_dir.join("tmp").join("uploads");
+    match upload_scope {
+        Some(scope) => base.join(scope),
+        None => base,
+    }
+}
+
+/// Stage a renderer-sent payload under
+/// `<user_data>/tmp/uploads[/<scope>]/<cuid>.bin`. `user_data` is supplied
+/// by the presenter (Tauri resolves it via `AppHandle::path()`; the BFF
+/// passes the process-wide data dir plus a per-session `upload_scope`).
+pub async fn stage_upload(
+    user_data_dir: PathBuf,
+    upload_scope: Option<&str>,
+    args: StageUploadArgs,
+) -> DesktopResult<StagedUpload> {
+    check_blob_size(args.bytes.len())?;
+    let store = UploadPayloadStore::new(uploads_dir(&user_data_dir, upload_scope));
     store.stage(&args.bytes, &args.mime, args.file_name.as_deref()).await
 }
 
@@ -151,15 +216,33 @@ pub struct StageFromPayloadArgs {
     pub file_name: Option<String>,
 }
 
-fn synth_blob_url(space_id: &str, cid: &str) -> String {
-    format!("soma-blob://daemon/{space_id}/{cid}")
+/// Where a synthesized blob URL should resolve. The *bytes* are always
+/// content-addressed and daemon-owned; only the URL *scheme* is
+/// transport-specific.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BlobUrlStyle {
+    /// Tauri custom URI scheme, resolved in-process by
+    /// `desktop-services::blob_protocol` — never valid outside this host.
+    SomaBlobScheme,
+    /// Path relative to the BFF's own origin, served by the authenticated
+    /// `GET /api/v1/blobs/{space_id}/{cid}` route. The caller (renderer)
+    /// resolves it against whatever origin it loaded the SDK from.
+    Http,
+}
+
+fn synth_blob_url(style: BlobUrlStyle, space_id: &str, cid: &str) -> String {
+    match style {
+        BlobUrlStyle::SomaBlobScheme => format!("soma-blob://daemon/{space_id}/{cid}"),
+        BlobUrlStyle::Http => format!("/api/v1/blobs/{space_id}/{cid}"),
+    }
 }
 
 /// Mime-aware blob staging. Images pass through verbatim; non-image
 /// payloads are zipped first and uploaded as `application/zip`. The result
-/// carries a synthesized `soma-blob://daemon/<space>/<cid>` URL the
+/// carries a synthesized URL (shape controlled by `url_style`) the
 /// renderer can hand straight to `<img>` / `<a>` tags.
-pub async fn stage(state: &AppState, args: StageBlobArgs) -> DesktopResult<StageBlobResult> {
+pub async fn stage(state: &AppState, args: StageBlobArgs, url_style: BlobUrlStyle) -> DesktopResult<StageBlobResult> {
+    check_blob_size(args.bytes.len())?;
     let handle = state.daemon.handle().await?;
     let space_id = args.space_id;
     let doc_id = args.doc_id.unwrap_or_default();
@@ -184,7 +267,7 @@ pub async fn stage(state: &AppState, args: StageBlobArgs) -> DesktopResult<Stage
         .await
         .map_err(err)?;
 
-    let url = synth_blob_url(&space_id, &res.cid);
+    let url = synth_blob_url(url_style, &space_id, &res.cid);
     Ok(StageBlobResult {
         cid: res.cid,
         size: res.size,
@@ -201,9 +284,11 @@ pub async fn stage(state: &AppState, args: StageBlobArgs) -> DesktopResult<Stage
 pub async fn stage_from_payload(
     state: &AppState,
     user_data_dir: PathBuf,
+    upload_scope: Option<&str>,
     args: StageFromPayloadArgs,
+    url_style: BlobUrlStyle,
 ) -> DesktopResult<StageBlobResult> {
-    let store = UploadPayloadStore::new(user_data_dir.join("tmp").join("uploads"));
+    let store = UploadPayloadStore::new(uploads_dir(&user_data_dir, upload_scope));
     let bytes = store.read(&args.payload_path).await?;
     let result = stage(
         state,
@@ -214,6 +299,7 @@ pub async fn stage_from_payload(
             mime: args.mime,
             file_name: args.file_name,
         },
+        url_style,
     )
     .await?;
     store.remove(&args.payload_path).await?;

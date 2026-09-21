@@ -24,7 +24,9 @@
 			"empty_no_space": "Select a space",
 			"empty_no_pages": "No pages yet",
 			"loading": "Loading…",
-			"error": "Could not load pages"
+			"error": "Could not load pages",
+			"creating": "Creating…",
+			"create_error": "Couldn't create page: {{message}}"
 		},
 		"nav": {
 			"title": "Nav",
@@ -58,12 +60,15 @@
 		}
 	},
 	"pages": {
+		"untitled": "Untitled",
 		"spaces_index": {
 			"headline": "No space selected",
-			"empty": "Pick a space from the rail, or create one to get started."
+			"empty": "Pick a space from the rail, or create one to get started.",
+			"need_space_for_page": "Pick or create a space before adding a page.",
+			"create_error": "Couldn't create a space: {{message}}"
 		},
 		"space_view": {
-			"placeholder": "Space content placeholder — pages, members, and editor land here in a later phase."
+			"empty": "No page open yet."
 		},
 		"space_members": {
 			"placeholder": "Members and roles will appear here."
@@ -77,7 +82,13 @@
 			"parse_error": "Could not load this page",
 			"try_again": "Try again",
 			"not_found": "Page not found",
-			"back_to_space": "Back to space"
+			"back_to_space": "Back to space",
+			"page_link": {
+				"new_subpage": "New sub-page",
+				"creating": "Creating…",
+				"loading": "Loading pages…",
+				"error": "Could not load pages"
+			}
 		},
 		"settings": {
 			"placeholder": "Settings placeholder."
