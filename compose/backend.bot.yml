@@ -1,0 +1,44 @@
+services:
+  soma-bot:
+    image: ${SOMA_IMAGE:-ghcr.io/stephane-segning/somad}:${SOMA_TAG:-latest}
+    pull_policy: always
+    # `somad` dispatches on a mandatory subcommand (backend/bins/somad/src/commands/mod.rs) —
+    # there is no bare/default mode. Mode (bot vs admin) is chosen via SOMA_MODE below, not
+    # via a different subcommand.
+    command: ["bot"]
+    depends_on:
+      - soma-relay
+      - soma-rendezvous
+    environment:
+      RUST_LOG: info
+      HTTP_ADDR: 0.0.0.0:8080
+      SOMA_DATA_DIR: /data
+      SOMA_BLOB_DIR: /blobs
+      # DbFactory::any() (backend/crates/core/src/db.rs) requires a URL with an explicit
+      # scheme; somad's own bare-path fallback ("./botd.db") would not parse as one, so this
+      # stays fully qualified rather than relying on the default.
+      SOMA_DATABASE_URL: sqlite:///data/bot.db
+      # Optional: point the bot at your infra nodes (needs /p2p/<peer_id> in the multiaddr).
+      # Example:
+      #   SOMA_RELAY_ADDRS: /dns4/soma-relay/tcp/14003/p2p/<relay_peer_id>,/dns4/soma-relay/udp/14203/quic-v1/p2p/<relay_peer_id>
+      #   SOMA_RDV_ADDRS: /dns4/soma-rendezvous/tcp/14004/p2p/<rdv_peer_id>
+      # SOMA_RELAY_ADDRS: ""
+      # SOMA_RDV_ADDRS: ""
+      # bot mode (default) needs no token at all. Set SOMA_MODE=admin in your shell/.env AND
+      # SOMA_ADMIN_TOKEN to a real secret (never commit one) to enable the authenticated
+      # control plane (POST /v1/join/decide etc) — somad now fails closed without a token in
+      # admin mode (backend/bins/somad/src/commands/bot/config.rs).
+      SOMA_MODE: ${SOMA_MODE:-bot}
+      SOMA_ADMIN_TOKEN: ${SOMA_ADMIN_TOKEN:-}
+    ports:
+      - "8080:8080"
+      - "14005:14005/tcp"
+      - "14105:14105/tcp"
+      - "14205:14205/udp"
+    volumes:
+      - bot-data:/data
+      - bot-blobs:/blobs
+
+volumes:
+  bot-data: {}
+  bot-blobs: {}

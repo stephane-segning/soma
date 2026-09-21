@@ -1,0 +1,4 @@
+# Fetched by `helm dependency update` / `helm dependency build` from Chart.lock.
+# Chart.lock itself IS committed (pins the exact app-template version/digest);
+# the downloaded tarball is a build artifact, not source.
+charts/*.tgz

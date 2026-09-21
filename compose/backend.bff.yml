@@ -1,0 +1,17 @@
+services:
+  soma-bff:
+    image: ${SOMA_IMAGE:-ghcr.io/stephane-segning/somad}:${SOMA_TAG:-latest}
+    pull_policy: always
+    # `somad` dispatches on a mandatory subcommand (backend/bins/somad/src/commands/mod.rs) —
+    # there is no bare/default mode.
+    command: ["bff"]
+    environment:
+      RUST_LOG: info
+      HTTP_ADDR: 0.0.0.0:8083
+      # bff is stateless by default (no DB, no libp2p) — nothing here needs a volume unless
+      # the optional diagnostic peer below is enabled.
+      # Optional diagnostic libp2p peer (off by default):
+      # SOMA_P2P_ENABLE: "true"
+      # SOMA_P2P_LISTEN_ADDRS: /ip4/0.0.0.0/tcp/14010,/ip4/0.0.0.0/tcp/14110/ws,/ip4/0.0.0.0/udp/14210/quic-v1
+    ports:
+      - "8083:8083"
