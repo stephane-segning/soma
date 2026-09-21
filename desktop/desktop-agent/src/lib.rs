@@ -19,7 +19,7 @@ pub mod service;
 pub mod tasks;
 pub mod types;
 
-pub use config::{AgentRuntimeConfig, ResolvedWorkspaceAgentConfig, normalize_runtime_config, resolve_workspace};
+pub use config::{AgentConfigOverrides, AgentRuntimeConfig, ResolvedWorkspaceAgentConfig, resolve_workspace};
 pub use provider::{ChatProvider, openai::OpenAiProvider};
 pub use service::AgentService;
 pub use tasks::{InMemoryTaskStore, TaskStore};

@@ -4,7 +4,6 @@
 // build state, register plugins, register commands, run the app loop. All
 // business logic lives in the `desktop-*` library crates.
 
-mod agent_config_source;
 mod bindings;
 mod startup;
 
@@ -12,7 +11,8 @@ use std::sync::{Arc, OnceLock};
 
 use desktop_agent::events::{self as agent_events, RuntimeEventStream};
 use desktop_agent::runtime::AgentRuntime;
-use desktop_agent::service::AgentService;
+use desktop_agent::service::{AgentService, DbConfigSource};
+use desktop_api::agent_config_store::DaemonBackedAgentConfigStore;
 use desktop_commands::AppState;
 use desktop_daemon::blob_reader::DaemonBlobReader;
 use desktop_daemon::events::{self as daemon_events, EventBridge};
@@ -23,7 +23,6 @@ use desktop_services::logger::{self, LoggerGuards, LoggerOptions};
 use desktop_services::practice::PracticeService;
 use tauri::Manager;
 
-use crate::agent_config_source::StoreBackedConfigSource;
 use crate::startup::deep_link;
 #[cfg(desktop)]
 use crate::startup::menu as app_menu;
@@ -158,7 +157,16 @@ pub fn run() {
             let daemon = Arc::new(DaemonRuntime::new(DaemonRuntimeOptions::new(&user_data_dir)));
             let agent_runtime = Arc::new(AgentRuntime::new());
 
-            let config_source = Arc::new(StoreBackedConfigSource::new(app.handle().clone()));
+            // Agent config lives in the same SQLite database the embedded
+            // daemon owns (one DB shared by both runtimes — see AGENTS.md's
+            // "Storage" section), reached through `DaemonHandle` rather than
+            // `tauri-plugin-store`. `DbConfigSource` re-resolves on every
+            // call, so config changes (including from another window /
+            // `desktop-bff`, since it's the same on-disk DB) take effect
+            // with no restart.
+            let config_source = Arc::new(DbConfigSource::new(Arc::new(DaemonBackedAgentConfigStore::new(Arc::clone(
+                &daemon,
+            )))));
             let agent_service = AgentService::new(config_source, Arc::clone(&agent_runtime));
             // Practice is process-local state (no daemon backing) — built
             // up-front so AppState is ready by the time the renderer

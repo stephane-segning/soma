@@ -60,16 +60,29 @@ there.
 
 ## Remaining work, highest value first
 
-### 1. AI provider config per space — not started
-No AI settings UI exists at all, global or per-space. Config is a single global blob in
-`tauri-plugin-store`; `AgentRuntimeConfig.workspaces` already keys by `space_id` but only carries
-model names, and nothing writes to it. `ChatPanel` reads `spaceId` from `useParams()` while
-rendered *outside* the `Outlet` chain, so it is structurally always `null` — fix that first or
-nothing per-space can ever take effect. Design already exists: ADR-0005 §3/§5 and
-`prd/ui-revamp-v0-refs-assistant-bots.md`.
+### 1. ~~AI provider config per space~~ — DONE
 
-**API keys are stored in plaintext** in `soma-data.json` and round-tripped to the renderer on
-every `settings.all()`. Worth its own track regardless of the per-space work.
+Shipped as a scope-keyed `agent_provider_configs` table (`"default"` or a space id, every
+overridable column nullable = inherit), resolved space → default → compiled-in on every agent
+call. It lives in the **database, not the Tauri store**, because `desktop-bff` hardcoded
+`StaticConfigSource(AgentRuntimeConfig::default())` and could never have read the store — so a
+store-based design would have been desktop-only. Both binaries now share one source.
+
+`backend.agent.config.{getDefault,getSpace,setDefault,setSpace,clearDefault,clearSpace,validate}`,
+exposed through both presenters. UI at `/settings` → Assistant (default scope) and
+`/spaces/:spaceId/settings` → Assistant (per-space), auto-saving on blur with on-blur endpoint
+validation, per ADR-0005 §3.
+
+**The API key is write-only.** Reads return `hasApiKey: boolean` and never the value; a test
+serializes the whole DTO and scans for the secret. That closes the old finding where
+`settings_get_all` handed the key to the renderer in cleartext on every call. It is still stored
+in cleartext *at rest* — `AgentConfigRepository::{get, set_api_key}` are the only two methods that
+touch it, so an OS-keychain `SecretStore` can replace those two bodies without changing any
+caller. Deferred because `keyring` has no Android support and would break the mobile build.
+
+Also shipped alongside: Members and Bots tabs on the same screen, which made the **join-approval
+flow reachable for the first time** (`joinRequests`/`decideJoin` had zero UI callers), along with
+`revokeMember`, `revokeBot` and real capability issuance against a pasted peer address.
 
 ### 2. Invite UX — absent end to end
 No invite link, no QR, no paste-a-peer-ID form. `soma://` deep links are forwarded to the
@@ -179,3 +192,34 @@ One more gotcha worth remembering: `cargo check -p <crate>` and `cargo check --w
 different oracles. `desktop-commands` had never compiled standalone — it uses `#[specta::specta]`
 but declared plain `specta = { workspace = true }`, and only built because `tauri-specta` elsewhere
 in the graph unified the `function` feature on. Now fixed, but worth checking members individually.
+
+## Addendum 2: bugs found while building the settings screen
+
+**A whole class of dead UI, one root cause.** Five components read the active space with
+`useParams()` while being rendered as `AppLayout` *column props* — siblings of `<Outlet />`, not
+descendants — so route params never reached them and the hook returned `{}`:
+
+| Component | Consequence |
+|---|---|
+| `chat-panel` | every chat call lost its space context |
+| `nav-panel` | navigation entries for the space never appeared |
+| `bots-panel` | **never showed a single bot, for any space** |
+| `pages-panel` | **never listed a single page** — permanently "Select a space" |
+| `spaces-rail-container` | rail never highlighted the active space |
+
+All five now use `parseActiveSpaceId(useLocation().pathname)`. When adding a component to an
+`AppLayout` column, `useParams()` is always wrong; inside a real route component it is correct.
+
+**Every struct-argument command was broken over HTTP.** The SDK calls `t.invoke(cmd, { args })`
+because the JSON key must match the Tauri parameter name, but `httpTransport` forwarded that
+envelope verbatim while every axum handler expects the struct flat — a 422 on `spaces.update`,
+`spaces.create`, `spaces.join`, `spaces.decideJoin`, `spaces.revokeMember`, `agent.rerank`,
+`documents.upsertDraft` and the blob staging calls. It went unnoticed because the earlier
+end-to-end web test used `spaces_list` (no struct arg) and drove its mutation with raw `curl`,
+bypassing the SDK. Fixed once in `httpTransport.invoke` with regression tests.
+
+**`@soma/ui` is never linted by CI** and has 20 accumulated errors (a11y, exhaustive-deps).
+Deliberately not bulk-fixed: `biome check --write` would strip `autoFocus` from the command
+palette's search input — which is intentional and would break ⌘K — and auto-adding effect
+dependencies risks render loops. This needs a deliberate pass, then a CI gate, in that order.
+Adding the gate first would just land a red pipeline.

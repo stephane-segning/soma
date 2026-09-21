@@ -17,6 +17,8 @@
 //! URLs).
 
 pub mod agent;
+pub mod agent_config;
+pub mod agent_config_store;
 pub mod blobs;
 pub mod daemon;
 pub mod documents;

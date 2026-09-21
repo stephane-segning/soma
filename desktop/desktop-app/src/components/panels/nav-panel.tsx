@@ -11,11 +11,19 @@
  * visibly leaking into the rail. We now render a plain `DenseRow` list
  * — the same primitive every other rail list uses (members, bots,
  * attachments) — so the slot reads as a list, not a stuck-open popover.
+ *
+ * NOT `useParams()` for the active space. `NavPanel` renders inside
+ * `LeftInnerRail`, which `AppLayout` passes as its `leftColumn` prop —
+ * a *sibling* of `<Outlet />`, not a descendant, so route params from
+ * the nested `spaces/:spaceId` route are never visible here (same bug
+ * `chat-panel.tsx` had before its fix — see that file's doc comment).
+ * Every space-scoped entry below would silently disappear without this.
  */
 import { DenseRow } from "@soma/ui/components/lists/dense-row";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate, useParams } from "react-router";
+import { useLocation, useNavigate } from "react-router";
+import { parseActiveSpaceId } from "../../lib/active-space";
 
 type NavEntry = {
 	id: string;
@@ -26,7 +34,8 @@ type NavEntry = {
 export function NavPanel() {
 	const { t } = useTranslation();
 	const navigate = useNavigate();
-	const { spaceId } = useParams<{ spaceId?: string }>();
+	const { pathname } = useLocation();
+	const spaceId = parseActiveSpaceId(pathname);
 
 	const entries = useMemo<NavEntry[]>(() => {
 		const settings: NavEntry = {
@@ -38,14 +47,9 @@ export function NavPanel() {
 		return [
 			settings,
 			{
-				id: "members",
-				label: t("panels.nav.members", "Members"),
-				path: `/spaces/${spaceId}/members`,
-			},
-			{
-				id: "meta_info",
-				label: t("panels.nav.meta_info", "Meta info"),
-				path: `/spaces/${spaceId}/info`,
+				id: "space_settings",
+				label: t("panels.nav.space_settings", "Space settings"),
+				path: `/spaces/${spaceId}/settings`,
 			},
 		];
 	}, [spaceId, t]);

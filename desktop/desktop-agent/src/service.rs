@@ -9,10 +9,9 @@ use async_trait::async_trait;
 use base64::{Engine as _, engine::general_purpose::STANDARD as B64};
 use desktop_core::error::{DesktopError, DesktopResult};
 use reqwest::Client;
-use serde_json::Value;
 use tokio::sync::RwLock;
 
-use crate::config::{AgentRuntimeConfig, ResolvedWorkspaceAgentConfig, normalize_runtime_config, resolve_workspace};
+use crate::config::{AgentConfigOverrides, AgentRuntimeConfig, ResolvedWorkspaceAgentConfig, resolve_workspace};
 use crate::events::{RuntimePoll, RuntimePollSnapshot};
 use crate::provider::ChatProvider;
 use crate::provider::openai::OpenAiProvider;
@@ -24,21 +23,73 @@ use crate::types::{
     ResolveDriftResult,
 };
 
-/// Read-only window on the persisted agent config. Implementations are
-/// expected to read from `tauri-plugin-store`'s `settings.agent.config` key.
+/// Resolves the effective config for a call, optionally scoped to a
+/// space. Implementations do their own space -> default -> builtin
+/// merge (see [`resolve_workspace`]) so `AgentService` never has to hold
+/// or cache a full config snapshot — this is called fresh on every
+/// request.
 #[async_trait]
 pub trait ConfigSource: Send + Sync {
-    async fn read(&self) -> AgentRuntimeConfig;
+    async fn resolve(&self, space_id: Option<&str>) -> ResolvedWorkspaceAgentConfig;
 }
 
-/// Single-tenant default. Useful for tests; production wires a store-backed
-/// source in `desktop-app`'s setup hook.
+/// Narrow read seam the DB-backed [`DbConfigSource`] needs. Implemented
+/// outside this crate — in `desktop-api`, which already depends on both
+/// `desktop-agent` and `desktop-daemon` — by wrapping
+/// `soma_daemon::DaemonHandle`. Kept as a trait here so `desktop-agent`
+/// doesn't have to depend on `soma-daemon`/`desktop-daemon` just to read
+/// its own config; see `desktop_api::agent_config_store` for the
+/// concrete adapter both `desktop-app` and `desktop-bff` wire up at
+/// startup.
+#[async_trait]
+pub trait AgentConfigStore: Send + Sync {
+    /// The process-wide default scope's overrides. Implementations
+    /// return an all-`None` [`AgentConfigOverrides`] (not an error) when
+    /// nothing has ever been saved — "no row yet" and "a row of all
+    /// `NULL`s" are observably the same thing to every caller.
+    async fn default_overrides(&self) -> AgentConfigOverrides;
+    /// One space's overrides. Same "all-`None` when unset" contract as
+    /// [`default_overrides`](Self::default_overrides). `poll_interval_ms`
+    /// is always `None` here — a space scope never overrides it.
+    async fn space_overrides(&self, space_id: &str) -> AgentConfigOverrides;
+}
+
+/// Fixed-answer source that ignores `space_id` entirely — useful for
+/// tests and any caller that already has a fully-resolved config in
+/// hand. For exercising space/default override *precedence*, call
+/// [`resolve_workspace`] directly rather than going through this type.
 pub struct StaticConfigSource(pub AgentRuntimeConfig);
 
 #[async_trait]
 impl ConfigSource for StaticConfigSource {
-    async fn read(&self) -> AgentRuntimeConfig {
-        self.0.clone()
+    async fn resolve(&self, _space_id: Option<&str>) -> ResolvedWorkspaceAgentConfig {
+        resolve_workspace(&self.0, &AgentConfigOverrides::default(), None)
+    }
+}
+
+/// DB-backed [`ConfigSource`]: resolves space -> default -> builtin on
+/// every call via [`AgentConfigStore`], fetching at most two rows (never
+/// a full table scan) — see `AgentService::resolve`'s "no cache"
+/// contract, which this preserves.
+pub struct DbConfigSource {
+    store: Arc<dyn AgentConfigStore>,
+}
+
+impl DbConfigSource {
+    pub fn new(store: Arc<dyn AgentConfigStore>) -> Self {
+        Self { store }
+    }
+}
+
+#[async_trait]
+impl ConfigSource for DbConfigSource {
+    async fn resolve(&self, space_id: Option<&str>) -> ResolvedWorkspaceAgentConfig {
+        let default_overrides = self.store.default_overrides().await;
+        let space_overrides = match space_id.map(str::trim).filter(|s| !s.is_empty()) {
+            Some(id) => Some(self.store.space_overrides(id).await),
+            None => None,
+        };
+        resolve_workspace(&AgentRuntimeConfig::default(), &default_overrides, space_overrides.as_ref())
     }
 }
 
@@ -86,6 +137,32 @@ impl AgentService {
 
     pub async fn list_models(&self, space_id: Option<&str>) -> DesktopResult<Vec<AgentModel>> {
         self.provider_for(space_id).await.list_models().await
+    }
+
+    /// Probe `{base_url}/models` with the given credentials/timeout,
+    /// without touching or requiring any saved config. Used by the
+    /// settings UI's blur-time validation (ADR-0005 §3): the caller
+    /// passes whatever the user just typed, before — or instead of —
+    /// saving it, so the round-trip cost of "save, then re-fetch to
+    /// validate" is never paid. Reuses this service's pooled HTTP
+    /// client, same as every other provider call.
+    pub async fn validate_provider_config(
+        &self,
+        base_url: &str,
+        api_key: Option<&str>,
+        request_timeout_ms: Option<u64>,
+    ) -> DesktopResult<Vec<AgentModel>> {
+        let resolved = ResolvedWorkspaceAgentConfig {
+            provider: AgentProvider::OpenAiCompatible,
+            open_ai_base_url: base_url.trim().trim_end_matches('/').to_owned(),
+            open_ai_api_key: api_key.unwrap_or_default().trim().to_owned(),
+            poll_interval_ms: 0,
+            request_timeout_ms: request_timeout_ms.unwrap_or(10_000),
+            chat_model: String::new(),
+            embed_model: String::new(),
+            model_capabilities: std::collections::HashMap::new(),
+        };
+        build_provider(self.http.clone(), resolved).list_models().await
     }
 
     pub async fn rerank(&self, params: &RerankParams) -> DesktopResult<Vec<RerankResult>> {
@@ -234,8 +311,7 @@ impl AgentService {
     }
 
     async fn resolve(&self, space_id: Option<&str>) -> ResolvedWorkspaceAgentConfig {
-        let cfg = self.config.read().await;
-        resolve_workspace(&cfg, space_id)
+        self.config.resolve(space_id).await
     }
 
     async fn self_arc(&self) -> DesktopResult<Arc<AgentService>> {
@@ -284,21 +360,14 @@ impl RuntimePoll for AgentService {
     }
 
     async fn current_config(&self) -> RuntimePollSnapshot {
-        let cfg = self.config.read().await;
+        // `None` (the default scope, resolved against builtin) — the
+        // runtime poll has no notion of "which space" it's checking
+        // liveness for.
+        let cfg = self.config.resolve(None).await;
         RuntimePollSnapshot {
             provider: cfg.provider,
             base_url: cfg.open_ai_base_url.clone(),
             poll_interval_ms: cfg.poll_interval_ms,
         }
     }
-}
-
-// --- Settings-key constant re-export so binary doesn't import the config module directly.
-pub use crate::config::AGENT_CONFIG_SETTINGS_KEY as SETTINGS_KEY;
-
-/// Helper: build a `ConfigSource` from a serde_json `Value` snapshot. Used
-/// where the renderer's settings store hands us a JSON blob (no async
-/// reload), e.g. tests and the lazy-loading case in the binary.
-pub fn config_source_from_value(value: Value) -> Arc<dyn ConfigSource> {
-    Arc::new(StaticConfigSource(normalize_runtime_config(&value)))
 }

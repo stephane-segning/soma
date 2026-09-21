@@ -33,7 +33,8 @@ import type { StoredPage } from "@soma/sdk";
 import { type TreeDoc, TreePopover } from "@soma/ui/components/nav/tree-popover";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate, useParams } from "react-router";
+import { useLocation, useNavigate } from "react-router";
+import { parseActiveSpaceId } from "../../lib/active-space";
 import { backend } from "../../lib/backend";
 import { createPage, PAGE_CREATED_EVENT, type PageCreatedDetail } from "../../lib/create-page";
 import { PlusIcon } from "../icons";
@@ -88,7 +89,14 @@ function toTreeDocs(pages: StoredPage[]): TreeDoc[] {
 export function PagesPanel() {
 	const { t } = useTranslation();
 	const navigate = useNavigate();
-	const { spaceId } = useParams<{ spaceId?: string }>();
+	// NOT `useParams()`. This component renders inside a column
+	// `AppLayout` passes to `DesktopShell` (a *sibling* of `<Outlet />`),
+	// so route params from `spaces/:spaceId` never reach it and
+	// `useParams()` resolves to `{}`. Derive the active space from the
+	// live pathname instead — same fix as `chat-panel`, `nav-panel` and
+	// `bots-panel`.
+	const { pathname } = useLocation();
+	const spaceId = parseActiveSpaceId(pathname) ?? undefined;
 	const [state, setState] = useState<LoadState>({ kind: "idle" });
 	const [creating, setCreating] = useState(false);
 	const [createError, setCreateError] = useState<string | null>(null);

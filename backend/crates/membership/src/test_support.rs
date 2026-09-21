@@ -382,6 +382,10 @@ impl soma_storage::RepositoryProvider for FakeRepositoryProvider {
         unimplemented!("not exercised by the bot-recruitment regression tests")
     }
 
+    fn agent_config_repo(&self) -> std::sync::Arc<dyn soma_storage::agent_config::AgentConfigRepository> {
+        unimplemented!("not exercised by the bot-recruitment regression tests")
+    }
+
     fn pool(&self) -> sqlx_utils::types::Pool {
         unimplemented!("not exercised by the bot-recruitment regression tests")
     }

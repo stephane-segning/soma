@@ -187,3 +187,64 @@ async fn query_token_is_not_honored_outside_the_blob_bytes_route() {
         .expect("post");
     assert_eq!(resp.status(), 401);
 }
+
+/// `agent_config_get_default` is daemon-backed (the config lives in the
+/// same DB the embedded daemon owns) — with no daemon running this must
+/// dispatch (no 404) and surface the same `{kind: "daemon"}` envelope
+/// every other daemon-backed route does.
+#[tokio::test]
+async fn agent_config_get_default_returns_daemon_error_when_daemon_idle() {
+    let h = spawn_router().await;
+    let resp = reqwest::Client::new()
+        .post(format!("{}/api/v1/agent_config_get_default", http_base(h.addr)))
+        .bearer_auth(TEST_TOKEN)
+        .header("Content-Type", "application/json")
+        .body("{}")
+        .send()
+        .await
+        .expect("post");
+    assert_eq!(resp.status(), 500);
+    let body: serde_json::Value = resp.json().await.expect("json");
+    assert_eq!(body["kind"], "daemon");
+}
+
+/// Same as above for the space-scoped GET, which additionally proves the
+/// `{"spaceId": ...}` body shape deserializes correctly (a malformed body
+/// would 422 before ever reaching the daemon-unavailable branch).
+#[tokio::test]
+async fn agent_config_get_space_returns_daemon_error_when_daemon_idle() {
+    let h = spawn_router().await;
+    let resp = reqwest::Client::new()
+        .post(format!("{}/api/v1/agent_config_get_space", http_base(h.addr)))
+        .bearer_auth(TEST_TOKEN)
+        .header("Content-Type", "application/json")
+        .body(r#"{"spaceId":"space-1"}"#)
+        .send()
+        .await
+        .expect("post");
+    assert_eq!(resp.status(), 500);
+    let body: serde_json::Value = resp.json().await.expect("json");
+    assert_eq!(body["kind"], "daemon");
+}
+
+/// `agent_config_validate` needs no daemon at all — it probes the given
+/// endpoint directly through the agent runtime's own HTTP client. An
+/// unreachable target must come back as a *structured* `ok: false`
+/// result (200), never a 500 — the whole point of this endpoint is to
+/// let the settings UI show an inline error without a thrown exception.
+#[tokio::test]
+async fn agent_config_validate_reports_a_structured_failure_for_an_unreachable_endpoint() {
+    let h = spawn_router().await;
+    let resp = reqwest::Client::new()
+        .post(format!("{}/api/v1/agent_config_validate", http_base(h.addr)))
+        .bearer_auth(TEST_TOKEN)
+        .header("Content-Type", "application/json")
+        .body(r#"{"baseUrl":"http://127.0.0.1:1","requestTimeoutMs":500}"#)
+        .send()
+        .await
+        .expect("post");
+    assert_eq!(resp.status(), 200);
+    let body: serde_json::Value = resp.json().await.expect("json");
+    assert_eq!(body["ok"], false);
+    assert!(body["error"].is_string(), "expected a human-readable reason, got {body}");
+}

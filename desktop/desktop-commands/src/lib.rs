@@ -11,6 +11,7 @@
 //! reach across crates for the type.
 
 pub mod agent;
+pub mod agent_config;
 pub mod blobs;
 pub mod daemon;
 pub mod documents;

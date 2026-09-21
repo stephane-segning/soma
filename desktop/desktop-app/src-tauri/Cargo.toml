@@ -29,6 +29,10 @@ desktop-core = { workspace = true }
 desktop-services = { workspace = true }
 desktop-daemon = { workspace = true }
 desktop-agent = { workspace = true }
+# Needed directly (not just transitively through desktop-commands) for
+# `desktop_api::agent_config_store::DaemonBackedAgentConfigStore`, which
+# this binary's `setup` hook wires into the agent's `DbConfigSource`.
+desktop-api = { workspace = true }
 desktop-commands = { workspace = true }
 
 async-trait = { workspace = true }

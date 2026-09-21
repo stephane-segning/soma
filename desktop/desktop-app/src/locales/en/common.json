@@ -31,8 +31,7 @@
 		"nav": {
 			"title": "Nav",
 			"settings": "Settings",
-			"members": "Members",
-			"meta_info": "Meta info"
+			"space_settings": "Space settings"
 		},
 		"chat": {
 			"title": "Chat",
@@ -70,12 +69,6 @@
 		"space_view": {
 			"empty": "No page open yet."
 		},
-		"space_members": {
-			"placeholder": "Members and roles will appear here."
-		},
-		"space_info": {
-			"placeholder": "Space metadata will appear here."
-		},
 		"page_view": {
 			"loading": "Loading document…",
 			"error": "Could not load the document.",
@@ -105,8 +98,8 @@
 			"aria_label": "Settings sections",
 			"general": "General",
 			"account": "Account",
+			"assistant": "Assistant",
 			"appearance": "Appearance",
-			"capabilities": "Capabilities",
 			"network": "Network",
 			"advanced": "Advanced"
 		},
@@ -150,6 +143,9 @@
 				"label": "Transport"
 			}
 		},
+		"assistant": {
+			"description": "The default AI provider every space inherits from, unless a space overrides it below."
+		},
 		"appearance": {
 			"description": "Surface controls — theme, density, and accent.",
 			"theme": {
@@ -166,9 +162,6 @@
 				"description": "Override the primary accent across the shell."
 			}
 		},
-		"capabilities": {
-			"description": "Issue a scoped capability to a bot or peer."
-		},
 		"network": {
 			"description": "Manually connect to a peer when discovery is unavailable.",
 			"peer": {
@@ -180,6 +173,132 @@
 			"description": "Diagnostics and experimental toggles.",
 			"coming_soon": "Advanced settings coming soon",
 			"cta": "Open diagnostics"
+		}
+	},
+	"spaceSettings": {
+		"title": "Space settings",
+		"notFound": "Space not found",
+		"tabs": {
+			"ariaLabel": "Space settings sections",
+			"members": "Members",
+			"bots": "Bots",
+			"assistant": "Assistant"
+		},
+		"roles": {
+			"unspecified": "Unspecified",
+			"owner": "Owner",
+			"editor": "Editor",
+			"viewer": "Viewer",
+			"member": "Member",
+			"bot": "Bot"
+		},
+		"members": {
+			"loading": "Loading members…",
+			"error": "Failed to load members: {{message}}",
+			"roster": {
+				"title": "Members",
+				"description": "Everyone with access to this space, their role, and when their membership expires.",
+				"empty": "No members yet",
+				"you": "You",
+				"revoke": "Revoke",
+				"cannotRevokeSelf": "You can't revoke your own membership here.",
+				"expiry": {
+					"never": "Never expires",
+					"active": "Expires {{date}}",
+					"expired": "Expired {{date}}"
+				},
+				"revokeConfirm": {
+					"title": "Revoke this member",
+					"description": "They immediately lose access to this space. This can't be undone from here.",
+					"slugLabel": "Type {{slug}} to confirm",
+					"cancel": "Cancel",
+					"confirm": "Revoke member"
+				}
+			},
+			"joinRequests": {
+				"title": "Pending join requests",
+				"description": "People asking to join this space. Approving grants the role they requested.",
+				"empty": "No pending requests",
+				"unknownRequester": "Unknown requester",
+				"approve": "Approve",
+				"reject": "Reject"
+			}
+		},
+		"bots": {
+			"title": "Bots",
+			"description": "Programmable peers authorized to act in this space, added by pasting their peer address.",
+			"loading": "Loading bots…",
+			"error": "Failed to load bots: {{message}}",
+			"addBot": {
+				"cta": "Add bot",
+				"cancel": "Cancel",
+				"peerAddress": {
+					"label": "Bot peer address"
+				},
+				"errors": {
+					"missing-p2p-suffix": "Address must include a /p2p/<peer-id> suffix.",
+					"empty-peer-id": "Address is missing a peer id after /p2p/."
+				},
+				"scopes": {
+					"group": "Membership",
+					"issueMembership": {
+						"label": "Auto-approve joins",
+						"description": "Lets this bot approve join requests for this space on your behalf."
+					}
+				}
+			},
+			"revokeConfirm": {
+				"title": "Revoke {{alias}}",
+				"description": "This bot immediately loses its capability in this space. This can't be undone from here.",
+				"slugLabel": "Type {{slug}} to confirm",
+				"cancel": "Cancel",
+				"confirm": "Revoke bot"
+			}
+		}
+	},
+	"assistant": {
+		"loading": "Loading assistant configuration…",
+		"error": "Couldn't load the assistant configuration: {{message}}",
+		"readOnlyNotOwner": "Only the space owner can change these settings.",
+		"cards": {
+			"connection": "Connection",
+			"models": "Models",
+			"advanced": "Advanced"
+		},
+		"fields": {
+			"inheritedHint": "Inherits {{value}} from your default assistant configuration",
+			"builtinHint": "Not set — Soma uses a built-in default",
+			"baseUrl": {
+				"label": "Base URL",
+				"placeholder": "http://127.0.0.1:11434/v1",
+				"validating": "Checking connection…",
+				"validateOk": "Connected · {{count}} models"
+			},
+			"apiKey": {
+				"label": "API key",
+				"placeholderOwn": "Unchanged — leave blank to keep the current key",
+				"placeholderInherited": "Inherits the key from your default assistant configuration",
+				"placeholderNone": "No key configured",
+				"inheritedHint": "Inherits the API key from your default assistant configuration",
+				"noneHint": "No API key configured anywhere",
+				"clear": "Clear stored key"
+			},
+			"chatModel": {
+				"label": "Chat model",
+				"placeholder": "e.g. llama3.1"
+			},
+			"embedModel": {
+				"label": "Embed model",
+				"placeholder": "e.g. nomic-embed-text"
+			},
+			"requestTimeoutMs": {
+				"label": "Request timeout (ms)",
+				"placeholder": "30000"
+			},
+			"pollIntervalMs": {
+				"label": "Poll interval (ms)",
+				"placeholder": "60000"
+			}
 		}
 	}
 }

@@ -180,7 +180,10 @@ Blob protocol:
 
 Agent runtime configuration:
 
-- Source of truth: the Tauri store (`tauri-plugin-store`) via the host's config source (`src-tauri/src/agent_config_source.rs`), surfaced to the renderer through `@soma/sdk`.
+- Source of truth: a scope-keyed table (`agent_provider_configs`) in the same SQLite database the embedded daemon owns — **not** the Tauri store (the store held it until the per-space provider config work; that source was fully cut over, no dual-read). Scope is either the process-wide default (`"default"`) or a space id; every overridable column (`provider`, `base_url`, `api_key`, `chat_model`, `embed_model`, `request_timeout_ms`; `poll_interval_ms` is default-scope-only) is nullable, meaning "inherit" — resolution order is space row -> default row -> `AgentRuntimeConfig::default()`'s compiled-in constants, resolved fresh on every call (`desktop_agent::service::ConfigSource::resolve`, implemented by `DbConfigSource`).
+- Storage: `soma-storage::agent_config` (repository) + `soma-daemon::DaemonHandle::agent_config_{get,upsert,clear}_{default,space}` (read/write/clear, space-scope writes gated to the space's owner — see `soma-daemon/src/handle/agent_config.rs`'s module doc for the authorization rule). `desktop-agent`'s `DbConfigSource` reads through `AgentConfigStore`, adapted onto `DaemonHandle` by `desktop_api::agent_config_store::DaemonBackedAgentConfigStore` — the same adapter backs both `desktop-app/src-tauri` and `desktop-bff`.
+- The API key is write-only end-to-end: no handler/DTO/command/route/SDK method ever returns it, only `hasApiKey: bool`. Clearing it is a distinct operation from never setting it (`ApiKeyInput`/`ApiKeyWrite`'s `Clear` vs `Unchanged` variants).
+- Client surface: `desktop-api::agent_config` (get/set/clear for both scopes + `validate`, which probes `GET {base_url}/models` for blur-time validation per ADR-0005 §3), exposed identically through `desktop-commands` (Tauri) and `desktop-bff` (HTTP) — see `@soma/sdk`'s `backend.agentConfig` namespace.
 - Default provider: OpenAI-compatible at `http://127.0.0.1:11434/v1` (Ollama-style).
 - Supported provider kinds: `openai-compatible` (the only variant of `AgentProvider` that exists). `soma-agentd` deliberately does **not** serve chat/embed/rerank — it returns an error for model-backed RPCs — so it is not a selectable provider; its live role is Yjs drift resolution.
 - Provider/model docs: `docs/src/development/agentd-models.md`.
@@ -340,6 +343,7 @@ A single SQLite database per install. All eleven tables below exist today via SQ
 - `blobs(space_id, cid)` — blob metadata (size/mime/name, timestamps).
 - `blob_refs(space_id, cid, document_id)` — document→blob references (for listing + safe GC).
 - `peer_public_keys(peer_id)` — Identify public keys observed for peers.
+- `agent_provider_configs(scope)` — per-scope (`"default"` or a space id) AI provider overrides (provider, base URL, API key, chat/embed model, timeouts); every column nullable, meaning inherit. See "Agent runtime configuration" above.
 - Agent tables (chat sessions, embeddings, etc.) — folded in from the former `agentd.db`.
 
 `somad bot` keeps its current SQLx migrations at `backend/crates/storage/migrations` until that runtime is migrated to CrateStack.

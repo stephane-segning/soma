@@ -20,50 +20,31 @@
  * regardless of which router drives it).
  */
 
-import { Empty } from "@soma/ui/components/primitives/empty";
 import { isTauri } from "@tauri-apps/api/core";
-import { useTranslation } from "react-i18next";
-import type { RouteObject } from "react-router";
-import { createBrowserRouter, createMemoryRouter, useParams } from "react-router";
+import type { LoaderFunctionArgs, RouteObject } from "react-router";
+import { createBrowserRouter, createMemoryRouter, redirect } from "react-router";
 import { AppLayout } from "./app-layout";
 import { NotFound } from "./not-found";
 import { PageView } from "./page-view";
 import { rootRedirectLoader } from "./root-redirect";
 import { SettingsPage } from "./settings";
+import { SpaceSettingsPage } from "./space-settings";
 import { SpaceView } from "./space-view";
 import { SpacesIndex } from "./spaces-index";
 import { SpikeEditor } from "./spike-editor";
 
 /**
- * Lightweight placeholder routes for the per-space `members` and `info`
- * surfaces. The real screens land alongside the membership and join-
- * decision flows; until then we render an `Empty` so the deep links
- * from chips and breadcrumbs still resolve to something coherent.
+ * `/spaces/:spaceId/members` used to render an inert `Empty` placeholder
+ * (`SpaceMembersPlaceholder`, removed). It now has a real successor — the
+ * Members tab of `spaces/:spaceId/settings` — so old links/bookmarks
+ * redirect there instead of 404ing. `/spaces/:spaceId/info` had no
+ * matching successor built (there is no "space info" tab in this pass)
+ * and is deliberately NOT redirected — it falls through to the `*` route
+ * (`NotFound`) below rather than landing users on a tab with nothing to
+ * do with "info".
  */
-function SpaceMembersPlaceholder() {
-	const { t } = useTranslation();
-	const { spaceId } = useParams<{ spaceId: string }>();
-	return (
-		<main className="mx-auto w-full max-w-4xl px-8 py-10">
-			<Empty
-				headline={t("pages.space_members.placeholder")}
-				subtext={spaceId ? <span className="font-mono text-xs">{spaceId}</span> : undefined}
-			/>
-		</main>
-	);
-}
-
-function SpaceInfoPlaceholder() {
-	const { t } = useTranslation();
-	const { spaceId } = useParams<{ spaceId: string }>();
-	return (
-		<main className="mx-auto w-full max-w-4xl px-8 py-10">
-			<Empty
-				headline={t("pages.space_info.placeholder")}
-				subtext={spaceId ? <span className="font-mono text-xs">{spaceId}</span> : undefined}
-			/>
-		</main>
-	);
+function spaceMembersRedirectLoader({ params }: LoaderFunctionArgs): Response {
+	return redirect(`/spaces/${params.spaceId}/settings`);
 }
 
 const routes: RouteObject[] = [
@@ -89,12 +70,13 @@ const routes: RouteObject[] = [
 				Component: PageView,
 			},
 			{
-				path: "spaces/:spaceId/members",
-				Component: SpaceMembersPlaceholder,
+				path: "spaces/:spaceId/settings",
+				Component: SpaceSettingsPage,
 			},
 			{
-				path: "spaces/:spaceId/info",
-				Component: SpaceInfoPlaceholder,
+				path: "spaces/:spaceId/members",
+				loader: spaceMembersRedirectLoader,
+				Component: () => null,
 			},
 			{
 				path: "settings",

@@ -1696,6 +1696,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "desktop-agent",
+ "desktop-api",
  "desktop-commands",
  "desktop-core",
  "desktop-daemon",
@@ -7360,6 +7361,7 @@ dependencies = [
  "sqlx",
  "sqlx-utils",
  "tempfile",
+ "tokio",
 ]
 
 [[package]]

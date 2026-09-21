@@ -28,11 +28,11 @@ use std::sync::Arc;
 
 use anyhow::Context;
 use axum::http::HeaderValue;
-use desktop_agent::config::AgentRuntimeConfig;
 use desktop_agent::events as agent_events;
 use desktop_agent::events::RuntimeEventStream;
 use desktop_agent::runtime::AgentRuntime;
-use desktop_agent::service::{AgentService, StaticConfigSource};
+use desktop_agent::service::{AgentService, DbConfigSource};
+use desktop_api::agent_config_store::DaemonBackedAgentConfigStore;
 use desktop_api::{AGENT_EVENT_CHANNEL_CAPACITY, AppState, DOMAIN_EVENT_CHANNEL_CAPACITY};
 use desktop_bff::{BffConfig, build_router};
 use desktop_daemon::events as daemon_events;
@@ -67,11 +67,15 @@ async fn main() -> anyhow::Result<()> {
     let daemon = Arc::new(DaemonRuntime::new(DaemonRuntimeOptions::new(&user_data_dir)));
     let agent_runtime = Arc::new(AgentRuntime::new());
 
-    // The BFF has no `tauri-plugin-store` to read agent config from; until
-    // the BFF grows a real settings surface, we hand it the static
-    // defaults. Same shape the Tauri shell would normalize to from an
-    // empty store value.
-    let config_source = Arc::new(StaticConfigSource(AgentRuntimeConfig::default()));
+    // Agent config lives in the same SQLite database the embedded daemon
+    // owns (one DB shared by both runtimes — see AGENTS.md's "Storage"
+    // section), reached through `DaemonHandle`, not a Tauri store this
+    // binary doesn't have. `DaemonBackedAgentConfigStore` re-fetches on
+    // every call, same as the Tauri shell's wiring in
+    // `desktop-app/src-tauri/src/lib.rs`.
+    let config_source = Arc::new(DbConfigSource::new(Arc::new(DaemonBackedAgentConfigStore::new(Arc::clone(
+        &daemon,
+    )))));
     let agent_service = AgentService::new(config_source, Arc::clone(&agent_runtime));
     let practice = Arc::new(PracticeService::new());
 

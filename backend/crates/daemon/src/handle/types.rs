@@ -253,6 +253,65 @@ pub struct IssueIssuerCapabilityInput {
     pub target_multiaddrs: Vec<String>,
 }
 
+/// Scope-keyed AI provider config overrides, exactly as persisted. Every
+/// field is `None` when this scope doesn't override that column —
+/// callers resolve "inherit" themselves (space -> default -> the
+/// caller's own compiled-in constants; this daemon has no opinion on
+/// what those constants are).
+///
+/// `api_key` carries the real cleartext value and is for **in-process
+/// Rust callers only** (e.g. `desktop-agent`'s config resolver, building
+/// a Bearer header). It must never be serialized straight onto any
+/// client-facing DTO — `desktop-api`'s handlers project it into a
+/// `has_api_key: bool` before it ever reaches a Tauri command or HTTP
+/// route; see `desktop_api::agent_config`.
+#[derive(Debug, Clone, Default)]
+pub struct AgentProviderConfigRecord {
+    pub provider: Option<String>,
+    pub base_url: Option<String>,
+    pub api_key: Option<String>,
+    pub chat_model: Option<String>,
+    pub embed_model: Option<String>,
+    pub request_timeout_ms: Option<i64>,
+    pub poll_interval_ms: Option<i64>,
+    /// `None` when this scope has never been saved at all (an all-`None`
+    /// row and "no row" are observably identical to every caller, so
+    /// both collapse to this one record shape).
+    pub updated_at_ms: Option<i64>,
+}
+
+/// Whole-state overwrite for the non-secret columns of one scope's AI
+/// provider config. `None` on any field clears that column (reverts to
+/// inherit) — this is a full replace, not a sparse patch: callers pass
+/// every field's desired value on every call, matching an auto-save
+/// settings form that always holds the complete state for a scope.
+#[derive(Debug, Clone, Default)]
+pub struct UpsertAgentProviderConfigInput {
+    pub provider: Option<String>,
+    pub base_url: Option<String>,
+    pub chat_model: Option<String>,
+    pub embed_model: Option<String>,
+    pub request_timeout_ms: Option<i64>,
+    /// Only meaningful on the default scope. `DaemonHandle::agent_config_upsert_space`
+    /// rejects a call where this is `Some(_)`.
+    pub poll_interval_ms: Option<i64>,
+}
+
+/// Three-state write for the one column that never round-trips to a
+/// client in cleartext. See [`AgentProviderConfigRecord`]'s doc comment.
+#[derive(Debug, Clone, Default)]
+pub enum ApiKeyWrite {
+    /// Don't touch the stored key (if any).
+    #[default]
+    Unchanged,
+    /// Explicitly wipe the stored key. Distinct from `Unchanged` even
+    /// though both can observably leave `has_api_key == false` — see
+    /// `soma-storage`'s `clearing_the_key_is_distinct_from_never_setting_it` test.
+    Clear,
+    /// Replace the stored key with this value.
+    Set(String),
+}
+
 /// Plain-typed snapshot of one entry on the daemon's broadcast event stream.
 /// Variants mirror the published `daemon::daemon_event::Event` cases that
 /// downstream consumers (Soma renderer, future bot mirroring) care about.

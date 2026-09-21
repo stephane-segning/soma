@@ -1,3 +1,4 @@
+pub mod agent_config;
 pub mod blobs;
 pub mod bootstrap;
 pub mod documents;

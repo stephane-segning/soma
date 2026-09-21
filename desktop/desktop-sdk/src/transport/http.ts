@@ -3,8 +3,14 @@
  * binary (`desktop-bff`) so the same SDK can run in a plain browser.
  *
  * Wire shape (mirrors `desktop-bff`):
- * - Commands → `POST {baseUrl}{apiPrefix}/<command_name>` with a JSON body
- *   (the args object directly, no `{args: ...}` envelope). A JSON response
+ * - Commands → `POST {baseUrl}{apiPrefix}/<command_name>` with a JSON body.
+ *   The body is the args record `invoke()` was called with, *except* when
+ *   that record is exactly `{ args: <value> }` (a single-struct-parameter
+ *   Tauri command, invoked that way so the JSON key matches the Rust
+ *   parameter's name) — in that one case the `args` envelope is unwrapped
+ *   so the body matches what the axum handler's `Json<TheArgsStruct>`
+ *   extractor expects (`null`/absent normalizes to `{}`). See
+ *   `httpRequestBody`'s doc comment for the full rationale. A JSON response
  *   (`Content-Type: application/json`) is parsed and returned as-is;
  *   non-2xx maps to {@link BackendError}. A *non*-JSON response — today
  *   only `blobs_read`'s `application/octet-stream` bytes — is read as an
@@ -218,7 +224,7 @@ export function httpTransport(opts: HttpTransportOptions): Transport {
 				response = await fetchImpl(`${base}${prefix}/${command}`, {
 					method: "POST",
 					headers: { "Content-Type": "application/json", ...(await authHeaders()) },
-					body: JSON.stringify(args),
+					body: JSON.stringify(httpRequestBody(args)),
 					credentials: "include",
 				});
 			} catch (err) {
@@ -269,6 +275,31 @@ function statusToErrorKind(status: number): BackendErrorKind {
 		default:
 			return "other";
 	}
+}
+
+/**
+ * A Rust command with a single struct-typed parameter is always named
+ * `args` (matching how every `api/*.ts` wrapper calls
+ * `t.invoke(command, { args })` — the JSON key has to match the Tauri
+ * command's own parameter name, e.g. `spacesUpdate`/`agentRerank`/
+ * `agentConfig.setDefault`). The BFF's axum handlers deserialize the
+ * POST body as that struct directly (`Json<TheArgsStruct>`), not
+ * wrapped in an extra envelope — so this unwraps the sole `args` key
+ * here, once, rather than requiring every call site to know the wire
+ * shape differs from what Tauri needs. A `null`/`undefined` value
+ * (a command invoked with no args, e.g. `spaces.list()`) normalizes to
+ * `{}` rather than a JSON `null` body, matching the Tauri side's own
+ * `args.unwrap_or_default()` handling for the same commands — sending
+ * literal `null` would fail to deserialize into a non-`Option` struct.
+ * A record shaped any other way (no args at all, or bare positional
+ * params like `{ spaceId }`) is sent unchanged.
+ */
+function httpRequestBody(args: Record<string, unknown>): unknown {
+	const keys = Object.keys(args);
+	if (keys.length === 1 && keys[0] === "args") {
+		return args.args ?? {};
+	}
+	return args;
 }
 
 /** Strips an optional `"Bearer "` prefix to recover the bare token `authHeader` wraps for the `Authorization` header. */

@@ -107,6 +107,13 @@ export const commands = {
 	spaceId: string | null,
 	limit: number | null,
 } | null) => typedError<BackgroundTask[], DesktopError>(__TAURI_INVOKE("agent_list_background_tasks", { args })),
+	agentConfigGetDefault: () => typedError<AgentProviderConfigView, DesktopError>(__TAURI_INVOKE("agent_config_get_default")),
+	agentConfigGetSpace: (spaceId: string) => typedError<AgentProviderConfigView, DesktopError>(__TAURI_INVOKE("agent_config_get_space", { spaceId })),
+	agentConfigSetDefault: (args: SetDefaultAgentProviderConfigArgs) => typedError<AgentProviderConfigView, DesktopError>(__TAURI_INVOKE("agent_config_set_default", { args })),
+	agentConfigSetSpace: (args: SetSpaceAgentProviderConfigArgs) => typedError<AgentProviderConfigView, DesktopError>(__TAURI_INVOKE("agent_config_set_space", { args })),
+	agentConfigClearDefault: () => typedError<boolean, DesktopError>(__TAURI_INVOKE("agent_config_clear_default")),
+	agentConfigClearSpace: (spaceId: string) => typedError<boolean, DesktopError>(__TAURI_INVOKE("agent_config_clear_space", { spaceId })),
+	agentConfigValidate: (args: ValidateAgentProviderConfigArgs) => typedError<ValidateAgentProviderConfigResult, DesktopError>(__TAURI_INVOKE("agent_config_validate", { args })),
 	search: (query: string | null) => typedError<SearchResult[], DesktopError>(__TAURI_INVOKE("search", { query })),
 	practiceListExercises: (spaceId: string | null) => typedError<Exercise[], DesktopError>(__TAURI_INVOKE("practice_list_exercises", { spaceId })),
 	practiceSaveExercise: (args: ExerciseDraft) => typedError<Exercise, DesktopError>(__TAURI_INVOKE("practice_save_exercise", { args })),
@@ -137,11 +144,42 @@ export type AgentProvider =
 /**  Any HTTP endpoint speaking the OpenAI REST shape (Ollama, vLLM, OpenAI proper, etc.). */
 "open-ai-compatible";
 
+/**
+ *  Client-safe projection of one scope's AI provider config override
+ *  row. A field is `null` when this scope doesn't override that column
+ *  (it inherits — space from default, default from the compiled-in
+ *  constants). `poll_interval_ms` is always `null` on a space-scope
+ *  response (`get_space`) — only the default scope's poll interval is
+ *  configurable; see `set_space`'s doc comment.
+ */
+export type AgentProviderConfigView = {
+	provider: AgentProvider | null,
+	baseUrl: string | null,
+	hasApiKey: boolean,
+	chatModel: string | null,
+	embedModel: string | null,
+	requestTimeoutMs: number | null,
+	pollIntervalMs: number | null,
+	/**
+	 *  `null` when this scope has never been saved — every other field
+	 *  is then also `null`.
+	 */
+	updatedAtMs: number | null,
+};
+
 export type AgentRuntimeEvent = AgentRuntimeEvent_Serialize | AgentRuntimeEvent_Deserialize;
 
 export type AgentRuntimeEvent_Deserialize = ({ kind: "ready"; atMs: number; provider: AgentProvider; baseUrl: string }) & { error?: never; models?: never } | ({ kind: "status"; atMs: number; provider: AgentProvider; baseUrl: string; models: AgentModel_Deserialize[] }) & { error?: never } | ({ kind: "error"; atMs: number; provider: AgentProvider; baseUrl: string; error: string }) & { models?: never };
 
 export type AgentRuntimeEvent_Serialize = ({ kind: "ready"; atMs: number; provider: AgentProvider; baseUrl: string }) & { error?: never; models?: never } | ({ kind: "status"; atMs: number; provider: AgentProvider; baseUrl: string; models: AgentModel_Serialize[] }) & { error?: never } | ({ kind: "error"; atMs: number; provider: AgentProvider; baseUrl: string; error: string }) & { models?: never };
+
+/**
+ *  Three-state write for the one field that never round-trips in
+ *  cleartext (`AgentProviderConfigView` only ever exposes `hasApiKey`).
+ *  Defaults to `Unchanged` when omitted, so a save that isn't touching
+ *  the key field doesn't have to think about it.
+ */
+export type ApiKeyInput = { kind: "unchanged" } | { kind: "clear" } | { kind: "set"; value: string };
 
 export type AppInfo = {
 	name: string,
@@ -547,10 +585,43 @@ export type SearchResult = {
 	spaceId: string,
 };
 
+/**
+ *  Whole-state overwrite for the default scope. Every field (except
+ *  `apiKey`, see [`ApiKeyInput`]) is a full replace: `null`/omitted
+ *  clears that column back to "use the compiled-in default"; the UI is
+ *  expected to always send the complete current form state, not a
+ *  sparse patch (auto-save-on-blur per ADR-0005 §3).
+ */
+export type SetDefaultAgentProviderConfigArgs = {
+	provider: AgentProvider | null,
+	baseUrl: string | null,
+	apiKey?: ApiKeyInput,
+	chatModel: string | null,
+	embedModel: string | null,
+	requestTimeoutMs: number | null,
+	pollIntervalMs: number | null,
+};
+
 export type SetPageParentsArgs = {
 	spaceId: string,
 	pageId: string,
 	parentPageIds: string[],
+};
+
+/**
+ *  Same contract as [`SetDefaultAgentProviderConfigArgs`], scoped to one
+ *  space — with no `pollIntervalMs` field at all: the poll interval is
+ *  process-wide, not overridable per space, so it isn't part of this
+ *  scope's writable surface.
+ */
+export type SetSpaceAgentProviderConfigArgs = {
+	spaceId: string,
+	provider: AgentProvider | null,
+	baseUrl: string | null,
+	apiKey?: ApiKeyInput,
+	chatModel: string | null,
+	embedModel: string | null,
+	requestTimeoutMs: number | null,
 };
 
 export type SettingsGetArgs = {
@@ -759,6 +830,27 @@ export type UpsertDraftArgs = {
 	contentJson: string,
 	published?: boolean,
 	updatedAtMs?: number | null,
+};
+
+export type ValidateAgentProviderConfigArgs = {
+	baseUrl: string,
+	/**
+	 *  Omitted/empty means "no Authorization header" — mirrors
+	 *  `OpenAiProvider::auth_header`'s trim-and-check-empty rule.
+	 */
+	apiKey?: string | null,
+	requestTimeoutMs?: number | null,
+};
+
+export type ValidateAgentProviderConfigResult = {
+	ok: boolean,
+	modelCount: number | null,
+	/**
+	 *  Present only when `ok` is false — a human-readable reason the UI
+	 *  can show inline under the field (ADR-0005 §3: "errors surface
+	 *  inline under the field").
+	 */
+	error: string | null,
 };
 
 export type WindowControlAction = "minimize" | "toggleMaximize" | "close";

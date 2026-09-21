@@ -31,8 +31,7 @@
 		"nav": {
 			"title": "Navigation",
 			"settings": "Paramètres",
-			"members": "Membres",
-			"meta_info": "Méta-infos"
+			"space_settings": "Paramètres de l'espace"
 		},
 		"chat": {
 			"title": "Chat",
@@ -70,12 +69,6 @@
 		"space_view": {
 			"empty": "Aucune page ouverte."
 		},
-		"space_members": {
-			"placeholder": "Les membres et leurs rôles s'afficheront ici."
-		},
-		"space_info": {
-			"placeholder": "Les métadonnées de l'espace s'afficheront ici."
-		},
 		"page_view": {
 			"loading": "Chargement du document…",
 			"error": "Impossible de charger le document.",
@@ -105,8 +98,8 @@
 			"aria_label": "Sections des paramètres",
 			"general": "Général",
 			"account": "Compte",
+			"assistant": "Assistant",
 			"appearance": "Apparence",
-			"capabilities": "Capacités",
 			"network": "Réseau",
 			"advanced": "Avancé"
 		},
@@ -150,6 +143,9 @@
 				"label": "Transport"
 			}
 		},
+		"assistant": {
+			"description": "Le fournisseur d'IA par défaut dont hérite chaque espace, sauf s'il le remplace ci-dessous."
+		},
 		"appearance": {
 			"description": "Contrôles de surface — thème, densité, accent.",
 			"theme": {
@@ -166,9 +162,6 @@
 				"description": "Remplace l'accent primaire dans tout le bureau."
 			}
 		},
-		"capabilities": {
-			"description": "Émettez une capacité scopée pour un bot ou un pair."
-		},
 		"network": {
 			"description": "Se connecter manuellement à un pair quand la découverte échoue.",
 			"peer": {
@@ -180,6 +173,132 @@
 			"description": "Diagnostics et bascules expérimentales.",
 			"coming_soon": "Paramètres avancés à venir",
 			"cta": "Ouvrir les diagnostics"
+		}
+	},
+	"spaceSettings": {
+		"title": "Paramètres de l'espace",
+		"notFound": "Espace introuvable",
+		"tabs": {
+			"ariaLabel": "Sections des paramètres de l'espace",
+			"members": "Membres",
+			"bots": "Bots",
+			"assistant": "Assistant"
+		},
+		"roles": {
+			"unspecified": "Non spécifié",
+			"owner": "Propriétaire",
+			"editor": "Éditeur",
+			"viewer": "Lecteur",
+			"member": "Membre",
+			"bot": "Bot"
+		},
+		"members": {
+			"loading": "Chargement des membres…",
+			"error": "Impossible de charger les membres : {{message}}",
+			"roster": {
+				"title": "Membres",
+				"description": "Toutes les personnes ayant accès à cet espace, leur rôle, et l'expiration de leur adhésion.",
+				"empty": "Aucun membre pour l'instant",
+				"you": "Vous",
+				"revoke": "Révoquer",
+				"cannotRevokeSelf": "Vous ne pouvez pas révoquer votre propre adhésion ici.",
+				"expiry": {
+					"never": "N'expire jamais",
+					"active": "Expire le {{date}}",
+					"expired": "Expiré le {{date}}"
+				},
+				"revokeConfirm": {
+					"title": "Révoquer ce membre",
+					"description": "Il perd immédiatement l'accès à cet espace. Cette action est irréversible depuis cet écran.",
+					"slugLabel": "Tapez {{slug}} pour confirmer",
+					"cancel": "Annuler",
+					"confirm": "Révoquer le membre"
+				}
+			},
+			"joinRequests": {
+				"title": "Demandes d'adhésion en attente",
+				"description": "Les personnes demandant à rejoindre cet espace. Approuver leur accorde le rôle demandé.",
+				"empty": "Aucune demande en attente",
+				"unknownRequester": "Demandeur inconnu",
+				"approve": "Approuver",
+				"reject": "Refuser"
+			}
+		},
+		"bots": {
+			"title": "Bots",
+			"description": "Pairs programmables autorisés à agir dans cet espace, ajoutés en collant leur adresse de pair.",
+			"loading": "Chargement des bots…",
+			"error": "Impossible de charger les bots : {{message}}",
+			"addBot": {
+				"cta": "Ajouter un bot",
+				"cancel": "Annuler",
+				"peerAddress": {
+					"label": "Adresse de pair du bot"
+				},
+				"errors": {
+					"missing-p2p-suffix": "L'adresse doit contenir un suffixe /p2p/<peer-id>.",
+					"empty-peer-id": "Il manque un identifiant de pair après /p2p/."
+				},
+				"scopes": {
+					"group": "Adhésion",
+					"issueMembership": {
+						"label": "Approbation automatique des adhésions",
+						"description": "Permet à ce bot d'approuver les demandes d'adhésion de cet espace en votre nom."
+					}
+				}
+			},
+			"revokeConfirm": {
+				"title": "Révoquer {{alias}}",
+				"description": "Ce bot perd immédiatement sa capacité dans cet espace. Cette action est irréversible depuis cet écran.",
+				"slugLabel": "Tapez {{slug}} pour confirmer",
+				"cancel": "Annuler",
+				"confirm": "Révoquer le bot"
+			}
+		}
+	},
+	"assistant": {
+		"loading": "Chargement de la configuration de l'assistant…",
+		"error": "Impossible de charger la configuration de l'assistant : {{message}}",
+		"readOnlyNotOwner": "Seul le propriétaire de l'espace peut modifier ces paramètres.",
+		"cards": {
+			"connection": "Connexion",
+			"models": "Modèles",
+			"advanced": "Avancé"
+		},
+		"fields": {
+			"inheritedHint": "Hérite de {{value}} depuis votre configuration d'assistant par défaut",
+			"builtinHint": "Non défini — Soma utilise une valeur par défaut intégrée",
+			"baseUrl": {
+				"label": "URL de base",
+				"placeholder": "http://127.0.0.1:11434/v1",
+				"validating": "Vérification de la connexion…",
+				"validateOk": "Connecté · {{count}} modèles"
+			},
+			"apiKey": {
+				"label": "Clé API",
+				"placeholderOwn": "Inchangée — laissez vide pour conserver la clé actuelle",
+				"placeholderInherited": "Hérite de la clé de votre configuration d'assistant par défaut",
+				"placeholderNone": "Aucune clé configurée",
+				"inheritedHint": "Hérite de la clé API de votre configuration d'assistant par défaut",
+				"noneHint": "Aucune clé API configurée nulle part",
+				"clear": "Supprimer la clé enregistrée"
+			},
+			"chatModel": {
+				"label": "Modèle de conversation",
+				"placeholder": "ex. llama3.1"
+			},
+			"embedModel": {
+				"label": "Modèle d'embedding",
+				"placeholder": "ex. nomic-embed-text"
+			},
+			"requestTimeoutMs": {
+				"label": "Délai d'expiration des requêtes (ms)",
+				"placeholder": "30000"
+			},
+			"pollIntervalMs": {
+				"label": "Intervalle d'interrogation (ms)",
+				"placeholder": "60000"
+			}
 		}
 	}
 }

@@ -13,6 +13,7 @@ use crate::state::DaemonState;
 
 pub mod types;
 
+mod agent_config;
 pub mod blobs;
 mod discover;
 mod documents;

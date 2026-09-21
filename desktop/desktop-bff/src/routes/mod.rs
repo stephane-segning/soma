@@ -15,6 +15,7 @@ use desktop_api::AppState;
 use crate::ws;
 
 mod agent;
+mod agent_config;
 mod blobs;
 mod daemon;
 mod documents;
@@ -37,6 +38,7 @@ pub fn router() -> Router<Arc<AppState>> {
         .merge(blobs::router())
         .merge(daemon::router())
         .merge(agent::router())
+        .merge(agent_config::router())
         .merge(practice::router())
         .merge(search::router())
         // `any`, not `get`: WebSocket upgrades are `GET` on HTTP/1.1 but

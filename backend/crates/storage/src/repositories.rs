@@ -3,9 +3,9 @@ use std::sync::Arc;
 use sqlx_utils::types::Pool;
 
 use crate::{
-    blobs::BlobRepository, documents::DocumentRepository, issuer::IssuerRepository,
-    mailbox::MailboxRepository, membership::MembershipRepository, pages::PageRepository,
-    peers::PeerPublicKeyRepository,
+    agent_config::AgentConfigRepository, blobs::BlobRepository, documents::DocumentRepository,
+    issuer::IssuerRepository, mailbox::MailboxRepository, membership::MembershipRepository,
+    pages::PageRepository, peers::PeerPublicKeyRepository,
 };
 
 /// Abstraction over repositories needed by controllers/services.
@@ -17,6 +17,7 @@ pub trait RepositoryProvider: Send + Sync {
     fn document_repo(&self) -> Arc<dyn DocumentRepository>;
     fn page_repo(&self) -> Arc<dyn PageRepository>;
     fn blob_repo(&self) -> Arc<dyn BlobRepository>;
+    fn agent_config_repo(&self) -> Arc<dyn AgentConfigRepository>;
     fn pool(&self) -> Pool;
 }
 
@@ -62,6 +63,10 @@ impl RepositoryFactory {
     pub fn blobs(&self) -> crate::blobs::SqlBlobRepository {
         crate::blobs::SqlBlobRepository::new(self.pool.clone())
     }
+
+    pub fn agent_config(&self) -> crate::agent_config::SqlAgentConfigRepository {
+        crate::agent_config::SqlAgentConfigRepository::new(self.pool.clone())
+    }
 }
 
 impl RepositoryProvider for RepositoryFactory {
@@ -91,6 +96,10 @@ impl RepositoryProvider for RepositoryFactory {
 
     fn blob_repo(&self) -> Arc<dyn BlobRepository> {
         Arc::new(self.blobs())
+    }
+
+    fn agent_config_repo(&self) -> Arc<dyn AgentConfigRepository> {
+        Arc::new(self.agent_config())
     }
 
     fn pool(&self) -> Pool {
@@ -128,6 +137,10 @@ where
 
     fn blob_repo(&self) -> Arc<dyn BlobRepository> {
         (**self).blob_repo()
+    }
+
+    fn agent_config_repo(&self) -> Arc<dyn AgentConfigRepository> {
+        (**self).agent_config_repo()
     }
 
     fn pool(&self) -> Pool {

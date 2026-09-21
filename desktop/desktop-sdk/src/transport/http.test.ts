@@ -479,6 +479,52 @@ describe("httpTransport.invoke", () => {
 		expect(init.headers).toEqual({ "Content-Type": "application/json" });
 	});
 
+	it("unwraps a single-struct-arg { args } envelope so the body matches the struct directly", async () => {
+		// Regression test for a real bug: every `api/*.ts` wrapper for a
+		// command with one struct parameter calls
+		// `t.invoke(command, { args })` (the JSON key has to match the
+		// Tauri command's own parameter name). Before this fix, the HTTP
+		// transport sent that envelope verbatim — `{"args": {...}}` — but
+		// desktop-bff's axum handlers deserialize the body as the struct
+		// directly (`Json<TheArgsStruct>`), so every such command 422'd
+		// over HTTP. Confirmed against a live `desktop-bff` via
+		// `agent_resolve_drift` before writing this fix.
+		const fetchMock = vi.fn(async () => jsonResponse(200, { mergedUpdateBase64: "" }));
+		const t = httpTransport({ baseUrl: "http://test.invalid", fetch: fetchMock });
+
+		await t.invoke("agent_resolve_drift", { args: { leftUpdateBase64: "a", rightUpdateBase64: "b" } });
+
+		const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+		expect(init.body).toBe(JSON.stringify({ leftUpdateBase64: "a", rightUpdateBase64: "b" }));
+	});
+
+	it("normalizes a null/undefined single-struct arg to {} instead of a JSON null body", async () => {
+		// Mirrors the Tauri side's `args.unwrap_or_default()` for the same
+		// commands (e.g. `spaces_list`) — `None` and `Some(default)` are
+		// the same observable call, and a non-`Option` struct on the axum
+		// side can't deserialize a literal `null` body at all.
+		const fetchMock = vi.fn(async () => jsonResponse(200, { spaces: [] }));
+		const t = httpTransport({ baseUrl: "http://test.invalid", fetch: fetchMock });
+
+		await t.invoke("spaces_list", { args: null });
+
+		const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+		expect(init.body).toBe(JSON.stringify({}));
+	});
+
+	it("sends a non-{args} record (bare positional params, or no args) unchanged", async () => {
+		const fetchMock = vi.fn(async () => jsonResponse(200, null));
+		const t = httpTransport({ baseUrl: "http://test.invalid", fetch: fetchMock });
+
+		await t.invoke("agent_list_models", { spaceId: "space-1" });
+		await t.invoke("daemon_ready");
+
+		const [, firstInit] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+		const [, secondInit] = fetchMock.mock.calls[1] as unknown as [string, RequestInit];
+		expect(firstInit.body).toBe(JSON.stringify({ spaceId: "space-1" }));
+		expect(secondInit.body).toBe(JSON.stringify({}));
+	});
+
 	it("trims a trailing slash from baseUrl and respects a custom apiPrefix", async () => {
 		const fetchMock = vi.fn(async () => jsonResponse(200, null));
 		const t = httpTransport({ baseUrl: "http://test.invalid/", apiPrefix: "/custom", fetch: fetchMock });

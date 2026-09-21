@@ -77,6 +77,14 @@ pub fn build_specta() -> Builder<Wry> {
             desktop_commands::agent::agent_resolve_drift,
             desktop_commands::agent::agent_enqueue_background_task,
             desktop_commands::agent::agent_list_background_tasks,
+            // Agent provider config (per-space AI provider settings)
+            desktop_commands::agent_config::agent_config_get_default,
+            desktop_commands::agent_config::agent_config_get_space,
+            desktop_commands::agent_config::agent_config_set_default,
+            desktop_commands::agent_config::agent_config_set_space,
+            desktop_commands::agent_config::agent_config_clear_default,
+            desktop_commands::agent_config::agent_config_clear_space,
+            desktop_commands::agent_config::agent_config_validate,
             // Search
             desktop_commands::search::search,
             // Practice (typing drills)

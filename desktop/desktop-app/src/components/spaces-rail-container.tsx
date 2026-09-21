@@ -20,7 +20,8 @@
 import { type SpaceRailItem, SpacesRail } from "@soma/ui/components/nav/spaces-rail";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate, useParams } from "react-router";
+import { useLocation, useNavigate } from "react-router";
+import { parseActiveSpaceId } from "../lib/active-space";
 import { backend } from "../lib/backend";
 
 /** Generous upper bound — the SDK paginates at 50 by default, but the
@@ -55,7 +56,14 @@ function monogram(displayName: string): string {
 export function SpacesRailContainer() {
 	const navigate = useNavigate();
 	const { t } = useTranslation();
-	const { spaceId } = useParams<{ spaceId?: string }>();
+	// NOT `useParams()`. This component renders inside a column
+	// `AppLayout` passes to `DesktopShell` (a *sibling* of `<Outlet />`),
+	// so route params from `spaces/:spaceId` never reach it and
+	// `useParams()` resolves to `{}`. Derive the active space from the
+	// live pathname instead — same fix as `chat-panel`, `nav-panel` and
+	// `bots-panel`.
+	const { pathname } = useLocation();
+	const spaceId = parseActiveSpaceId(pathname) ?? undefined;
 	const [items, setItems] = useState<SpaceRailItem[] | null>(null);
 
 	// Monotonic request counter. The most recently-issued `load()` call's
