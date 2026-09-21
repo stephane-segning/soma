@@ -236,15 +236,49 @@ jobs:
   cargo-deny:
     # Rust supply-chain gate: RustSec advisories, license policy, banned/
     # duplicate crates, and untrusted sources. Policy lives in the root
-    # `deny.toml`. `arguments: ""` overrides the action's own default
-    # (`--all-features`) so this matches how the rest of CI actually builds
-    # (no workflow anywhere passes `--all-features`) and what `deny.toml`'s
-    # own `[graph] all-features = false` is written against.
+    # `deny.toml`.
+    #
+    # Installed directly rather than via `EmbarkStudios/cargo-deny-action`.
+    # That action builds a Docker image whose Dockerfile pipes
+    # `curl --silent -L <release tarball>` straight into `tar`, with no
+    # `-f`, no retry and no checksum. When GitHub's release CDN hiccups,
+    # curl writes the HTML error body to stdout and the job dies with
+    # `gzip: invalid magic` — which is how this gate failed on #156 for
+    # reasons that had nothing to do with any dependency. Doing it here
+    # buys three things the action does not: `-f` so an HTTP error is an
+    # error, `--retry` so a blip is survivable, and a pinned sha256 so the
+    # job that exists to police the supply chain stops fetching its own
+    # tool unverified.
+    #
+    # Version lives here, not in a moving `@v2` tag. Bump VERSION and
+    # SHA256 together — the digest is published next to the asset as
+    # `<file>.sha256`.
     name: Dependency audit (cargo-deny)
     runs-on: ubuntu-latest
+    env:
+      CARGO_DENY_VERSION: "0.20.2"
+      CARGO_DENY_SHA256: "9f12ed4c49936e09b48bf862b595cde2fe64fcbd9d74dfacac6131ca824c8d5f"
     steps:
       - uses: actions/checkout@v6
 
-      - uses: EmbarkStudios/cargo-deny-action@v2
-        with:
-          arguments: ""
+      - name: Install cargo-deny
+        run: |
+          set -euo pipefail
+          slug="cargo-deny-${CARGO_DENY_VERSION}-x86_64-unknown-linux-musl"
+          curl -fL --retry 5 --retry-all-errors --retry-delay 2 \
+            -o "${RUNNER_TEMP}/${slug}.tar.gz" \
+            "https://github.com/EmbarkStudios/cargo-deny/releases/download/${CARGO_DENY_VERSION}/${slug}.tar.gz"
+          echo "${CARGO_DENY_SHA256}  ${RUNNER_TEMP}/${slug}.tar.gz" | sha256sum -c -
+          mkdir -p "${RUNNER_TEMP}/bin"
+          tar -xzf "${RUNNER_TEMP}/${slug}.tar.gz" -C "${RUNNER_TEMP}/bin" \
+            --strip-components=1 "${slug}/cargo-deny"
+          echo "${RUNNER_TEMP}/bin" >> "$GITHUB_PATH"
+          "${RUNNER_TEMP}/bin/cargo-deny" --version
+
+      # No `--all-features`: this matches how the rest of CI actually builds
+      # (no workflow anywhere passes it) and what `deny.toml`'s own
+      # `[graph] all-features = false` is written against. The old action
+      # defaulted to `--all-features`, which is why it was overridden with
+      # `arguments: ""`.
+      - name: cargo deny check
+        run: cargo deny check
