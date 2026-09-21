@@ -30,13 +30,39 @@ body {
 }
 
 /* The Tauri shell injects `data-shell-platform` on `<html>` at boot
- * (see `webview_init.rs`) so style rules can react to the host OS without
- * a JS round-trip into the renderer. The 80px breathing room matches
- * Electron's `trafficLightPosition` convention — the buttons sit ~12px
- * from the left edge, and 80px leaves a small inner gutter past the
- * Close/Min/Zoom triplet. */
+ * (see `reveal_main_window` in `src-tauri/src/lib.rs`) so style rules can
+ * react to the host OS without a JS round-trip into the renderer. The 80px
+ * breathing room matches Electron's `trafficLightPosition` convention —
+ * the buttons sit ~12px from the left edge, and 80px leaves a small inner
+ * gutter past the Close/Min/Zoom triplet. Mobile (`ios` / `android`) has
+ * no traffic lights, so it never sets this — the default 0px applies. */
 html[data-shell-platform="macos"] body {
 	--shell-titlebar-pad-left: 80px;
+}
+
+/* Safe-area insets (notch / Dynamic Island / home indicator / rounded
+ * corners). `env(safe-area-inset-*)` is 0 on every platform without one
+ * (desktop included), so this is unconditional rather than gated on
+ * `data-shell-platform` — it only ever does something on a device that
+ * actually has an inset to clear. Requires `viewport-fit=cover` in
+ * index.html's viewport meta tag, otherwise iOS never reports non-zero
+ * values here.
+ *
+ * The in-window title bar is the one `data-tauri-drag-region` element
+ * that sits flush against the top edge (it's `position: sticky; top: 0`
+ * in `app-layout.tsx`), so it's the one that needs the top inset as
+ * padding — everything else scrolls underneath it. `DesktopShell`'s root
+ * (`desktop-ui/src/components/layout/desktop-shell.tsx`) handles the
+ * left/right/bottom insets itself, since those apply to the whole shell
+ * body, not just the header.
+ *
+ * Scoped to `header[data-tauri-drag-region]` specifically (not the bare
+ * attribute) — the header's own title/spacer children also carry
+ * `data-tauri-drag-region` for the drag-region rule below, and padding
+ * *those* too would double up the inset inside an already-padded
+ * header. */
+header[data-tauri-drag-region] {
+	padding-top: env(safe-area-inset-top, 0px);
 }
 
 /* Anything tagged as draggable. Mirrors Electron's `-webkit-app-region: drag`

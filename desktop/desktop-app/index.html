@@ -3,7 +3,11 @@
 	<head>
 		<meta charset="UTF-8">
 		<link rel="icon" type="image/svg+xml" href="/tauri.svg">
-		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<!-- `viewport-fit=cover` lets the webview extend under the iOS
+		     notch/Dynamic Island and home indicator instead of letterboxing
+		     around them — required for `env(safe-area-inset-*)` to report
+		     non-zero values at all (see styles.css). -->
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 		<title>Soma</title>
 	</head>
 

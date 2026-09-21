@@ -47,12 +47,20 @@ tauri-plugin-fs = { workspace = true }
 tauri-plugin-log = { workspace = true }
 tauri-plugin-opener = { workspace = true }
 tauri-plugin-os = { workspace = true }
-tauri-plugin-process = { workspace = true }
 tauri-plugin-shell = { workspace = true }
 tauri-plugin-store = { workspace = true }
-
-[target."cfg(any(target_os = \"macos\", windows, target_os = \"linux\"))".dependencies]
+# Supported on mobile (Android + iOS) as well as desktop, so it stays
+# unconditional. The dynamic `.register(scheme)` call is desktop-only (see
+# `startup/deep_link.rs`); on mobile the scheme is declared statically via
+# `plugins.deep-link.mobile` in `tauri.conf.json`, which the plugin's own
+# build script writes into Info.plist / AndroidManifest.xml.
 tauri-plugin-deep-link = { workspace = true }
+
+# Desktop-only: no Android/iOS support in the plugin itself (process/updater/
+# window-state) or not meaningful there (single-instance — mobile OSes are
+# already single-instance by construction).
+[target."cfg(any(target_os = \"macos\", windows, target_os = \"linux\"))".dependencies]
+tauri-plugin-process = { workspace = true }
 tauri-plugin-single-instance = { workspace = true, features = ["deep-link"] }
 tauri-plugin-updater = { workspace = true }
 tauri-plugin-window-state = { workspace = true }

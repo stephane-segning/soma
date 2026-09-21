@@ -31,6 +31,7 @@
 	},
 	"plugins": {
 		"deep-link": {
+			"mobile": [{ "scheme": ["soma"] }],
 			"desktop": {
 				"schemes": ["soma"]
 			}
@@ -43,6 +44,9 @@
 	"bundle": {
 		"active": true,
 		"targets": "all",
+		"iOS": {
+			"infoPlist": "Info.ios.plist"
+		},
 		"icon": [
 			"icons/32x32.png",
 			"icons/64x64.png",

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Merged into the generated gen/apple Info.plist by the Tauri iOS build
+  (see `bundle.iOS.infoPlist` in tauri.conf.json). Keep this file — not a
+  hand-edit of the generated Info.plist — as the source of truth, since
+  `tauri ios build`/`dev` regenerates the Xcode project (via xcodegen +
+  project.yml) and would otherwise silently drop hand-edits.
+
+  The embedded soma-daemon peer does local-network discovery (mDNS/libp2p)
+  from the host process, which iOS 14+ gates behind the "Local Network"
+  permission. Without this key the OS has no description string to show
+  and local multicast traffic from the app is blocked.
+-->
+<plist version="1.0">
+<dict>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Soma discovers other devices on your local network to sync spaces peer-to-peer.</string>
+</dict>
+</plist>

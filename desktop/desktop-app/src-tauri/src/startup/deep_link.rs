@@ -35,6 +35,7 @@ pub fn dispatch<R: Runtime>(app: &AppHandle<R>, url: &str) {
 /// URLs from a duplicate launch. The dev and prod builds use different
 /// schemes (`soma` vs `soma-dev`), so the caller passes the schemes loaded
 /// from the Tauri config.
+#[cfg(desktop)]
 pub fn extract_url<'a>(schemes: &[&str], argv: &'a [String]) -> Option<&'a str> {
     argv.iter().find_map(|arg| {
         schemes
@@ -49,6 +50,7 @@ pub fn extract_url<'a>(schemes: &[&str], argv: &'a [String]) -> Option<&'a str> 
 /// them as `&[&str]` for [`extract_url`] / plugin registration. Falls back
 /// to an empty vec when the plugin isn't configured (e.g. on platforms
 /// where the deep-link plugin is compiled out).
+#[cfg(desktop)]
 pub fn configured_schemes<R: Runtime>(app: &AppHandle<R>) -> Vec<String> {
     let Some(plugin) = app.config().plugins.0.get("deep-link") else {
         return Vec::new();
@@ -66,6 +68,10 @@ pub fn configured_schemes<R: Runtime>(app: &AppHandle<R>) -> Vec<String> {
 }
 
 fn focus<R: Runtime>(window: &tauri::WebviewWindow<R>) {
+    // `unminimize` doesn't exist on mobile — there's no minimized-window
+    // state on Android/iOS, just foreground/background, which the OS
+    // already handles when it hands us the deep link.
+    #[cfg(desktop)]
     let _ = window.unminimize();
     let _ = window.show();
     let _ = window.set_focus();

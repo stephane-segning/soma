@@ -1,7 +1,10 @@
-import { type ReactNode, useMemo } from "react";
+import { type ReactNode, useMemo, useRef } from "react";
 import { cn } from "../../utils/cn";
+import { ShellOverlayPanel } from "./desktop-shell/overlay-panel";
 import { ShellPanel } from "./desktop-shell/panel";
 import { useDesktopShellState } from "./desktop-shell/state";
+import { useNarrowOverlayVisibility } from "./desktop-shell/use-narrow-overlay-visibility";
+import { useShellTier } from "./desktop-shell/use-shell-tier";
 
 export type DesktopShellProps = {
 	leftColumn?: ReactNode;
@@ -16,6 +19,9 @@ export type DesktopShellProps = {
 	 * Separating the gutter from `leftColumn` is what lets the inner rail
 	 * collapse to width 0 (via `leftColumn={null}`) while the icon rail
 	 * stays put — instead of leaving a dead, resizable empty column.
+	 *
+	 * Stays docked at every width tier, including "verySmall" — it's the
+	 * one piece of chrome ADR-0005 §2 never asks to disappear.
 	 */
 	leftGutter?: ReactNode;
 	children?: ReactNode;
@@ -69,6 +75,20 @@ export type DesktopShellProps = {
 	rightMaxWidth?: number;
 	onLeftResizeStop?: (nextWidth: number) => void;
 	onRightResizeStop?: (nextWidth: number) => void;
+	/**
+	 * Fired when the user dismisses the left/right rail while it's
+	 * rendering as a "tight"/"verySmall"-tier overlay (scrim tap, or the
+	 * fullscreen variant's own back button) — see ADR-0005 §2. The host
+	 * app owns whichever state makes `leftColumn`/`rightColumn` go back
+	 * to `null` (e.g. clearing its expanded-panel-ids set), same as it
+	 * already does for each panel's own close button.
+	 *
+	 * Optional: omit it and the scrim still dims + blocks the shell
+	 * behind the overlay, it just won't close on tap — the panel's own
+	 * in-content close/collapse affordance is still the fallback.
+	 */
+	onLeftOverlayDismiss?: () => void;
+	onRightOverlayDismiss?: () => void;
 	storageKey?: string;
 };
 
@@ -79,6 +99,23 @@ const DEFAULT_RIGHT_MAX = 720;
 
 export function DesktopShell(props: DesktopShellProps) {
 	const state = useDesktopShellState(props);
+	const shellRef = useRef<HTMLDivElement>(null);
+	const tier = useShellTier(shellRef);
+
+	const hasLeftContent = Boolean(props.leftColumn);
+	const hasRightContent = Boolean(props.rightColumn);
+	// Only meaningful (and only evaluated as such) once `tier` isn't
+	// "comfortable" — see the hook's own docs for why this can't just be
+	// `state.leftOpen/rightOpen`.
+	const leftOverlayVisible = useNarrowOverlayVisibility(
+		tier,
+		hasLeftContent && state.leftOpen,
+	);
+	const rightOverlayVisible = useNarrowOverlayVisibility(
+		tier,
+		hasRightContent && state.rightOpen,
+	);
+
 	const headerNode = useMemo(
 		() =>
 			props.header
@@ -91,7 +128,7 @@ export function DesktopShell(props: DesktopShellProps) {
 						hasRight: Boolean(props.rightColumn),
 					})
 				: null,
-		[props.header, props.leftColumn, props.rightColumn, state],
+		[props.header, props.leftColumn, props.rightColumn, state, props],
 	);
 
 	const leftMinWidth = props.leftMinWidth ?? DEFAULT_LEFT_MIN;
@@ -99,12 +136,25 @@ export function DesktopShell(props: DesktopShellProps) {
 	const rightMinWidth = props.rightMinWidth ?? DEFAULT_RIGHT_MIN;
 	const rightMaxWidth = props.rightMaxWidth ?? DEFAULT_RIGHT_MAX;
 
+	// ADR-0005 §2: "comfortable" docks both rails inline exactly as
+	// before; "tight" renders a summoned rail as a partial-width drawer
+	// over a scrim; "verySmall" renders it as a fullscreen takeover, and
+	// nothing is summoned by default so the editor stays the priority
+	// surface. The `leftGutter` icon strip is unaffected at every tier.
+	const dockRails = tier === "comfortable";
+
 	return (
 		<div
 			className={cn(
 				"relative h-screen w-screen overflow-hidden bg-base-100 text-base-content",
 				props.className,
 			)}
+			ref={shellRef}
+			style={{
+				paddingBottom: "env(safe-area-inset-bottom, 0px)",
+				paddingLeft: "env(safe-area-inset-left, 0px)",
+				paddingRight: "env(safe-area-inset-right, 0px)",
+			}}
 		>
 			{props.overlays ? (
 				<div className="pointer-events-none absolute inset-0 z-20">
@@ -129,7 +179,7 @@ export function DesktopShell(props: DesktopShellProps) {
 				) : null}
 				<div
 					className={cn(
-						"flex min-h-0 flex-1 items-start overflow-hidden",
+						"relative flex min-h-0 flex-1 items-start overflow-hidden",
 						props.contentClassName,
 					)}
 				>
@@ -138,18 +188,20 @@ export function DesktopShell(props: DesktopShellProps) {
 						// never collapses with the resizable inner rail beside it.
 						<div className="flex h-full shrink-0">{props.leftGutter}</div>
 					) : null}
-					<ShellPanel
-						content={props.leftColumn}
-						maxWidth={leftMaxWidth}
-						minWidth={leftMinWidth}
-						onResizeStop={(next) => {
-							state.setLeftWidth(next);
-							props.onLeftResizeStop?.(next);
-						}}
-						open={state.leftOpen}
-						side="left"
-						width={state.leftWidth}
-					/>
+					{dockRails ? (
+						<ShellPanel
+							content={props.leftColumn}
+							maxWidth={leftMaxWidth}
+							minWidth={leftMinWidth}
+							onResizeStop={(next) => {
+								state.setLeftWidth(next);
+								props.onLeftResizeStop?.(next);
+							}}
+							open={state.leftOpen}
+							side="left"
+							width={state.leftWidth}
+						/>
+					) : null}
 					{/* Main column. Two-layer structure: the OUTER `<main>` is
 					    `relative` and `overflow-hidden`; the INNER scroll
 					    container holds the scrollable children. The
@@ -172,28 +224,62 @@ export function DesktopShell(props: DesktopShellProps) {
 					>
 						<div className="h-full w-full overflow-auto">{props.children}</div>
 						{props.mainTopLeft ? (
-							<div className="pointer-events-none absolute top-2 left-2 z-10">
+							<div
+								className="pointer-events-none absolute z-10"
+								style={{
+									left: "0.5rem",
+									top: "max(0.5rem, env(safe-area-inset-top, 0px))",
+								}}
+							>
 								<div className="pointer-events-auto">{props.mainTopLeft}</div>
 							</div>
 						) : null}
 						{props.mainTopRight ? (
-							<div className="pointer-events-none absolute top-2 right-2 z-10">
+							<div
+								className="pointer-events-none absolute z-10"
+								style={{
+									right: "0.5rem",
+									top: "max(0.5rem, env(safe-area-inset-top, 0px))",
+								}}
+							>
 								<div className="pointer-events-auto">{props.mainTopRight}</div>
 							</div>
 						) : null}
 					</main>
-					<ShellPanel
-						content={props.rightColumn}
-						maxWidth={rightMaxWidth}
-						minWidth={rightMinWidth}
-						onResizeStop={(next) => {
-							state.setRightWidth(next);
-							props.onRightResizeStop?.(next);
-						}}
-						open={state.rightOpen}
-						side="right"
-						width={state.rightWidth}
-					/>
+					{dockRails ? (
+						<ShellPanel
+							content={props.rightColumn}
+							maxWidth={rightMaxWidth}
+							minWidth={rightMinWidth}
+							onResizeStop={(next) => {
+								state.setRightWidth(next);
+								props.onRightResizeStop?.(next);
+							}}
+							open={state.rightOpen}
+							side="right"
+							width={state.rightWidth}
+						/>
+					) : null}
+					{!dockRails ? (
+						<>
+							<ShellOverlayPanel
+								content={props.leftColumn}
+								onDismiss={props.onLeftOverlayDismiss}
+								open={leftOverlayVisible}
+								side="left"
+								variant={tier === "verySmall" ? "fullscreen" : "drawer"}
+								width={state.leftWidth}
+							/>
+							<ShellOverlayPanel
+								content={props.rightColumn}
+								onDismiss={props.onRightOverlayDismiss}
+								open={rightOverlayVisible}
+								side="right"
+								variant={tier === "verySmall" ? "fullscreen" : "drawer"}
+								width={state.rightWidth}
+							/>
+						</>
+					) : null}
 				</div>
 				{props.footer ? <div>{props.footer}</div> : null}
 			</div>

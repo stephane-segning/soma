@@ -42,3 +42,29 @@
  * rules ship to the Soma renderer (which can't import this file
  * directly without re-declaring the daisy plugin). See the import at
  * the top of this file and the rationale in editor-runtime.css. */
+
+/* -----------------------------------------------------------------
+ * Touch target sizing (mobile bring-up).
+ *
+ * Several icon buttons in the dense chrome vocabulary (`Panel`'s
+ * header `HeaderIconButton`, `PanelChip`) are 20-28px — fine for a
+ * mouse pointer, too small for Apple/Material's ~44px touch-target
+ * guidance. The dense *visual* sizing is a locked design contract
+ * (see `panel.tsx` / `panel-chip.tsx` docstrings), so this expands
+ * the tappable hit area via an invisible pseudo-element "hit slop"
+ * instead of growing the button box itself — desktop/mouse chrome is
+ * byte-for-byte unchanged; only touch devices get the bigger target.
+ * `pointer: coarse` matches on touch-primary input (phone/tablet)
+ * regardless of OS, so this needs no platform detection.
+ * ----------------------------------------------------------------- */
+@media (pointer: coarse) {
+	.shell-tap-target {
+		position: relative;
+	}
+
+	.shell-tap-target::after {
+		content: "";
+		position: absolute;
+		inset: -10px;
+	}
+}
