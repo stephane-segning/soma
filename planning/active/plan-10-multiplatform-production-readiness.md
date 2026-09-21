@@ -185,9 +185,10 @@ Run from a clean tree, all commands real:
 |---|---|
 | `cargo check --workspace --all-targets` | 0 errors |
 | `cargo clippy --workspace --all-targets -- -D warnings` | 0 errors (the new CI gate) |
-| `cargo test --workspace` | 162 passing, 0 failing |
-| `@soma/ui` / `@soma/editor` / `@soma/sdk` / `@soma/desktop-app` vitest | 77 / 41 / 32 / 42 — 192 passing |
-| `typecheck` + `lint` (sdk, desktop-app) | clean |
+| `cargo test --workspace` | 248 passing, 0 failing, 2 ignored (63 binaries) |
+| `@soma/ui` / `@soma/editor` / `@soma/sdk` / `@soma/desktop-app` vitest | 99 / 41 / 35 / 197 — 372 passing |
+| `lint:ci` (`biome ci .`) — all five packages | clean, 0 warnings |
+| `typecheck` (all packages) | clean |
 | `build` (Tauri) + `build:web` | both succeed |
 | `cargo check -p desktop-app --target aarch64-apple-ios` | ok |
 | `cargo check -p desktop-app --target aarch64-linux-android` | ok |
@@ -270,16 +271,51 @@ None of these were catchable from test output. The common thread is that they li
 between transports, between a component and where it is mounted, between a file's bytes and a
 checksum taken earlier.
 
+## Addendum 4: the layout pass (safe area, and what driving it uncovered)
+
+Three defects, all in the shell's vertical sizing, none visible to any test — the suite was green
+through every one of them. Each was found by measuring live boxes in a browser, not by reading.
+
+**1. The palette fetched real search hits and then threw them away.** `backend.search` matches
+document *body* text, so a legitimate hit routinely has a title that does not contain the query
+("checksum" matching a page titled "Quarterly rollout plan"). `CommandPalette` then re-filtered
+the caller's `items` by title/subtitle and dropped it: the request fired, 200'd, and the palette
+rendered "No matches" over a non-empty result set. Fixed with a `prematched` flag on
+`CommandPaletteItem` — per-item, so locally-known items (commands) keep filtering as you type.
+
+**2. A summoned rail could not be opened at all at phone or split-view widths.**
+`useNarrowOverlayVisibility` inferred "the user just asked for this" from `hasContent` making an
+empty → non-empty transition. That is right for a one-panel column and wrong for every other: with
+both Pages and Nav expanded at mount (restored chip state), `hasContent` is true on the first
+render and stays true through every toggle, so the transition never happens. The rail was a dead
+state — its chip read pressed, nothing rendered, and clicking that chip could not fix it; the only
+escape was collapsing every panel in the column first, which no user would guess. The shell now
+takes a `leftSummonKey`/`rightSummonKey` (the caller's sorted set of expanded panel ids); any
+change to it while content is present is a real user action. The hook's own doc comment had
+already flagged the boolean as "the only signal available without the caller wiring anything
+extra" — this wires the extra thing.
+
+**3. ~100px of dead `bg-base-200` under the editor**, at every width. Two compounding causes: the
+shell row is `items-start`, so `<main>` never stretched (`self-stretch` now overrides it for that
+one child, leaving the gutter and rails alone); and the shell's scroll container was a plain
+`display: block`, which makes a routed child's `flex-1` silently inert. The second only surfaced
+because the safe-area fix correctly removed `mainClassName="flex min-h-screen flex-col"` from
+`AppLayout` — `100vh` is exactly what breaks under the iOS keyboard — and `min-h-screen` had been
+masking it.
+
+The safe-area fix itself: `position: fixed` on the shell tracking the full `visualViewport` rect
+(`offsetTop`/`offsetLeft`/`width`/`height`), not `100vh`/`100dvh`. iOS/WKWebView *pans* the visual
+viewport inside the layout viewport when an editable field focuses, and neither `vh` unit reports
+that pan — so `top`/`left` matter as much as `height`.
+
 ## Still open
 
-- **Android runtime is unverified.** It builds a valid APK (`aapt2` confirms arm64-v8a and the
-  mDNS permissions) but no emulator was available to run it.
-- **`@soma/ui` is never linted by CI** and carries ~20 accumulated errors. Deliberately not
-  bulk-fixed: `biome check --write` would strip intentional `autoFocus` from the command palette
-  and auto-add effect dependencies. Needs a deliberate pass, then a gate — in that order.
-- **`CommandPalette` still self-binds `mod+k`** in addition to the app's shortcut registry.
-  Harmless today only because `onOpen` is never passed; a latent double-fire if anyone passes it.
-  The registry should be the single owner.
-- **Page titles stay "Untitled"** regardless of the first heading — the plan-02 follow-up.
-- **iOS header scrolls above the status bar** when the keyboard opens.
-- `backend.search` is still a stub returning `[]`; the palette deliberately does not call it.
+- **Landscape on iOS is visually unverified** — rotating the Simulator needs computer-use control
+  of the Simulator app, which was declined. The `visualViewport` rect tracking is orientation-
+  agnostic by construction and portrait is verified, but nobody has looked at it rotated.
+- **Android runtime is verified for networking** (the swarm now builds and logs), but no emulator
+  run has exercised the full UI.
+- **`@soma/ui`'s ~20 accumulated lint errors are fixed and the CI gate is on** (`lint:ci` =
+  `biome ci .`, wired for all five packages). Note the packages disagree on `lineWidth`
+  (app/sdk 120, ui/editor default 80), so a whole-package `--write` in `ui`/`editor` reformats
+  ~56 unrelated files. Format new files individually until that config is unified.

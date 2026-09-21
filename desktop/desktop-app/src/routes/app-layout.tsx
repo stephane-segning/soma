@@ -185,12 +185,12 @@ export function AppLayout() {
 			leftGutter={<SpacesRailContainer />}
 			leftMaxWidth={420}
 			leftMinWidth={220}
-			mainClassName="flex min-h-screen flex-col"
 			// Tight/very-small width tiers (phone-sized viewports) render
 			// `leftColumn`/`rightColumn` as a scrim-backed overlay instead of
 			// a docked rail (ADR-0005 §2); these let the scrim tap / the
 			// fullscreen variant's back button actually close it, same as
 			// each panel's own header close button already does.
+			leftSummonKey={[...leftExpanded].sort().join(",")}
 			mainTopLeft={
 				<PanelChipBar
 					expandedIds={leftExpanded}
@@ -199,6 +199,9 @@ export function AppLayout() {
 					placement="top-left"
 				/>
 			}
+			// Narrow tiers need to know *which* panels are being asked for,
+			// not just that some are — with two panels sharing a column the
+			// boolean never changes and the rail can't be summoned at all.
 			mainTopRight={
 				<PanelChipBar
 					expandedIds={rightExpanded}
@@ -212,6 +215,7 @@ export function AppLayout() {
 			rightColumn={
 				rightExpanded.size > 0 ? <RightRail expandedIds={rightExpanded} onCollapse={toggleRightPanel} /> : null
 			}
+			rightSummonKey={[...rightExpanded].sort().join(",")}
 		>
 			<div className="flex min-h-0 flex-1 flex-col">
 				<DaemonStatusLine />

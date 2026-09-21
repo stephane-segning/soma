@@ -5,6 +5,7 @@ import { ShellPanel } from "./desktop-shell/panel";
 import { useDesktopShellState } from "./desktop-shell/state";
 import { useNarrowOverlayVisibility } from "./desktop-shell/use-narrow-overlay-visibility";
 import { useShellTier } from "./desktop-shell/use-shell-tier";
+import { useViewportRect } from "./desktop-shell/use-viewport-rect";
 
 export type DesktopShellProps = {
 	leftColumn?: ReactNode;
@@ -89,6 +90,17 @@ export type DesktopShellProps = {
 	 */
 	onLeftOverlayDismiss?: () => void;
 	onRightOverlayDismiss?: () => void;
+	/**
+	 * The caller's own summary of *which* panels it is currently asking
+	 * for in each column — e.g. the sorted, joined set of expanded panel
+	 * ids. Only consulted at the narrow tiers, where it is how the shell
+	 * tells "the user just summoned this rail" apart from "these panels
+	 * happened to be expanded already". Omit it for a column that only
+	 * ever hosts one panel. See `useNarrowOverlayVisibility` for what
+	 * goes wrong without it.
+	 */
+	leftSummonKey?: string | number;
+	rightSummonKey?: string | number;
 	storageKey?: string;
 };
 
@@ -101,6 +113,11 @@ export function DesktopShell(props: DesktopShellProps) {
 	const state = useDesktopShellState(props);
 	const shellRef = useRef<HTMLDivElement>(null);
 	const tier = useShellTier(shellRef);
+	// iOS keyboard fix, part 2/2 (part 1 is `body { position: fixed }` in
+	// `desktop-app/src/styles.css`) — see `useViewportRect`'s doc comment
+	// for why the shell has to actively re-pin itself to the visual
+	// viewport's rect rather than assuming it stays at the origin.
+	const viewportRect = useViewportRect();
 
 	const hasLeftContent = Boolean(props.leftColumn);
 	const hasRightContent = Boolean(props.rightColumn);
@@ -110,10 +127,12 @@ export function DesktopShell(props: DesktopShellProps) {
 	const leftOverlayVisible = useNarrowOverlayVisibility(
 		tier,
 		hasLeftContent && state.leftOpen,
+		props.leftSummonKey,
 	);
 	const rightOverlayVisible = useNarrowOverlayVisibility(
 		tier,
 		hasRightContent && state.rightOpen,
+		props.rightSummonKey,
 	);
 
 	const headerNode = useMemo(
@@ -157,11 +176,26 @@ export function DesktopShell(props: DesktopShellProps) {
 	return (
 		<div
 			className={cn(
-				"relative h-screen w-screen overflow-hidden bg-base-100 text-base-content",
+				"overflow-hidden bg-base-100 text-base-content",
 				props.className,
 			)}
 			ref={shellRef}
 			style={{
+				// `position: fixed` + a `visualViewport`-tracked rect, not
+				// `relative` + `h-screen`/`100vh`: iOS/WKWebView can pan the
+				// *visual* viewport within the layout viewport when an
+				// editable field gains focus, which `100vh`/`100dvh` alone
+				// (neither of which reports that pan) can't compensate for.
+				// See `useViewportRect`'s doc comment for the full mechanism
+				// and why `top`/`left` matter here as much as `height` does.
+				// `100dvw`/`100dvh` at the origin is the correct fallback
+				// wherever `visualViewport` is unavailable, since nothing is
+				// panning or shrinking the layout viewport there either.
+				position: "fixed",
+				top: viewportRect ? `${viewportRect.top}px` : 0,
+				left: viewportRect ? `${viewportRect.left}px` : 0,
+				width: viewportRect ? `${viewportRect.width}px` : "100dvw",
+				height: viewportRect ? `${viewportRect.height}px` : "100dvh",
 				paddingBottom: "env(safe-area-inset-bottom, 0px)",
 				paddingLeft: "env(safe-area-inset-left, 0px)",
 				paddingRight: "env(safe-area-inset-right, 0px)",
@@ -251,7 +285,13 @@ export function DesktopShell(props: DesktopShellProps) {
 					    flex child). */}
 					<main
 						className={cn(
-							"relative flex max-h-full min-h-0 flex-1 flex-col overflow-hidden",
+							// `self-stretch` overrides the row's `items-start`, which
+							// would otherwise leave this column at its content
+							// height and strand dead `bg-base-200` under the
+							// editor. Applied here rather than flipping the row to
+							// `items-stretch` so the gutter and rails keep the
+							// cross-axis behavior they were written against.
+							"relative flex max-h-full min-h-0 flex-1 flex-col self-stretch overflow-hidden",
 							props.mainClassName,
 						)}
 					>
@@ -267,7 +307,14 @@ export function DesktopShell(props: DesktopShellProps) {
 								<div>{props.mainTopRight}</div>
 							</div>
 						) : null}
-						<div className="min-h-0 w-full flex-1 overflow-auto">
+						{/* A flex column, not a plain block: routed children
+						    legitimately want to fill this scroll region
+						    (`flex-1` + `min-h-0`), and `flex-1` on a child of a
+						    `display: block` parent is silently inert — it
+						    collapses to content height and strands the shell's
+						    `bg-base-200` under the page. Costs nothing for
+						    content-sized children, which stack the same way. */}
+						<div className="flex min-h-0 w-full flex-1 flex-col overflow-auto">
 							{props.children}
 						</div>
 						{chipsFloatInCorner && props.mainTopLeft ? (

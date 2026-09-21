@@ -17,16 +17,18 @@
  *    refetched each time the palette opens (cheap local call; simpler
  *    and always-fresh beats caching a second copy of "current space").
  *    There is deliberately no cross-space "recent docs" section: that
- *    would need either a recency-tracking mechanism this app doesn't
- *    have, or fetching every space's every page up front — and
- *    `backend.search`'s handler is a stub that always returns `[]`
- *    (`desktop-api/src/search.rs`), so it isn't a real data source
- *    either. `onQueryChange` (the hook the primitive exposes for a
- *    server-driven query) stays unused for the same reason: wiring it
- *    to `search` would make the palette *look* smarter while always
- *    returning nothing, which is worse than the honest, narrower scope
- *    here. The existing client-side filter (already in the primitive)
- *    covers substring search across whatever real `items` are passed.
+ *    would need a recency-tracking mechanism this app doesn't have.
+ *
+ * Those two lists are the *idle* view. As soon as the user types,
+ * `onQueryChange` drives `backend.search.query` and the results replace
+ * them (`useSearchItems`) — real full-text search across every space
+ * the local peer is a member of, matching page titles and document
+ * body text, not just whatever happens to be listed client-side.
+ * Commands stay local in both modes: they are a fixed set the
+ * primitive's own substring filter handles, and they aren't indexed.
+ *
+ * The two sources are deliberately not concatenated while searching —
+ * a locally-listed page and its own server hit would each render a row.
  *
  * Reacts to three input sources, all funneled through `useShortcuts`:
  *
@@ -124,6 +126,75 @@ function useSpaceItems(onSelect: (spaceId: string) => void): CommandPaletteItem[
 	return items;
 }
 
+/** Debounce before hitting the backend on each keystroke. Short enough to feel live, long enough that typing a word is one query, not five. */
+const SEARCH_DEBOUNCE_MS = 180;
+
+/**
+ * Server-side results for the current query, via `backend.search.query`.
+ *
+ * Scoped to spaces the caller is actually a member of — the backend
+ * enforces that structurally (every query joins `space_memberships` on
+ * the local peer), so there is nothing to filter out here.
+ *
+ * Returns `null` (not `[]`) while the query is empty, so the caller can
+ * tell "not searching" apart from "searched, found nothing" and fall
+ * back to the locally-listed spaces/pages instead of rendering an empty
+ * palette.
+ *
+ * Responses are matched against the query that asked for them before
+ * being applied: typing is faster than a round trip, so without that
+ * check a slow early response can land after a fast later one and show
+ * results for a prefix the user has already moved past.
+ */
+function useSearchItems(
+	query: string,
+	onSelectSpace: (spaceId: string) => void,
+	onSelectPage: (spaceId: string, pageId: string) => void,
+	untitled: string,
+): CommandPaletteItem[] | null {
+	const [items, setItems] = useState<CommandPaletteItem[] | null>(null);
+
+	useEffect(() => {
+		const trimmed = query.trim();
+		if (!trimmed) {
+			setItems(null);
+			return;
+		}
+		let cancelled = false;
+		const timer = setTimeout(async () => {
+			try {
+				const results = await backend.search.query(trimmed);
+				if (cancelled) return;
+				setItems(
+					results.map((hit) => ({
+						id: `search-${hit.kind}-${hit.spaceId}-${hit.id}`,
+						onSelect: () => (hit.kind === "space" ? onSelectSpace(hit.spaceId) : onSelectPage(hit.spaceId, hit.id)),
+						// The daemon already matched these — often on body text
+						// the palette never sees. Without this the primitive's
+						// own title/subtitle filter would drop every such hit.
+						prematched: true,
+						// A document hit carries a snippet worth showing; for
+						// everything else the owning space is the useful
+						// disambiguator when two pages share a title.
+						section: hit.kind === "space" ? ("spaces" as const) : ("documents" as const),
+						subtitle: hit.snippet ?? hit.spaceName,
+						title: hit.title || untitled,
+					})),
+				);
+			} catch (err) {
+				console.error("[command-palette] search.query failed", err);
+				if (!cancelled) setItems([]);
+			}
+		}, SEARCH_DEBOUNCE_MS);
+		return () => {
+			cancelled = true;
+			clearTimeout(timer);
+		};
+	}, [query, onSelectSpace, onSelectPage, untitled]);
+
+	return items;
+}
+
 /** Refetched every time the palette opens, scoped to whichever space is active *at that moment* — see the file-level doc comment for why this (not a global "recent docs") is the honest scope for "documents". */
 function useDocumentItems(
 	open: boolean,
@@ -182,8 +253,17 @@ export function CommandPaletteRoot() {
 		void router.navigate(`/spaces/${spaceId}/pages/${pageId}`);
 	}, []);
 	const untitledLabel = t("pages.untitled");
+	const [query, setQuery] = useState("");
 	const spaceItems = useSpaceItems(selectSpace);
 	const documentItems = useDocumentItems(open, selectDocument, untitledLabel);
+	const searchItems = useSearchItems(query, selectSpace, selectDocument, untitledLabel);
+
+	// The palette keeps its own query state only while it is open;
+	// reset on close so reopening never shows the previous search's
+	// results for an input the primitive has already cleared.
+	useEffect(() => {
+		if (!open) setQuery("");
+	}, [open]);
 
 	// We use the imperative `router.navigate(...)` instead of
 	// `useNavigate()` because the palette is mounted at the React root
@@ -313,15 +393,25 @@ export function CommandPaletteRoot() {
 	// Section order is the primitive's own job (`CommandPalette` groups
 	// by `item.section` regardless of input order) — concatenating here
 	// is just "all the items that currently exist".
+	//
+	// While a query is active, spaces/documents come from the backend
+	// (`searchItems`) instead of the locally-listed ones. Concatenating
+	// both would double every hit: the primitive already substring-
+	// filters whatever `items` it is given, so a matching local page
+	// and its own server hit would each render a row. Commands stay
+	// local in both modes — they are a fixed set the primitive filters
+	// perfectly well, and they are not in the backend index.
 	const allItems = useMemo(
-		() => [...documentItems, ...spaceItems, ...commandItems],
-		[documentItems, spaceItems, commandItems],
+		() =>
+			searchItems === null ? [...documentItems, ...spaceItems, ...commandItems] : [...searchItems, ...commandItems],
+		[searchItems, documentItems, spaceItems, commandItems],
 	);
 
 	return (
 		<CommandPalette
 			items={allItems}
 			onClose={() => setOpen(false)}
+			onQueryChange={setQuery}
 			open={open}
 			placeholder={t("palette.placeholder")}
 		/>

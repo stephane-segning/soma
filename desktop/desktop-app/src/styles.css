@@ -12,6 +12,44 @@ body,
 	height: 100%;
 }
 
+html {
+	overflow: hidden;
+}
+
+/* iOS/WKWebView pans the whole document (not just the on-screen
+ * keyboard's own area) to keep a focused input clear of the keyboard —
+ * it scrolls `body` as a single native layer, dragging along anything
+ * rendered inside it, including the in-window header below, which is
+ * only `position: sticky` relative to a *non-scrolling* ancestor
+ * (effectively pinned at literal document y=0). Without this pin the
+ * header slides up and under the status bar/Dynamic Island the instant
+ * an editor field gains focus.
+ *
+ * Pinning `body` removes the one thing that pan acts on. Every
+ * scrollable region in this app is already an internal `overflow-auto`
+ * container (`DesktopShell`'s main content div, rail panels, the
+ * mobile drawer/fullscreen overlays — see
+ * `desktop-ui/src/components/layout/desktop-shell.tsx` and
+ * `desktop-shell/overlay-panel.tsx`), so `body` itself never
+ * legitimately needs to scroll. This is a no-op on every other
+ * platform — desktop already never scrolls the page.
+ *
+ * The other half of the fix is `DesktopShell`'s `useViewportRect`,
+ * which pins the shell to `window.visualViewport`'s rect (position
+ * *and* size) instead of the layout viewport (`100vh`/`100dvh` and a
+ * static origin — none of which shrink or move for the iOS keyboard),
+ * since WebKit can still pan the *visual* viewport within the layout
+ * viewport on focus even with `body` pinned here. See that hook's doc
+ * comment for the full mechanism.
+ */
+body {
+	overflow: hidden;
+	overscroll-behavior: none;
+	position: fixed;
+	inset: 0;
+	width: 100%;
+}
+
 body {
 	margin: 0;
 	font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -44,16 +82,20 @@ html[data-shell-platform="macos"] body {
 
 /* Mobile has no traffic lights, but flush-left is still wrong there — with
  * zero gutter the wordmark renders glyph-to-glyph against the screen's
- * physical edge (observed on iPhone 17 Pro: the "S" starts at x=0). `max()`
- * picks whichever is larger: a flat 1rem content gutter (portrait — the
- * inset is 0 here, so the flat gutter is what actually fires), or the
- * safe-area inset itself (landscape, or a rounded-corner/notch device
- * where the left edge is genuinely unsafe to draw under). Requires
- * `viewport-fit=cover` in index.html's viewport meta tag, same
- * precondition as the top-inset rule below. */
+ * physical edge (observed on iPhone 17 Pro: the "S" starts at x=0 in
+ * portrait). A flat 1rem is enough on its own — it must NOT also fold in
+ * `env(safe-area-inset-left)` the way an earlier pass here did: the header
+ * is nested *inside* `DesktopShell`'s root, not a sibling of it, and that
+ * root already pads the entire shell body (header included) by the
+ * safe-area inset on every side. Re-adding the inset here double-counts
+ * it — invisible in portrait (the inset is 0 there, so it went
+ * unnoticed), but it doubled the header's left gutter in landscape, once
+ * the Dynamic Island rotates onto a side edge and the inset is actually
+ * non-zero. Requires `viewport-fit=cover` in index.html's viewport meta
+ * tag, same precondition as the top-inset rule below. */
 html[data-shell-platform="ios"] body,
 html[data-shell-platform="android"] body {
-	--shell-titlebar-pad-left: max(1rem, env(safe-area-inset-left, 0px));
+	--shell-titlebar-pad-left: 1rem;
 }
 
 /* Safe-area insets (notch / Dynamic Island / home indicator / rounded

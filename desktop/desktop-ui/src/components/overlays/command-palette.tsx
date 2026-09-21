@@ -46,6 +46,17 @@ export type CommandPaletteItem = {
 	shortcut?: string;
 	icon?: ReactNode;
 	section: CommandPaletteSectionKind;
+	/**
+	 * Set on items that already matched the query somewhere this
+	 * component cannot see — server-side full-text hits, whose match
+	 * may live in the document *body* rather than in `title` or
+	 * `subtitle`. Such items bypass the built-in client-side filter;
+	 * without it a hit on body text is fetched, returned, and then
+	 * silently dropped here for not containing the query in its title.
+	 * Leave unset for locally-known items (commands, cached spaces) so
+	 * they keep filtering as you type.
+	 */
+	prematched?: boolean;
 	onSelect: () => void;
 };
 
@@ -58,7 +69,9 @@ export type CommandPaletteProps = {
 	 * Notified on every keystroke in the search input. Use this to pipe
 	 * the query into an external search service whose results you feed
 	 * back via `items`. Independent of the built-in client-side filter,
-	 * which always runs against the current `items`.
+	 * which always runs against the current `items` — mark those
+	 * externally-matched items `prematched` so the local filter lets
+	 * them through.
 	 */
 	onQueryChange?: (query: string) => void;
 };
@@ -142,6 +155,8 @@ export function CommandPalette({
 		const lower = query.toLowerCase();
 		const matches = items.filter((item) => {
 			if (lower.length === 0) return true;
+			// Already matched upstream against text we don't have here.
+			if (item.prematched) return true;
 			return (
 				item.title.toLowerCase().includes(lower) ||
 				item.subtitle?.toLowerCase().includes(lower) ||
