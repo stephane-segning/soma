@@ -40,6 +40,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { type MouseEvent, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Outlet, useNavigate } from "react-router";
+import { DaemonStatusLine } from "../components/daemon-status-line";
 import { NavIcon, PagesIcon, SettingsIcon } from "../components/icons";
 import { LEFT_RAIL_DEFAULT_EXPANDED, LEFT_RAIL_PANEL_IDS, LeftInnerRail } from "../components/left-inner-rail";
 import { RIGHT_RAIL_PANEL_IDS, RightRail, rightRailChipDescriptors } from "../components/right-rail";
@@ -212,8 +213,11 @@ export function AppLayout() {
 				rightExpanded.size > 0 ? <RightRail expandedIds={rightExpanded} onCollapse={toggleRightPanel} /> : null
 			}
 		>
-			<div className="flex-1 overflow-auto">
-				<Outlet />
+			<div className="flex min-h-0 flex-1 flex-col">
+				<DaemonStatusLine />
+				<div className="flex-1 overflow-auto">
+					<Outlet />
+				</div>
 			</div>
 		</DesktopShell>
 	);

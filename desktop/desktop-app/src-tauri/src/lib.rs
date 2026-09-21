@@ -203,12 +203,15 @@ pub fn run() {
             let domain_events_tx_for_setup = domain_events_tx.clone();
             let agent_events_tx_for_setup = agent_events_tx.clone();
             tauri::async_runtime::spawn(async move {
+                tracing::info!("setup: boot task entered, starting daemon runtime");
                 if let Err(err) = daemon_for_setup.start().await {
                     tracing::error!(?err, "daemon runtime failed to start");
                 }
+                tracing::info!("setup: starting agent runtime");
                 if let Err(err) = agent_runtime_for_setup.start().await {
                     tracing::error!(?err, "agent runtime failed to start");
                 }
+                tracing::info!("setup: starting event streams");
                 start_event_streams(
                     &app_handle,
                     &daemon_for_setup,
@@ -332,10 +335,21 @@ async fn start_event_streams<R: tauri::Runtime>(
     domain_events_tx: tokio::sync::broadcast::Sender<desktop_daemon::events::DomainEvent>,
     agent_events_tx: tokio::sync::broadcast::Sender<desktop_agent::types::AgentRuntimeEvent>,
 ) {
-    if let Ok(handle) = daemon.handle().await {
-        let bridge = daemon_events::spawn(domain_events_tx, handle, 256);
-        if let Some(state) = app_handle.try_state::<BridgeState>() {
-            *state.daemon_bridge.lock().await = Some(bridge);
+    match daemon.handle().await {
+        Ok(handle) => {
+            let bridge = daemon_events::spawn(domain_events_tx, handle, 256);
+            if let Some(state) = app_handle.try_state::<BridgeState>() {
+                *state.daemon_bridge.lock().await = Some(bridge);
+            }
+        }
+        // Not just a boot-time race (the doc comment below on the agent
+        // stream describes that case) — if `daemon.start()` itself failed
+        // or timed out, this is permanent: the daemon firehose bridge
+        // never starts and every daemon-sourced domain event (joins, blob
+        // adds, bot status) silently never reaches the renderer. Loud on
+        // purpose — this used to be the one branch with no `else` at all.
+        Err(err) => {
+            tracing::error!(?err, "daemon handle unavailable; domain-event bridge not started");
         }
     }
     let stream = agent_events::spawn(agent_service, move |event| {

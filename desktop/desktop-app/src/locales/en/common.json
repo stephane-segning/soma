@@ -2,7 +2,10 @@
 	"app": {
 		"title": "Soma",
 		"subtitle": "Soma desktop",
-		"runtime": "Runtime: {{name}} {{version}} on Tauri {{tauri}}"
+		"runtime": "Runtime: {{name}} {{version}} on Tauri {{tauri}}",
+		"daemonStarting": "Starting backend…",
+		"daemonUnavailable": "Backend unavailable: {{message}}",
+		"daemonRetry": "Retry"
 	},
 	"editor": {
 		"placeholder": "Start writing. Press / for the slash menu…",

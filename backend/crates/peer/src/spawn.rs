@@ -6,9 +6,15 @@ use soma_core::SomaResult;
 use soma_net::NetIdentity;
 use std::collections::{HashMap, HashSet};
 use tokio::sync::mpsc;
-use tracing::warn;
+use tracing::{info, warn};
 
 /// Spawn a peer with ping + identify + optional mdns + rendezvous discovery.
+///
+/// The heavy lifting (identity load, swarm construction, dialing) runs in
+/// a *detached* `tokio::spawn` task — this fn itself returns as soon as
+/// that task is queued plus one more identity read for the peer id, so a
+/// caller awaiting `spawn_peer`/`PeerLauncher::spawn` never observes a
+/// stall here even if swarm construction (below) does stall.
 pub fn spawn_peer(mut config: PeerConfig) -> SomaResult<PeerHandle> {
     let (command_tx, command_rx) = mpsc::channel(16);
     let (event_tx, event_rx) = mpsc::channel(64);
@@ -16,16 +22,19 @@ pub fn spawn_peer(mut config: PeerConfig) -> SomaResult<PeerHandle> {
     let blob_provider = config.blob_provider.clone();
 
     let task = tokio::spawn(async move {
+        info!("spawn_peer: task started, loading identity");
         let identity = NetIdentity::load_or_generate(&config.identity_path)?;
         let peer_id = identity.peer_id();
 
         let enable_mdns = config.enable_mdns;
         let join_decider = config.join_decider.clone();
         let keypair = identity.keypair().clone();
+        info!(%peer_id, %enable_mdns, "spawn_peer: building libp2p swarm (tcp/quic/dns/ws/relay/behaviour)");
         let mut swarm = transport::build_peer_swarm(keypair, move |keypair, relay_client| {
             build_app_behaviour(enable_mdns, keypair, relay_client)
         })
         .await?;
+        info!(%peer_id, "spawn_peer: swarm built, listening + dialing configured peers");
         let mut rendezvous_peers = HashSet::new();
         let mut relay_peers = HashMap::new();
 
@@ -59,6 +68,7 @@ pub fn spawn_peer(mut config: PeerConfig) -> SomaResult<PeerHandle> {
             }
         }
 
+        info!(%peer_id, "spawn_peer: entering run_swarm event loop");
         run_swarm(
             peer_id,
             config.rendezvous_namespace.unwrap_or_else(|| "soma".into()),

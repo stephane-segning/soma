@@ -18,11 +18,26 @@ pub(crate) fn build_app_behaviour(
     keypair: identity::Keypair,
     relay_client: relay::client::Behaviour,
 ) -> AppBehaviour {
+    // `mdns::tokio::Behaviour::new` opens a UDP multicast socket, which can
+    // fail on a platform that gates or forbids raw multicast (notably iOS,
+    // where it's tied to the user-facing "Local Network" permission — see
+    // `Info.ios.plist`'s `NSLocalNetworkUsageDescription`). This runs on
+    // the swarm-building task inside `spawn_peer`'s `tokio::spawn`, which
+    // is *detached* from `DaemonRuntime::start()`'s own await chain — a
+    // panic here used to abort only that task, silently, with the rest of
+    // the daemon (DB, space creation) still reporting "ready". Degrade
+    // instead: no local-network discovery beats a half-dead peer task.
     let mdns_behaviour = if enable_mdns {
-        Some(
-            mdns::tokio::Behaviour::new(mdns::Config::default(), keypair.public().to_peer_id())
-                .expect("mdns behaviour"),
-        )
+        match mdns::tokio::Behaviour::new(mdns::Config::default(), keypair.public().to_peer_id()) {
+            Ok(behaviour) => Some(behaviour),
+            Err(err) => {
+                tracing::warn!(
+                    %err,
+                    "mdns unavailable on this platform/sandbox; continuing without local-network peer discovery"
+                );
+                None
+            }
+        }
     } else {
         None
     };

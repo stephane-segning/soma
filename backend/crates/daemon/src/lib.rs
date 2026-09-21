@@ -143,6 +143,7 @@ pub async fn run(config: RuntimeConfig) -> SomaResult<RuntimeHandle> {
         enable_mdns,
     } = config;
 
+    info!(?blob_dir, "soma_daemon::run: creating blob dir");
     std::fs::create_dir_all(&blob_dir)?;
     let blob_store = FsBlobStore::new(blob_dir.clone());
     let blob_provider: Arc<dyn BlobProvider> = Arc::new(blob_store.clone());
@@ -150,9 +151,10 @@ pub async fn run(config: RuntimeConfig) -> SomaResult<RuntimeHandle> {
     static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("../storage/migrations");
 
     let db_url = soma_core::db::normalize_sqlite_url(db_path.to_string_lossy().as_ref());
-    info!(%db_url, scheme = "sqlite", "configuring database");
+    info!(%db_url, scheme = "sqlite", "soma_daemon::run: connecting + running migrations");
     let repos = soma_storage::bootstrap::connect_any(&db_url, &MIGRATOR).await?;
     let repos: Arc<dyn RepositoryProvider> = Arc::new(repos);
+    info!("soma_daemon::run: migrations complete");
 
     let bootstrapper = DaemonPeerBootstrap {
         identity_path: identity_path.clone(),
@@ -165,6 +167,7 @@ pub async fn run(config: RuntimeConfig) -> SomaResult<RuntimeHandle> {
         repos: repos.clone(),
     };
 
+    info!(%enable_mdns, "soma_daemon::run: loading identity + spawning peer");
     let (peer, net_identity) = PeerLauncher::new(&bootstrapper).spawn()?;
     let peer_id = peer.peer_id;
     info!(%peer_id, ?blob_dir, "soma-daemon starting");
@@ -194,6 +197,7 @@ pub async fn run(config: RuntimeConfig) -> SomaResult<RuntimeHandle> {
         identify_keys: Mutex::new(std::collections::HashMap::new()),
     });
 
+    info!("soma_daemon::run: ensuring default space exists");
     ensure_default_space(&state.space_manager).await?;
 
     let peer_task = peer.task;
@@ -202,6 +206,7 @@ pub async fn run(config: RuntimeConfig) -> SomaResult<RuntimeHandle> {
 
     let dispatcher = build_dispatcher(state.clone()).await;
     spawn_mailbox_sweeper(state.clone());
+    info!("soma_daemon::run: dispatcher + mailbox sweeper ready, returning RuntimeHandle");
 
     let state_for_supervisor = state.clone();
     let supervisor: JoinHandle<SomaResult<()>> = tokio::spawn(async move {
