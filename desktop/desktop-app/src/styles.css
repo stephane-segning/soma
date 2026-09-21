@@ -22,8 +22,11 @@ body {
 	 * opts back out for buttons inside the drag area).
 	 *
 	 * `--shell-titlebar-pad-left` is the slot the in-window header should
-	 * reserve for the macOS traffic lights so they don't overlap content.
-	 * Other platforms get 0 — the layout collapses cleanly.
+	 * reserve so its leading content (the "SOMA" wordmark) never renders
+	 * flush against an edge — macOS traffic lights, a mobile screen edge,
+	 * or a rounded-corner/notch inset. This bare default (desktop Windows
+	 * /Linux — no traffic lights, no notch) is the one platform where
+	 * flush-left is actually correct; macOS and mobile override it below.
 	 */
 	--shell-titlebar-height: 32px;
 	--shell-titlebar-pad-left: 0px;
@@ -34,10 +37,23 @@ body {
  * react to the host OS without a JS round-trip into the renderer. The 80px
  * breathing room matches Electron's `trafficLightPosition` convention —
  * the buttons sit ~12px from the left edge, and 80px leaves a small inner
- * gutter past the Close/Min/Zoom triplet. Mobile (`ios` / `android`) has
- * no traffic lights, so it never sets this — the default 0px applies. */
+ * gutter past the Close/Min/Zoom triplet. */
 html[data-shell-platform="macos"] body {
 	--shell-titlebar-pad-left: 80px;
+}
+
+/* Mobile has no traffic lights, but flush-left is still wrong there — with
+ * zero gutter the wordmark renders glyph-to-glyph against the screen's
+ * physical edge (observed on iPhone 17 Pro: the "S" starts at x=0). `max()`
+ * picks whichever is larger: a flat 1rem content gutter (portrait — the
+ * inset is 0 here, so the flat gutter is what actually fires), or the
+ * safe-area inset itself (landscape, or a rounded-corner/notch device
+ * where the left edge is genuinely unsafe to draw under). Requires
+ * `viewport-fit=cover` in index.html's viewport meta tag, same
+ * precondition as the top-inset rule below. */
+html[data-shell-platform="ios"] body,
+html[data-shell-platform="android"] body {
+	--shell-titlebar-pad-left: max(1rem, env(safe-area-inset-left, 0px));
 }
 
 /* Safe-area insets (notch / Dynamic Island / home indicator / rounded

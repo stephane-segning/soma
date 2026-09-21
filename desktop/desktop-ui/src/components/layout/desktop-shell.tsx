@@ -142,6 +142,17 @@ export function DesktopShell(props: DesktopShellProps) {
 	// nothing is summoned by default so the editor stays the priority
 	// surface. The `leftGutter` icon strip is unaffected at every tier.
 	const dockRails = tier === "comfortable";
+	// Separate from `dockRails`: whether `mainTopLeft`/`mainTopRight` float
+	// as an absolute corner overlay (true at "comfortable" *and* "tight")
+	// or reserve their own row (only "verySmall"). The reported overlap
+	// (chips covering `/join`'s body copy) was observed at 402px — a
+	// phone-width "verySmall" viewport — not at "tight" (~960-1280px,
+	// e.g. a laptop in split view), where `main` still has enough width
+	// for routed content's own padding to clear the corner chips. Scoping
+	// this tighter than `!dockRails` keeps "tight" pixel-identical to the
+	// already-verified 1100px Storybook baseline instead of changing a
+	// tier nobody reported a problem at.
+	const chipsFloatInCorner = tier !== "verySmall";
 
 	return (
 		<div
@@ -204,26 +215,62 @@ export function DesktopShell(props: DesktopShellProps) {
 					) : null}
 					{/* Main column. Two-layer structure: the OUTER `<main>` is
 					    `relative` and `overflow-hidden`; the INNER scroll
-					    container holds the scrollable children. The
-					    `mainTopLeft` / `mainTopRight` slots are absolutely
-					    positioned against the outer `<main>`, *outside* the
-					    scrollable inner — so they stay pinned to the visible
-					    top corners no matter how far the user scrolls.
-					    Previous revisions nested the overlays inside the same
-					    element that owned `overflow-auto`, which made the
-					    chip bars disappear once the doc was scrolled
-					    (eliminating the only affordance to re-open collapsed
-					    panels). The `<main>` element still owns the
-					    `mainClassName` so callers can theme the surface as
-					    before. */}
+					    container holds the scrollable children. While
+					    `chipsFloatInCorner` ("comfortable" and "tight"),
+					    `mainTopLeft` / `mainTopRight` are absolutely positioned
+					    against the outer `<main>`, *outside* the scrollable
+					    inner — so they stay pinned to the visible top corners
+					    no matter how far the user scrolls. Previous revisions
+					    nested the overlays inside the same element that owned
+					    `overflow-auto`, which made the chip bars disappear once
+					    the doc was scrolled (eliminating the only affordance to
+					    re-open collapsed panels). The `<main>` element still
+					    owns the `mainClassName` so callers can theme the
+					    surface as before.
+
+					    At "verySmall" only, floating no longer works: a
+					    phone-width column has no reliable top padding of its
+					    own to clear the chips, and a screen whose content is
+					    vertically centered (e.g. `SpacesIndex`'s `Empty`) ends
+					    up with the chips sitting on top of real text (observed
+					    on iPhone 17 Pro, 402px — the chip bar covered "Paste an
+					    invite link…" on `/join`). "tight" (~960-1280px, e.g. a
+					    laptop in split view) keeps the corner-float behaviour
+					    unchanged — `main` is still wide enough there for a
+					    route's own padding to clear the chips, and it's the
+					    width Storybook's manual verification pass already
+					    covers, so there's no reason to move it off the
+					    previously-verified presentation. Render the same slots
+					    as a normal-flow row instead so they reserve their own
+					    height and everything else starts below. `<main>`
+					    becomes a flex column to stack that row above the
+					    scroll container; the scroll container swaps `h-full`
+					    for `min-h-0 flex-1` so it still claims exactly the
+					    remaining height (identical render whenever the row
+					    doesn't mount, where the scroll container is the sole
+					    flex child). */}
 					<main
 						className={cn(
-							"relative max-h-full min-h-0 flex-1 overflow-hidden",
+							"relative flex max-h-full min-h-0 flex-1 flex-col overflow-hidden",
 							props.mainClassName,
 						)}
 					>
-						<div className="h-full w-full overflow-auto">{props.children}</div>
-						{props.mainTopLeft ? (
+						{!chipsFloatInCorner &&
+						(props.mainTopLeft || props.mainTopRight) ? (
+							<div
+								className="flex shrink-0 items-center justify-between gap-2 px-1 pb-1"
+								style={{
+									paddingTop: "max(0.25rem, env(safe-area-inset-top, 0px))",
+								}}
+							>
+								<div>{props.mainTopLeft}</div>
+								<div>{props.mainTopRight}</div>
+							</div>
+						) : null}
+						<div className="min-h-0 w-full flex-1 overflow-auto">
+							{props.children}
+						</div>
+						{chipsFloatInCorner && props.mainTopLeft ? (
 							<div
 								className="pointer-events-none absolute z-10"
 								style={{
@@ -234,7 +281,7 @@ export function DesktopShell(props: DesktopShellProps) {
 								<div className="pointer-events-auto">{props.mainTopLeft}</div>
 							</div>
 						) : null}
-						{props.mainTopRight ? (
+						{chipsFloatInCorner && props.mainTopRight ? (
 							<div
 								className="pointer-events-none absolute z-10"
 								style={{

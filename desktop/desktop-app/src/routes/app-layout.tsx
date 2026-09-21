@@ -148,7 +148,13 @@ export function AppLayout() {
 			header={() => (
 				// biome-ignore lint/a11y/noStaticElementInteractions: window drag region is inherently mouse-only chrome, not a focusable control
 				<header
-					className="sticky top-0 z-40 flex h-12 select-none items-center gap-2 border-base-300 border-b bg-base-100/95 backdrop-blur"
+					// `min-h-12` (not `h-12`): on iOS the header also carries
+					// `padding-top: env(safe-area-inset-top)` (styles.css) to clear
+					// the notch/Dynamic Island. A fixed height would hold the box
+					// at 48px while that padding pushed the title past its bottom
+					// edge — content overflowing into the rail/main below instead
+					// of the header actually reserving the space it needs.
+					className="sticky top-0 z-40 flex min-h-12 select-none items-center gap-2 border-base-300 border-b bg-base-100/95 backdrop-blur"
 					data-tauri-drag-region
 					onMouseDown={startWindowDrag}
 					style={{ paddingLeft: "var(--shell-titlebar-pad-left, 80px)", paddingRight: "0.5rem" }}

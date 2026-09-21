@@ -90,7 +90,11 @@ export function SpacesRail({
 						id: "spaces-rail.create",
 						defaultMessage: "Create space",
 					})}
-					className="mt-1 inline-flex size-9 items-center justify-center rounded-md text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content focus-visible:bg-base-200 focus-visible:outline-none"
+					// `shell-tap-target`: dense 36px visual size is unchanged (the
+					// rail's icon-only vocabulary is a locked contract), but a
+					// coarse pointer gets the same invisible ±10px hit-slop as the
+					// overlay panel's back button — see styles.css.
+					className="shell-tap-target mt-1 inline-flex size-9 items-center justify-center rounded-md text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content focus-visible:bg-base-200 focus-visible:outline-none"
 					onClick={onCreate}
 					type="button"
 				>
@@ -116,8 +120,11 @@ function RailIcon({
 		<button
 			aria-current={active ? "page" : undefined}
 			aria-label={item.name}
+			// `shell-tap-target` (styles.css): same ±10px coarse-pointer hit-slop
+			// as the rail's own create button below — the 36px dense sizing is
+			// unchanged, only the invisible tappable area grows.
 			className={cn(
-				"relative inline-flex size-9 items-center justify-center rounded-md text-sm transition-colors",
+				"shell-tap-target relative inline-flex size-9 items-center justify-center rounded-md text-sm transition-colors",
 				active
 					? "bg-primary/15 text-primary"
 					: "text-base-content/80 hover:bg-base-200 hover:text-base-content",
