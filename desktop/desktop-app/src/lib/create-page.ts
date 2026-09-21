@@ -26,16 +26,16 @@
  *      created page opens with the cursor already in the title, ready
  *      to type, with no editor changes needed.
  *
- * After both calls succeed, dispatches `PAGE_CREATED_EVENT` on
- * `window` so any mounted `PagesPanel` can append the new page
- * immediately instead of waiting for its next full reload. This is a
- * stand-in for the backend's `PagesChanged` domain event: the
- * `desktop-api::events::pages_changed(...)` constructor exists but
- * nothing calls it yet (`ensure_page` doesn't publish it), so
- * `backend.events.onDomain` never actually fires for a page create
- * today. Wiring that up is a backend change outside this module's
- * scope; this local event is what keeps the rail in sync in the
- * meantime and can be deleted once the real domain event is wired.
+ * After both calls succeed, any mounted `PagesPanel` picks the new page
+ * up via the real `pages-changed` domain event — `desktop-api`'s
+ * `ensure_page` handler (`documents.rs`) now publishes it after the
+ * daemon write, and it reaches the renderer over the same broadcast
+ * channel both the Tauri host (`app.emit`) and `desktop-bff` (`ws.rs`)
+ * forward. Earlier revisions of this function dispatched a local
+ * `soma:page-created` `window` `CustomEvent` as a stand-in for that —
+ * now that the real event is wired end to end, `PagesPanel` listens for
+ * it directly instead (see its own doc comment), so this module no
+ * longer needs to know who's listening.
  */
 import { createId } from "@paralleldrive/cuid2";
 import type { StoredPage } from "@soma/sdk";
@@ -46,13 +46,6 @@ const SEED_PAGE_CONTENT_JSON = JSON.stringify({
 	content: [{ type: "heading", attrs: { level: 1 } }],
 });
 
-export const PAGE_CREATED_EVENT = "soma:page-created";
-
-export type PageCreatedDetail = {
-	spaceId: string;
-	page: StoredPage;
-};
-
 export async function createPage(spaceId: string, title: string, parentPageIds: string[] = []): Promise<StoredPage> {
 	const pageId = createId();
 	const page = await backend.pages.ensure({ spaceId, pageId, title, parentPageIds });
@@ -62,9 +55,5 @@ export async function createPage(spaceId: string, title: string, parentPageIds: 
 		contentJson: SEED_PAGE_CONTENT_JSON,
 		updatedAtMs: Date.now(),
 	});
-	if (typeof window !== "undefined") {
-		const detail: PageCreatedDetail = { spaceId, page };
-		window.dispatchEvent(new CustomEvent<PageCreatedDetail>(PAGE_CREATED_EVENT, { detail }));
-	}
 	return page;
 }

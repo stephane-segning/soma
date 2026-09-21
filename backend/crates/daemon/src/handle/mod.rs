@@ -24,6 +24,7 @@ mod joins;
 mod members;
 mod pages;
 mod revoke;
+mod search;
 mod spaces;
 mod status;
 

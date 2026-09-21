@@ -673,12 +673,24 @@ export type RevokeMemberArgs = {
 	reason?: string,
 };
 
+/**
+ *  One search hit. Maps cleanly onto `@soma/ui`'s `CommandPaletteItem`
+ *  (`id`, `title`, `subtitle`, `section`): `spaceName` is the natural
+ *  `subtitle`, `kind` plus `spaceId`/`id` are enough to build the right
+ *  route and `onSelect`, and `snippet` (set for `document` hits only)
+ *  gives the palette a reason to show *why* something matched.
+ */
 export type SearchResult = {
-	kind: string,
+	kind: SearchResultKind,
+	spaceId: string,
+	spaceName: string,
 	id: string,
 	title: string,
-	spaceId: string,
+	snippet: string | null,
+	updatedAtMs: number,
 };
+
+export type SearchResultKind = "space" | "page" | "document";
 
 /**
  *  Whole-state overwrite for the default scope. Every field (except

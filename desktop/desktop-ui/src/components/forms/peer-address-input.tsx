@@ -65,6 +65,7 @@ export function PeerAddressInput({
 			) : null}
 			<input
 				aria-invalid={preview?.kind === "invalid" || undefined}
+				// biome-ignore lint/a11y/noAutofocus: caller-controlled, not hardcoded — call sites pass `autoFocus` only when this is the sole/primary field on screen (e.g. bots-tab.tsx's "paste a peer address" step of Add Bot); `settings.tsx`'s Network tab usage leaves it unset. Same rationale as join-space.tsx's route-level autofocus.
 				autoFocus={autoFocus}
 				className={cn(
 					"w-full rounded-md border bg-base-100 px-3 py-2 font-mono text-sm outline-none transition-colors",

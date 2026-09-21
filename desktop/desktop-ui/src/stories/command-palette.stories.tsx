@@ -96,12 +96,18 @@ function Demo() {
 	const items = buildItems((label) => setPicked(label));
 	return (
 		<div className="flex h-screen flex-col items-center justify-center gap-3 bg-base-100 p-6">
+			{/*
+			 * The real app opens this via its own shortcut registry
+			 * (CommandPaletteRoot) — CommandPalette itself no longer binds a
+			 * hotkey (see its docstring), so this story drives `open` with a
+			 * plain button instead of a live ⌘K listener.
+			 */}
 			<button
 				className="rounded-md border border-base-300 bg-base-100 px-3 py-1.5 text-sm"
 				onClick={() => setOpen((v) => !v)}
 				type="button"
 			>
-				{open ? "Close palette" : "Open palette (⌘K)"}
+				{open ? "Close palette" : "Open palette"}
 			</button>
 			<div className="text-base-content/60 text-xs">
 				Last picked: <code className="font-mono">{picked ?? "—"}</code>
@@ -109,7 +115,6 @@ function Demo() {
 			<CommandPalette
 				items={items}
 				onClose={() => setOpen(false)}
-				onOpen={() => setOpen(true)}
 				open={open}
 			/>
 		</div>

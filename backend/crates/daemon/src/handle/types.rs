@@ -392,6 +392,28 @@ pub enum ApiKeyWrite {
     Set(String),
 }
 
+/// What a [`SearchResultRecord`] refers to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SearchResultKind {
+    Space,
+    Page,
+    Document,
+}
+
+/// One search hit, scoped to spaces the caller is a member of — see
+/// [`crate::DaemonHandle::search`]'s doc comment for the scoping rule
+/// and the per-kind result cap.
+#[derive(Debug, Clone)]
+pub struct SearchResultRecord {
+    pub kind: SearchResultKind,
+    pub space_id: String,
+    pub space_name: String,
+    pub id: String,
+    pub title: String,
+    pub snippet: Option<String>,
+    pub updated_at_ms: i64,
+}
+
 /// Plain-typed snapshot of one entry on the daemon's broadcast event stream.
 /// Variants mirror the published `daemon::daemon_event::Event` cases that
 /// downstream consumers (Soma renderer, future bot mirroring) care about.

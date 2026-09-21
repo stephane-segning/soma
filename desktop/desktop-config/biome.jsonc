@@ -1,0 +1,20 @@
+{
+	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+	"root": true,
+	// `prepare` runs `tsc -p tsconfig.json`, so `dist/` is regenerated on
+	// every install. Excluding it here rather than via `.gitignore`
+	// because this package enables no `vcs` block — same shape as
+	// `desktop-app`'s and `desktop-sdk`'s `files.includes` negations.
+	"files": {
+		"includes": ["**", "!dist"]
+	},
+	"formatter": {
+		"enabled": true,
+		"indentStyle": "tab",
+		"lineWidth": 120
+	},
+	"linter": {
+		"enabled": true,
+		"rules": { "recommended": true }
+	}
+}

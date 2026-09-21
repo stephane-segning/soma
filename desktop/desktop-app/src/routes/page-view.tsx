@@ -36,6 +36,19 @@
  * lists this space's pages (or mints a new sub-page via the shared
  * `createPage()` helper) and hands the chosen page back to
  * `onInsertPageLink`'s pending `(editor, insertPos)`.
+ *
+ * Title sync: the document schema guarantees the first node is always a
+ * `heading` (see `desktop-editor/src/components/document-editor/
+ * extensions.ts`), so the page's stored title (`backend.pages.
+ * updateTitle`) is kept derived from it — see `../lib/page-title` for
+ * the pure extraction/truncation/fallback logic and, importantly, how
+ * it decides *not* to clobber a title that no longer tracks the
+ * heading (e.g. a future manual rename). That decision is made once,
+ * when the page finishes loading, and cached in `titleTrackingRef` for
+ * the lifetime of this mount. The title write itself piggybacks on the
+ * *same* debounced `persist` call as the content save below — not a
+ * second timer — so it shares every one of the cancel/flush/cross-page
+ * guarantees documented above for free.
  */
 
 import {
@@ -52,6 +65,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router";
 import { PageLinkPicker, type PickedPage } from "../components/page-link-picker";
 import { backend } from "../lib/backend";
+import { derivePageTitle, titleTracksHeading } from "../lib/page-title";
 
 type LoadState =
 	| { phase: "loading" }
@@ -142,6 +156,24 @@ function pickEditable(members: StoredSpaceMember[], peerId: string | null): bool
 	return EDITABLE_ROLES.has(me.role.toLowerCase());
 }
 
+/**
+ * Frozen-at-load decision for whether `persist` is allowed to write a
+ * heading-derived title for `(spaceId, pageId)` — see the module doc
+ * comment's "Title sync" note and `../lib/page-title`'s "Unless set
+ * explicitly" section for the full reasoning. `lastTitle` is the most
+ * recently *confirmed* title (the value we last derived and either
+ * loaded or successfully wrote); `persist` only calls `updateTitle`
+ * when a freshly derived title differs from it, which both avoids a
+ * write on every unrelated body keystroke and naturally retries a
+ * previously failed write on the next debounced save.
+ */
+type TitleTracking = {
+	spaceId: string;
+	pageId: string;
+	enabled: boolean;
+	lastTitle: string;
+};
+
 /** `bytes` over the wire is `number[]` (`Array.from(uint8)`) — see
  *  `@soma/sdk`'s `blobs.ts` doc comment for why. */
 async function fileToBytes(file: File): Promise<number[]> {
@@ -182,6 +214,20 @@ export function PageView() {
 	// interfere with route-driven reloads.
 	const [reloadToken, setReloadToken] = useState(0);
 
+	// Recomputed fresh every load (initial mount, route change, or
+	// "Try again") right below — never mutated outside that effect and
+	// `persist`'s read of it. See the `TitleTracking` doc comment.
+	const titleTrackingRef = useRef<TitleTracking | null>(null);
+
+	// `t()` itself is stable per-language from react-i18next, but reading
+	// it here just keeps a plain ref in sync every render so `persist`
+	// (a stable `useCallback`, see below) can read the *current*
+	// translation without taking a dependency on `t` — the same
+	// "ref mirrors latest value" trick `useDebouncedCallback`'s `fnRef`
+	// already uses in this file, just inlined instead of a helper.
+	const untitledFallbackRef = useRef("");
+	untitledFallbackRef.current = t("pages.untitled", "Untitled");
+
 	// biome-ignore lint/correctness/useExhaustiveDependencies: `reloadToken` is intentionally a re-run trigger for "Try again" — it isn't read inside the effect body.
 	useEffect(() => {
 		if (!spaceId || !pageId) {
@@ -195,10 +241,22 @@ export function PageView() {
 				// TODO(P2): `Promise.all` fails the whole load if any one
 				// call rejects. The members/status calls should fail open
 				// to a read-only render instead of blocking the document.
-				const [draft, members, status] = await Promise.all([
+				//
+				// `pages.list` is deliberately *not* in that `Promise.all` —
+				// it's read-derived UI sugar (title-sync bookkeeping), not
+				// required to render the document, so a failure there
+				// shouldn't blow up the whole load. It fails open to `null`,
+				// which `titleTracksHeading` below treats as "don't know
+				// the current title" → tracking starts disabled rather than
+				// risking a clobber.
+				const [draft, members, status, pages] = await Promise.all([
 					backend.documents.getDraft({ spaceId, documentId: pageId }),
 					backend.spaces.members(spaceId),
 					backend.daemon.status(),
+					backend.pages.list(spaceId).catch((err: unknown) => {
+						console.error("[page-view] pages.list failed", err);
+						return null;
+					}),
 				]);
 				if (cancelled) return;
 				if (!draft) {
@@ -213,6 +271,20 @@ export function PageView() {
 					setState({ phase: "parse_error" });
 					return;
 				}
+				const currentTitle = pages?.find((page) => page.pageId === pageId)?.title ?? null;
+				titleTrackingRef.current = {
+					spaceId,
+					pageId,
+					// `currentTitle == null` covers both "pages.list failed"
+					// and "this page id isn't in its own space's list" (should
+					// never happen, but fail closed rather than guess) —
+					// either way we don't know enough to say the title is
+					// still the default, so we don't touch it.
+					enabled:
+						currentTitle != null &&
+						titleTracksHeading(currentTitle, parsed.content, { fallback: untitledFallbackRef.current }),
+					lastTitle: currentTitle ?? derivePageTitle(parsed.content, { fallback: untitledFallbackRef.current }),
+				};
 				setState({
 					phase: "ready",
 					content: parsed.content,
@@ -251,6 +323,41 @@ export function PageView() {
 				// an error state for a transient daemon hiccup.
 				console.error("[page-view] upsertDraft failed", err);
 			});
+
+		// Title sync — piggybacks on this same debounced call rather than
+		// running its own timer (see the module doc comment). Guarded by
+		// `targetSpaceId`/`targetPageId` matching the tracking snapshot for
+		// the same cross-page-bleed reason `debouncedPersist.flush()` is
+		// guarded above: a flush fired after navigating away still carries
+		// the *old* page's ids, and `titleTrackingRef` at that point still
+		// holds the old page's snapshot too (the new page's load effect
+		// can't have resolved yet — synchronous effects run to completion
+		// before any of this tick's async work continues), so the two stay
+		// correctly paired without any extra bookkeeping.
+		const tracking = titleTrackingRef.current;
+		if (tracking?.spaceId === targetSpaceId && tracking.pageId === targetPageId && tracking.enabled) {
+			const derived = derivePageTitle(next, { fallback: untitledFallbackRef.current });
+			if (derived !== tracking.lastTitle) {
+				void backend.pages
+					.updateTitle({ spaceId: targetSpaceId, pageId: targetPageId, title: derived })
+					.then((updated) => {
+						// Confirmed by the daemon, not assumed — if this
+						// somehow differs from `derived` (e.g. future
+						// server-side normalization), later comparisons stay
+						// correct either way.
+						tracking.lastTitle = updated?.title ?? derived;
+					})
+					.catch((err: unknown) => {
+						// Same swallow-with-log convention as the content
+						// save above. `tracking.lastTitle` deliberately stays
+						// unchanged on failure, so the very next debounced
+						// save (even one triggered by an unrelated body
+						// edit) retries this write instead of silently
+						// giving up.
+						console.error("[page-view] pages.updateTitle failed", err);
+					});
+			}
+		}
 	}, []);
 
 	const debouncedPersist = useDebouncedCallback(persist, 500);

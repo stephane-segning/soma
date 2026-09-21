@@ -10,6 +10,7 @@ pub mod membership;
 pub mod pages;
 pub mod peers;
 mod repositories;
+pub mod search;
 
 pub use filesystem::Storage;
 pub use repositories::{RepositoryFactory, RepositoryProvider};

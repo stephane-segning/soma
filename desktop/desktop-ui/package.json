@@ -17,7 +17,8 @@
 		"test:coverage": "vitest run --coverage",
 		"typecheck": "tsc --noEmit",
 		"format": "biome format --write .",
-		"lint": "biome check --write ."
+		"lint": "biome check --write .",
+		"lint:ci": "biome ci ."
 	},
 	"peerDependencies": {
 		"react": "^19.1.0",

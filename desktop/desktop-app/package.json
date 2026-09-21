@@ -16,6 +16,7 @@
 		"tauri:build": "tauri build",
 		"format": "biome format --write .",
 		"lint": "biome check --write .",
+		"lint:ci": "biome ci .",
 		"typecheck": "tsc --noEmit",
 		"test": "vitest run",
 		"test:watch": "vitest"

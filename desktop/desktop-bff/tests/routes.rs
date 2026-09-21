@@ -8,7 +8,7 @@
 //!
 //! Routes that need a live daemon get a 500-with-`{kind: "daemon"}`
 //! payload (covered by `ApiError`'s tests); routes that don't (`daemon`,
-//! `search`, `practice_*`) return a fully-formed 200.
+//! `practice_*`) return a fully-formed 200.
 //!
 //! Every request here authenticates with `support::TEST_TOKEN` — see
 //! `auth.rs` for the tests that specifically cover rejection.
@@ -17,23 +17,27 @@ mod support;
 
 use support::{TEST_TOKEN, http_base, spawn_router};
 
-/// `search` has no daemon backing — it always returns `[]`. Pinning this
-/// is the cheapest smoke test that "the new route exists and dispatches
-/// to the handler" without spinning up the daemon.
+/// `search` is daemon-backed (it scopes results to the caller's own
+/// space memberships, which live in the same DB the embedded daemon
+/// owns — see `soma_daemon::DaemonHandle::search`). With no daemon
+/// running this must dispatch (no 404) and surface the same
+/// `{kind: "daemon"}` envelope every other daemon-backed route does —
+/// same shape as `spaces_list_returns_daemon_error_when_daemon_idle`
+/// below.
 #[tokio::test]
-async fn search_route_returns_empty_list() {
+async fn search_returns_daemon_error_when_daemon_idle() {
     let h = spawn_router().await;
     let resp = reqwest::Client::new()
         .post(format!("{}/api/v1/search", http_base(h.addr)))
         .bearer_auth(TEST_TOKEN)
         .header("Content-Type", "application/json")
-        .body("{}")
+        .body(r#"{"query":"roadmap"}"#)
         .send()
         .await
         .expect("post");
-    assert_eq!(resp.status(), 200);
+    assert_eq!(resp.status(), 500);
     let body: serde_json::Value = resp.json().await.expect("json");
-    assert_eq!(body, serde_json::json!([]));
+    assert_eq!(body["kind"], "daemon");
 }
 
 /// `daemon_ready` is contracted to be a structured boolean even when the

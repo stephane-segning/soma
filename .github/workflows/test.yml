@@ -124,6 +124,37 @@ jobs:
       - name: Run @soma/sdk vitest
         run: pnpm --filter @soma/sdk run test
 
+  ui:
+    # @soma/ui (desktop/desktop-ui) is the largest package in the repo, but
+    # no workflow ever typechecked or linted it — only its vitest coverage
+    # (job `unit`, above) and the Storybook build (job `e2e`, below) ran in
+    # CI. That gap is exactly how ~20 biome errors accumulated unnoticed.
+    # This job closes it, mirroring the `renderer` job below for
+    # @soma/desktop-app.
+    name: "@soma/ui (typecheck + lint)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 9.0.0
+          run_install: false
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install workspace deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm --filter @soma/ui run typecheck
+
+      - name: Lint
+        run: pnpm --filter @soma/ui run lint:ci
+
   e2e:
     name: UI E2E (Cucumber × Playwright)
     runs-on: ubuntu-latest
@@ -197,7 +228,7 @@ jobs:
         run: pnpm --filter @soma/desktop-app run typecheck
 
       - name: Lint
-        run: pnpm --filter @soma/desktop-app run lint
+        run: pnpm --filter @soma/desktop-app run lint:ci
 
       - name: Build
         run: pnpm --filter @soma/desktop-app run build

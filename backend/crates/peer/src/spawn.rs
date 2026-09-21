@@ -30,10 +30,31 @@ pub fn spawn_peer(mut config: PeerConfig) -> SomaResult<PeerHandle> {
         let join_decider = config.join_decider.clone();
         let keypair = identity.keypair().clone();
         info!(%peer_id, %enable_mdns, "spawn_peer: building libp2p swarm (tcp/quic/dns/ws/relay/behaviour)");
+        // `spawn_peer` runs this whole block in a *detached* `tokio::spawn`
+        // task (see this fn's doc comment) — nothing awaits `task` on the
+        // happy path, only `soma_daemon::run`'s supervisor races it against
+        // `peer_events.recv()` and only to relay a *later* death, not this
+        // one. So if `build_peer_swarm` errors here, the `?` below would
+        // otherwise return `Err` straight into the void: no log, no crash,
+        // the daemon still reports "ready" (SQLite is independent of the
+        // peer swarm) and the app looks fine while networking is silently
+        // dead. This is exactly the failure mode that hid the
+        // Android-specific websocket/DNS bug `transport.rs` now works
+        // around — logging it loudly here means the *next* swarm-build
+        // failure, on any platform and for any reason, is visible instead
+        // of silent.
         let mut swarm = transport::build_peer_swarm(keypair, move |keypair, relay_client| {
             build_app_behaviour(enable_mdns, keypair, relay_client)
         })
-        .await?;
+        .await
+        .inspect_err(|err| {
+            tracing::error!(
+                %peer_id,
+                %err,
+                "spawn_peer: build_peer_swarm failed — peer will not start (no listen, no \
+                 dial, no mdns, no relay); daemon DB/UI stay usable but networking is dead"
+            );
+        })?;
         info!(%peer_id, "spawn_peer: swarm built, listening + dialing configured peers");
         let mut rendezvous_peers = HashSet::new();
         let mut relay_peers = HashMap::new();

@@ -122,6 +122,7 @@ export function SlashMenu({
 	// the other hand, genuinely needs the scroll.
 	const keyboardNavRef = useRef(false);
 	// Reset when the result set changes so the highlight stays in-bounds.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: `flat` is a deliberate re-run trigger — resets the highlighted row to the top match whenever the filtered list changes; it isn't read inside the effect body.
 	useEffect(() => {
 		setActiveIndex(0);
 	}, [flat]);
@@ -129,6 +130,7 @@ export function SlashMenu({
 	// Keep the active option visible when *keyboard* navigation moves past
 	// the visible viewport. Mouse-hover already implies the row is in view,
 	// so we deliberately skip scrolling in that case.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: `activeIndex` is a deliberate re-run trigger — re-scrolls the highlighted row into view whenever keyboard nav moves it; it isn't read inside the effect body (the body reads `keyboardNavRef`/`containerRef` instead).
 	useEffect(() => {
 		if (!keyboardNavRef.current) return;
 		keyboardNavRef.current = false;

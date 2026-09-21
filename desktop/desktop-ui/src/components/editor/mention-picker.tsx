@@ -104,6 +104,7 @@ export function MentionPicker({
 
 	const [activeIndex, setActiveIndex] = useState(0);
 	const containerRef = useRef<HTMLDivElement | null>(null);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: `flat` is a deliberate re-run trigger (see the comment inside) — it isn't read in the effect body.
 	useEffect(() => {
 		// Reset when results change so the highlight stays in-bounds.
 		// Without `flat` in the dep array the index would persist across

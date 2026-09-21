@@ -127,6 +127,7 @@ export function PersistentWidthsRender() {
 				{Array.from({ length: 12 }, (_, idx) => (
 					<ContentCard
 						body={`Content block ${idx + 1}`}
+						// biome-ignore lint/suspicious/noArrayIndexKey: static demo data — count is fixed, order never changes, items carry no identity beyond position
 						key={`content-${idx}`}
 					/>
 				))}

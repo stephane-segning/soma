@@ -50,6 +50,7 @@ export function NavigationPanel({ count = 3 }: { count?: number }) {
 			</div>
 			<ul className="list flex-1 list-dense bg-base-100">
 				{Array.from({ length: count }, (_, idx) => (
+					// biome-ignore lint/suspicious/noArrayIndexKey: static demo data — count is fixed, order never changes, items carry no identity beyond position
 					<li className="list-row hover:bg-base-200" key={`nav-${idx}`}>
 						<span className="grid size-4 place-items-center rounded bg-base-200 text-[10px] text-base-content/60">
 							{idx + 1}
@@ -75,6 +76,7 @@ export function InfoPanel({ count = 1 }: { count?: number }) {
 					Main column scrolls independently while sidebars stay fixed.
 				</div>
 				{Array.from({ length: count }, (_, idx) => (
+					// biome-ignore lint/suspicious/noArrayIndexKey: static demo data — count is fixed, order never changes, items carry no identity beyond position
 					<div className="text-[12px] text-base-content/70" key={`info-${idx}`}>
 						Random {idx + 1}
 					</div>

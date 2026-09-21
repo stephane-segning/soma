@@ -2,7 +2,13 @@
 	"compilerOptions": {
 		"target": "ES2020",
 		"useDefineForClassFields": true,
-		"lib": ["ES2020", "DOM", "DOM.Iterable"],
+		// `ES2022.Intl` added alongside @soma/ui's own tsconfig (desktop-ui has
+		// no root export / no isolated project reference — this package
+		// typechecks @soma/ui's source directly via the `@soma/ui/*` path
+		// alias below, so the two `lib` arrays must carry the same Web-API
+		// surface). Needed for `Intl.Segmenter`, used by @soma/ui's
+		// `useGraphemes` hook (desktop-ui/src/hooks/use-graphemes.ts).
+		"lib": ["ES2020", "DOM", "DOM.Iterable", "ES2022.Intl"],
 		"module": "ESNext",
 		"skipLibCheck": true,
 

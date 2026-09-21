@@ -68,8 +68,17 @@ async fn non_bearer_authorization_scheme_is_rejected() {
 #[tokio::test]
 async fn correct_bearer_token_is_accepted() {
     let h = spawn_router().await;
+    // `practice_list_exercises` (not `search`, unlike every other test in
+    // this file): this test asserts the auth middleware *accepts* a
+    // valid token end to end, which needs a route that returns 200
+    // regardless of daemon state. `search` is daemon-backed (see
+    // `routes.rs`'s `search_returns_daemon_error_when_daemon_idle`) and
+    // this harness never starts one, so it would 500 here for a reason
+    // unrelated to auth. Every 401-path test above is unaffected by this
+    // distinction — auth rejects before any handler runs — so they stay
+    // on `search`.
     let resp = reqwest::Client::new()
-        .post(format!("{}/api/v1/search", http_base(h.addr)))
+        .post(format!("{}/api/v1/practice_list_exercises", http_base(h.addr)))
         .bearer_auth(TEST_TOKEN)
         .header("Content-Type", "application/json")
         .body("{}")

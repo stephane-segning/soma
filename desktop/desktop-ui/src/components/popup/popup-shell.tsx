@@ -237,6 +237,7 @@ function PinIcon({
 			strokeWidth={2}
 			viewBox="0 0 24 24"
 		>
+			<title>Pin</title>
 			<path d="M12 17v5" />
 			<path d="M9 10.76V5h6v5.76l2.41 4.13a1 1 0 0 1-.86 1.51H7.45a1 1 0 0 1-.86-1.51L9 10.76z" />
 		</svg>

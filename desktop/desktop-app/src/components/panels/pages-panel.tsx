@@ -24,6 +24,37 @@
  * command palette / native menu / ⌘N shortcut call) and, on success,
  * navigates straight to the new page.
  *
+ * Refresh: a full re-`list()` runs on mount/space-change *and* whenever
+ * this space's `pages-changed` domain event fires — `desktop-api`'s
+ * `ensure_page` / `update_page_title` / `set_page_parents` handlers
+ * (`documents.rs`) all publish it after a successful daemon write, and
+ * it reaches this renderer over the same broadcast channel both the
+ * Tauri host (`app.emit`) and `desktop-bff` (`ws.rs`) forward — see
+ * `backend.events.onDomain`'s doc comment in `@soma/sdk`. A full re-list
+ * (rather than patching local state for just the create case, as an
+ * earlier revision of this component did via a local
+ * `soma:page-created` `window` event) keeps this panel correct for
+ * *every* kind of change, including a title derived from the editor's
+ * first heading while the page is open elsewhere (`page-view.tsx`).
+ *
+ * `TreePopover` is remounted (via `key={treeVersion}`) on every
+ * successful re-list, not just updated via its `documents` prop —
+ * verified by hand that without this, a title edit on a page that's
+ * already rendered in the tree never reaches the row: `TreePopover`
+ * rebuilds a fresh `StaticTreeDataProvider` when `documents` changes,
+ * but `react-complex-tree`'s `UncontrolledTreeEnvironment` only re-reads
+ * *structure* (added/removed ids) from a swapped provider, not the
+ * `data` payload of ids it already rendered, so an in-place title change
+ * silently never repaints until the next full remount. A brand-new page
+ * (a genuinely new id) *does* show up live, which is what made this easy
+ * to miss. `TreePopover` lives in `desktop-ui` (out of scope here), so
+ * this works around it from the caller side instead of patching the
+ * primitive — the cost is `TreePopover`'s own transient UI state (search
+ * text, tree expansion) resetting on every refresh, which is already
+ * closer to its actual behavior today: `initialViewState` is a
+ * mount-once seed (see that component's doc comment), so expansion
+ * resets on *every* mount regardless.
+ *
  * Note: `@soma/desktop-app` doesn't pull in TanStack Query (see its
  * `package.json`), so we run a plain `useEffect` + `useState` fetch
  * with a "stale request" guard against race conditions.
@@ -36,7 +67,7 @@ import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router";
 import { parseActiveSpaceId } from "../../lib/active-space";
 import { backend } from "../../lib/backend";
-import { createPage, PAGE_CREATED_EVENT, type PageCreatedDetail } from "../../lib/create-page";
+import { createPage } from "../../lib/create-page";
 import { PlusIcon } from "../icons";
 
 type LoadState = { kind: "idle" } | { kind: "loading" } | { kind: "ready"; pages: StoredPage[] } | { kind: "error" };
@@ -100,50 +131,65 @@ export function PagesPanel() {
 	const [state, setState] = useState<LoadState>({ kind: "idle" });
 	const [creating, setCreating] = useState(false);
 	const [createError, setCreateError] = useState<string | null>(null);
+	// Bumped on every successful `load()` resolution — forces `TreePopover`
+	// to remount (see the module doc comment for why a prop update alone
+	// doesn't repaint an existing row's title).
+	const [treeVersion, setTreeVersion] = useState(0);
 
 	useEffect(() => {
 		if (!spaceId) {
 			setState({ kind: "idle" });
 			return;
 		}
+		// Narrowed to `string` once, up front — `spaceId`'s declared type is
+		// `string | undefined`, and TS can't carry the guard above into the
+		// nested `load`/`onDomain` closures below (either could run later,
+		// after a re-render this effect wouldn't see).
+		const activeSpaceId = spaceId;
 		let cancelled = false;
+		// A `pages-changed` event fires at least twice in quick succession
+		// for a brand-new page whose heading is typed right away (once for
+		// `ensure_page`, again for the first `update_page_title`), so two
+		// `load()` calls can have requests in flight at once. Without this,
+		// responses resolving out of order could let an older, stale
+		// `pages.list()` result overwrite a newer one — same "stale
+		// request" hazard `SpacesRailContainer`'s `latestRequestRef` guards
+		// against, just scoped to this effect's closure instead of a ref
+		// since `load` doesn't need to outlive it.
+		let latestRequestId = 0;
+
+		function load() {
+			const requestId = ++latestRequestId;
+			backend.pages
+				.list(activeSpaceId)
+				.then((pages) => {
+					if (cancelled || requestId !== latestRequestId) return;
+					setState({ kind: "ready", pages });
+					setTreeVersion((v) => v + 1);
+				})
+				.catch(() => {
+					if (cancelled || requestId !== latestRequestId) return;
+					setState({ kind: "error" });
+				});
+		}
+
 		setState({ kind: "loading" });
-		backend.pages
-			.list(spaceId)
-			.then((pages) => {
-				if (cancelled) return;
-				setState({ kind: "ready", pages });
-			})
-			.catch(() => {
-				if (cancelled) return;
-				setState({ kind: "error" });
-			});
+		load();
+
+		// A page can be created from here, from `SpaceView`'s own
+		// affordance, the global ⌘N / menu / palette command, or retitled
+		// by `page-view.tsx` typing into the heading — all of them funnel
+		// through handlers that publish `pages-changed` for this space, so
+		// one subscription covers every affordance without each one having
+		// to know this panel exists.
+		const unsubscribe = backend.events.onDomain((event) => {
+			if (event.kind === "pages-changed" && event.spaceId === activeSpaceId) load();
+		});
+
 		return () => {
 			cancelled = true;
+			unsubscribe();
 		};
-	}, [spaceId]);
-
-	// A page can be created from here, from `SpaceView`'s own affordance,
-	// or from the global ⌘N / menu / palette command — all three funnel
-	// through the same `createPage()` helper, which dispatches this event
-	// on success. Listening for it (rather than only updating local state
-	// after *this* component's own `handleCreate` call) keeps the tree in
-	// sync regardless of which affordance the user actually clicked. See
-	// `create-page.ts`'s docstring for why this exists instead of the
-	// (currently unwired) backend `PagesChanged` domain event.
-	useEffect(() => {
-		if (!spaceId) return;
-		function onPageCreated(event: Event) {
-			const detail = (event as CustomEvent<PageCreatedDetail>).detail;
-			if (!detail || detail.spaceId !== spaceId) return;
-			setState((prev) => {
-				const pages = prev.kind === "ready" ? prev.pages : [];
-				if (pages.some((page) => page.pageId === detail.page.pageId)) return prev;
-				return { kind: "ready", pages: [...pages, detail.page] };
-			});
-		}
-		window.addEventListener(PAGE_CREATED_EVENT, onPageCreated);
-		return () => window.removeEventListener(PAGE_CREATED_EVENT, onPageCreated);
 	}, [spaceId]);
 
 	const handleCreate = useCallback(async () => {
@@ -195,6 +241,7 @@ export function PagesPanel() {
 			<div className="min-h-0 flex-1">
 				<TreePopover
 					documents={toTreeDocs(state.pages)}
+					key={treeVersion}
 					onClose={() => {
 						// The pages panel is a persistent rail slot, not a transient
 						// popover — `onClose` is a no-op. TreePopover invokes it after

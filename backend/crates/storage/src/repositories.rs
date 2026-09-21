@@ -6,6 +6,7 @@ use crate::{
     agent_config::AgentConfigRepository, blobs::BlobRepository, documents::DocumentRepository,
     invites::InviteRepository, issuer::IssuerRepository, mailbox::MailboxRepository,
     membership::MembershipRepository, pages::PageRepository, peers::PeerPublicKeyRepository,
+    search::SearchRepository,
 };
 
 /// Abstraction over repositories needed by controllers/services.
@@ -19,6 +20,7 @@ pub trait RepositoryProvider: Send + Sync {
     fn page_repo(&self) -> Arc<dyn PageRepository>;
     fn blob_repo(&self) -> Arc<dyn BlobRepository>;
     fn agent_config_repo(&self) -> Arc<dyn AgentConfigRepository>;
+    fn search_repo(&self) -> Arc<dyn SearchRepository>;
     fn pool(&self) -> Pool;
 }
 
@@ -72,6 +74,10 @@ impl RepositoryFactory {
     pub fn agent_config(&self) -> crate::agent_config::SqlAgentConfigRepository {
         crate::agent_config::SqlAgentConfigRepository::new(self.pool.clone())
     }
+
+    pub fn search(&self) -> crate::search::SqlSearchRepository {
+        crate::search::SqlSearchRepository::new(self.pool.clone())
+    }
 }
 
 impl RepositoryProvider for RepositoryFactory {
@@ -109,6 +115,10 @@ impl RepositoryProvider for RepositoryFactory {
 
     fn agent_config_repo(&self) -> Arc<dyn AgentConfigRepository> {
         Arc::new(self.agent_config())
+    }
+
+    fn search_repo(&self) -> Arc<dyn SearchRepository> {
+        Arc::new(self.search())
     }
 
     fn pool(&self) -> Pool {
@@ -154,6 +164,10 @@ where
 
     fn agent_config_repo(&self) -> Arc<dyn AgentConfigRepository> {
         (**self).agent_config_repo()
+    }
+
+    fn search_repo(&self) -> Arc<dyn SearchRepository> {
+        (**self).search_repo()
     }
 
     fn pool(&self) -> Pool {

@@ -45,10 +45,27 @@ impl DaemonRuntimeOptions {
     pub fn new(user_data_dir: impl AsRef<Path>) -> Self {
         Self {
             user_data_dir: user_data_dir.as_ref().to_path_buf(),
-            listen_addrs: vec!["/ip4/0.0.0.0/tcp/0/ws".to_string()],
+            listen_addrs: vec![default_listen_addr().to_string()],
             enable_mdns: true,
         }
     }
+}
+
+/// `soma_peer::transport::build_peer_swarm` drops websocket transport
+/// support on Android (no `/etc/resolv.conf` for libp2p's internal
+/// websocket DNS resolver — see that function's doc comment), so a `/ws`
+/// listen address there would build the peer successfully and then fail
+/// every single `listen_on` call (logged, not fatal, but the peer would
+/// never accept an inbound connection). Plain `tcp` listens fine on every
+/// target, Android included.
+#[cfg(not(target_os = "android"))]
+const fn default_listen_addr() -> &'static str {
+    "/ip4/0.0.0.0/tcp/0/ws"
+}
+
+#[cfg(target_os = "android")]
+const fn default_listen_addr() -> &'static str {
+    "/ip4/0.0.0.0/tcp/0"
 }
 
 pub struct DaemonRuntime {

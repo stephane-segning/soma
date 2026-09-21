@@ -107,6 +107,7 @@ export const TallContent: Story = {
 			<Panel onClose={() => {}} title="Long list">
 				<ul className="flex flex-col divide-y divide-base-300 text-sm">
 					{Array.from({ length: 12 }, (_, i) => (
+						// biome-ignore lint/suspicious/noArrayIndexKey: static demo data — count is fixed, order never changes, items carry no identity beyond position
 						<li className="px-3 py-2" key={i}>
 							Item {i + 1} — some details here
 						</li>

@@ -13,11 +13,19 @@
  *
  * Same chip-strip footer as TreePopover so the two surfaces feel
  * sibling, not separate.
+ *
+ * **Opening is the caller's responsibility.** This component does not
+ * bind its own open-hotkey — the app's shortcut registry
+ * (`desktop-app/src/lib/shortcuts`) is the single source of truth for
+ * ⌘K, and `CommandPaletteRoot` drives `open` from it. Binding a second,
+ * internal ⌘K listener here previously coexisted harmlessly only
+ * because nobody wired `onOpen` — passing it would have double-fired
+ * the open path. Only `Esc`-to-close is handled locally, since that's
+ * scoped to this overlay instance, not a global shortcut.
  */
 import { AnimatePresence, motion } from "motion/react";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { Search } from "react-feather";
-import { useHotkeys } from "react-hotkeys-hook";
 import { useT } from "../../i18n/use-t";
 import { cn } from "../../utils/cn";
 import { Kbd } from "../primitives/kbd";
@@ -45,9 +53,7 @@ export type CommandPaletteProps = {
 	open: boolean;
 	items: CommandPaletteItem[];
 	onClose: () => void;
-	onOpen?: () => void;
 	placeholder?: string;
-	hotkey?: string;
 	/**
 	 * Notified on every keystroke in the search input. Use this to pipe
 	 * the query into an external search service whose results you feed
@@ -68,38 +74,32 @@ export function CommandPalette({
 	open,
 	items,
 	onClose,
-	onOpen,
 	placeholder,
-	hotkey = "mod+k",
 	onQueryChange,
 }: CommandPaletteProps) {
 	const t = useT();
 	const [query, setQuery] = useState("");
 	const containerRef = useRef<HTMLDivElement | null>(null);
 
-	useHotkeys(
-		hotkey,
-		(event) => {
-			event.preventDefault();
-			if (open) {
+	// Plain `keydown` listener rather than `react-hotkeys-hook` — same
+	// choice `SelectionAIBar` already made for its own Escape dismissal.
+	// `react-hotkeys-hook`'s `enableOnFormTags: true` does not reliably
+	// re-enable "esc" once focus is inside this palette's own search
+	// `<input>` (confirmed by hand: the hotkey callback silently never
+	// fires with focus in the field, despite the option), which would
+	// leave Escape dead the instant the user starts typing — exactly the
+	// state the palette is in immediately after opening (autofocus).
+	useEffect(() => {
+		if (!open) return;
+		const onKeyDown = (event: KeyboardEvent) => {
+			if (event.key === "Escape") {
+				event.preventDefault();
 				onClose();
-			} else {
-				onOpen?.();
 			}
-		},
-		{ enabled: true, enableOnFormTags: true },
-		[open, onClose, onOpen, hotkey],
-	);
-
-	useHotkeys(
-		"esc",
-		(event) => {
-			event.preventDefault();
-			onClose();
-		},
-		{ enabled: open, enableOnFormTags: true },
-		[open, onClose],
-	);
+		};
+		window.addEventListener("keydown", onKeyDown);
+		return () => window.removeEventListener("keydown", onKeyDown);
+	}, [open, onClose]);
 
 	// Reset the filter when the palette opens so consecutive opens
 	// don't surface stale query state. `onQueryChange` is read via a
@@ -162,6 +162,7 @@ export function CommandPalette({
 	const flat = useMemo(() => grouped.flatMap((g) => g.items), [grouped]);
 
 	const [activeIndex, setActiveIndex] = useState(0);
+	// biome-ignore lint/correctness/useExhaustiveDependencies: `flat` is a deliberate re-run trigger — resets the highlighted row to the top match whenever the filtered list changes; it isn't read inside the effect body.
 	useEffect(() => {
 		setActiveIndex(0);
 	}, [flat]);
@@ -243,6 +244,7 @@ export function CommandPalette({
 									className="size-4 shrink-0 text-base-content/60"
 								/>
 								<input
+									// biome-ignore lint/a11y/noAutofocus: the palette only exists once summoned via ⌘K — the entire interaction is "open, then type" (ADR-0005 §12), so focus must land in the search field the instant it mounts or the shortcut that opened it is pointless.
 									autoFocus
 									className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-base-content/40"
 									onChange={(event) => {

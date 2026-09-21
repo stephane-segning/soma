@@ -35,6 +35,24 @@
  * The title-formatting logic itself lives in `./window-title-format`
  * (pure, no imports) rather than inline here — see that file's doc
  * comment for why importing `./backend` matters for testability.
+ *
+ * Staying live on the open page: `resolveTitle` alone only re-runs on
+ * navigation (the effect's `[pathname, appTitle]` deps), so a title
+ * `page-view.tsx` derives from the heading *while the user stays on
+ * that page* wouldn't otherwise be picked up until the next route
+ * change. Rather than a second poll/timer, this also subscribes to the
+ * same `pages-changed` domain event `PagesPanel` reacts to
+ * (`documents_update_page_title` publishes it — see
+ * `desktop-api/src/documents.rs`) and re-resolves on a match for the
+ * active space. `pages-changed` doesn't carry a `pageId`, so the match
+ * is space-scoped, same as `PagesPanel`'s; `resolveTitle` below already
+ * no-ops back to `appTitle`/the bare space name when `pageId` isn't in
+ * the freshly re-fetched list.
+ *
+ * Because a domain event can retrigger `resolveTitle` while the initial
+ * call (or a previous event's call) is still in flight, `apply` is
+ * guarded by a "latest request wins" id below — same stale-response
+ * hazard, and same fix, as `PagesPanel`'s `load()`.
  */
 import { isTauri } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -49,6 +67,7 @@ export function useWindowTitle(appTitle: string): void {
 
 	useEffect(() => {
 		let cancelled = false;
+		let latestRequestId = 0;
 		const spaceId = parseActiveSpaceId(pathname);
 		const pageId = parseActivePageId(pathname);
 
@@ -76,8 +95,8 @@ export function useWindowTitle(appTitle: string): void {
 			return formatWindowTitle({ appTitle, pageTitle, spaceName });
 		}
 
-		void resolveTitle().then((title) => {
-			if (cancelled) return;
+		function apply(requestId: number, title: string) {
+			if (cancelled || requestId !== latestRequestId) return;
 
 			document.title = title;
 
@@ -92,10 +111,24 @@ export function useWindowTitle(appTitle: string): void {
 						);
 					});
 			}
-		});
+		}
+
+		function refresh() {
+			const requestId = ++latestRequestId;
+			void resolveTitle().then((title) => apply(requestId, title));
+		}
+
+		refresh();
+
+		const unsubscribe = spaceId
+			? backend.events.onDomain((event) => {
+					if (event.kind === "pages-changed" && event.spaceId === spaceId) refresh();
+				})
+			: undefined;
 
 		return () => {
 			cancelled = true;
+			unsubscribe?.();
 		};
 	}, [pathname, appTitle]);
 }
