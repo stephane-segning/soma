@@ -152,7 +152,7 @@ mime = "0.3.17"
 log = "0.4.29"
 
 [workspace.dependencies.libp2p]
-version = "0.56"
+version = "0.57"
 features = [
     "tcp", "quic", "websocket", "relay", "rendezvous",
     "autonat", "noise", "tls", "cbor", "mdns", "kad",

@@ -16,7 +16,6 @@
 
 use super::framing::{read_message_with_limit, write_message};
 use crate::protocol::MAX_ISSUER_OFFER_MESSAGE_BYTES;
-use async_trait::async_trait;
 use futures::prelude::*;
 use libp2p::request_response as reqres;
 use prost::Message;
@@ -32,7 +31,6 @@ pub(crate) struct IssuerCapabilityAck {}
 #[derive(Clone, Default)]
 pub(crate) struct IssuerOfferCodec;
 
-#[async_trait]
 impl reqres::Codec for IssuerOfferCodec {
     type Protocol = String;
     type Request = space::IssuerCapability;

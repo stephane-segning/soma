@@ -15,7 +15,6 @@
 
 use super::framing::{read_message_with_limit, write_message};
 use crate::protocol::MAX_BLOB_ANNOUNCE_MESSAGE_BYTES;
-use async_trait::async_trait;
 use futures::prelude::*;
 use libp2p::request_response as reqres;
 use prost::Message;
@@ -43,7 +42,6 @@ pub(crate) struct BlobAnnounceAck {}
 #[derive(Clone, Default)]
 pub(crate) struct BlobAnnounceCodec;
 
-#[async_trait]
 impl reqres::Codec for BlobAnnounceCodec {
     type Protocol = String;
     type Request = BlobAnnounce;

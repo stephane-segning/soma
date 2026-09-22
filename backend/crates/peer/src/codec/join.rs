@@ -1,6 +1,5 @@
 use super::framing::{read_message, read_message_with_limit, write_message};
 use crate::protocol::MAX_JOIN_DECISION_MESSAGE_BYTES;
-use async_trait::async_trait;
 use futures::prelude::*;
 use libp2p::request_response as reqres;
 use prost::Message;
@@ -16,7 +15,6 @@ pub(crate) struct JoinDecisionCodec;
 #[derive(Clone, PartialEq, Message)]
 pub(crate) struct JoinDecisionAck {}
 
-#[async_trait]
 impl reqres::Codec for JoinCodec {
     type Protocol = String;
     type Request = space::JoinRequest;
@@ -69,7 +67,6 @@ impl reqres::Codec for JoinCodec {
     }
 }
 
-#[async_trait]
 impl reqres::Codec for JoinDecisionCodec {
     type Protocol = String;
     type Request = space::JoinDecision;
