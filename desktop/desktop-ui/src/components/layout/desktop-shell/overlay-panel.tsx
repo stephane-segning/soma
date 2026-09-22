@@ -14,6 +14,13 @@
  * Positioned `absolute inset-0` against `DesktopShell`'s content row
  * (below the header, above `main`) rather than `fixed` against the
  * viewport — that way it never has to know the header's height.
+ *
+ * The `"fullscreen"` variant's header bar can also carry a `title`,
+ * next to the back button — the mobile-screen replacement for whatever
+ * card-style header `content` would otherwise draw itself (no collapse
+ * button, no second header stacked underneath this one; see
+ * `DesktopShell`'s `leftOverlayTitle`/`rightOverlayTitle`). Ignored by
+ * `"drawer"`, which keeps `content`'s own header exactly as before.
  */
 import { AnimatePresence, motion } from "motion/react";
 import type { ReactNode } from "react";
@@ -32,6 +39,8 @@ type ShellOverlayPanelProps = {
 	width: number;
 	/** Scrim tap (drawer) or the panel's own back affordance (fullscreen). Optional — degrades to "close from inside the panel only" when omitted. */
 	onDismiss?: () => void;
+	/** `"fullscreen"`-only header title — see the module doc comment. Ignored for `"drawer"`. */
+	title?: ReactNode;
 };
 
 const SLIDE_FROM: Record<"left" | "right", string> = {
@@ -46,6 +55,7 @@ export function ShellOverlayPanel({
 	variant,
 	width,
 	onDismiss,
+	title,
 }: ShellOverlayPanelProps) {
 	const t = useT();
 	const shouldShow = open && Boolean(content);
@@ -86,22 +96,29 @@ export function ShellOverlayPanel({
 						}
 						transition={{ duration: 0.2, ease: "easeOut" }}
 					>
-						{variant === "fullscreen" && onDismiss ? (
+						{variant === "fullscreen" && (onDismiss || title) ? (
 							<div
-								className="flex h-9 shrink-0 items-center border-base-300 border-b px-1"
+								className="flex h-9 shrink-0 items-center gap-1 border-base-300 border-b px-1"
 								style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
 							>
-								<button
-									aria-label={t({
-										id: "shell.overlay.back",
-										defaultMessage: "Back",
-									})}
-									className="shell-tap-target grid size-7 place-items-center rounded-md text-base-content/60 hover:bg-base-200 hover:text-base-content"
-									onClick={onDismiss}
-									type="button"
-								>
-									<BackIcon aria-hidden className="size-4" />
-								</button>
+								{onDismiss ? (
+									<button
+										aria-label={t({
+											id: "shell.overlay.back",
+											defaultMessage: "Back",
+										})}
+										className="shell-tap-target grid size-7 shrink-0 place-items-center rounded-md text-base-content/60 hover:bg-base-200 hover:text-base-content"
+										onClick={onDismiss}
+										type="button"
+									>
+										<BackIcon aria-hidden className="size-4" />
+									</button>
+								) : null}
+								{title ? (
+									<h2 className="min-w-0 flex-1 truncate px-1 font-medium text-base-content/90 text-sm">
+										{title}
+									</h2>
+								) : null}
 							</div>
 						) : null}
 						<div className="scrollbar-none min-h-0 flex-1 overflow-auto">

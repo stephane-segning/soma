@@ -14,6 +14,10 @@
  * controllable via the optional `expandedIds` + `onCollapse` props;
  * when omitted, state lives internally so the rail is drop-in usable
  * from `AppLayout` (the composition step wires it in).
+ *
+ * `bare` (verySmall-only): skips `PanelContainer`'s card chrome
+ * entirely and renders just the single active panel's raw content —
+ * see the prop's own doc comment.
  */
 import { PanelContainer, type PanelDescriptor } from "@soma/ui/components/panels/panel-container";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
@@ -42,9 +46,23 @@ export type LeftInnerRailProps = {
 	/** Fired when a panel's header `−` button is clicked. */
 	onCollapse?: (id: string) => void;
 	className?: string;
+	/**
+	 * Render the single active panel's bare content only — no
+	 * `PanelContainer` card chrome (no floating-card border/shadow, no
+	 * per-panel header, no collapse button). For the "verySmall"
+	 * fullscreen takeover, where `DesktopShell`'s `ShellOverlayPanel`
+	 * already supplies a back-button + title header of its own — a
+	 * second, card-style header inside it would be redundant chrome
+	 * stacked on chrome (see `DesktopShell`'s `leftOverlayTitle`).
+	 * Picks the first expanded id in panel-inventory order (Pages, then
+	 * Nav) if more than one happens to be expanded; the mobile tab bar
+	 * that drives `expandedIds` at this tier only ever asks for one at
+	 * a time.
+	 */
+	bare?: boolean;
 };
 
-export function LeftInnerRail({ expandedIds, onCollapse, className }: LeftInnerRailProps) {
+export function LeftInnerRail({ expandedIds, onCollapse, className, bare }: LeftInnerRailProps) {
 	const { t } = useTranslation();
 
 	const [internal, setInternal] = useState<Set<string>>(() => new Set(DEFAULT_EXPANDED));
@@ -94,6 +112,13 @@ export function LeftInnerRail({ expandedIds, onCollapse, className }: LeftInnerR
 		],
 		[t],
 	);
+
+	if (bare) {
+		const active = panels.find((panel) => effectiveExpanded.has(panel.id));
+		if (!active) return null;
+		const bareClassName = className ? `flex h-full min-h-0 flex-col ${className}` : "flex h-full min-h-0 flex-col";
+		return <div className={bareClassName}>{active.content}</div>;
+	}
 
 	return (
 		<PanelContainer className={className} expandedIds={effectiveExpanded} onCollapse={handleCollapse} panels={panels} />

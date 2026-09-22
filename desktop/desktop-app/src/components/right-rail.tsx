@@ -11,6 +11,10 @@
  * collapsed panels) lives in the main column's top-right slot per the
  * `PanelContainer` contract; that wiring is the final composition
  * step's job, not this component's.
+ *
+ * `bare` (verySmall-only): skips `PanelContainer`'s card chrome
+ * entirely and renders just the single active panel's raw content —
+ * see the prop's own doc comment.
  */
 
 import { PanelContainer, type PanelDescriptor } from "@soma/ui/components/panels/panel-container";
@@ -84,9 +88,11 @@ export type RightRailProps = {
 	expandedIds?: ReadonlySet<string> | ReadonlyArray<string>;
 	/** Fired when a panel's header `−` button is clicked. */
 	onCollapse?: (id: string) => void;
+	/** Same `bare` contract as `LeftInnerRail` — see that prop's doc comment. */
+	bare?: boolean;
 };
 
-export function RightRail({ expandedIds, onCollapse }: RightRailProps = {}): React.JSX.Element {
+export function RightRail({ expandedIds, onCollapse, bare }: RightRailProps = {}): React.JSX.Element | null {
 	const { t } = useTranslation();
 	const [internal, setInternal] = useState<Set<string>>(() => new Set(DEFAULT_EXPANDED));
 	const controlled = expandedIds !== undefined;
@@ -128,6 +134,12 @@ export function RightRail({ expandedIds, onCollapse }: RightRailProps = {}): Rea
 		},
 		[controlled, onCollapse],
 	);
+
+	if (bare) {
+		const active = panels.find((panel) => expanded.has(panel.id));
+		if (!active) return null;
+		return <div className="flex h-full min-h-0 flex-col">{active.content}</div>;
+	}
 
 	return <PanelContainer expandedIds={expanded} onClose={handleCollapse} onCollapse={handleCollapse} panels={panels} />;
 }

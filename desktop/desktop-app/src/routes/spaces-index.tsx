@@ -2,7 +2,10 @@
  * SpacesIndex — `/spaces`, the "no space selected" landing.
  *
  * The spaces themselves live in the outer rail, so this screen's only
- * job is to orient: pick a space from the rail, create one, or join one
+ * job is to orient: choose a space, create one, or join one. The copy
+ * deliberately names no chrome: at verySmall there is no rail to point
+ * at, only the header space switcher, so wording that mentions one is
+ * wrong on exactly the screen where orientation matters most.
  * via an invite link. It has nothing else to show, so a centered `Empty`
  * is the right call here (per AGENTS §UI — centered placards are fine
  * when the screen has nothing else to do).
@@ -45,7 +48,7 @@ export function SpacesIndex() {
 				headline={t("pages.spaces_index.headline", "No space selected")}
 				subtext={
 					<span className="flex flex-col items-center gap-1">
-						<span>{t("pages.spaces_index.empty", "Pick a space from the rail, or create one to get started.")}</span>
+						<span>{t("pages.spaces_index.empty", "Choose a space to get started, or create a new one.")}</span>
 						{notice ? <span className="text-error">{notice}</span> : null}
 					</span>
 				}
