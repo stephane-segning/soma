@@ -1752,7 +1752,7 @@ version = "0.1.2"
 dependencies = [
  "anyhow",
  "async-trait",
- "base64 0.22.1",
+ "base64 0.23.1",
  "cuid2",
  "desktop-core",
  "reqwest 0.12.28",
@@ -7451,7 +7451,7 @@ dependencies = [
 name = "soma-common"
 version = "0.1.2"
 dependencies = [
- "base64 0.22.1",
+ "base64 0.23.1",
  "ciborium",
  "libp2p",
  "prost-types",
@@ -7512,7 +7512,7 @@ name = "soma-membership"
 version = "0.1.2"
 dependencies = [
  "async-trait",
- "base64 0.22.1",
+ "base64 0.23.1",
  "libp2p",
  "prost",
  "prost-types",
@@ -7665,7 +7665,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "axum",
- "base64 0.22.1",
+ "base64 0.23.1",
  "clap",
  "futures",
  "libp2p",
