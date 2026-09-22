@@ -201,7 +201,7 @@ jobs:
       # versionless convention the docs landing page links to and uploads them
       # to the release created by the `prepare` job.
       - name: Build Tauri bundle
-        uses: tauri-apps/tauri-action@v0
+        uses: tauri-apps/tauri-action@v1
         env:
           # macOS Developer ID signing + App Store Connect API notarization.
           # These env vars are read by Tauri's bundler; they are unset (and
