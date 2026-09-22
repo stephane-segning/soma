@@ -28,10 +28,12 @@
 //! `20260923000000_search.sql`) holds a flattened, user-visible-only
 //! rendering, extracted at write time by
 //! [`crate::documents`]'s internal `extract_plain_text`, every time
-//! `SqlDocumentRepository::upsert_document` runs (every document write
-//! path — `documents.upsert`, `upsertDraft`, `queueDaemonSync`,
-//! `syncPublishedDocument` — funnels through that one method, so this is
-//! a single choke point, not four).
+//! `SqlDocumentRepository::upsert_document` runs. Every document write
+//! path funnels through that one method, so this is a single choke
+//! point rather than one extraction site per caller: the local commands
+//! (`documents.upsert`, `upsertDraft`, `publish`) and, since
+//! `/soma/doc-sync/1`, documents arriving from a peer — which is why a
+//! replicated document is searchable without any extra step.
 //!
 //! This trades a small amount of write-time CPU (and duplicated
 //! storage) for query-time correctness and speed: the alternative,

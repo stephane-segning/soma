@@ -33,6 +33,7 @@ pub use handle::{DaemonHandle, DaemonStatus, blobs::MAX_BLOB_BYTES, types as han
 pub use state::DaemonState;
 
 use dispatch::build_dispatcher;
+use handlers::spawn_document_blob_sync;
 use runtime::{DaemonPeerBootstrap, ensure_default_space, spawn_mailbox_sweeper};
 use services::space::{DefaultSpaceManager, SpaceManager};
 
@@ -212,7 +213,12 @@ pub async fn run(config: RuntimeConfig) -> SomaResult<RuntimeHandle> {
 
     let dispatcher = build_dispatcher(state.clone()).await;
     spawn_mailbox_sweeper(state.clone());
-    info!("soma_daemon::run: dispatcher + mailbox sweeper ready, returning RuntimeHandle");
+    // `DocumentReplicated` is a daemon event (published on `state.events`),
+    // not a `PeerEvent`, so `build_dispatcher`'s `PeerEventDispatcher` can't
+    // route it — see `handlers::document_blob_sync`'s module doc for why
+    // this is its own broadcast-subscribed background task instead.
+    spawn_document_blob_sync(state.clone());
+    info!("soma_daemon::run: dispatcher + mailbox sweeper + document blob sync ready, returning RuntimeHandle");
 
     let state_for_supervisor = state.clone();
     let supervisor: JoinHandle<SomaResult<()>> = tokio::spawn(async move {
