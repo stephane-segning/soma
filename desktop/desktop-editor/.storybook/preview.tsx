@@ -1,6 +1,6 @@
-import type { Decorator, Preview } from "@storybook/react";
 import { DensityProvider } from "@soma/ui/components/primitives/density-provider";
 import { SomaIntlProvider } from "@soma/ui/i18n";
+import type { Decorator, Preview } from "@storybook/react";
 import { MotionConfig } from "motion/react";
 // biome-ignore lint/correctness/noUnusedImports: required by Storybook preview's classic JSX runtime
 import React, { useEffect } from "react";
@@ -9,10 +9,7 @@ import "@soma/ui/styles.css";
 import "./storybook.css";
 
 const withMemoryRouter: Decorator = (Story, context) => {
-	const initialEntries =
-		context.parameters?.router?.initialEntries ??
-		context.parameters?.router?.path ??
-		["/"];
+	const initialEntries = context.parameters?.router?.initialEntries ?? context.parameters?.router?.path ?? ["/"];
 
 	const router = createMemoryRouter(
 		[
@@ -66,9 +63,7 @@ const preview: Preview = {
 		(Story, context) => (
 			<SomaIntlProvider>
 				<DensityProvider
-					density={
-						(context.parameters?.density as "dense" | "cozy" | "oversized" | undefined) ?? "dense"
-					}
+					density={(context.parameters?.density as "dense" | "cozy" | "oversized" | undefined) ?? "dense"}
 				>
 					<Story />
 				</DensityProvider>

@@ -3,14 +3,9 @@ import type { Editor } from "@tiptap/react";
 import { beforeEach, describe, expect, it, type Mock, vi } from "vitest";
 
 import { createDefaultAIRegistry } from "./ai-registry";
-import type {
-	QuickActionRequest,
-	QuickActionResponse,
-} from "./contextual-menu/types";
+import type { QuickActionRequest, QuickActionResponse } from "./contextual-menu/types";
 
-type QuickActionMock = Mock<
-	(input: QuickActionRequest) => Promise<QuickActionResponse>
->;
+type QuickActionMock = Mock<(input: QuickActionRequest) => Promise<QuickActionResponse>>;
 
 // The factory only touches `editor.chain().focus().insertContentAt(...).run()`,
 // so a hand-rolled mock that records the call chain is enough — no jsdom or
@@ -45,15 +40,7 @@ function makeEditor(): { editor: Editor; stub: ChainStub } {
 // `codeBlock`, …) before resolving, so the registry contract — and the
 // stories in `@soma/ui` — both live in kebab-case. See
 // `src/extensions/node-ai-registry.ts:230`.
-const TEXT_BEARING = [
-	"paragraph",
-	"heading",
-	"blockquote",
-	"bullet-list",
-	"ordered-list",
-	"task-list",
-	"code-block",
-];
+const TEXT_BEARING = ["paragraph", "heading", "blockquote", "bullet-list", "ordered-list", "task-list", "code-block"];
 
 describe("createDefaultAIRegistry", () => {
 	let editor: Editor;
@@ -64,9 +51,7 @@ describe("createDefaultAIRegistry", () => {
 		const made = makeEditor();
 		editor = made.editor;
 		stub = made.stub;
-		onQuickAction = vi.fn<
-			(input: QuickActionRequest) => Promise<QuickActionResponse>
-		>();
+		onQuickAction = vi.fn<(input: QuickActionRequest) => Promise<QuickActionResponse>>();
 	});
 
 	it("returns an empty registry when no onQuickAction handler is supplied", () => {
@@ -80,9 +65,7 @@ describe("createDefaultAIRegistry", () => {
 		const registry = createDefaultAIRegistry({ editor, onQuickAction });
 
 		for (const nodeType of TEXT_BEARING) {
-			const actions = registry
-				.resolve(nodeType, "selection")
-				.map((a) => a.id);
+			const actions = registry.resolve(nodeType, "selection").map((a) => a.id);
 			expect(actions).toEqual(["explain", "expand", "research"]);
 		}
 	});
@@ -124,9 +107,7 @@ describe("createDefaultAIRegistry", () => {
 
 	it("orders actions by their locked category (rewrite → transform → custom)", () => {
 		const registry = createDefaultAIRegistry({ editor, onQuickAction });
-		const cats = registry
-			.resolve("paragraph", "selection")
-			.map((a) => a.category);
+		const cats = registry.resolve("paragraph", "selection").map((a) => a.category);
 		expect(cats).toEqual(["rewrite", "transform", "custom"]);
 	});
 
@@ -138,13 +119,12 @@ describe("createDefaultAIRegistry", () => {
 			} satisfies QuickActionResponse);
 
 			const registry = createDefaultAIRegistry({ editor, onQuickAction });
-			const explain = registry
-				.resolve("paragraph", "selection")
-				.find((a) => a.id === "explain");
+			const explain = registry.resolve("paragraph", "selection").find((a) => a.id === "explain");
 			expect(explain).toBeDefined();
 
 			await explain?.run({
-				nodeType: "paragraph", surface: "selection",
+				nodeType: "paragraph",
+				surface: "selection",
 				text: "raw text",
 				metadata: { from: 4, to: 12 },
 			});
@@ -162,22 +142,18 @@ describe("createDefaultAIRegistry", () => {
 			});
 
 			const registry = createDefaultAIRegistry({ editor, onQuickAction });
-			const explain = registry
-				.resolve("paragraph", "selection")
-				.find((a) => a.id === "explain");
+			const explain = registry.resolve("paragraph", "selection").find((a) => a.id === "explain");
 
 			await explain?.run({
-				nodeType: "paragraph", surface: "selection",
+				nodeType: "paragraph",
+				surface: "selection",
 				text: "raw",
 				metadata: { from: 4, to: 12 },
 			});
 
 			expect(stub.chain).toHaveBeenCalledTimes(1);
 			expect(stub.focus).toHaveBeenCalledTimes(1);
-			expect(stub.insertContentAt).toHaveBeenCalledWith(
-				{ from: 4, to: 12 },
-				"trimmed body",
-			);
+			expect(stub.insertContentAt).toHaveBeenCalledWith({ from: 4, to: 12 }, "trimmed body");
 			expect(stub.run).toHaveBeenCalledTimes(1);
 		});
 
@@ -189,12 +165,11 @@ describe("createDefaultAIRegistry", () => {
 			});
 
 			const registry = createDefaultAIRegistry({ editor, onQuickAction });
-			const explain = registry
-				.resolve("paragraph", "selection")
-				.find((a) => a.id === "explain");
+			const explain = registry.resolve("paragraph", "selection").find((a) => a.id === "explain");
 
 			await explain?.run({
-				nodeType: "paragraph", surface: "selection",
+				nodeType: "paragraph",
+				surface: "selection",
 				text: "raw",
 				metadata: { from: 4, to: 12 },
 			});
@@ -206,12 +181,11 @@ describe("createDefaultAIRegistry", () => {
 			onQuickAction.mockResolvedValue({ status: "done", content: "   " });
 
 			const registry = createDefaultAIRegistry({ editor, onQuickAction });
-			const explain = registry
-				.resolve("paragraph", "selection")
-				.find((a) => a.id === "explain");
+			const explain = registry.resolve("paragraph", "selection").find((a) => a.id === "explain");
 
 			await explain?.run({
-				nodeType: "paragraph", surface: "selection",
+				nodeType: "paragraph",
+				surface: "selection",
 				text: "raw",
 				metadata: { from: 4, to: 12 },
 			});
@@ -223,9 +197,7 @@ describe("createDefaultAIRegistry", () => {
 			onQuickAction.mockResolvedValue({ status: "done", content: "body" });
 
 			const registry = createDefaultAIRegistry({ editor, onQuickAction });
-			const explain = registry
-				.resolve("paragraph", "selection")
-				.find((a) => a.id === "explain");
+			const explain = registry.resolve("paragraph", "selection").find((a) => a.id === "explain");
 
 			await explain?.run({ nodeType: "paragraph", surface: "selection", text: "raw" });
 
@@ -238,12 +210,11 @@ describe("createDefaultAIRegistry", () => {
 			onQuickAction.mockResolvedValue({ status: "done", content: "more" });
 
 			const registry = createDefaultAIRegistry({ editor, onQuickAction });
-			const expand = registry
-				.resolve("paragraph", "selection")
-				.find((a) => a.id === "expand");
+			const expand = registry.resolve("paragraph", "selection").find((a) => a.id === "expand");
 
 			await expand?.run({
-				nodeType: "paragraph", surface: "selection",
+				nodeType: "paragraph",
+				surface: "selection",
 				text: "seed",
 				metadata: { from: 0, to: 4 },
 			});
@@ -260,12 +231,11 @@ describe("createDefaultAIRegistry", () => {
 			onQuickAction.mockResolvedValue({ status: "done", content: "ignored" });
 
 			const registry = createDefaultAIRegistry({ editor, onQuickAction });
-			const research = registry
-				.resolve("paragraph", "selection")
-				.find((a) => a.id === "research");
+			const research = registry.resolve("paragraph", "selection").find((a) => a.id === "research");
 
 			await research?.run({
-				nodeType: "paragraph", surface: "selection",
+				nodeType: "paragraph",
+				surface: "selection",
 				text: "look this up",
 				metadata: { from: 0, to: 12 },
 			});
@@ -281,13 +251,12 @@ describe("createDefaultAIRegistry", () => {
 			onQuickAction.mockRejectedValue(new Error("queue full"));
 
 			const registry = createDefaultAIRegistry({ editor, onQuickAction });
-			const research = registry
-				.resolve("paragraph", "selection")
-				.find((a) => a.id === "research");
+			const research = registry.resolve("paragraph", "selection").find((a) => a.id === "research");
 
 			await expect(
 				research?.run({
-					nodeType: "paragraph", surface: "selection",
+					nodeType: "paragraph",
+					surface: "selection",
 					text: "x",
 					metadata: { from: 0, to: 1 },
 				}),

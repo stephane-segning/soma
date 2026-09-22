@@ -44,19 +44,11 @@ export const WithNotifications: Story = {
 		return (
 			<div className="relative h-screen bg-base-200">
 				<div className="p-6">
-					<PolymorphButton
-						leadingIcon={<Bell size={14} />}
-						onClick={() => setOpen(true)}
-						variant="primary"
-					>
+					<PolymorphButton leadingIcon={<Bell size={14} />} onClick={() => setOpen(true)} variant="primary">
 						Open drawer
 					</PolymorphButton>
 				</div>
-				<NotificationDrawer
-					items={SAMPLE_ITEMS}
-					onClose={() => setOpen(false)}
-					open={open}
-				/>
+				<NotificationDrawer items={SAMPLE_ITEMS} onClose={() => setOpen(false)} open={open} />
 			</div>
 		);
 	},
@@ -72,11 +64,7 @@ export const Empty: Story = {
 						Open empty drawer
 					</PolymorphButton>
 				</div>
-				<NotificationDrawer
-					items={[]}
-					onClose={() => setOpen(false)}
-					open={open}
-				/>
+				<NotificationDrawer items={[]} onClose={() => setOpen(false)} open={open} />
 			</div>
 		);
 	},

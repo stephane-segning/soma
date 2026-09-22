@@ -96,11 +96,7 @@ export const Grid: Story = {
 export const NoDescription: Story = {
 	render: () => (
 		<div className="max-w-sm">
-			<LauncherCard
-				icon={<Zap size={20} />}
-				onClick={() => {}}
-				title="Quick action"
-			/>
+			<LauncherCard icon={<Zap size={20} />} onClick={() => {}} title="Quick action" />
 		</div>
 	),
 };

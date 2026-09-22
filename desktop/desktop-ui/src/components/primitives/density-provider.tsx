@@ -14,18 +14,8 @@ export type Density = "dense" | "cozy" | "oversized";
 
 const DensityContext = createContext<Density>("dense");
 
-export function DensityProvider({
-	density = "dense",
-	children,
-}: {
-	density?: Density;
-	children: ReactNode;
-}) {
-	return (
-		<DensityContext.Provider value={density}>
-			{children}
-		</DensityContext.Provider>
-	);
+export function DensityProvider({ density = "dense", children }: { density?: Density; children: ReactNode }) {
+	return <DensityContext.Provider value={density}>{children}</DensityContext.Provider>;
 }
 
 export function useDensity(): Density {

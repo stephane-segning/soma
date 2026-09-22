@@ -33,19 +33,10 @@ export type SettingsTabsProps = {
 	"aria-label"?: string;
 };
 
-export function SettingsTabs({
-	tabs,
-	activeId,
-	onChange,
-	className,
-	"aria-label": ariaLabel,
-}: SettingsTabsProps) {
+export function SettingsTabs({ tabs, activeId, onChange, className, "aria-label": ariaLabel }: SettingsTabsProps) {
 	const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
-	function handleKeyDown(
-		event: KeyboardEvent<HTMLButtonElement>,
-		index: number,
-	) {
+	function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
 		if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
 		event.preventDefault();
 		const delta = event.key === "ArrowRight" ? 1 : -1;
@@ -89,8 +80,7 @@ export function SettingsTabs({
 							active
 								? "border-primary text-base-content"
 								: "border-transparent text-base-content/60 hover:text-base-content",
-							tab.tone === "danger" &&
-								(active ? "text-error" : "text-error/70 hover:text-error"),
+							tab.tone === "danger" && (active ? "text-error" : "text-error/70 hover:text-error"),
 						)}
 						key={tab.id}
 						onClick={() => onChange(tab.id)}

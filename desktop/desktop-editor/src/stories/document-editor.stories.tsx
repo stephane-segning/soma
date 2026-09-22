@@ -1,12 +1,8 @@
 import { DocumentEditor } from "@soma/editor";
 import type { Meta, StoryObj } from "@storybook/react";
 import { PlaygroundRender } from "./document-editor-story/playground";
-import {
-	formatBubbleContent,
-	listsContent,
-	markdownShortcutsContent,
-} from "./document-editor-story/scenario-content";
 import { ScenarioRender } from "./document-editor-story/scenario";
+import { formatBubbleContent, listsContent, markdownShortcutsContent } from "./document-editor-story/scenario-content";
 
 const meta: Meta<typeof DocumentEditor> = {
 	title: "Editor/DocumentEditor",

@@ -40,9 +40,7 @@ export const LoadingCustomContent: Story = {
 				loadingContent={
 					<div className="flex flex-col items-center gap-2">
 						<span className="loading loading-spinner loading-sm" />
-						<span className="text-base-content/60 text-xs">
-							Connecting to space…
-						</span>
+						<span className="text-base-content/60 text-xs">Connecting to space…</span>
 					</div>
 				}
 			>
@@ -69,9 +67,7 @@ export const BlockedCustomContent: Story = {
 				blockedContent={
 					<div className="space-y-1 text-center">
 						<div className="font-semibold text-error">Access denied</div>
-						<div className="text-base-content/60 text-xs">
-							You do not have permission to view this space.
-						</div>
+						<div className="text-base-content/60 text-xs">You do not have permission to view this space.</div>
 					</div>
 				}
 				isBlocked

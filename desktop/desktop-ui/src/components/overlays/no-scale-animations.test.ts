@@ -51,10 +51,9 @@ describe("popovers: no scale-based hover/entry transforms", () => {
 	for (const [file, contents] of Object.entries(GUARDED)) {
 		it(`${file} contains no forbidden scale patterns`, () => {
 			for (const { name, regex } of FORBIDDEN_PATTERNS) {
-				expect(
-					regex.test(contents),
-					`${file} contains "${name}" — see no-scale-animations.test.ts for context.`,
-				).toBe(false);
+				expect(regex.test(contents), `${file} contains "${name}" — see no-scale-animations.test.ts for context.`).toBe(
+					false,
+				);
 			}
 		});
 	}

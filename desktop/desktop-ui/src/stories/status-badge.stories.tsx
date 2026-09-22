@@ -46,11 +46,7 @@ export const StatusLabels: Story = {
 				<span className="text-base-content/60 text-sm">Idle for 10m</span>
 			</div>
 			<div className="flex items-center gap-3">
-				<StatusBadge
-					icon={<CheckCircle size={10} />}
-					label="Synced"
-					tone="info"
-				/>
+				<StatusBadge icon={<CheckCircle size={10} />} label="Synced" tone="info" />
 				<span className="text-base-content/60 text-sm">All changes saved</span>
 			</div>
 		</div>

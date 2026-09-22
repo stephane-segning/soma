@@ -10,7 +10,7 @@ use libp2p::PeerId;
 use libp2p::identity::Keypair;
 use serde::Serialize;
 use soma_peer::PeerCommand;
-use soma_storage::RepositoryFactory;
+use soma_storage::{RepositoryFactory, RepositoryProvider};
 use tokio::sync::mpsc;
 
 use crate::commands::bot::{config::Mode, metrics::BotMetrics};
@@ -39,6 +39,25 @@ pub struct BotState {
     pub repos: RepositoryFactory,
     pub signer: Keypair,
     pub peer_commands: mpsc::Sender<PeerCommand>,
+}
+
+impl soma_replication::SyncContext for BotState {
+    fn repos(&self) -> Arc<dyn RepositoryProvider> {
+        // `RepositoryFactory` is the concrete storage handle everywhere
+        // else in `somad bot` — nothing else here needs the trait
+        // object, so it isn't stored as one. Wrapping it per call is a
+        // cheap clone of an already-cheap-to-clone factory, not a new
+        // connection or pool.
+        Arc::new(self.repos.clone())
+    }
+
+    fn local_peer_id(&self) -> PeerId {
+        self.peer_id
+    }
+
+    fn peer_commands(&self) -> &mpsc::Sender<PeerCommand> {
+        &self.peer_commands
+    }
 }
 
 pub async fn serve_http(

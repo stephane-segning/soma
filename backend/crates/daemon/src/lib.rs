@@ -27,11 +27,13 @@ mod handlers;
 mod runtime;
 mod services;
 mod state;
+mod sync;
 
 pub use handle::{DaemonHandle, DaemonStatus, blobs::MAX_BLOB_BYTES, types as handle_types};
 pub use state::DaemonState;
 
 use dispatch::build_dispatcher;
+use handlers::spawn_document_blob_sync;
 use runtime::{DaemonPeerBootstrap, ensure_default_space, spawn_mailbox_sweeper};
 use services::space::{DefaultSpaceManager, SpaceManager};
 
@@ -156,6 +158,11 @@ pub async fn run(config: RuntimeConfig) -> SomaResult<RuntimeHandle> {
     let repos: Arc<dyn RepositoryProvider> = Arc::new(repos);
     info!("soma_daemon::run: migrations complete");
 
+    // Created before the peer so the document-sync provider, which is
+    // constructed inside `build_config`, can publish replication events
+    // onto the same stream the renderer already subscribes to.
+    let (event_tx, _) = broadcast::channel(64);
+
     let bootstrapper = DaemonPeerBootstrap {
         identity_path: identity_path.clone(),
         listen_addrs,
@@ -165,6 +172,7 @@ pub async fn run(config: RuntimeConfig) -> SomaResult<RuntimeHandle> {
         enable_mdns,
         blob_provider: blob_provider.clone(),
         repos: repos.clone(),
+        events: event_tx.clone(),
     };
 
     info!(%enable_mdns, "soma_daemon::run: loading identity + spawning peer");
@@ -172,7 +180,6 @@ pub async fn run(config: RuntimeConfig) -> SomaResult<RuntimeHandle> {
     let peer_id = peer.peer_id;
     info!(%peer_id, ?blob_dir, "soma-daemon starting");
 
-    let (event_tx, _) = broadcast::channel(64);
     let space_manager: Arc<dyn SpaceManager> = Arc::new(DefaultSpaceManager::new(
         repos.clone(),
         net_identity.keypair().clone(),
@@ -206,7 +213,12 @@ pub async fn run(config: RuntimeConfig) -> SomaResult<RuntimeHandle> {
 
     let dispatcher = build_dispatcher(state.clone()).await;
     spawn_mailbox_sweeper(state.clone());
-    info!("soma_daemon::run: dispatcher + mailbox sweeper ready, returning RuntimeHandle");
+    // `DocumentReplicated` is a daemon event (published on `state.events`),
+    // not a `PeerEvent`, so `build_dispatcher`'s `PeerEventDispatcher` can't
+    // route it — see `handlers::document_blob_sync`'s module doc for why
+    // this is its own broadcast-subscribed background task instead.
+    spawn_document_blob_sync(state.clone());
+    info!("soma_daemon::run: dispatcher + mailbox sweeper + document blob sync ready, returning RuntimeHandle");
 
     let state_for_supervisor = state.clone();
     let supervisor: JoinHandle<SomaResult<()>> = tokio::spawn(async move {

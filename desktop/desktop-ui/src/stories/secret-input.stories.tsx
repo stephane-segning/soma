@@ -11,22 +11,11 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-function Demo({
-	initial = "",
-	placeholder,
-}: {
-	initial?: string;
-	placeholder?: string;
-}) {
+function Demo({ initial = "", placeholder }: { initial?: string; placeholder?: string }) {
 	const [value, setValue] = useState(initial);
 	return (
 		<div className="max-w-xl">
-			<SecretInput
-				label="API key"
-				onChange={setValue}
-				placeholder={placeholder}
-				value={value}
-			/>
+			<SecretInput label="API key" onChange={setValue} placeholder={placeholder} value={value} />
 		</div>
 	);
 }
@@ -41,20 +30,13 @@ export const WithTypedValue: Story = {
 
 export const UnchangedPlaceholder: Story = {
 	name: "Key already stored (blank + placeholder)",
-	render: () => (
-		<Demo placeholder="Unchanged — leave blank to keep the current key" />
-	),
+	render: () => <Demo placeholder="Unchanged — leave blank to keep the current key" />,
 };
 
 export const Disabled: Story = {
 	render: () => (
 		<div className="max-w-xl">
-			<SecretInput
-				disabled
-				label="API key"
-				onChange={() => undefined}
-				value="sk-live-abc123def456"
-			/>
+			<SecretInput disabled label="API key" onChange={() => undefined} value="sk-live-abc123def456" />
 		</div>
 	),
 };

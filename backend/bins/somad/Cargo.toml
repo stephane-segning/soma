@@ -22,6 +22,7 @@ soma-metrics = { workspace = true }
 soma-peer = { workspace = true }
 soma-proto-build = { workspace = true }
 soma-membership = { workspace = true }
+soma-replication = { workspace = true }
 soma-rendezvous = { workspace = true }
 soma-relay = { workspace = true }
 soma-bff = { workspace = true }

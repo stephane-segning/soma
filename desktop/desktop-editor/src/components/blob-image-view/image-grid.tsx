@@ -14,12 +14,16 @@ export function ImageGrid({ effectiveLayout, name, sources }: ImageGridProps) {
 		<div className={figureGridClassName}>
 			{sources.map((item, index) => (
 				<img
-					key={`${item.src}-${index}`}
-					src={item.src}
 					alt={item.alt ?? name ?? "image"}
-					loading="lazy"
 					className={`rounded-lg border border-base-300 ${imageClassName}`}
-					style={item.width && item.height && effectiveLayout !== "cover" ? { aspectRatio: `${item.width} / ${item.height}` } : undefined}
+					key={`${item.src}-${index}`}
+					loading="lazy"
+					src={item.src}
+					style={
+						item.width && item.height && effectiveLayout !== "cover"
+							? { aspectRatio: `${item.width} / ${item.height}` }
+							: undefined
+					}
 				/>
 			))}
 		</div>

@@ -31,3 +31,17 @@ impl DaemonState {
         let _ = self.events.send(event);
     }
 }
+
+impl soma_replication::SyncContext for DaemonState {
+    fn repos(&self) -> Arc<dyn RepositoryProvider> {
+        self.repos.clone()
+    }
+
+    fn local_peer_id(&self) -> PeerId {
+        self.peer_id
+    }
+
+    fn peer_commands(&self) -> &mpsc::Sender<PeerCommand> {
+        &self.peer_commands
+    }
+}

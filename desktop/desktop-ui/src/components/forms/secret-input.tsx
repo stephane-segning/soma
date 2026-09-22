@@ -34,20 +34,11 @@ export type SecretInputProps = {
 	label?: ReactNode;
 };
 
-export function SecretInput({
-	value,
-	onChange,
-	onBlur,
-	disabled,
-	placeholder,
-	className,
-	label,
-}: SecretInputProps) {
+export function SecretInput({ value, onChange, onBlur, disabled, placeholder, className, label }: SecretInputProps) {
 	const t = useT();
 	const [revealed, setRevealed] = useState(false);
 	const inputId = useId();
-	const handleChange = (event: ChangeEvent<HTMLInputElement>) =>
-		onChange(event.target.value);
+	const handleChange = (event: ChangeEvent<HTMLInputElement>) => onChange(event.target.value);
 
 	return (
 		<div className={cn("flex flex-col gap-2", className)}>
@@ -81,11 +72,7 @@ export function SecretInput({
 					onClick={() => setRevealed((prev) => !prev)}
 					type="button"
 				>
-					{revealed ? (
-						<EyeOff aria-hidden className="size-3.5" />
-					) : (
-						<Eye aria-hidden className="size-3.5" />
-					)}
+					{revealed ? <EyeOff aria-hidden className="size-3.5" /> : <Eye aria-hidden className="size-3.5" />}
 				</button>
 			</div>
 		</div>

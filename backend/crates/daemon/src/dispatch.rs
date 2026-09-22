@@ -5,7 +5,7 @@ use soma_peer::events::{PeerEventDispatcher, PeerEventHandler};
 
 use crate::state::DaemonState;
 use crate::handlers::{
-    BlobReconcileHandler, IdentifyStoreHandler, IssuerEventsHandler,
+    BlobReconcileHandler, DocumentSyncHandler, IdentifyStoreHandler, IssuerEventsHandler,
     JoinDecisionPersistenceHandler, JoinEventsHandler, ListenAddrHandler, LoggingHandler,
     MailboxOutboxHandler,
 };
@@ -24,6 +24,7 @@ pub async fn build_dispatcher(state: Arc<DaemonState>) -> PeerEventDispatcher<Da
         Arc::new(MailboxOutboxHandler),
         Arc::new(BlobReconcileHandler),
         Arc::new(BlobResolverBridge::new(state.blob_resolver.clone())),
+        Arc::new(DocumentSyncHandler::<DaemonState>::new()),
     ];
 
     let mut worker_tasks = Vec::new();

@@ -1,11 +1,18 @@
-import { type ReactNode, useMemo, useRef } from "react";
+import { type ReactNode, useEffect, useMemo, useRef } from "react";
 import { cn } from "../../utils/cn";
 import { ShellOverlayPanel } from "./desktop-shell/overlay-panel";
 import { ShellPanel } from "./desktop-shell/panel";
 import { useDesktopShellState } from "./desktop-shell/state";
 import { useNarrowOverlayVisibility } from "./desktop-shell/use-narrow-overlay-visibility";
-import { useShellTier } from "./desktop-shell/use-shell-tier";
+import { type ShellTier, useShellTier } from "./desktop-shell/use-shell-tier";
 import { useViewportRect } from "./desktop-shell/use-viewport-rect";
+
+/** Re-exported so hosts that need to mirror the shell's own tier (via
+ *  `onTierChange` below) can type their local state against the same
+ *  union without reaching into the `desktop-shell/` subfolder — that
+ *  inner path isn't part of `@soma/ui`'s subpath export map (only
+ *  whole `.tsx` modules under `components/*` are). */
+export type { ShellTier } from "./desktop-shell/use-shell-tier";
 
 export type DesktopShellProps = {
 	leftColumn?: ReactNode;
@@ -21,8 +28,15 @@ export type DesktopShellProps = {
 	 * collapse to width 0 (via `leftColumn={null}`) while the icon rail
 	 * stays put — instead of leaving a dead, resizable empty column.
 	 *
-	 * Stays docked at every width tier, including "verySmall" — it's the
-	 * one piece of chrome ADR-0005 §2 never asks to disappear.
+	 * Docked at "comfortable" and "tight", same as ADR-0005 §2 specs it.
+	 * **Deliberately hidden at "verySmall"** — a real-phone deviation
+	 * from the ADR text (which calls this "the one piece of chrome §2
+	 * never asks to disappear"): a permanently-docked 52px icon column
+	 * of two-letter monograms eats ~14% of a 375px screen for chrome
+	 * that carries no label. `mobileNav` (a bottom tab bar) plus a
+	 * space-switcher the host renders in its own `header` replace the
+	 * rail's two jobs — panel navigation and space switching — at this
+	 * tier only. "comfortable"/"tight" are unaffected.
 	 */
 	leftGutter?: ReactNode;
 	children?: ReactNode;
@@ -35,6 +49,19 @@ export type DesktopShellProps = {
 		hasRight: boolean;
 	}) => ReactNode;
 	footer?: ReactNode;
+	/**
+	 * Bottom navigation bar shown **only** at the "verySmall" tier —
+	 * see `leftGutter`'s doc comment for why that tier drops the spaces
+	 * rail and needs a replacement nav surface. Renders full-width,
+	 * below the content row and inside the shell's own
+	 * safe-area-bottom padding (the root element already pads for
+	 * `env(safe-area-inset-bottom)` — see the inline `style` below and
+	 * `useViewportRect`'s doc comment for the established contract; a
+	 * `mobileNav` node must NOT add that inset again). Absent — not
+	 * just visually hidden — at "comfortable"/"tight", which keep
+	 * today's `mainTopLeft`/`mainTopRight` corner chips unchanged.
+	 */
+	mobileNav?: ReactNode;
 	/**
 	 * Free-form overlay layer above the entire shell. Useful for global
 	 * modals, drag previews, etc.
@@ -101,6 +128,27 @@ export type DesktopShellProps = {
 	 */
 	leftSummonKey?: string | number;
 	rightSummonKey?: string | number;
+	/**
+	 * Title shown in the "verySmall" fullscreen overlay's own header
+	 * bar, next to its back button (see `ShellOverlayPanel`) — the
+	 * mobile-screen replacement for a docked panel's own card header
+	 * (no separate collapse/close chrome at this tier, just the one
+	 * back+title bar). Ignored at "comfortable"/"tight" and by the
+	 * "drawer" overlay variant, so it's safe to pass unconditionally
+	 * regardless of tier.
+	 */
+	leftOverlayTitle?: ReactNode;
+	rightOverlayTitle?: ReactNode;
+	/**
+	 * Fired whenever the shell's own computed `ShellTier` changes,
+	 * including once on mount. Lets the host mirror the tier into its
+	 * own state for tier-dependent composition decisions that can't
+	 * live inside a `DesktopShell` slot — e.g. swapping
+	 * `leftColumn`/`rightColumn` between docked card content and a
+	 * bare "verySmall" mobile screen, or swapping `header` content
+	 * between a title and a space switcher.
+	 */
+	onTierChange?: (tier: ShellTier) => void;
 	storageKey?: string;
 };
 
@@ -119,16 +167,21 @@ export function DesktopShell(props: DesktopShellProps) {
 	// viewport's rect rather than assuming it stays at the origin.
 	const viewportRect = useViewportRect();
 
+	// Mirrors the shell's own tier out to the host — see `onTierChange`'s
+	// doc comment for why this exists instead of making the host
+	// recompute the same measurement independently (that would risk
+	// disagreeing with this ref-based measurement whenever the shell
+	// doesn't fill the full window — see `useShellTier`'s doc comment).
+	useEffect(() => {
+		props.onTierChange?.(tier);
+	}, [tier, props.onTierChange, props]);
+
 	const hasLeftContent = Boolean(props.leftColumn);
 	const hasRightContent = Boolean(props.rightColumn);
 	// Only meaningful (and only evaluated as such) once `tier` isn't
 	// "comfortable" — see the hook's own docs for why this can't just be
 	// `state.leftOpen/rightOpen`.
-	const leftOverlayVisible = useNarrowOverlayVisibility(
-		tier,
-		hasLeftContent && state.leftOpen,
-		props.leftSummonKey,
-	);
+	const leftOverlayVisible = useNarrowOverlayVisibility(tier, hasLeftContent && state.leftOpen, props.leftSummonKey);
 	const rightOverlayVisible = useNarrowOverlayVisibility(
 		tier,
 		hasRightContent && state.rightOpen,
@@ -159,26 +212,27 @@ export function DesktopShell(props: DesktopShellProps) {
 	// before; "tight" renders a summoned rail as a partial-width drawer
 	// over a scrim; "verySmall" renders it as a fullscreen takeover, and
 	// nothing is summoned by default so the editor stays the priority
-	// surface. The `leftGutter` icon strip is unaffected at every tier.
+	// surface. The `leftGutter` icon strip is docked at "comfortable" and
+	// "tight" same as the ADR specs; "verySmall" is the one deliberate
+	// deviation — see that prop's doc comment.
 	const dockRails = tier === "comfortable";
-	// Separate from `dockRails`: whether `mainTopLeft`/`mainTopRight` float
-	// as an absolute corner overlay (true at "comfortable" *and* "tight")
-	// or reserve their own row (only "verySmall"). The reported overlap
-	// (chips covering `/join`'s body copy) was observed at 402px — a
-	// phone-width "verySmall" viewport — not at "tight" (~960-1280px,
-	// e.g. a laptop in split view), where `main` still has enough width
-	// for routed content's own padding to clear the corner chips. Scoping
-	// this tighter than `!dockRails` keeps "tight" pixel-identical to the
-	// already-verified 1100px Storybook baseline instead of changing a
-	// tier nobody reported a problem at.
+	// Whether `mainTopLeft`/`mainTopRight` float as an absolute corner
+	// overlay over `main`. True at "comfortable" *and* "tight" — pixel-
+	// identical to before this change. At "verySmall" they render
+	// nowhere at all: a phone-width column has no reliable top padding
+	// of its own to clear the chips (observed on iPhone 17 Pro, 402px —
+	// the chip bar covered "Paste an invite link…" on `/join`), and
+	// four unlabelled icon chips are exactly the "no room for a label"
+	// problem `mobileNav` (a bottom tab bar with text labels) replaces
+	// at that tier — see `mobileNav`'s doc comment. A previous revision
+	// rendered them as a reserved top row at "verySmall" instead of
+	// floating them; that row is gone now that `mobileNav` covers the
+	// same job with room for labels.
 	const chipsFloatInCorner = tier !== "verySmall";
 
 	return (
 		<div
-			className={cn(
-				"overflow-hidden bg-base-100 text-base-content",
-				props.className,
-			)}
+			className={cn("overflow-hidden bg-base-100 text-base-content", props.className)}
 			ref={shellRef}
 			style={{
 				// `position: fixed` + a `visualViewport`-tracked rect, not
@@ -201,36 +255,19 @@ export function DesktopShell(props: DesktopShellProps) {
 				paddingRight: "env(safe-area-inset-right, 0px)",
 			}}
 		>
-			{props.overlays ? (
-				<div className="pointer-events-none absolute inset-0 z-20">
-					{props.overlays}
-				</div>
-			) : null}
-			<div
-				className={cn(
-					"relative z-10 flex h-full w-full flex-col",
-					props.bodyClassName,
-				)}
-			>
+			{props.overlays ? <div className="pointer-events-none absolute inset-0 z-20">{props.overlays}</div> : null}
+			<div className={cn("relative z-10 flex h-full w-full flex-col", props.bodyClassName)}>
 				{headerNode ? (
-					<div
-						className={cn(
-							"flex flex-col border-base-300 border-b bg-base-100",
-							props.headerClassName,
-						)}
-					>
+					<div className={cn("flex flex-col border-base-300 border-b bg-base-100", props.headerClassName)}>
 						{headerNode}
 					</div>
 				) : null}
-				<div
-					className={cn(
-						"relative flex min-h-0 flex-1 items-start overflow-hidden",
-						props.contentClassName,
-					)}
-				>
-					{props.leftGutter ? (
-						// Always-on icon rail. `shrink-0` + intrinsic width so it
-						// never collapses with the resizable inner rail beside it.
+				<div className={cn("relative flex min-h-0 flex-1 items-start overflow-hidden", props.contentClassName)}>
+					{props.leftGutter && tier !== "verySmall" ? (
+						// Always-on icon rail, docked at "comfortable"/"tight".
+						// `shrink-0` + intrinsic width so it never collapses with
+						// the resizable inner rail beside it. Hidden at
+						// "verySmall" — see the `leftGutter` prop's doc comment.
 						<div className="flex h-full shrink-0">{props.leftGutter}</div>
 					) : null}
 					{dockRails ? (
@@ -262,27 +299,16 @@ export function DesktopShell(props: DesktopShellProps) {
 					    owns the `mainClassName` so callers can theme the
 					    surface as before.
 
-					    At "verySmall" only, floating no longer works: a
-					    phone-width column has no reliable top padding of its
-					    own to clear the chips, and a screen whose content is
-					    vertically centered (e.g. `SpacesIndex`'s `Empty`) ends
-					    up with the chips sitting on top of real text (observed
-					    on iPhone 17 Pro, 402px — the chip bar covered "Paste an
-					    invite link…" on `/join`). "tight" (~960-1280px, e.g. a
+					    At "verySmall", `mainTopLeft`/`mainTopRight` render
+					    nowhere — see `chipsFloatInCorner`'s doc comment above
+					    for why (both the original corner-overlap bug and the
+					    `mobileNav` replacement). "tight" (~960-1280px, e.g. a
 					    laptop in split view) keeps the corner-float behaviour
 					    unchanged — `main` is still wide enough there for a
 					    route's own padding to clear the chips, and it's the
 					    width Storybook's manual verification pass already
 					    covers, so there's no reason to move it off the
-					    previously-verified presentation. Render the same slots
-					    as a normal-flow row instead so they reserve their own
-					    height and everything else starts below. `<main>`
-					    becomes a flex column to stack that row above the
-					    scroll container; the scroll container swaps `h-full`
-					    for `min-h-0 flex-1` so it still claims exactly the
-					    remaining height (identical render whenever the row
-					    doesn't mount, where the scroll container is the sole
-					    flex child). */}
+					    previously-verified presentation. */}
 					<main
 						className={cn(
 							// `self-stretch` overrides the row's `items-start`, which
@@ -295,18 +321,6 @@ export function DesktopShell(props: DesktopShellProps) {
 							props.mainClassName,
 						)}
 					>
-						{!chipsFloatInCorner &&
-						(props.mainTopLeft || props.mainTopRight) ? (
-							<div
-								className="flex shrink-0 items-center justify-between gap-2 px-1 pb-1"
-								style={{
-									paddingTop: "max(0.25rem, env(safe-area-inset-top, 0px))",
-								}}
-							>
-								<div>{props.mainTopLeft}</div>
-								<div>{props.mainTopRight}</div>
-							</div>
-						) : null}
 						{/* A flex column, not a plain block: routed children
 						    legitimately want to fill this scroll region
 						    (`flex-1` + `min-h-0`), and `flex-1` on a child of a
@@ -314,9 +328,7 @@ export function DesktopShell(props: DesktopShellProps) {
 						    collapses to content height and strands the shell's
 						    `bg-base-200` under the page. Costs nothing for
 						    content-sized children, which stack the same way. */}
-						<div className="flex min-h-0 w-full flex-1 flex-col overflow-auto">
-							{props.children}
-						</div>
+						<div className="flex min-h-0 w-full flex-1 flex-col overflow-auto">{props.children}</div>
 						{chipsFloatInCorner && props.mainTopLeft ? (
 							<div
 								className="pointer-events-none absolute z-10"
@@ -361,6 +373,7 @@ export function DesktopShell(props: DesktopShellProps) {
 								onDismiss={props.onLeftOverlayDismiss}
 								open={leftOverlayVisible}
 								side="left"
+								title={props.leftOverlayTitle}
 								variant={tier === "verySmall" ? "fullscreen" : "drawer"}
 								width={state.leftWidth}
 							/>
@@ -369,12 +382,22 @@ export function DesktopShell(props: DesktopShellProps) {
 								onDismiss={props.onRightOverlayDismiss}
 								open={rightOverlayVisible}
 								side="right"
+								title={props.rightOverlayTitle}
 								variant={tier === "verySmall" ? "fullscreen" : "drawer"}
 								width={state.rightWidth}
 							/>
 						</>
 					) : null}
 				</div>
+				{tier === "verySmall" && props.mobileNav ? (
+					// Sibling of the content row, inside this wrapper's own
+					// `h-full` box — which the *outer* div has already shrunk
+					// by `paddingBottom: env(safe-area-inset-bottom)` below, so
+					// this bar's bottom edge lands clear of the inset without
+					// adding that padding a second time. See `mobileNav`'s doc
+					// comment.
+					<div className="shrink-0">{props.mobileNav}</div>
+				) : null}
 				{props.footer ? <div>{props.footer}</div> : null}
 			</div>
 		</div>

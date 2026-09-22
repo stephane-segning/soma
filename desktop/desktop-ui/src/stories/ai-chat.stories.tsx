@@ -26,8 +26,7 @@ export const WithThinking: Story = {
 			{
 				id: "a1",
 				role: "assistant",
-				content:
-					"Blobs are content-addressed; bots cache CIDs and validate bytes before serving.",
+				content: "Blobs are content-addressed; bots cache CIDs and validate bytes before serving.",
 				thinking: {
 					status: "complete",
 					durationLabel: "3 seconds",
@@ -124,8 +123,7 @@ export const ToolsAndSources: Story = {
 			{
 				id: "a1",
 				role: "assistant",
-				content:
-					"The agent reported two errors related to blob validation. No retries occurred.",
+				content: "The agent reported two errors related to blob validation. No retries occurred.",
 			},
 		];
 		return (
@@ -161,8 +159,7 @@ export const StreamingThinking: Story = {
 						m.id === "a1"
 							? {
 									...m,
-									content:
-										"- Install daemon\n- Join a space\n- Sync docs and blobs",
+									content: "- Install daemon\n- Join a space\n- Sync docs and blobs",
 									thinking: {
 										status: "complete",
 										durationLabel: "4 seconds",

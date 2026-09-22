@@ -8,10 +8,10 @@ import type { Editor } from "@tiptap/react";
 import { AnimatePresence, motion } from "motion/react";
 import { forwardRef, type ReactNode, useCallback, useMemo, useRef, useState } from "react";
 import { ChevronDown, ChevronUp, Move, Plus, RefreshCw, Star, Trash2, Type } from "react-feather";
-import { applyBlockKind, BLOCK_KIND_ORDER, BLOCK_LABEL, readBlockKindFromNode, type BlockKind } from "./block-rotation";
+import { normalizeNodeName } from "../extensions/node-ai-registry";
 import { createAddMenuItems } from "./action-menu/add-menu-items";
 import { deleteBlock, moveBlock } from "./action-menu/move-block";
-import { normalizeNodeName } from "../extensions/node-ai-registry";
+import { applyBlockKind, BLOCK_KIND_ORDER, BLOCK_LABEL, type BlockKind, readBlockKindFromNode } from "./block-rotation";
 import type { NodeAITrigger } from "./contextual-menu";
 
 type ActiveNode = {
@@ -50,10 +50,13 @@ export function ActionMenu({
 	const aiButtonRef = useRef<HTMLButtonElement | null>(null);
 
 	const t = useT();
-	const insertAt = useCallback((content: Record<string, unknown>) => {
-		if (!editor || !activeNode) return;
-		editor.chain().focus().insertContentAt(activeNode.insertPos, content).run();
-	}, [activeNode, editor]);
+	const insertAt = useCallback(
+		(content: Record<string, unknown>) => {
+			if (!editor || !activeNode) return;
+			editor.chain().focus().insertContentAt(activeNode.insertPos, content).run();
+		},
+		[activeNode, editor],
+	);
 
 	/**
 	 * Handle the AI button click on the drag-handle menu.
@@ -99,9 +102,7 @@ export function ActionMenu({
 		// Anchor the bar next to the AI handle button if available,
 		// otherwise fall back to a sensible default near the editor.
 		const rect = aiButtonRef.current?.getBoundingClientRect();
-		const anchor = rect
-			? { x: rect.right + 12, y: rect.top + rect.height / 2 }
-			: { x: window.innerWidth / 2, y: 100 };
+		const anchor = rect ? { x: rect.right + 12, y: rect.top + rect.height / 2 } : { x: window.innerWidth / 2, y: 100 };
 
 		onAskAIForNode({
 			pos: activeNode.pos,
@@ -113,30 +114,42 @@ export function ActionMenu({
 		});
 	}, [editor, activeNode, onAskAIForNode]);
 
-	const addMenuItems = createAddMenuItems({ activeNode, editor, insertAt, onInsertFile, onInsertImage, onInsertPageLink });
+	const addMenuItems = createAddMenuItems({
+		activeNode,
+		editor,
+		insertAt,
+		onInsertFile,
+		onInsertImage,
+		onInsertPageLink,
+	});
 
 	// Convert-to picker — one row per block kind, mirrors the slash-menu
 	// transform commands. Clicking a row closes the picker and applies the
 	// transform via `applyBlockKind`. We compute the items only when the
 	// menu is open to avoid running the loop on every drag-handle render.
-	const convertMenuItems = activeNode && editor
-		? BLOCK_KIND_ORDER.map((kind) => ({
-				id: `convert-${kind}`,
-				label: t({ id: `block-kind.${kind}`, defaultMessage: BLOCK_LABEL[kind] }),
-				icon: kind === activeNode.blockKind ? <RefreshCw className="size-4" /> : undefined,
-				onSelect: () => {
-					// No-op when the chosen kind is already the active kind.
-					// `applyBlockKind` uses `toggle*` commands for lists / quote
-					// / code, so re-clicking the active row would strip the
-					// formatting back toward paragraph — surprising behaviour
-					// that codex flagged. Selecting the active row simply
-					// closes the menu now.
-					if (kind === activeNode.blockKind) return;
-					editor.chain().focus().setTextSelection(activeNode.pos + 1).run();
-					applyBlockKind(editor, kind);
-				},
-			}))
-		: [];
+	const convertMenuItems =
+		activeNode && editor
+			? BLOCK_KIND_ORDER.map((kind) => ({
+					id: `convert-${kind}`,
+					label: t({ id: `block-kind.${kind}`, defaultMessage: BLOCK_LABEL[kind] }),
+					icon: kind === activeNode.blockKind ? <RefreshCw className="size-4" /> : undefined,
+					onSelect: () => {
+						// No-op when the chosen kind is already the active kind.
+						// `applyBlockKind` uses `toggle*` commands for lists / quote
+						// / code, so re-clicking the active row would strip the
+						// formatting back toward paragraph — surprising behaviour
+						// that codex flagged. Selecting the active row simply
+						// closes the menu now.
+						if (kind === activeNode.blockKind) return;
+						editor
+							.chain()
+							.focus()
+							.setTextSelection(activeNode.pos + 1)
+							.run();
+						applyBlockKind(editor, kind);
+					},
+				}))
+			: [];
 
 	// Stable identity for every prop the DragHandle hands to its plugin —
 	// `@tiptap/extension-drag-handle-react` puts these in a useEffect
@@ -144,16 +157,13 @@ export function ActionMenu({
 	// re-registers the ProseMirror plugin. The re-registration reconfigures
 	// the editor's plugin list, which resets the suggestion plugin's state
 	// (so the slash menu would vanish the instant the mouse moved).
-	const handleNodeChange = useCallback(
-		({ node, pos }: { node: PMNode | null; pos: number }) => {
-			if (!node || pos < 0) {
-				setActiveNode(null);
-				return;
-			}
-			setActiveNode({ pos, insertPos: pos + node.nodeSize, blockKind: readBlockKindFromNode(node) });
-		},
-		[],
-	);
+	const handleNodeChange = useCallback(({ node, pos }: { node: PMNode | null; pos: number }) => {
+		if (!node || pos < 0) {
+			setActiveNode(null);
+			return;
+		}
+		setActiveNode({ pos, insertPos: pos + node.nodeSize, blockKind: readBlockKindFromNode(node) });
+	}, []);
 	const handleDragStart = useCallback(() => setIsDragging(true), []);
 	const handleDragEnd = useCallback(() => setIsDragging(false), []);
 	// `offset(8)` keeps a small breathing gap between the handle and the
@@ -179,8 +189,8 @@ export function ActionMenu({
 				computePositionConfig={computePositionConfig}
 				editor={editor}
 				nested={false}
-				onElementDragStart={handleDragStart}
 				onElementDragEnd={handleDragEnd}
+				onElementDragStart={handleDragStart}
 				onNodeChange={handleNodeChange}
 			>
 				<AnimatePresence initial={false}>
@@ -188,7 +198,7 @@ export function ActionMenu({
 						<motion.div
 							animate={{ opacity: 1, x: 0 }}
 							className={cn(
-								"glass-panel shadow-elevated flex flex-col items-center gap-0.5 p-1",
+								"glass-panel flex flex-col items-center gap-0.5 p-1 shadow-elevated",
 								isDragging && "ring-2 ring-info/60",
 							)}
 							exit={{ opacity: 0, x: -6 }}
@@ -266,7 +276,12 @@ export function ActionMenu({
 					) : null}
 				</AnimatePresence>
 			</DragHandle>
-			<ContextMenu open={addMenuOpen} position={addMenuPosition} items={addMenuItems} onClose={() => setAddMenuOpen(false)} />
+			<ContextMenu
+				items={addMenuItems}
+				onClose={() => setAddMenuOpen(false)}
+				open={addMenuOpen}
+				position={addMenuPosition}
+			/>
 			<ContextMenu
 				items={convertMenuItems}
 				onClose={() => setConvertMenuOpen(false)}
@@ -277,31 +292,30 @@ export function ActionMenu({
 	);
 }
 
-const HandleButton = forwardRef<
-	HTMLButtonElement,
-	{ label: string; onActivate: () => void; children: ReactNode }
->(function HandleButton({ label, onActivate, children }, ref) {
-	return (
-		<button
-			aria-label={label}
-			className="inline-flex size-7 items-center justify-center rounded-md text-base-content/70 transition-colors hover:bg-base-200 hover:text-base-content focus-visible:bg-base-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-			draggable={false}
-			// `@tiptap/extension-drag-handle` sets `draggable=true` on the
-			// outer wrapper so it can intercept dragstart and initiate the
-			// node move. Without these handlers, click-and-drag on any of
-			// the action buttons (Add, Rotate, AI) would also start a drag
-			// — confusing UX. Cancel both the native drag attribute *and*
-			// the bubbled event so only the dedicated grip-handle triggers.
-			onDragStart={(event) => {
-				event.preventDefault();
-				event.stopPropagation();
-			}}
-			onClick={onActivate}
-			ref={ref}
-			title={label}
-			type="button"
-		>
-			{children}
-		</button>
-	);
-});
+const HandleButton = forwardRef<HTMLButtonElement, { label: string; onActivate: () => void; children: ReactNode }>(
+	function HandleButton({ label, onActivate, children }, ref) {
+		return (
+			<button
+				aria-label={label}
+				className="inline-flex size-7 items-center justify-center rounded-md text-base-content/70 transition-colors hover:bg-base-200 hover:text-base-content focus-visible:bg-base-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+				draggable={false}
+				// `@tiptap/extension-drag-handle` sets `draggable=true` on the
+				// outer wrapper so it can intercept dragstart and initiate the
+				// node move. Without these handlers, click-and-drag on any of
+				// the action buttons (Add, Rotate, AI) would also start a drag
+				// — confusing UX. Cancel both the native drag attribute *and*
+				// the bubbled event so only the dedicated grip-handle triggers.
+				onClick={onActivate}
+				onDragStart={(event) => {
+					event.preventDefault();
+					event.stopPropagation();
+				}}
+				ref={ref}
+				title={label}
+				type="button"
+			>
+				{children}
+			</button>
+		);
+	},
+);

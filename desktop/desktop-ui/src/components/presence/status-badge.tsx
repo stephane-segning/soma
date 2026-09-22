@@ -16,12 +16,7 @@ const toneStyles = {
 	muted: "bg-base-200 text-base-content/70 border-base-300",
 };
 
-export function StatusBadge({
-	label,
-	tone = "info",
-	icon,
-	className,
-}: StatusBadgeProps) {
+export function StatusBadge({ label, tone = "info", icon, className }: StatusBadgeProps) {
 	return (
 		<span
 			className={cn(

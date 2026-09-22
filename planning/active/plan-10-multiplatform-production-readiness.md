@@ -342,6 +342,10 @@ below ("Realtime collaboration") is therefore not a refinement of a working sync
 Worth renaming the two commands and dropping the fake counter regardless of when replication
 lands, so the surface stops implying a transfer that never happens.
 
+> **Resolved.** Document replication now exists — see "Addendum 6" below. The `uploaded: 1`
+> counter and the two identically-behaved local "sync" commands are still misleading and still
+> want renaming; that part of this paragraph stands.
+
 **Also found: the default space can never be shared.** `DEFAULT_SPACE_ID` is the compile-time
 constant `"private"` (`backend/crates/daemon/src/runtime/helpers.rs:19`), so every install seeds a
 space with the *same id* owned by its *own* peer. Inviting anyone to it fails at redemption with
@@ -350,6 +354,61 @@ behaving correctly — refusing a same-id takeover is exactly its job — but th
 share is structurally unshareable, and the error explains none of that. Fix is a product decision
 (namespace the default id per peer, or refuse invite creation for it with a real explanation), and
 changing the seeded id is a data migration, so it is not done here.
+
+## Addendum 6: document replication (`/soma/doc-sync/1`)
+
+Built the missing hop. Peers advertise *digests* and pull what they lack — the shape AGENTS.md
+already specifies for blobs, not a push. One exchange syncs both directions in two round trips and
+terminates because the last message carries neither `have` nor `want`. All policy (authorization,
+version comparison, writes) sits behind a `DocumentSyncProvider` in the daemon; the peer crate
+moves bytes and decides nothing, matching `BlobProvider` and `JoinDecider`.
+
+Merge rule is last-writer-wins on `(updated_at_ms, origin_peer_id)`, compared lexicographically.
+The tiebreaker is load-bearing: a bare timestamp leaves two same-millisecond writers each keeping
+their own copy forever. Deliberately **not** a CRDT — `agentd`'s `yrs` merge is real but has no
+producer (plain Tiptap JSON, no `yjs`/`y-prosemirror` anywhere, no CRDT state persisted, no
+JSON⇄CRDT bridge), so using it means adopting a Yjs-native editor binding. Concurrent edits still
+lose one side's work, exactly as they already do locally. This converges; it does not merge.
+
+### What only a real two-node run found
+
+Every one of these passed the unit tests while replication moved nothing:
+
+- **A joiner's roster contains only itself.** `invites_redeem` writes one membership row, so the
+  joiner refused the owner — the one peer it most needed — *and* had nobody to offer to. Invisible
+  single-process, because tests seed both rosters by hand. Authorization and peer resolution now
+  also honour the pinned `owner_peer_id`.
+- **A join rides an already-established connection**, so no `ConnectionEstablished` follows it.
+  Syncing only on connect gave a joiner everything written after it arrived and nothing before. A
+  join decision now triggers a sync too.
+- **Pages are a separate table**, so replicating documents alone delivered content the receiving UI
+  could not list. The page row travels with the document.
+
+A fourth came from a test written expecting it to pass: the "drop documents we did not ask for"
+check re-derived wantedness *from the incoming payload*, which self-approves — any document for an
+unheld id looks wanted. An authorized peer could write anything into a shared space while three
+doc comments claimed otherwise. Outstanding wants are now tracked per `(peer, space)` and *taken*
+on use, so a replay cannot write twice on one ask.
+
+### Verified
+
+Nine two-peer tests against two real SQLite stores — the repo had **no multi-peer test of any
+kind** before, which is exactly how "documents never replicate" survived a green suite. Then two
+real daemons over libp2p: catch-up of a document written before the join (0s), the page arriving
+with it, live A→B (2s), reverse B→A (2s), LWW converging on the newer version. Workspace: 264
+tests, clippy `-D warnings` clean, specta bindings show no drift.
+
+### Known gaps, stated rather than worked around
+
+- **Two non-owner members cannot authorize each other**, so documents flow via the owner or a bot
+  mirror. Closing it means replicating each membership row together with its owner-signed
+  capability, so a peer can *verify* a third party's membership instead of being told about it —
+  a membership-layer change with its own authorization questions, not a sync one.
+- **Bots do not mirror documents yet.** `somad` does not depend on `soma-daemon`, so the provider
+  needs extracting to a shared crate first. Deliberately not half-wired.
+- **Blobs referenced by a replicated document are not fetched as part of the sync.** The blob
+  fetch path exists and is content-addressed, but nothing currently triggers it from a replicated
+  document's references.
 
 ## Still open
 

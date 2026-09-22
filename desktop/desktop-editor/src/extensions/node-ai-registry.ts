@@ -30,14 +30,15 @@
  * Locked by [ADR-0005 §13](../../../../../docs/src/architecture/adrs/0005-ui-revamp-v0.md)
  * and [refs editor-ai §3](../../../../../docs/src/architecture/prd/ui-revamp-v0-refs-editor-ai.md).
  */
-import { Extension } from "@tiptap/core";
-import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
+
 import type {
 	NodeAIAction,
 	NodeAIActionSurface,
 	NodeAIContext,
 	NodeAIRegistry,
 } from "@soma/ui/components/editor/node-ai-registry.types";
+import { Extension } from "@tiptap/core";
+import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
 
 export type NodeAIRegistryExtensionOptions = {
 	/**
@@ -79,73 +80,60 @@ declare module "@tiptap/core" {
 	}
 }
 
-export const NodeAIRegistryExtension =
-	Extension.create<NodeAIRegistryExtensionOptions>({
-		name: "nodeAIRegistry",
+export const NodeAIRegistryExtension = Extension.create<NodeAIRegistryExtensionOptions>({
+	name: "nodeAIRegistry",
 
-		addOptions() {
-			// Default to a no-op shape so consumers who mount the extension
-			// before configuring it (e.g. SSR bootstrap, test scaffolding)
-			// don't crash. Production callers wire the real registry via
-			// `.configure({ registry })`.
-			return {
-				registry: null,
-				onActionError: undefined,
-			};
-		},
+	addOptions() {
+		// Default to a no-op shape so consumers who mount the extension
+		// before configuring it (e.g. SSR bootstrap, test scaffolding)
+		// don't crash. Production callers wire the real registry via
+		// `.configure({ registry })`.
+		return {
+			registry: null,
+			onActionError: undefined,
+		};
+	},
 
-		addStorage() {
-			return {
-				resolveContext: (): NodeAIContext | null => null,
-				resolveActions: (
-					_surface?: NodeAIActionSurface,
-				): NodeAIAction[] => [],
-			};
-		},
+	addStorage() {
+		return {
+			resolveContext: (): NodeAIContext | null => null,
+			resolveActions: (_surface?: NodeAIActionSurface): NodeAIAction[] => [],
+		};
+	},
 
-		onCreate() {
-			// Storage holds stable function references; the closures
-			// re-read `this.options.registry` on each call so that if the
-			// host swaps the registry (rare but legal) via `editor
-			// .extensionManager.extensions[N].options.registry = …`, the
-			// next call sees the new value.
-			const extension = this;
-			this.storage.resolveContext = () => resolveContext(extension.editor);
-			this.storage.resolveActions = (surface?: NodeAIActionSurface) => {
-				const registry = extension.options.registry;
-				if (!registry) return [];
-				const ctx = resolveContext(extension.editor);
-				if (!ctx) return [];
-				return registry.resolve(ctx.nodeType, surface ?? ctx.surface);
-			};
-		},
+	onCreate() {
+		this.storage.resolveContext = () => resolveContext(this.editor);
+		this.storage.resolveActions = (surface?: NodeAIActionSurface) => {
+			const registry = this.options.registry;
+			if (!registry) return [];
+			const ctx = resolveContext(this.editor);
+			if (!ctx) return [];
+			return registry.resolve(ctx.nodeType, surface ?? ctx.surface);
+		};
+	},
 
-		addCommands() {
-			return {
-				dispatchAIAction:
-					(actionId: string) =>
-					({ editor }) => {
-						const registry = this.options.registry;
-						if (!registry) return false;
-						const ctx = resolveContext(editor);
-						if (!ctx) return false;
-						const actions = registry.resolve(ctx.nodeType, ctx.surface);
-						const action = actions.find((a) => a.id === actionId);
-						if (!action) return false;
-						runActionSafely(
-							action,
-							ctx,
-							this.options.onActionError,
-						);
-						// TipTap commands return synchronously. Async errors
-						// route through `onActionError`; the command itself
-						// reports success-as-dispatched, not success-as-
-						// completed.
-						return true;
-					},
-			};
-		},
-	});
+	addCommands() {
+		return {
+			dispatchAIAction:
+				(actionId: string) =>
+				({ editor }) => {
+					const registry = this.options.registry;
+					if (!registry) return false;
+					const ctx = resolveContext(editor);
+					if (!ctx) return false;
+					const actions = registry.resolve(ctx.nodeType, ctx.surface);
+					const action = actions.find((a) => a.id === actionId);
+					if (!action) return false;
+					runActionSafely(action, ctx, this.options.onActionError);
+					// TipTap commands return synchronously. Async errors
+					// route through `onActionError`; the command itself
+					// reports success-as-dispatched, not success-as-
+					// completed.
+					return true;
+				},
+		};
+	},
+});
 
 /**
  * Translate the current editor selection into a {@link NodeAIContext}.
@@ -167,9 +155,7 @@ export const NodeAIRegistryExtension =
  * the selection spans heterogeneous blocks — consumers can filter
  * actions that don't make sense for mixed content.
  */
-function resolveContext(
-	editor: import("@tiptap/core").Editor,
-): NodeAIContext | null {
+function resolveContext(editor: import("@tiptap/core").Editor): NodeAIContext | null {
 	if (!editor) return null;
 	const { state } = editor;
 	const { selection } = state;
@@ -180,9 +166,7 @@ function resolveContext(
 	// selections don't. We deliberately don't import NodeSelection to
 	// avoid pulling in the runtime class — duck-typing the field is
 	// enough.
-	const selectedNode: ProseMirrorNode | undefined = (
-		selection as unknown as { node?: ProseMirrorNode }
-	).node;
+	const selectedNode: ProseMirrorNode | undefined = (selection as unknown as { node?: ProseMirrorNode }).node;
 
 	let surface: NodeAIActionSurface;
 	let rawNodeType: string;
@@ -236,9 +220,7 @@ export function normalizeNodeName(name: string): string {
  * and wants the latest resolution without going through commands.
  * Returns `null` if the extension isn't installed.
  */
-export function getNodeAIStorage(
-	editor: import("@tiptap/core").Editor,
-): NodeAIRegistryStorage | null {
+export function getNodeAIStorage(editor: import("@tiptap/core").Editor): NodeAIRegistryStorage | null {
 	return editor.storage.nodeAIRegistry ?? null;
 }
 

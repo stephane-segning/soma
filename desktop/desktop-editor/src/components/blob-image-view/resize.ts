@@ -11,7 +11,13 @@ type UseImageResizeInput = {
 
 export function useImageResize({ containerRef, layout, updateAttributes }: UseImageResizeInput) {
 	const [isResizing, setIsResizing] = useState(false);
-	const resizeStartRef = useRef<{ startX: number; startY: number; startWidth: number; startHeight: number; layout: ImageLayout } | null>(null);
+	const resizeStartRef = useRef<{
+		startX: number;
+		startY: number;
+		startWidth: number;
+		startHeight: number;
+		layout: ImageLayout;
+	} | null>(null);
 
 	useEffect(() => {
 		if (!isResizing) return;
@@ -19,7 +25,10 @@ export function useImageResize({ containerRef, layout, updateAttributes }: UseIm
 			const start = resizeStartRef.current;
 			if (!start) return;
 			if (start.layout === "cover") {
-				const nextHeight = Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, start.startHeight + (event.clientY - start.startY)));
+				const nextHeight = Math.max(
+					MIN_HEIGHT,
+					Math.min(MAX_HEIGHT, start.startHeight + (event.clientY - start.startY)),
+				);
 				updateAttributes({ displayHeight: Math.round(nextHeight) });
 				return;
 			}

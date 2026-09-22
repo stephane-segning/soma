@@ -35,9 +35,7 @@ function MockSurface({ children }: { children: React.ReactNode }) {
 	return (
 		<div className="flex h-screen flex-col bg-base-200">
 			{children}
-			<div className="flex flex-1 items-center justify-center text-base-content/40 text-sm">
-				Mock editor canvas
-			</div>
+			<div className="flex flex-1 items-center justify-center text-base-content/40 text-sm">Mock editor canvas</div>
 		</div>
 	);
 }
@@ -71,9 +69,7 @@ export const Draggable: Story = {
 					onReorder={(nextIds) => {
 						setTabs((prev) => {
 							const byId = new Map(prev.map((t) => [t.id, t]));
-							return nextIds
-								.map((id) => byId.get(id))
-								.filter((t): t is AppTab => t !== undefined);
+							return nextIds.map((id) => byId.get(id)).filter((t): t is AppTab => t !== undefined);
 						});
 					}}
 					onSelect={setActive}
@@ -216,13 +212,7 @@ export const DarkTheme: Story = {
 		const [active, setActive] = useState("doc-1");
 		return (
 			<MockSurface>
-				<AppTabs
-					activeId={active}
-					onClose={() => {}}
-					onNew={() => {}}
-					onSelect={setActive}
-					tabs={SAMPLE_TABS}
-				/>
+				<AppTabs activeId={active} onClose={() => {}} onNew={() => {}} onSelect={setActive} tabs={SAMPLE_TABS} />
 			</MockSurface>
 		);
 	},

@@ -138,6 +138,27 @@ pub(super) async fn handle_command(state: &mut RuntimeState, cmd: PeerCommand) -
                     .send_request(&peer, announce.clone());
             }
         }
+        PeerCommand::SyncDocuments { target, request } => {
+            // Unlike the blob announce this is addressed, not fanned out:
+            // a document offer names the documents in a space, so sending
+            // it to every connected peer would tell non-members what a
+            // space contains. The caller picks members.
+            let space_id = request.space_id.clone();
+            let wire = super::doc_sync::to_wire_request(request);
+            let req_id = state
+                .swarm
+                .behaviour_mut()
+                .doc_sync
+                .send_request(&target, wire);
+            state.outbound_doc_syncs.insert(req_id, space_id);
+        }
+        PeerCommand::RequestRoster { target, space_id } => {
+            let req = crate::codec::RosterRequest {
+                space_id: space_id.clone(),
+            };
+            let req_id = state.swarm.behaviour_mut().roster.send_request(&target, req);
+            state.outbound_rosters.insert(req_id, space_id);
+        }
         PeerCommand::Shutdown => {
             info!("peer shutdown requested");
             return true;

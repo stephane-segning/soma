@@ -47,12 +47,7 @@ export const AvatarTier: Story = {
 				primary="Stéphane"
 				status={<Pill tone="info">Owner</Pill>}
 			/>
-			<DenseRow
-				actions={<Overflow />}
-				leading={<Avatar initials="NL" />}
-				meta="last seen 2h"
-				primary="Naomi"
-			/>
+			<DenseRow actions={<Overflow />} leading={<Avatar initials="NL" />} meta="last seen 2h" primary="Naomi" />
 			<DenseRow
 				actions={<Overflow />}
 				leading={<Avatar initials="JK" />}

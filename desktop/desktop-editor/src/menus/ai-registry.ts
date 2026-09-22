@@ -16,16 +16,11 @@
  * the default extensions list. Registry can be reused / extended by
  * callers that need to layer custom actions on top.
  */
-import type { Editor } from "@tiptap/react";
+
 import { createNodeAIRegistry } from "@soma/ui/components/editor/node-ai-registry";
-import type {
-	NodeAIAction,
-	NodeAIRegistry,
-} from "@soma/ui/components/editor/node-ai-registry.types";
-import type {
-	QuickActionRequest,
-	QuickActionResponse,
-} from "./contextual-menu/types";
+import type { NodeAIAction, NodeAIRegistry } from "@soma/ui/components/editor/node-ai-registry.types";
+import type { Editor } from "@tiptap/react";
+import type { QuickActionRequest, QuickActionResponse } from "./contextual-menu/types";
 
 const TEXT_BEARING_NODES = [
 	"paragraph",
@@ -42,18 +37,19 @@ export type AIRegistryFactoryInput = {
 	onQuickAction?: (input: QuickActionRequest) => Promise<QuickActionResponse>;
 };
 
-export function createDefaultAIRegistry({
-	editor,
-	onQuickAction,
-}: AIRegistryFactoryInput): NodeAIRegistry {
+export function createDefaultAIRegistry({ editor, onQuickAction }: AIRegistryFactoryInput): NodeAIRegistry {
 	const registry = createNodeAIRegistry();
 	if (!onQuickAction) return registry;
+	// Narrowed once here so the nested closures below don't need a
+	// non-null assertion on every call — TS doesn't retain the guard's
+	// narrowing across the closure boundary, but a plain `const` does.
+	const requestQuickAction = onQuickAction;
 
 	async function dispatchAndInsert(
 		action: "explain" | "expand",
 		ctx: { text: string; metadata?: Record<string, unknown> },
 	): Promise<void> {
-		const response = await onQuickAction!({
+		const response = await requestQuickAction({
 			action,
 			selectionText: ctx.text,
 		});
@@ -61,11 +57,7 @@ export function createDefaultAIRegistry({
 		const from = (ctx.metadata?.from as number | undefined) ?? null;
 		const to = (ctx.metadata?.to as number | undefined) ?? null;
 		if (from === null || to === null) return;
-		editor
-			.chain()
-			.focus()
-			.insertContentAt({ from, to }, response.content.trim())
-			.run();
+		editor.chain().focus().insertContentAt({ from, to }, response.content.trim()).run();
 	}
 
 	const actions: NodeAIAction[] = [
@@ -100,10 +92,7 @@ export function createDefaultAIRegistry({
 			// `runActionSafely`, which routes them through `onActionError`
 			// (and falls back to `console.error`). Swallowing here would
 			// hide failures when the host doesn't configure `onError`.
-			run: (ctx) =>
-				onQuickAction!({ action: "research", selectionText: ctx.text }).then(
-					() => undefined,
-				),
+			run: (ctx) => requestQuickAction({ action: "research", selectionText: ctx.text }).then(() => undefined),
 		},
 	];
 

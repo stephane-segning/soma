@@ -19,11 +19,7 @@ import { Star } from "react-feather";
 import { useT } from "../../i18n/use-t";
 import { cn } from "../../utils/cn";
 import { MenuItem, MenuSectionLabel } from "../overlays/menu-shell";
-import type {
-	NodeAIAction,
-	NodeAIActionCategory,
-	NodeAIRegistry,
-} from "./node-ai-registry.types";
+import type { NodeAIAction, NodeAIActionCategory, NodeAIRegistry } from "./node-ai-registry.types";
 
 export type SelectionAIBarProps = {
 	registry: NodeAIRegistry;
@@ -87,19 +83,13 @@ export function SelectionAIBar({
 		custom: t({ id: "selection-ai.section.custom", defaultMessage: "Custom" }),
 	};
 
-	const actions = useMemo(
-		() => registry.resolve(nodeType, "selection"),
-		[registry, nodeType],
-	);
+	const actions = useMemo(() => registry.resolve(nodeType, "selection"), [registry, nodeType]);
 
 	const grouped = useMemo(() => {
 		const lower = prompt.toLowerCase();
 		const visible = actions.filter((action) => {
 			if (lower.length === 0) return true;
-			return (
-				action.label.toLowerCase().includes(lower) ||
-				action.description?.toLowerCase().includes(lower)
-			);
+			return action.label.toLowerCase().includes(lower) || action.description?.toLowerCase().includes(lower);
 		});
 		const buckets = new Map<NodeAIActionCategory, NodeAIAction[]>();
 		for (const category of CATEGORY_ORDER) buckets.set(category, []);
@@ -134,14 +124,10 @@ export function SelectionAIBar({
 			if (!containerRef.current?.contains(target)) return;
 			if (event.key === "ArrowDown") {
 				event.preventDefault();
-				setActiveIndex((idx) =>
-					flat.length === 0 ? 0 : (idx + 1) % flat.length,
-				);
+				setActiveIndex((idx) => (flat.length === 0 ? 0 : (idx + 1) % flat.length));
 			} else if (event.key === "ArrowUp") {
 				event.preventDefault();
-				setActiveIndex((idx) =>
-					flat.length === 0 ? 0 : (idx - 1 + flat.length) % flat.length,
-				);
+				setActiveIndex((idx) => (flat.length === 0 ? 0 : (idx - 1 + flat.length) % flat.length));
 			} else if (event.key === "Enter") {
 				event.preventDefault();
 				if (flat.length > 0) {
@@ -165,16 +151,7 @@ export function SelectionAIBar({
 		// dispatch an action against the wrong range. This effect already
 		// re-subscribes on every keystroke (via `prompt`/`activeIndex`), so
 		// adding one more dependency doesn't change its stability.
-	}, [
-		flat,
-		activeIndex,
-		nodeType,
-		selectedText,
-		prompt,
-		onClose,
-		onCustomPrompt,
-		metadata,
-	]);
+	}, [flat, activeIndex, nodeType, selectedText, prompt, onClose, onCustomPrompt, metadata]);
 
 	// Click-outside dismissal. Listen on `mousedown` (not click) so we
 	// close before the editor blurs the bar's input on a second click,
@@ -197,10 +174,7 @@ export function SelectionAIBar({
 				defaultMessage: "Ask AI",
 			})}
 			aria-modal="true"
-			className={cn(
-				"glass-panel flex w-96 flex-col gap-1 p-1 shadow-elevated",
-				className,
-			)}
+			className={cn("glass-panel flex w-96 flex-col gap-1 p-1 shadow-elevated", className)}
 			ref={containerRef}
 			role="dialog"
 		>

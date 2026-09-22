@@ -49,27 +49,12 @@ export function Empty(props: EmptyProps) {
 	return <FullEmpty {...props} />;
 }
 
-function FullEmpty({
-	icon,
-	headline,
-	subtext,
-	cta,
-	className,
-}: EmptyFullProps) {
+function FullEmpty({ icon, headline, subtext, cta, className }: EmptyFullProps) {
 	return (
-		<div
-			className={cn(
-				"flex w-full flex-col items-center justify-center gap-2 px-6 py-10 text-center",
-				className,
-			)}
-		>
-			{icon ? (
-				<div className="text-base-content/40 [&>*]:size-12">{icon}</div>
-			) : null}
+		<div className={cn("flex w-full flex-col items-center justify-center gap-2 px-6 py-10 text-center", className)}>
+			{icon ? <div className="text-base-content/40 [&>*]:size-12">{icon}</div> : null}
 			<div className="font-medium text-base-content/80 text-sm">{headline}</div>
-			{subtext ? (
-				<div className="text-base-content/60 text-sm">{subtext}</div>
-			) : null}
+			{subtext ? <div className="text-base-content/60 text-sm">{subtext}</div> : null}
 			{cta ? <div className="pt-1">{cta}</div> : null}
 		</div>
 	);

@@ -28,15 +28,33 @@ feature-depth = 1
 # ---------------------------------------------------------------------------
 [advisories]
 ignore = [
-    # --- Real vulnerabilities (DoS-class), fix requires a minor-incompatible
-    # bump of a *transitive* crate that isn't declared in the root
-    # Cargo.toml directly — only reachable by bumping the direct dependency
-    # that pulls it (libp2p, plist's own upstream), which is out of scope
-    # for this change. Flagged here instead of silently working around it.
-    { id = "RUSTSEC-2026-0118", reason = "hickory-proto 0.25.2, via libp2p-mdns (LAN peer discovery) and hickory-resolver: NSEC3 unbounded-loop DoS. No fix released upstream yet (any version)." },
-    { id = "RUSTSEC-2026-0119", reason = "hickory-proto 0.25.2, via libp2p-mdns and hickory-resolver: O(n^2) name-compression CPU-exhaustion DoS. Fixed at >=0.26.1, a minor-incompatible bump only reachable by bumping libp2p in the root Cargo.toml." },
-    { id = "RUSTSEC-2026-0194", reason = "quick-xml 0.38.4, via plist (macOS packaging/icon metadata, parses files we generate ourselves at build time, not attacker-controlled input): quadratic-runtime DoS on malicious XML. Fixed at >=0.41.0, a minor-incompatible bump only reachable via plist's own upstream." },
-    { id = "RUSTSEC-2026-0195", reason = "quick-xml 0.38.4, via plist, same path/exposure as RUSTSEC-2026-0194: unbounded namespace-declaration allocation DoS. Same fix/blocker as above." },
+    # --- Real vulnerabilities (DoS-class). Both fixed upstream in
+    # hickory-proto >=0.26.1 (0118's vulnerable NSEC3 code was moved out of
+    # hickory-proto entirely as of 0.26.0-beta.1; 0119 has an explicit
+    # >=0.26.1 patched range) — but that's a minor-incompatible bump of a
+    # *transitive* crate, only reachable by bumping the root Cargo.toml's
+    # `libp2p` from 0.56 to 0.57 (libp2p-mdns 0.49.0 / libp2p-dns 0.45.0,
+    # the versions libp2p 0.57 pulls in, are the first to require
+    # `hickory-proto`/`hickory-resolver` `^0.26` instead of the pinned
+    # `^0.25.2` that 0.56's libp2p-mdns 0.48.0 / libp2p-dns 0.44.0 declare).
+    # Verified by hand (2026-09-22): bumping `libp2p` to "0.57" in this
+    # Cargo.toml and running `cargo update -p libp2p` does resolve
+    # hickory-proto to 0.26.3, clearing both advisories — but it also
+    # bumps `libp2p-request-response` 0.29.0 -> 0.30.0, whose `Codec` trait
+    # switched from a boxed-future signature (matching this repo's
+    # `#[async_trait]`-based impls) to native return-position-impl-trait
+    # `async fn`s. That breaks compilation with E0195 ("lifetime parameters
+    # or bounds on method ... do not match the trait declaration") in
+    # `backend/crates/peer/src/codec/join.rs` and
+    # `backend/crates/peer/src/codec/roster.rs`, which both still use
+    # `#[async_trait]` for their `reqres::Codec` impls. Unblocking this
+    # needs those two files migrated off `#[async_trait]` to native async
+    # trait methods to match upstream — out of scope here (this change may
+    # only touch `backend/bins/somad/`, root `Cargo.toml`/`Cargo.lock`, and
+    # `deny.toml`, not `backend/crates/peer`). The bump was reverted; the
+    # committed `libp2p` version is still "0.56".
+    { id = "RUSTSEC-2026-0118", reason = "hickory-proto 0.25.2, via libp2p-mdns (LAN peer discovery) and hickory-resolver: NSEC3 unbounded-loop DoS. Fixed (vulnerable code removed) at >=0.26.0-beta.1, only reachable by bumping libp2p 0.56 -> 0.57 in the root Cargo.toml — see the block comment above for why that bump is currently blocked." },
+    { id = "RUSTSEC-2026-0119", reason = "hickory-proto 0.25.2, via libp2p-mdns and hickory-resolver: O(n^2) name-compression CPU-exhaustion DoS. Fixed at >=0.26.1, only reachable by the same libp2p 0.56 -> 0.57 bump as RUSTSEC-2026-0118 above, currently blocked for the same reason." },
 
     # --- Unmaintained-crate notices (no CVE, no known exploit) — all
     # deep transitive proc-macro/data crates with no drop-in replacement

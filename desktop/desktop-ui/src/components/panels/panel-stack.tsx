@@ -68,12 +68,7 @@ export type PanelStackProps = {
 	className?: string;
 };
 
-export function PanelStack({
-	panels,
-	onCollapse,
-	onClose,
-	className,
-}: PanelStackProps) {
+export function PanelStack({ panels, onCollapse, onClose, className }: PanelStackProps) {
 	if (panels.length === 0) return null;
 	return (
 		<div className={cn("flex h-full min-h-0 flex-col gap-2 p-2", className)}>

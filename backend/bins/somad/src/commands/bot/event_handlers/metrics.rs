@@ -89,6 +89,9 @@ impl PeerEventHandler<BotState> for MetricsHandler {
             PeerEvent::BlobResponseReceived { .. } => {
                 record_event(metrics, EventKindLabel::BlobResponseReceived);
             }
+            PeerEvent::RosterLearned { .. } => {
+                record_event(metrics, EventKindLabel::RosterLearned);
+            }
             PeerEvent::JoinFailed { .. } => record_event(metrics, EventKindLabel::JoinFailed),
             // Bot-handshake events flow through the daemon's
             // IssuerEventsHandler, not the somad bot host. No metrics

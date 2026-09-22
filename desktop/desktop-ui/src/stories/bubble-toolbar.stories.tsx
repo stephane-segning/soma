@@ -1,13 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
-import {
-	AlignCenter,
-	AlignLeft,
-	Bold,
-	Italic,
-	Link,
-	Underline,
-} from "react-feather";
+import { AlignCenter, AlignLeft, Bold, Italic, Link, Underline } from "react-feather";
 import { BubbleToolbar } from "../components/overlays/bubble-toolbar";
 
 const meta: Meta<typeof BubbleToolbar> = {
@@ -49,9 +42,7 @@ export const WithActiveAction: Story = {
 		}));
 		return (
 			<div className="relative h-64 rounded-xl bg-base-200 p-8">
-				<p className="mb-6 text-base-content/60 text-sm">
-					Click any button to toggle the active state.
-				</p>
+				<p className="mb-6 text-base-content/60 text-sm">Click any button to toggle the active state.</p>
 				<BubbleToolbar actions={actions} anchor={{ x: 80, y: 120 }} open />
 			</div>
 		);
@@ -81,14 +72,8 @@ export const Closed: Story = {
 	render: function ClosedStory() {
 		return (
 			<div className="rounded-xl bg-base-200 p-8">
-				<p className="text-base-content/60 text-sm">
-					Toolbar is closed — nothing rendered.
-				</p>
-				<BubbleToolbar
-					actions={textActions}
-					anchor={{ x: 80, y: 120 }}
-					open={false}
-				/>
+				<p className="text-base-content/60 text-sm">Toolbar is closed — nothing rendered.</p>
+				<BubbleToolbar actions={textActions} anchor={{ x: 80, y: 120 }} open={false} />
 			</div>
 		);
 	},
@@ -99,18 +84,10 @@ export const ToggleOpen: Story = {
 		const [open, setOpen] = useState(false);
 		return (
 			<div className="relative h-64 rounded-xl bg-base-200 p-8">
-				<button
-					className="btn btn-sm btn-primary"
-					onClick={() => setOpen((v) => !v)}
-					type="button"
-				>
+				<button className="btn btn-sm btn-primary" onClick={() => setOpen((v) => !v)} type="button">
 					{open ? "Hide toolbar" : "Show toolbar"}
 				</button>
-				<BubbleToolbar
-					actions={textActions}
-					anchor={{ x: 80, y: 140 }}
-					open={open}
-				/>
+				<BubbleToolbar actions={textActions} anchor={{ x: 80, y: 140 }} open={open} />
 			</div>
 		);
 	},

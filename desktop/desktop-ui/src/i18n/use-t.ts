@@ -29,8 +29,7 @@ export type TFn = (translation: Translation) => string;
 export function useT(): TFn {
 	const intl = useIntl();
 	return useCallback<TFn>(
-		({ id, defaultMessage, description, values }) =>
-			intl.formatMessage({ id, defaultMessage, description }, values),
+		({ id, defaultMessage, description, values }) => intl.formatMessage({ id, defaultMessage, description }, values),
 		[intl],
 	);
 }

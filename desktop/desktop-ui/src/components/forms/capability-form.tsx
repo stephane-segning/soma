@@ -76,10 +76,7 @@ export function CapabilityForm({
 }: CapabilityFormProps) {
 	const t = useT();
 
-	const totalScopes = scopeGroups.reduce(
-		(sum, group) => sum + group.scopes.length,
-		0,
-	);
+	const totalScopes = scopeGroups.reduce((sum, group) => sum + group.scopes.length, 0);
 	const totalGranted = value.grantedScopeIds.length;
 
 	function patch(next: Partial<CapabilityFormValue>) {
@@ -94,11 +91,7 @@ export function CapabilityForm({
 				if (!issuing) onIssue();
 			}}
 		>
-			<IdentityCard
-				alias={value.alias}
-				onAliasChange={(alias) => patch({ alias })}
-				peerId={peerId}
-			/>
+			<IdentityCard alias={value.alias} onAliasChange={(alias) => patch({ alias })} peerId={peerId} />
 
 			<ScopesCard
 				grantedScopeIds={value.grantedScopeIds}
@@ -108,10 +101,7 @@ export function CapabilityForm({
 				totalScopes={totalScopes}
 			/>
 
-			<ExpiryCard
-				onChange={(expiryDate) => patch({ expiryDate })}
-				value={value.expiryDate}
-			/>
+			<ExpiryCard onChange={(expiryDate) => patch({ expiryDate })} value={value.expiryDate} />
 
 			<div className="flex flex-col gap-2">
 				{issueError ? (
@@ -122,12 +112,7 @@ export function CapabilityForm({
 				) : null}
 				<div className="flex items-center justify-end gap-2">
 					{onCancel ? (
-						<button
-							className="btn btn-ghost btn-sm"
-							disabled={issuing}
-							onClick={onCancel}
-							type="button"
-						>
+						<button className="btn btn-ghost btn-sm" disabled={issuing} onClick={onCancel} type="button">
 							{t({ id: "capability-form.cancel", defaultMessage: "Cancel" })}
 						</button>
 					) : null}
@@ -245,11 +230,7 @@ function CopyButton({ value }: { value: string }) {
 					setTimeout(() => setCopied(false), 1500);
 				});
 			}}
-			title={
-				copied
-					? t({ id: "capability-form.copied", defaultMessage: "Copied!" })
-					: undefined
-			}
+			title={copied ? t({ id: "capability-form.copied", defaultMessage: "Copied!" }) : undefined}
 			type="button"
 		>
 			<Copy aria-hidden className="size-3" />
@@ -300,12 +281,7 @@ function ScopesCard({
 		>
 			<div className="flex flex-col gap-2">
 				{scopeGroups.map((group) => (
-					<ScopeGroupBlock
-						grantedScopeIds={grantedScopeIds}
-						group={group}
-						key={group.id}
-						onToggle={toggle}
-					/>
+					<ScopeGroupBlock grantedScopeIds={grantedScopeIds} group={group} key={group.id} onToggle={toggle} />
 				))}
 			</div>
 		</Card>
@@ -323,9 +299,7 @@ function ScopeGroupBlock({
 }) {
 	const t = useT();
 	const [open, setOpen] = useState(false);
-	const grantedInGroup = group.scopes.filter((s) =>
-		grantedScopeIds.includes(s.id),
-	).length;
+	const grantedInGroup = group.scopes.filter((s) => grantedScopeIds.includes(s.id)).length;
 	return (
 		<div className="rounded-md border border-base-300">
 			<button
@@ -345,10 +319,7 @@ function ScopeGroupBlock({
 					</span>
 					<ChevronDown
 						aria-hidden
-						className={cn(
-							"size-4 text-base-content/40 transition-transform",
-							open && "rotate-180",
-						)}
+						className={cn("size-4 text-base-content/40 transition-transform", open && "rotate-180")}
 					/>
 				</span>
 			</button>
@@ -365,11 +336,7 @@ function ScopeGroupBlock({
 								/>
 								<span className="flex min-w-0 flex-col">
 									<span className="text-base-content/90">{scope.label}</span>
-									{scope.description ? (
-										<span className="text-base-content/60 text-xs">
-											{scope.description}
-										</span>
-									) : null}
+									{scope.description ? <span className="text-base-content/60 text-xs">{scope.description}</span> : null}
 								</span>
 							</label>
 						</li>
@@ -380,13 +347,7 @@ function ScopeGroupBlock({
 	);
 }
 
-function ExpiryCard({
-	value,
-	onChange,
-}: {
-	value: string | null;
-	onChange: (next: string | null) => void;
-}) {
+function ExpiryCard({ value, onChange }: { value: string | null; onChange: (next: string | null) => void }) {
 	const t = useT();
 	const dateId = useId();
 

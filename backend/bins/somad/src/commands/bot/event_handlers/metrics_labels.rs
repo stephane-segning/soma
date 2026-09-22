@@ -22,6 +22,7 @@ pub(super) enum EventKindLabel {
     JoinFailed,
     BlobAnnounceReceived,
     BlobResponseReceived,
+    RosterLearned,
 }
 
 impl EventKindLabel {
@@ -49,6 +50,7 @@ impl EventKindLabel {
             Self::JoinFailed => "join_failed",
             Self::BlobAnnounceReceived => "blob_announce_received",
             Self::BlobResponseReceived => "blob_response_received",
+            Self::RosterLearned => "roster_learned",
         }
     }
 }

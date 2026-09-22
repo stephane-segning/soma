@@ -49,19 +49,12 @@ export function InlineAIAcceptBar({
 				id: "inline-ai-accept-bar.aria-label",
 				defaultMessage: "AI suggestion actions",
 			})}
-			className={cn(
-				"glass-panel flex flex-wrap items-center gap-1 p-1 shadow-elevated",
-				className,
-			)}
+			className={cn("glass-panel flex flex-wrap items-center gap-1 p-1 shadow-elevated", className)}
 			// `<fieldset>`'s implicit role is "group" (not "toolbar"): we rely on
 			// the default tab order between buttons and don't implement the
 			// arrow-key focus management the WAI-ARIA toolbar pattern requires.
 		>
-			{prompt ? (
-				<span className="px-2 py-0.5 text-base-content/60 text-xs">
-					{prompt}
-				</span>
-			) : null}
+			{prompt ? <span className="px-2 py-0.5 text-base-content/60 text-xs">{prompt}</span> : null}
 			<button
 				className="inline-flex items-center gap-1 rounded-md bg-primary px-2 py-1 font-medium text-primary-content text-sm transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
 				onClick={onAccept}

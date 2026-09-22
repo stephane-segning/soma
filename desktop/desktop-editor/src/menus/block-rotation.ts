@@ -1,5 +1,5 @@
-import type { Editor } from "@tiptap/react";
 import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
+import type { Editor } from "@tiptap/react";
 
 export type BlockKind =
 	| "paragraph"
@@ -67,7 +67,6 @@ export function readBlockKindFromNode(node: ProseMirrorNode | null): BlockKind {
 			return "blockquote";
 		case "codeBlock":
 			return "code-block";
-		case "paragraph":
 		default:
 			return "paragraph";
 	}

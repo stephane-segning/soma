@@ -441,6 +441,15 @@ pub enum DaemonEventRecord {
         decision: i32,
         reason: String,
     },
+    /// A document arrived from a peer over `/soma/doc-sync/1` and won
+    /// last-writer-wins, so local storage changed. Only emitted for
+    /// versions actually written — one that lost changes nothing and
+    /// would make the renderer refetch for no reason.
+    DocumentReplicated {
+        space_id: String,
+        document_id: String,
+        from_peer_id: String,
+    },
     /// The libp2p send of a `JoinRequest` failed.
     JoinFailed {
         target_peer_id: String,

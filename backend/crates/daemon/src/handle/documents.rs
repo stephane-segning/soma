@@ -1,4 +1,5 @@
 use soma_core::SomaResult;
+use soma_peer::{DocumentDigest, DocumentSyncRequest, PeerCommand};
 use soma_storage::documents::Document;
 
 use crate::services::documents::DocumentsService;
@@ -35,10 +36,57 @@ impl DaemonHandle {
             content_json,
             published,
             updated_at_ms,
+            // Stamped here, not taken from the caller: this is the
+            // record of who authored the version, and it is half of the
+            // last-writer-wins key. A caller-supplied origin would let a
+            // peer claim a higher id and win every tie.
+            origin_peer_id: self.state.peer_id.to_string(),
         };
         DocumentsService::new(self.state.repos.clone())
             .upsert(&document)
-            .await
+            .await?;
+
+        self.offer_document(&document).await;
+        Ok(())
+    }
+
+    /// Tell the other members of the space that this document changed.
+    ///
+    /// Only a digest goes out, never the content — the peer decides
+    /// whether it wants the new version and pulls it. Members that are
+    /// not connected simply fail to receive the offer; they pick the
+    /// change up from the connect-time sync instead, which is why this
+    /// is fire-and-forget and never surfaces an error to the writer.
+    async fn offer_document(&self, document: &Document) {
+        let peers = crate::sync::space_peers(
+            self.state.repos.as_ref(),
+            &document.space_id,
+            &self.state.peer_id,
+        )
+        .await;
+
+        let digest = DocumentDigest {
+            document_id: document.document_id.clone(),
+            updated_at_ms: document.updated_at_ms,
+            origin_peer_id: document.origin_peer_id.clone(),
+            published: document.published,
+        };
+
+        for target in peers {
+            let _ = self
+                .state
+                .peer_commands
+                .send(PeerCommand::SyncDocuments {
+                    target,
+                    request: DocumentSyncRequest {
+                        space_id: document.space_id.clone(),
+                        have: vec![digest.clone()],
+                        want: Vec::new(),
+                        documents: Vec::new(),
+                    },
+                })
+                .await;
+        }
     }
 
     pub async fn get_document(

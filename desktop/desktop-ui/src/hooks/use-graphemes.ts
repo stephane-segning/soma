@@ -6,18 +6,12 @@ import { useMemo } from "react";
  */
 export function useGraphemes(value: string) {
 	const segmenter = useMemo(
-		() =>
-			typeof Intl.Segmenter === "function"
-				? new Intl.Segmenter(undefined, { granularity: "grapheme" })
-				: null,
+		() => (typeof Intl.Segmenter === "function" ? new Intl.Segmenter(undefined, { granularity: "grapheme" }) : null),
 		[],
 	);
 
 	return useMemo(
-		() =>
-			segmenter
-				? Array.from(segmenter.segment(value), ({ segment }) => segment)
-				: Array.from(value),
+		() => (segmenter ? Array.from(segmenter.segment(value), ({ segment }) => segment) : Array.from(value)),
 		[segmenter, value],
 	);
 }

@@ -61,15 +61,7 @@ export type BotListProps = {
 	className?: string;
 };
 
-export function BotList({
-	bots,
-	onSelect,
-	onRetry,
-	onOverflow,
-	onAddBot,
-	highlightedId,
-	className,
-}: BotListProps) {
+export function BotList({ bots, onSelect, onRetry, onOverflow, onAddBot, highlightedId, className }: BotListProps) {
 	const t = useT();
 
 	if (bots.length === 0) {
@@ -78,11 +70,7 @@ export function BotList({
 				<Empty
 					cta={
 						onAddBot ? (
-							<button
-								className="btn btn-primary btn-sm"
-								onClick={onAddBot}
-								type="button"
-							>
+							<button className="btn btn-primary btn-sm" onClick={onAddBot} type="button">
 								{t({
 									id: "bot-list.add-cta",
 									defaultMessage: "Add bot",
@@ -177,9 +165,7 @@ function BotEntry({
 				}
 				meta={
 					<span className="flex flex-col items-end gap-0 leading-tight">
-						<span className="font-mono text-[11px] text-base-content/55">
-							{truncatedPeerId}
-						</span>
+						<span className="font-mono text-[11px] text-base-content/55">{truncatedPeerId}</span>
 						{bot.lastAcked ? (
 							<span className="text-[10px] text-base-content/40">
 								{t({
@@ -207,10 +193,7 @@ function BotEntry({
 				status={<StatusPill status={bot.status} />}
 			/>
 			{bot.status === "failed" && bot.errorReason ? (
-				<FailureRow
-					message={bot.errorReason}
-					onRetry={onRetry ? () => onRetry(bot.id) : undefined}
-				/>
+				<FailureRow message={bot.errorReason} onRetry={onRetry ? () => onRetry(bot.id) : undefined} />
 			) : null}
 		</>
 	);
@@ -258,22 +241,13 @@ function StatusPill({ status }: { status: BotStatus }) {
 	);
 }
 
-function FailureRow({
-	message,
-	onRetry,
-}: {
-	message: ReactNode;
-	onRetry?: () => void;
-}) {
+function FailureRow({ message, onRetry }: { message: ReactNode; onRetry?: () => void }) {
 	const t = useT();
 	// Renders as its own <li> sibling under the parent <ul class="list"> so it
 	// gets the same divider treatment as the surrounding DenseRow rows.
 	return (
 		<li className="flex items-start gap-2 bg-error/5 px-3 py-2 text-sm">
-			<AlertTriangle
-				aria-hidden
-				className="mt-0.5 size-4 shrink-0 text-error"
-			/>
+			<AlertTriangle aria-hidden className="mt-0.5 size-4 shrink-0 text-error" />
 			<span className="min-w-0 flex-1 text-error">{message}</span>
 			{onRetry ? (
 				<button

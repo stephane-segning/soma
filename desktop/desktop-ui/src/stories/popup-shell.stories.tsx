@@ -46,10 +46,7 @@ function TypingPopupDemo() {
 					title="Typing — bigram drill #5"
 				>
 					<div className="flex h-full flex-col items-center justify-center gap-6 p-6">
-						<CharDisplay
-							isGraphemes={Array.from(typed)}
-							shouldGraphemes={Array.from(EXPECTED)}
-						/>
+						<CharDisplay isGraphemes={Array.from(typed)} shouldGraphemes={Array.from(EXPECTED)} />
 						<label className="flex w-full max-w-xs flex-col gap-1 text-base-content/60 text-xs">
 							<span>Type the phrase above to advance the bar.</span>
 							<input
@@ -76,10 +73,7 @@ function TypingPopupDemo() {
 function MinimalDemo() {
 	const [progress, setProgress] = useState(0);
 	useEffect(() => {
-		const t = setInterval(
-			() => setProgress((p) => (p >= 100 ? 0 : p + 5)),
-			280,
-		);
+		const t = setInterval(() => setProgress((p) => (p >= 100 ? 0 : p + 5)), 280);
 		return () => clearInterval(t);
 	}, []);
 	return (
@@ -87,11 +81,7 @@ function MinimalDemo() {
 			className="h-[360px] w-[520px] overflow-hidden rounded-md border border-base-300 shadow-elevated"
 			style={{ minWidth: 480 }}
 		>
-			<PopupShell
-				onClose={() => undefined}
-				progress={progress}
-				title="Survey — onboarding feedback"
-			>
+			<PopupShell onClose={() => undefined} progress={progress} title="Survey — onboarding feedback">
 				<div className="flex h-full flex-col items-center justify-center text-base-content/60 text-sm">
 					Single-task popup with only the close button + progress.
 				</div>

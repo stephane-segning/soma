@@ -32,13 +32,7 @@ describe("MenuShell", () => {
 
 describe("MenuItem", () => {
 	it("renders icon + label + shortcut with the shared row classes", () => {
-		const { getByRole } = render(
-			<MenuItem
-				icon={<span data-testid="icon" />}
-				label="Open"
-				shortcut="⌘O"
-			/>,
-		);
+		const { getByRole } = render(<MenuItem icon={<span data-testid="icon" />} label="Open" shortcut="⌘O" />);
 		const button = getByRole("button");
 		expect(button.className).toContain("rounded-md");
 		expect(button.className).toContain("px-2");
@@ -55,9 +49,7 @@ describe("MenuItem", () => {
 		// MentionPicker) render an active/keyboard-highlighted row — plain
 		// `role="button"` items (ContextMenu) never set `active`, and
 		// `aria-selected` is only a valid ARIA prop on an option-like role.
-		const { getByRole } = render(
-			<MenuItem active label="Active" role="option" />,
-		);
+		const { getByRole } = render(<MenuItem active label="Active" role="option" />);
 		const button = getByRole("option");
 		expect(button.className).toContain("bg-base-200");
 		expect(button.getAttribute("aria-selected")).toBe("true");

@@ -24,11 +24,7 @@ export type SomaIntlProviderProps = {
 	children: ReactNode;
 };
 
-export function SomaIntlProvider({
-	locale = DEFAULT_LOCALE,
-	messages,
-	children,
-}: SomaIntlProviderProps) {
+export function SomaIntlProvider({ locale = DEFAULT_LOCALE, messages, children }: SomaIntlProviderProps) {
 	const resolvedMessages = useMemo(
 		// In v0 the only locale is English, and every string ships its own
 		// `defaultMessage` via `useT()` — so an empty messages map is fine.

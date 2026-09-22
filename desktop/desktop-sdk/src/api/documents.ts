@@ -14,9 +14,11 @@ export function documents(t: Transport) {
 		// (Electron and Tauri) now resolve these commands.
 		getDraft: (args: B.GetDraftArgs) => t.invoke<B.DraftRecord | null>("documents_get_draft", { args }),
 		upsertDraft: (args: B.UpsertDraftArgs) => t.invoke<void>("documents_upsert_draft", { args }),
-		queueDaemonSync: (args: B.QueueDaemonSyncArgs) => t.invoke<void>("documents_queue_daemon_sync", { args }),
-		syncPublishedDocument: (args: B.SyncPublishedDocumentArgs) =>
-			t.invoke<B.SyncPublishedDocumentResult>("documents_sync_published", { args }),
+		// Local write (published: true) + local `document-changed` UI event.
+		// Real p2p replication (`/soma/doc-sync/1`) is automatic — it fires
+		// on write, connect, join, and learning new members — so this call
+		// does not itself sync or upload anything over the network.
+		publish: (args: B.PublishDocumentArgs) => t.invoke<void>("documents_publish", { args }),
 	};
 }
 

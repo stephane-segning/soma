@@ -48,6 +48,9 @@
 			"no_space_subtext": "Les bots autorisés de l'espace actif apparaîtront ici.",
 			"loading": "Chargement des bots…",
 			"error": "Impossible de charger les bots : {{message}}"
+		},
+		"more": {
+			"title": "Plus"
 		}
 	},
 	"palette": {
@@ -68,7 +71,7 @@
 		"untitled": "Sans titre",
 		"spaces_index": {
 			"headline": "Aucun espace sélectionné",
-			"empty": "Choisissez un espace dans la barre, ou créez-en un pour commencer.",
+			"empty": "Choisissez un espace pour commencer, ou créez-en un.",
 			"join_cta": "Rejoindre un espace",
 			"need_space_for_page": "Choisissez ou créez un espace avant d'ajouter une page.",
 			"create_error": "Impossible de créer l'espace : {{message}}"

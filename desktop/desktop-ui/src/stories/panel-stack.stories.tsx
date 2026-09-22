@@ -19,18 +19,14 @@ type Story = StoryObj<typeof meta>;
 function MockRail({ children }: { children: React.ReactNode }) {
 	return (
 		<div className="flex h-screen items-stretch bg-base-200">
-			<div className="flex flex-1 items-center justify-center text-base-content/40 text-sm">
-				Mock main area
-			</div>
+			<div className="flex flex-1 items-center justify-center text-base-content/40 text-sm">Mock main area</div>
 			<div className="w-80 shrink-0">{children}</div>
 		</div>
 	);
 }
 
 const PLACEHOLDER = (label: string) => (
-	<div className="flex h-full items-center justify-center text-base-content/40 text-sm">
-		{label}
-	</div>
+	<div className="flex h-full items-center justify-center text-base-content/40 text-sm">{label}</div>
 );
 
 export const SingleCard: Story = {
@@ -87,12 +83,7 @@ export const WithCollapseHandlers: Story = {
 		]);
 		return (
 			<MockRail>
-				<PanelStack
-					onCollapse={(id) =>
-						setPanels((prev) => prev.filter((p) => p.id !== id))
-					}
-					panels={panels}
-				/>
+				<PanelStack onCollapse={(id) => setPanels((prev) => prev.filter((p) => p.id !== id))} panels={panels} />
 			</MockRail>
 		);
 	},
@@ -102,9 +93,7 @@ export const Empty: Story = {
 	render: () => (
 		<MockRail>
 			<PanelStack panels={[]} />
-			<div className="flex h-full items-center justify-center text-base-content/40 text-xs">
-				(empty — returns null)
-			</div>
+			<div className="flex h-full items-center justify-center text-base-content/40 text-xs">(empty — returns null)</div>
 		</MockRail>
 	),
 };

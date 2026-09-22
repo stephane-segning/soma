@@ -35,8 +35,8 @@ pub fn publish(state: &AppState, event: DomainEvent) {
 
 /// Convenience constructor for the `document-changed` event with
 /// `source: renderer`. Every renderer-triggered document mutation
-/// (`upsert_draft`, `queue_daemon_sync`, `sync_published`) emits this,
-/// so it deserves its own helper.
+/// (`upsert_draft`, `publish`) emits this, so it deserves its own
+/// helper.
 pub fn document_changed(
     space_id: String,
     document_id: String,

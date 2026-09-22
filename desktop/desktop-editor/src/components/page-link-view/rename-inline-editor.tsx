@@ -22,9 +22,7 @@ export function RenameInlineEditor({
 	return (
 		<div className="mt-2 rounded-lg border border-base-300 bg-base-100 px-3 py-2">
 			<input
-				ref={inputRef}
 				className="input input-bordered input-sm w-full"
-				value={draftTitle}
 				onBlur={() => onRename()}
 				onChange={(event) => onChange(event.target.value)}
 				onKeyDown={(event) => {
@@ -37,6 +35,8 @@ export function RenameInlineEditor({
 						onRename();
 					}
 				}}
+				ref={inputRef}
+				value={draftTitle}
 			/>
 		</div>
 	);

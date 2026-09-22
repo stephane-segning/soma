@@ -1,11 +1,9 @@
 use std::time::SystemTime;
 
 use libp2p::PeerId;
-use libp2p::identity::PublicKey;
 use prost::Message;
-use soma_common::{verify_membership_capability, verify_membership_capability_with_owner_key};
 use soma_core::{Error, SomaResult};
-use soma_proto_build::space::{JoinDecision, JoinDecisionType, MembershipCapability, SpaceRole};
+use soma_proto_build::space::{JoinDecision, JoinDecisionType, SpaceRole};
 use soma_storage::{
     mailbox::NewMailboxEntry,
     membership::{JoinDecision as StoredDecision, MembershipRepository, Space, SpaceMembership},
@@ -15,7 +13,7 @@ use crate::{
     outgoing_join_requests::MAILBOX_KIND_JOIN_DECISION,
     roles::role_to_str,
     time::epoch_seconds,
-    trust::{PeerKeyResolver, TrustAnchor, pin_trust_anchor, resolve_trust_anchor},
+    trust::{PeerKeyResolver, pin_trust_anchor, resolve_trust_anchor},
 };
 
 pub async fn enqueue_outgoing_join_decision(
@@ -121,80 +119,18 @@ pub async fn verify_and_apply_inbound_join_decision(
             .as_ref()
             .ok_or_else(|| Error::service("approved decision missing capability"))?;
         let anchor = resolve_trust_anchor(repo, space_id, from).await?;
-        verify_capability_against_anchor(cap, anchor, resolver, local_peer_id, SystemTime::now())
-            .await?;
+        crate::trust::verify_capability_against_anchor_for_subject(
+            cap,
+            anchor,
+            resolver,
+            local_peer_id,
+            SystemTime::now(),
+        )
+        .await?;
         pin_trust_anchor(repo, space_id, anchor).await?;
     }
 
     apply_join_decision(repo, decision).await
-}
-
-async fn verify_capability_against_anchor(
-    cap: &MembershipCapability,
-    anchor: TrustAnchor,
-    resolver: &dyn PeerKeyResolver,
-    local_peer_id: &PeerId,
-    now: SystemTime,
-) -> SomaResult<()> {
-    let signed = cap
-        .signed
-        .as_ref()
-        .ok_or_else(|| Error::service("membership capability missing signature"))?;
-    let signer_peer_id: PeerId = signed
-        .signer_peer_id
-        .as_ref()
-        .map(|p| p.value.as_str())
-        .unwrap_or_default()
-        .parse()
-        .map_err(|_| Error::service("membership capability signer peer id malformed"))?;
-    let signer_pub: PublicKey = resolver
-        .resolve(&signer_peer_id)
-        .await
-        .ok_or_else(|| Error::service("membership signer public key unavailable"))?;
-
-    match cap.issuer_cap.as_ref() {
-        None => {
-            // Direct issuance: the issuer must actually BE the pinned
-            // anchor, not merely self-consistent with the payload's own
-            // `signer_peer_id` field (that self-consistency check is all
-            // `soma_common::verify_membership_capability` does on its
-            // own -- see its doc comment).
-            if signer_peer_id != anchor.peer_id() {
-                return Err(Error::service(
-                    "membership issuer is not this space's trusted owner",
-                ));
-            }
-            verify_membership_capability(cap, &signer_pub, local_peer_id, now)
-        }
-        Some(issuer_cap) => {
-            // Delegated issuance: the *owner* claimed inside issuer_cap
-            // must match the pinned anchor. We resolve the anchor's real
-            // key ourselves via `resolver` rather than trusting whatever
-            // key the attacker-controlled `owner_peer_id` field points at
-            // -- this is the exact bug `issuer_owner_public_key` had.
-            let claimed_owner = issuer_cap
-                .owner_peer_id
-                .as_ref()
-                .map(|p| p.value.as_str())
-                .unwrap_or_default();
-            if claimed_owner != anchor.peer_id().to_string() {
-                return Err(Error::service(
-                    "issuer capability owner does not match this space's trusted owner",
-                ));
-            }
-            let owner_pub = resolver
-                .resolve(&anchor.peer_id())
-                .await
-                .ok_or_else(|| Error::service("space owner public key unavailable"))?;
-            verify_membership_capability_with_owner_key(
-                cap,
-                &signer_pub,
-                &owner_pub,
-                local_peer_id,
-                now,
-            )
-        }
-    }
 }
 
 /// Apply an ALREADY-VERIFIED join decision to local storage: record the
@@ -291,6 +227,7 @@ pub(crate) async fn apply_join_decision(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use soma_proto_build::space::MembershipCapability;
     use crate::test_support::{FakeMembershipRepo, FixedKeyResolver};
     use libp2p::identity::Keypair;
     use prost_types::Timestamp;

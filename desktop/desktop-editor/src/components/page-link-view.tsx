@@ -1,17 +1,13 @@
 import { ContextMenu } from "@soma/ui/components/overlays/context-menu";
 import type { NodeViewProps } from "@tiptap/core";
 import { NodeViewWrapper } from "@tiptap/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, Link2 } from "react-feather";
-import { RenameInlineEditor } from "./page-link-view/rename-inline-editor";
 import { createPageLinkMenuItems } from "./page-link-view/menu";
+import { RenameInlineEditor } from "./page-link-view/rename-inline-editor";
 import { formatLinkLabel, getPageLinkOptions } from "./page-link-view/utils";
 
-export function PageLinkView({
-	node,
-	extension,
-	updateAttributes,
-}: NodeViewProps): React.JSX.Element {
+export function PageLinkView({ node, extension, updateAttributes }: NodeViewProps): React.JSX.Element {
 	const title = (node.attrs.title as string | undefined) ?? "Untitled link";
 	const pageId = node.attrs.pageId as string | undefined;
 	const href = node.attrs.href as string | undefined;
@@ -28,10 +24,10 @@ export function PageLinkView({
 		inputRef.current?.select();
 	}, [isRenaming]);
 
-	const handleOpen = () => {
+	const handleOpen = useCallback(() => {
 		if (pageId && onOpenPage) return onOpenPage(pageId, title, href);
 		if (href) window.open(href, "_blank", "noreferrer");
-	};
+	}, [href, onOpenPage, pageId, title]);
 	const handleRename = async () => {
 		const trimmed = draftTitle.trim();
 		if (!trimmed || trimmed === title) return setIsRenaming(false);
@@ -56,21 +52,21 @@ export function PageLinkView({
 				onOpen: handleOpen,
 				pageId,
 			}),
-		[href, onOpenPage, pageId, title],
+		[href, onOpenPage, onRenamePage, pageId, title, handleOpen],
 	);
 	const subtitle = pageId ? pageId : href ? formatLinkLabel(href) : null;
 
 	return (
 		<NodeViewWrapper as="div" className="page-link text-[1em]" contentEditable={false}>
 			<button
-				type="button"
-				className="flex w-full cursor-pointer items-center gap-4 rounded-lg border border-primary bg-primary/10 px-3 py-2 my-2 text-left text-[0.95em]"
+				className="my-2 flex w-full cursor-pointer items-center gap-4 rounded-lg border border-primary bg-primary/10 px-3 py-2 text-left text-[0.95em]"
+				onClick={handleOpen}
 				onContextMenu={(event) => {
 					event.preventDefault();
 					setMenuPosition({ x: event.clientX, y: event.clientY });
 					setMenuOpen(true);
 				}}
-				onClick={handleOpen}
+				type="button"
 			>
 				<Link2 className="size-[1.2em] text-primary" />
 				<div className="flex-1">
@@ -90,7 +86,7 @@ export function PageLinkView({
 				onChange={setDraftTitle}
 				onRename={handleRename}
 			/>
-			<ContextMenu open={menuOpen} position={menuPosition} items={menuItems} onClose={() => setMenuOpen(false)} />
+			<ContextMenu items={menuItems} onClose={() => setMenuOpen(false)} open={menuOpen} position={menuPosition} />
 		</NodeViewWrapper>
 	);
 }

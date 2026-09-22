@@ -41,20 +41,13 @@ export const OverlayShowcase: Story = {
 				<div className="space-y-3">
 					<h3 className="font-semibold text-lg">Overlays</h3>
 					<p className="text-base-content/70 text-sm">
-						Modal + context menu + Daisy-themed toasts. Right-click anywhere in
-						this panel.
+						Modal + context menu + Daisy-themed toasts. Right-click anywhere in this panel.
 					</p>
 					<div className="flex gap-3">
-						<PolymorphButton
-							onClick={() => setModalOpen(true)}
-							variant="primary"
-						>
+						<PolymorphButton onClick={() => setModalOpen(true)} variant="primary">
 							Open modal
 						</PolymorphButton>
-						<PolymorphButton
-							onClick={() => notify.success("Saved to clipboard!")}
-							variant="secondary"
-						>
+						<PolymorphButton onClick={() => notify.success("Saved to clipboard!")} variant="secondary">
 							Trigger toast
 						</PolymorphButton>
 					</div>
@@ -93,10 +86,7 @@ export const OverlayShowcase: Story = {
 				<Modal
 					actions={
 						<div className="flex gap-2">
-							<PolymorphButton
-								onClick={() => setModalOpen(false)}
-								variant="ghost"
-							>
+							<PolymorphButton onClick={() => setModalOpen(false)} variant="ghost">
 								Close
 							</PolymorphButton>
 							<PolymorphButton
@@ -117,12 +107,11 @@ export const OverlayShowcase: Story = {
 				>
 					<div className="space-y-2">
 						<p className="text-base-content/70 text-sm">
-							Use this as a base for global overlays across Soma + Tapia.
-							Content is left-aligned and uses glassmorphism.
+							Use this as a base for global overlays across Soma + Tapia. Content is left-aligned and uses
+							glassmorphism.
 						</p>
 						<p className="text-base-content/50 text-xs">
-							Animations rely on the Motion library; adjust MotionConfig in
-							Storybook preview to tweak defaults.
+							Animations rely on the Motion library; adjust MotionConfig in Storybook preview to tweak defaults.
 						</p>
 					</div>
 				</Modal>

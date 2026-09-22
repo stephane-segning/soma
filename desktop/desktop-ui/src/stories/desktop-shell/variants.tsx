@@ -9,18 +9,12 @@ export function SidebarRender() {
 	return (
 		<DesktopShell
 			header={({ toggleLeft, toggleRight }) => (
-				<ShellHeader
-					title="Desktop Shell"
-					toggleLeft={toggleLeft}
-					toggleRight={toggleRight}
-				/>
+				<ShellHeader title="Desktop Shell" toggleLeft={toggleLeft} toggleRight={toggleRight} />
 			)}
 			leftColumn={<NavigationPanel />}
 			rightColumn={
 				<div className="space-y-3 p-3 text-sm">
-					<p className="font-semibold text-base-content/80 text-xs uppercase tracking-wide">
-						Status
-					</p>
+					<p className="font-semibold text-base-content/80 text-xs uppercase tracking-wide">Status</p>
 					<StatusBadge label="Online" tone="success" />
 					<StatusBadge label="Syncing" tone="info" />
 					<Pill dot tone="success">
@@ -28,9 +22,7 @@ export function SidebarRender() {
 					</Pill>
 					<div className="flex items-start gap-2 rounded-md bg-base-200 p-3 text-base-content/70 text-xs">
 						<Info className="text-base-content/60" size={14} />
-						<span>
-							Use this shell as a structured layout for desktop views.
-						</span>
+						<span>Use this shell as a structured layout for desktop views.</span>
 					</div>
 				</div>
 			}
@@ -53,11 +45,7 @@ export function HeaderFooterRender() {
 				</div>
 			}
 			header={({ toggleLeft, toggleRight }) => (
-				<ShellHeader
-					title="Dashboard"
-					toggleLeft={toggleLeft}
-					toggleRight={toggleRight}
-				/>
+				<ShellHeader title="Dashboard" toggleLeft={toggleLeft} toggleRight={toggleRight} />
 			)}
 			leftColumn={<NavigationPanel />}
 			rightColumn={
@@ -77,21 +65,14 @@ export function ScrollableRender() {
 	return (
 		<DesktopShell
 			header={({ toggleLeft, toggleRight }) => (
-				<ShellHeader
-					title="Scrollable Main Area"
-					toggleLeft={toggleLeft}
-					toggleRight={toggleRight}
-				/>
+				<ShellHeader title="Scrollable Main Area" toggleLeft={toggleLeft} toggleRight={toggleRight} />
 			)}
 			leftColumn={<NavigationPanel count={100} />}
 			rightColumn={<InfoPanel count={50} />}
 		>
 			<div className="space-y-2">
 				{items.map((item) => (
-					<ContentCard
-						body={`${item} - filler content to demonstrate scrolling.`}
-						key={item}
-					/>
+					<ContentCard body={`${item} - filler content to demonstrate scrolling.`} key={item} />
 				))}
 			</div>
 		</DesktopShell>
@@ -99,22 +80,12 @@ export function ScrollableRender() {
 }
 
 export function PersistentWidthsRender() {
-	const [leftWidth, setLeftWidth] = usePersistedWidth(
-		"desktop-shell-left",
-		220,
-	);
-	const [rightWidth, setRightWidth] = usePersistedWidth(
-		"desktop-shell-right",
-		240,
-	);
+	const [leftWidth, setLeftWidth] = usePersistedWidth("desktop-shell-left", 220);
+	const [rightWidth, setRightWidth] = usePersistedWidth("desktop-shell-right", 240);
 	return (
 		<DesktopShell
 			header={({ toggleLeft, toggleRight }) => (
-				<ShellHeader
-					title="Persistent widths"
-					toggleLeft={toggleLeft}
-					toggleRight={toggleRight}
-				/>
+				<ShellHeader title="Persistent widths" toggleLeft={toggleLeft} toggleRight={toggleRight} />
 			)}
 			initialLeftWidth={leftWidth}
 			initialRightWidth={rightWidth}
@@ -152,8 +123,7 @@ function usePersistedWidth(key: string, fallback: number) {
 		return Number.isFinite(stored) ? stored : fallback;
 	});
 	useEffect(() => {
-		if (typeof window !== "undefined")
-			window.localStorage.setItem(key, String(width));
+		if (typeof window !== "undefined") window.localStorage.setItem(key, String(width));
 	}, [key, width]);
 	return [width, setWidth] as const;
 }

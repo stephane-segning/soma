@@ -1,8 +1,8 @@
 import {
 	arrow,
 	autoUpdate,
-	flip,
 	FloatingPortal,
+	flip,
 	hide,
 	offset,
 	shift,
@@ -112,10 +112,7 @@ export function CommandList({
 				.map((item) => ({
 					id: item.key,
 					label: item.name,
-					aliases: [
-						item.description,
-						...(item.keywords ?? []),
-					].filter((v): v is string => Boolean(v)),
+					aliases: [item.description, ...(item.keywords ?? [])].filter((v): v is string => Boolean(v)),
 					icon: item.icon,
 					shortcut: item.shortcut,
 					section: item.section,
@@ -142,20 +139,15 @@ export function CommandList({
 	return (
 		<FloatingPortal>
 			<div
+				className="z-50"
 				ref={refs.setFloating}
 				style={{
 					...floatingStyles,
 					visibility: referenceHidden ? "hidden" : floatingStyles.visibility,
 					pointerEvents: referenceHidden ? "none" : floatingStyles.pointerEvents,
 				}}
-				className="z-50"
 			>
-				<SlashMenu
-					captureScope="window"
-					items={slashItems}
-					onClose={onDismiss}
-					query={props.query}
-				/>
+				<SlashMenu captureScope="window" items={slashItems} onClose={onDismiss} query={props.query} />
 				<div
 					aria-hidden
 					className="absolute size-2 rotate-45 border-base-300 bg-base-100"

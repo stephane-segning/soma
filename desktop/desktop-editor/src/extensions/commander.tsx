@@ -1,5 +1,5 @@
 import type { Range } from "@tiptap/core";
-import { Editor, Extension } from "@tiptap/core";
+import { type Editor, Extension } from "@tiptap/core";
 import { PluginKey } from "@tiptap/pm/state";
 import { Suggestion } from "@tiptap/suggestion";
 import { renderCommanderItems } from "./commander/render";

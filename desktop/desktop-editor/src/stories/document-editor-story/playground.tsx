@@ -20,22 +20,25 @@ export function PlaygroundRender() {
 		};
 	}, []);
 
-	const uploadFile = useCallback(async (file: File): Promise<BlobFileUploadResult> => ({
-		cid: createId(),
-		href: URL.createObjectURL(file),
-		mime: file.type || "application/octet-stream",
-		size: file.size,
-		name: file.name,
-	}), []);
+	const uploadFile = useCallback(
+		async (file: File): Promise<BlobFileUploadResult> => ({
+			cid: createId(),
+			href: URL.createObjectURL(file),
+			mime: file.type || "application/octet-stream",
+			size: file.size,
+			name: file.name,
+		}),
+		[],
+	);
 
 	const commands = useMemo(() => createStoryCommands({ uploadFile, uploadImage }), [uploadFile, uploadImage]);
 
 	return (
-		<div className="min-h-screen bg-base-100 px-4 md:px-16 lg:px-32 py-12">
+		<div className="min-h-screen bg-base-100 px-4 py-12 md:px-16 lg:px-32">
 			<DocumentEditor
-				limit={20_000}
 				commands={commands}
 				initialContent={initialContent}
+				limit={20_000}
 				onChange={() => {}}
 				onOpenPageLink={(pageId) => {
 					// eslint-disable-next-line no-alert

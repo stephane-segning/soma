@@ -24,21 +24,12 @@ export const ExpandedAndCollapsed: Story = {
 	render: () => (
 		<div className="space-y-3">
 			<p className="text-base-content/60 text-sm">
-				Expanded chips carry a soft primary tint so the bar reads as a state
-				indicator, not just an overflow menu.
+				Expanded chips carry a soft primary tint so the bar reads as a state indicator, not just an overflow menu.
 			</p>
 			<div className="inline-flex items-center gap-1 rounded-lg bg-base-200 p-1">
-				<PanelChip
-					expanded
-					icon={<MessageSquare size={14} />}
-					label="Chat (open)"
-				/>
+				<PanelChip expanded icon={<MessageSquare size={14} />} label="Chat (open)" />
 				<PanelChip icon={<Hash size={14} />} label="Pages" />
-				<PanelChip
-					expanded
-					icon={<Calendar size={14} />}
-					label="Agenda (open)"
-				/>
+				<PanelChip expanded icon={<Calendar size={14} />} label="Agenda (open)" />
 				<PanelChip icon={<Settings size={14} />} label="Settings" />
 			</div>
 		</div>
@@ -57,9 +48,7 @@ export const Interactive: Story = {
 			});
 		return (
 			<div className="space-y-3">
-				<p className="text-base-content/60 text-sm">
-					Click any chip to toggle its expanded state.
-				</p>
+				<p className="text-base-content/60 text-sm">Click any chip to toggle its expanded state.</p>
 				<div className="inline-flex items-center gap-1 rounded-lg bg-base-200 p-1">
 					{[
 						{ id: "chat", icon: <MessageSquare size={14} />, label: "Chat" },

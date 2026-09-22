@@ -30,19 +30,12 @@ describe("SlashMenu keyboard scroll", () => {
 		// prototype before spying so the spy has something to wrap.
 		// biome-ignore lint/suspicious/noExplicitAny: typed stub for jsdom prototype hole
 		(Element.prototype as any).scrollIntoView ??= () => {};
-		const scrollSpy = vi
-			.spyOn(Element.prototype, "scrollIntoView")
-			.mockImplementation(() => {});
+		const scrollSpy = vi.spyOn(Element.prototype, "scrollIntoView").mockImplementation(() => {});
 
 		const onClose = vi.fn();
 		render(
 			<SomaIntlProvider>
-				<SlashMenu
-					captureScope="window"
-					items={makeItems(15)}
-					onClose={onClose}
-					query=""
-				/>
+				<SlashMenu captureScope="window" items={makeItems(15)} onClose={onClose} query="" />
 			</SomaIntlProvider>,
 		);
 

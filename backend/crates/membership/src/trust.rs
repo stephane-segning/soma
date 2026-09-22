@@ -38,8 +38,9 @@ use std::time::SystemTime;
 use async_trait::async_trait;
 use libp2p::PeerId;
 use libp2p::identity::PublicKey;
+use soma_common::{verify_membership_capability, verify_membership_capability_with_owner_key};
 use soma_core::{Error, SomaResult};
-use soma_proto_build::space::IssuerCapability;
+use soma_proto_build::space::{IssuerCapability, MembershipCapability};
 use soma_storage::membership::{MembershipRepository, Space};
 
 use crate::time::epoch_seconds;
@@ -124,6 +125,108 @@ pub(crate) async fn pin_trust_anchor(
     })
     .await
 }
+
+/// The pinned owner of `space_id`, or `None` if nothing is pinned yet.
+///
+/// Unlike [`resolve_trust_anchor`] this never falls back to trusting a
+/// candidate peer. Trust-on-first-use is right when the local peer
+/// initiated the exchange, and dangerous when it did not: a stranger
+/// offering a roster for an unknown space would otherwise pin itself as
+/// that space's owner. Callers ingesting third-party claims use this
+/// and refuse on `None`.
+pub(crate) async fn pinned_trust_anchor(
+    repo: &dyn MembershipRepository,
+    space_id: &str,
+) -> SomaResult<Option<TrustAnchor>> {
+    let Some(owner) = repo
+        .get_space(space_id)
+        .await?
+        .and_then(|space| space.owner_peer_id)
+    else {
+        return Ok(None);
+    };
+    owner
+        .parse::<PeerId>()
+        .map(|p| Some(TrustAnchor(p)))
+        .map_err(|_| Error::service("pinned space owner peer id is malformed"))
+}
+
+/// Verify a membership capability against a space's pinned owner.
+///
+/// `subject_peer_id` is who the capability is expected to be *about*.
+/// For the join path that is always the local peer; roster replication
+/// passes the third party the row describes. Nothing else differs —
+/// which is the point: a relayed row is checked exactly as strictly as
+/// a first-hand one, because the trust anchor and the signer's key both
+/// come from local state rather than from the artifact.
+pub(crate) async fn verify_capability_against_anchor_for_subject(
+    cap: &MembershipCapability,
+    anchor: TrustAnchor,
+    resolver: &dyn PeerKeyResolver,
+    subject_peer_id: &PeerId,
+    now: SystemTime,
+) -> SomaResult<()> {
+    let signed = cap
+        .signed
+        .as_ref()
+        .ok_or_else(|| Error::service("membership capability missing signature"))?;
+    let signer_peer_id: PeerId = signed
+        .signer_peer_id
+        .as_ref()
+        .map(|p| p.value.as_str())
+        .unwrap_or_default()
+        .parse()
+        .map_err(|_| Error::service("membership capability signer peer id malformed"))?;
+    let signer_pub: PublicKey = resolver
+        .resolve(&signer_peer_id)
+        .await
+        .ok_or_else(|| Error::service("membership signer public key unavailable"))?;
+
+    match cap.issuer_cap.as_ref() {
+        None => {
+            // Direct issuance: the issuer must actually BE the pinned
+            // anchor, not merely self-consistent with the payload's own
+            // `signer_peer_id` field (that self-consistency check is all
+            // `soma_common::verify_membership_capability` does on its
+            // own -- see its doc comment).
+            if signer_peer_id != anchor.peer_id() {
+                return Err(Error::service(
+                    "membership issuer is not this space's trusted owner",
+                ));
+            }
+            verify_membership_capability(cap, &signer_pub, subject_peer_id, now)
+        }
+        Some(issuer_cap) => {
+            // Delegated issuance: the *owner* claimed inside issuer_cap
+            // must match the pinned anchor. We resolve the anchor's real
+            // key ourselves via `resolver` rather than trusting whatever
+            // key the attacker-controlled `owner_peer_id` field points at
+            // -- this is the exact bug `issuer_owner_public_key` had.
+            let claimed_owner = issuer_cap
+                .owner_peer_id
+                .as_ref()
+                .map(|p| p.value.as_str())
+                .unwrap_or_default();
+            if claimed_owner != anchor.peer_id().to_string() {
+                return Err(Error::service(
+                    "issuer capability owner does not match this space's trusted owner",
+                ));
+            }
+            let owner_pub = resolver
+                .resolve(&anchor.peer_id())
+                .await
+                .ok_or_else(|| Error::service("space owner public key unavailable"))?;
+            verify_membership_capability_with_owner_key(
+                cap,
+                &signer_pub,
+                &owner_pub,
+                subject_peer_id,
+                now,
+            )
+        }
+    }
+}
+
 
 /// Verify an inbound `IssuerCapability` offer at ingest time (the owner ->
 /// delegate handshake over `/soma/issuer-offer/1`).

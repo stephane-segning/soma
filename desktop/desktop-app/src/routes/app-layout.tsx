@@ -7,8 +7,9 @@
  *   └─────┴────────────┴──────────────────────┴──────────────┘
  *
  * - **Outer spaces rail** (`SpacesRailContainer`): 52-px icon column,
- *   mounted as `DesktopShell`'s always-on `leftGutter` so it stays
- *   visible even when every inner panel is collapsed.
+ *   mounted as `DesktopShell`'s `leftGutter` so it stays visible even
+ *   when every inner panel is collapsed — docked at "comfortable" and
+ *   "tight". Hidden at "verySmall"; see the tier note below.
  * - **Inner-left rail** (`LeftInnerRail`): Pages + Nav panels. Passed
  *   as `leftColumn` *only when at least one panel is expanded* — when
  *   the user collapses both, `leftColumn` goes `null` and the rail
@@ -32,9 +33,21 @@
  * / `toggleChatSidebar` below are published into `useShellControls`
  * (`../lib/shell-controls.tsx`) on mount, which `CommandPaletteRoot`
  * reads back out.
+ *
+ * **"verySmall" tier (phone widths, < 960px) is a deliberate ADR-0005
+ * §2 deviation** — `DesktopShell` hides the spaces gutter there (its
+ * doc comment has the full rationale) and this component replaces its
+ * two jobs: `SpaceSwitcherContainer` takes over space-switching in the
+ * header, and `MobileTabBarContainer` (wired to `DesktopShell`'s
+ * `mobileNav` slot) replaces the top `PanelChipBar`s with a labelled
+ * bottom tab bar (Pages · Chat · Bots · More). `tier` (mirrored from
+ * `DesktopShell` via `onTierChange`) drives all three swaps; `bare` on
+ * `LeftInnerRail`/`RightRail` drops their card chrome at this tier
+ * since `DesktopShell`'s fullscreen overlay already supplies a
+ * back+title header (`leftOverlayTitle`/`rightOverlayTitle`).
  */
 
-import { DesktopShell } from "@soma/ui/components/layout/desktop-shell";
+import { DesktopShell, type ShellTier } from "@soma/ui/components/layout/desktop-shell";
 import { PanelChipBar } from "@soma/ui/components/panels/panel-chip-bar";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { type MouseEvent, useCallback, useMemo, useState } from "react";
@@ -43,8 +56,11 @@ import { Outlet, useNavigate } from "react-router";
 import { DaemonStatusLine } from "../components/daemon-status-line";
 import { NavIcon, PagesIcon, SettingsIcon } from "../components/icons";
 import { LEFT_RAIL_DEFAULT_EXPANDED, LEFT_RAIL_PANEL_IDS, LeftInnerRail } from "../components/left-inner-rail";
+import { MobileTabBarContainer } from "../components/mobile-tab-bar-container";
 import { RIGHT_RAIL_PANEL_IDS, RightRail, rightRailChipDescriptors } from "../components/right-rail";
+import { SpaceSwitcherContainer } from "../components/space-switcher-container";
 import { SpacesRailContainer } from "../components/spaces-rail-container";
+import { type MobileNavTarget, selectMobileTab } from "../lib/mobile-nav";
 import { type ShellControls, useRegisterShellControls } from "../lib/shell-controls";
 import { useWindowTitle } from "../lib/use-window-title";
 
@@ -81,6 +97,33 @@ export function AppLayout() {
 	// rail has collapsed to zero width.
 	const [leftExpanded, setLeftExpanded] = useState<Set<string>>(() => new Set(LEFT_RAIL_DEFAULT_EXPANDED));
 	const [rightExpanded, setRightExpanded] = useState<Set<string>>(() => new Set(RIGHT_RAIL_DEFAULT_EXPANDED));
+
+	// `DesktopShell`'s own ADR-0005 §2 tier, mirrored here via
+	// `onTierChange` below — needed for composition decisions that
+	// can't live inside a `DesktopShell` slot: swapping the header
+	// between the "SOMA" title and the space switcher, and swapping
+	// `leftColumn`/`rightColumn` between docked card content and a
+	// bare "verySmall" mobile screen (see `LeftInnerRail`/`RightRail`'s
+	// `bare` prop).
+	const [tier, setTier] = useState<ShellTier>("comfortable");
+
+	// The "verySmall" bottom tab bar's active tab — tracked separately
+	// from `leftExpanded`/`rightExpanded` rather than derived from them,
+	// because those two default to *both* rail panels expanded (the
+	// desktop default), which would make the very first tap on a tab
+	// look like closing a panel that was never actually visible at a
+	// narrow tier (nothing is summoned by default — see
+	// `useNarrowOverlayVisibility`'s doc comment). See `lib/mobile-nav.ts`.
+	const [mobileActiveTab, setMobileActiveTab] = useState<string | null>(null);
+	const handleMobileTabSelect = useCallback(
+		(target: MobileNavTarget) => {
+			const next = selectMobileTab(mobileActiveTab, target);
+			setLeftExpanded(new Set(next.left));
+			setRightExpanded(new Set(next.right));
+			setMobileActiveTab(next.activeId);
+		},
+		[mobileActiveTab],
+	);
 
 	const toggleLeftPanel = useCallback((id: string) => {
 		setLeftExpanded((prev) => {
@@ -134,8 +177,20 @@ export function AppLayout() {
 	// Collapse the inner rail to width 0 when no panel is open — passing
 	// `leftColumn={null}` lets `ShellPanel` animate closed instead of
 	// leaving a dead, resizable empty column beside the spaces gutter.
+	// `bare` at "verySmall" only — see `LeftInnerRail`'s doc comment.
 	const leftColumn =
-		leftExpanded.size > 0 ? <LeftInnerRail expandedIds={leftExpanded} onCollapse={toggleLeftPanel} /> : null;
+		leftExpanded.size > 0 ? (
+			<LeftInnerRail bare={tier === "verySmall"} expandedIds={leftExpanded} onCollapse={toggleLeftPanel} />
+		) : null;
+	// At verySmall the bottom tab relabels the Nav panel "More", so the
+	// screen it opens has to say "More" too — a tab and its own screen
+	// disagreeing about their name reads as a bug, not a nuance.
+	const activeLeftPanel = leftChipPanels.find((panel) => leftExpanded.has(panel.id));
+	const activeLeftTitle =
+		tier === "verySmall" && activeLeftPanel?.id === LEFT_RAIL_PANEL_IDS.nav
+			? t("panels.more.title", "More")
+			: activeLeftPanel?.label;
+	const activeRightTitle = rightChipPanels.find((panel) => rightExpanded.has(panel.id))?.label;
 
 	return (
 		<DesktopShell
@@ -160,12 +215,25 @@ export function AppLayout() {
 					onMouseDown={startWindowDrag}
 					style={{ paddingLeft: "var(--shell-titlebar-pad-left, 80px)", paddingRight: "0.5rem" }}
 				>
-					<div
-						className="font-semibold text-base-content/60 text-xs uppercase tracking-[0.14em]"
-						data-tauri-drag-region
-					>
-						{t("app.title")}
-					</div>
+					{tier === "verySmall" ? (
+						// The spaces rail is hidden at this tier (see
+						// `DesktopShell`'s `leftGutter` doc comment) — the space
+						// switcher takes over both its jobs (switching space,
+						// naming the current one). Wrapped in `data-no-drag`
+						// (not just relying on the CSS `button` exemption below)
+						// since `startWindowDrag`'s JS-level drag start only
+						// checks for that attribute, same as the settings button.
+						<div className="min-w-0" data-no-drag>
+							<SpaceSwitcherContainer />
+						</div>
+					) : (
+						<div
+							className="font-semibold text-base-content/60 text-xs uppercase tracking-[0.14em]"
+							data-tauri-drag-region
+						>
+							{t("app.title")}
+						</div>
+					)}
 					<div className="flex-1" data-tauri-drag-region />
 					<button
 						aria-label={t("nav.settings", "Settings")}
@@ -190,7 +258,11 @@ export function AppLayout() {
 			// a docked rail (ADR-0005 §2); these let the scrim tap / the
 			// fullscreen variant's back button actually close it, same as
 			// each panel's own header close button already does.
+			leftOverlayTitle={activeLeftTitle}
 			leftSummonKey={[...leftExpanded].sort().join(",")}
+			// Narrow tiers need to know *which* panels are being asked for,
+			// not just that some are — with two panels sharing a column the
+			// boolean never changes and the rail can't be summoned at all.
 			mainTopLeft={
 				<PanelChipBar
 					expandedIds={leftExpanded}
@@ -199,9 +271,6 @@ export function AppLayout() {
 					placement="top-left"
 				/>
 			}
-			// Narrow tiers need to know *which* panels are being asked for,
-			// not just that some are — with two panels sharing a column the
-			// boolean never changes and the rail can't be summoned at all.
 			mainTopRight={
 				<PanelChipBar
 					expandedIds={rightExpanded}
@@ -210,11 +279,29 @@ export function AppLayout() {
 					placement="top-right"
 				/>
 			}
-			onLeftOverlayDismiss={() => setLeftExpanded(new Set())}
-			onRightOverlayDismiss={() => setRightExpanded(new Set())}
-			rightColumn={
-				rightExpanded.size > 0 ? <RightRail expandedIds={rightExpanded} onCollapse={toggleRightPanel} /> : null
+			mobileNav={
+				<MobileTabBarContainer
+					activeId={mobileActiveTab}
+					leftChipPanels={leftChipPanels}
+					onSelect={handleMobileTabSelect}
+					rightChipPanels={rightChipPanels}
+				/>
 			}
+			onLeftOverlayDismiss={() => {
+				setLeftExpanded(new Set());
+				setMobileActiveTab(null);
+			}}
+			onRightOverlayDismiss={() => {
+				setRightExpanded(new Set());
+				setMobileActiveTab(null);
+			}}
+			onTierChange={setTier}
+			rightColumn={
+				rightExpanded.size > 0 ? (
+					<RightRail bare={tier === "verySmall"} expandedIds={rightExpanded} onCollapse={toggleRightPanel} />
+				) : null
+			}
+			rightOverlayTitle={activeRightTitle}
 			rightSummonKey={[...rightExpanded].sort().join(",")}
 		>
 			<div className="flex min-h-0 flex-1 flex-col">

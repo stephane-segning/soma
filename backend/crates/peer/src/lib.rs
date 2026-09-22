@@ -14,4 +14,7 @@ mod types;
 pub use config::{PeerConfig, PeerConfigBuilder};
 pub use soma_vdfs::BlobProvider;
 pub use spawn::{spawn_peer, spawn_ping_peer};
-pub use types::{PeerCommand, PeerEvent, PeerHandle, SpaceAuthorizer};
+pub use types::{
+    DocumentDigest, DocumentPayload, DocumentSyncProvider, DocumentSyncRequest,
+    DocumentSyncResponse, PeerCommand, PeerEvent, PeerHandle, RosterProvider, SpaceAuthorizer,
+};

@@ -1,10 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 
-import {
-	type BackendOption,
-	BackendSwitcher,
-} from "../components/chat/backend-switcher";
+import { type BackendOption, BackendSwitcher } from "../components/chat/backend-switcher";
 
 const meta = {
 	title: "Chat/BackendSwitcher",
@@ -61,9 +58,7 @@ function Demo({ withAdd = true }: { withAdd?: boolean }) {
 				<BackendSwitcher
 					activeId={activeId}
 					backends={BACKENDS}
-					onAddBackend={
-						withAdd ? () => alert("Would deep-link to settings.") : undefined
-					}
+					onAddBackend={withAdd ? () => alert("Would deep-link to settings.") : undefined}
 					onChange={setActiveId}
 				/>
 			</div>

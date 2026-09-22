@@ -1,10 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
-import {
-	StreakMeter,
-	TimerPill,
-	XpMeter,
-} from "../components/progress/streak-meter";
+import { StreakMeter, TimerPill, XpMeter } from "../components/progress/streak-meter";
 
 const meta = {
 	title: "Progress/Meters",
@@ -77,9 +73,7 @@ export const InteractiveStreak: Story = {
 					type="range"
 					value={value}
 				/>
-				<p className="text-base-content/60 text-sm">
-					Drag the slider to update the streak.
-				</p>
+				<p className="text-base-content/60 text-sm">Drag the slider to update the streak.</p>
 			</div>
 		);
 	},

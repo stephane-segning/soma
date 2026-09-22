@@ -51,8 +51,7 @@ export function PeerAddressInput({
 	label,
 }: PeerAddressInputProps) {
 	const t = useT();
-	const handleChange = (event: ChangeEvent<HTMLInputElement>) =>
-		onChange(event.target.value);
+	const handleChange = (event: ChangeEvent<HTMLInputElement>) => onChange(event.target.value);
 
 	const inputId = useId();
 
@@ -98,10 +97,7 @@ function PreviewLine({ preview }: { preview: PeerAddressValidation }) {
 	if (preview.kind === "valid") {
 		return (
 			<div className="flex items-start gap-2 text-sm">
-				<CheckCircle
-					aria-hidden
-					className="mt-0.5 size-4 shrink-0 text-success"
-				/>
+				<CheckCircle aria-hidden className="mt-0.5 size-4 shrink-0 text-success" />
 				<div className="flex min-w-0 flex-col">
 					<span className="text-base-content/80">
 						{t({

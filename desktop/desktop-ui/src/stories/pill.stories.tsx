@@ -64,9 +64,7 @@ export const BotStatusCombos: Story = {
 				<Pill dot tone="error">
 					Failed
 				</Pill>
-				<span className="text-base-content/60">
-					Handshake or signature rejected
-				</span>
+				<span className="text-base-content/60">Handshake or signature rejected</span>
 			</div>
 		</div>
 	),

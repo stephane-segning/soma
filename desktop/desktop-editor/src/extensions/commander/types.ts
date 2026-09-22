@@ -1,6 +1,5 @@
-import type { Range } from "@tiptap/core";
-import type { Editor } from "@tiptap/core";
 import type { SlashMenuSection } from "@soma/ui/components/editor/slash-menu";
+import type { Editor, Range } from "@tiptap/core";
 import type { ReactNode } from "react";
 
 export type EditorCommand = {

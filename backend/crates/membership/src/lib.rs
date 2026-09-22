@@ -9,6 +9,7 @@ mod join_decisions;
 mod join_request_persistence;
 mod join_requests;
 mod membership_store;
+mod roster;
 mod outgoing_join_requests;
 mod roles;
 mod space_creation;
@@ -31,6 +32,7 @@ pub use outgoing_join_requests::{
     decode_outgoing_join_request_payload, enqueue_outgoing_join_request,
 };
 pub use roles::{parse_role_str, role_to_str};
+pub use roster::verify_third_party_membership;
 pub use space_creation::{
     build_space_genesis_artifact, create_space, create_space_with_genesis,
     verify_space_genesis_artifact,

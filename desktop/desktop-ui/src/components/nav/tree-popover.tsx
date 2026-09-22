@@ -27,14 +27,7 @@ import {
 	UncontrolledTreeEnvironment,
 } from "react-complex-tree";
 import "react-complex-tree/lib/style-modern.css";
-import {
-	type MouseEvent,
-	type ReactNode,
-	useEffect,
-	useMemo,
-	useRef,
-	useState,
-} from "react";
+import { type MouseEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronRight, FileText, Search, Star } from "react-feather";
 import { useT } from "../../i18n/use-t";
 import { cn } from "../../utils/cn";
@@ -123,10 +116,7 @@ export function TreePopover({
 		[recentIds, byId],
 	);
 
-	const starred = useMemo(
-		() => documents.filter((doc) => doc.starred),
-		[documents],
-	);
+	const starred = useMemo(() => documents.filter((doc) => doc.starred), [documents]);
 
 	// react-complex-tree expects an object keyed by item id with a
 	// `children` array of child ids. Root carries the top-level children.
@@ -204,10 +194,7 @@ export function TreePopover({
 				id: "tree-popover.aria-label",
 				defaultMessage: "Document picker",
 			})}
-			className={cn(
-				"glass-panel flex w-80 flex-col gap-2 p-2 shadow-elevated",
-				className,
-			)}
+			className={cn("glass-panel flex w-80 flex-col gap-2 p-2 shadow-elevated", className)}
 			ref={containerRef}
 			role="dialog"
 		>
@@ -221,10 +208,7 @@ export function TreePopover({
 			/>
 
 			{filteredDocs ? (
-				<FilteredList
-					docs={filteredDocs}
-					onSelect={(id, withMeta) => dispatchSelect(id, withMeta)}
-				/>
+				<FilteredList docs={filteredDocs} onSelect={(id, withMeta) => dispatchSelect(id, withMeta)} />
 			) : (
 				<>
 					{recents.length > 0 ? (
@@ -301,10 +285,7 @@ export function TreePopover({
 								}
 								renderItemTitle={({ title, item }) => (
 									<span className="flex min-w-0 items-center gap-1.5">
-										<FileText
-											aria-hidden
-											className="size-3.5 shrink-0 text-base-content/60"
-										/>
+										<FileText aria-hidden className="size-3.5 shrink-0 text-base-content/60" />
 										<span
 											className={cn(
 												"truncate text-sm",
@@ -312,9 +293,7 @@ export function TreePopover({
 												// rather than font-size or a color shift. The color
 												// stays in the base-content family so the row doesn't
 												// "jump out" from the rest of the tree.
-												item.data.id === currentId
-													? "font-semibold text-base-content"
-													: "text-base-content/90",
+												item.data.id === currentId ? "font-semibold text-base-content" : "text-base-content/90",
 											)}
 										>
 											{title}
@@ -372,9 +351,7 @@ function SearchInput({
 function Section({ title, children }: { title: string; children: ReactNode }) {
 	return (
 		<div className="flex flex-col gap-0.5">
-			<div className="px-2 pt-1 text-base-content/50 text-xs uppercase tracking-wide">
-				{title}
-			</div>
+			<div className="px-2 pt-1 text-base-content/50 text-xs uppercase tracking-wide">{title}</div>
 			{children}
 		</div>
 	);
@@ -412,28 +389,14 @@ function DocRow({
 			role="option"
 			type="button"
 		>
-			<FileText
-				aria-hidden
-				className="size-3.5 shrink-0 text-base-content/60"
-			/>
+			<FileText aria-hidden className="size-3.5 shrink-0 text-base-content/60" />
 			<span className="min-w-0 flex-1 truncate">{doc.title}</span>
-			{showStar ? (
-				<Star
-					aria-hidden
-					className="size-3 shrink-0 fill-warning text-warning"
-				/>
-			) : null}
+			{showStar ? <Star aria-hidden className="size-3 shrink-0 fill-warning text-warning" /> : null}
 		</button>
 	);
 }
 
-function FilteredList({
-	docs,
-	onSelect,
-}: {
-	docs: TreeDoc[];
-	onSelect: (id: string, withMeta: boolean) => void;
-}) {
+function FilteredList({ docs, onSelect }: { docs: TreeDoc[]; onSelect: (id: string, withMeta: boolean) => void }) {
 	const t = useT();
 	if (docs.length === 0) {
 		return (
@@ -448,21 +411,13 @@ function FilteredList({
 	return (
 		<div className="flex max-h-72 flex-col gap-0.5 overflow-y-auto">
 			{docs.map((doc) => (
-				<DocRow
-					doc={doc}
-					key={doc.id}
-					onSelect={(withMeta) => onSelect(doc.id, withMeta)}
-				/>
+				<DocRow doc={doc} key={doc.id} onSelect={(withMeta) => onSelect(doc.id, withMeta)} />
 			))}
 		</div>
 	);
 }
 
-function KeyboardHintsFooter({
-	onSelectInNewTab,
-}: {
-	onSelectInNewTab: boolean;
-}) {
+function KeyboardHintsFooter({ onSelectInNewTab }: { onSelectInNewTab: boolean }) {
 	const t = useT();
 	return (
 		<div className="flex flex-wrap items-center gap-1 border-base-300 border-t pt-2 text-base-content/50 text-xs">

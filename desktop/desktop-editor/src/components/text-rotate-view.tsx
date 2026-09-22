@@ -9,14 +9,10 @@ export function TextRotateView({ node }: NodeViewProps): React.JSX.Element {
 	const className = node.attrs.className as string | undefined;
 
 	return (
-		<NodeViewWrapper
-			as="span"
-			className={cn("text-rotate", className)}
-			contentEditable={false}
-		>
+		<NodeViewWrapper as="span" className={cn("text-rotate", className)} contentEditable={false}>
 			{items.length > 0
-				? items.map((item, index) => <span key={index}>{item}</span>)
-				: fallbackItems.map((item, index) => <span key={index}>{item}</span>)}
+				? items.map((item) => <span key={item}>{item}</span>)
+				: fallbackItems.map((item) => <span key={item}>{item}</span>)}
 		</NodeViewWrapper>
 	);
 }

@@ -23,18 +23,16 @@ export function AccordionView({ node }: NodeViewProps): React.JSX.Element {
 			<div className={cn("w-full space-y-2", className)}>
 				{(items.length > 0 ? items : fallbackItems).map((item, index) => (
 					<div
-						key={`${item.title}-${index}`}
 						className={cn(
 							"collapse border border-base-300 bg-base-100",
 							collapseType === "plus" ? "collapse-plus" : "collapse-arrow",
 							itemClassName,
 						)}
+						key={`${item.title}-${index}`}
 					>
 						<input type="checkbox" />
-						<div className="collapse-title text-base font-medium">
-							{item.title}
-						</div>
-						<div className="collapse-content text-sm text-base-content/80">
+						<div className="collapse-title font-medium text-base">{item.title}</div>
+						<div className="collapse-content text-base-content/80 text-sm">
 							<p>{item.content}</p>
 						</div>
 					</div>

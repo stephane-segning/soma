@@ -25,12 +25,7 @@
  * Overflow actions are **always visible** — never hover-only — per
  * ADR-0005 §9.
  */
-import {
-	forwardRef,
-	type KeyboardEvent,
-	type MouseEvent,
-	type ReactNode,
-} from "react";
+import { forwardRef, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
 import { cn } from "../../utils/cn";
 
 export type DenseRowProps = {
@@ -50,90 +45,64 @@ export type DenseRowProps = {
 	 */
 	actions?: ReactNode;
 	/** Renders as a button when set. Fires on click or on Enter/Space. */
-	onClick?: (
-		event: MouseEvent<HTMLLIElement> | KeyboardEvent<HTMLLIElement>,
-	) => void;
+	onClick?: (event: MouseEvent<HTMLLIElement> | KeyboardEvent<HTMLLIElement>) => void;
 	className?: string;
 	"aria-label"?: string;
 };
 
-export const DenseRow = forwardRef<HTMLLIElement, DenseRowProps>(
-	function DenseRow(
-		{
-			leading,
-			primary,
-			sub,
-			status,
-			meta,
-			actions,
-			onClick,
-			className,
-			...rest
-		},
-		ref,
-	) {
-		return (
-			<li
-				className={cn(
-					"list-row",
-					// No `transition-colors` — row-list highlights snap (see MenuItem).
-					onClick &&
-						"cursor-pointer hover:bg-base-200 focus-visible:bg-base-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-					className,
-				)}
-				onClick={onClick}
-				onKeyDown={
-					onClick
-						? (event) => {
-								if (event.key === "Enter" || event.key === " ") {
-									event.preventDefault();
-									onClick(event);
-								}
+export const DenseRow = forwardRef<HTMLLIElement, DenseRowProps>(function DenseRow(
+	{ leading, primary, sub, status, meta, actions, onClick, className, ...rest },
+	ref,
+) {
+	return (
+		<li
+			className={cn(
+				"list-row",
+				// No `transition-colors` — row-list highlights snap (see MenuItem).
+				onClick &&
+					"cursor-pointer hover:bg-base-200 focus-visible:bg-base-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+				className,
+			)}
+			onClick={onClick}
+			onKeyDown={
+				onClick
+					? (event) => {
+							if (event.key === "Enter" || event.key === " ") {
+								event.preventDefault();
+								onClick(event);
 							}
-						: undefined
-				}
-				ref={ref}
-				role={onClick ? "button" : undefined}
-				tabIndex={onClick ? 0 : undefined}
-				{...rest}
-			>
-				{leading != null ? (
-					<span className="flex items-center text-base-content/70">
-						{leading}
-					</span>
-				) : null}
-				{/* The primary + sub wrapper carries `list-col-grow` so it consumes
+						}
+					: undefined
+			}
+			ref={ref}
+			role={onClick ? "button" : undefined}
+			tabIndex={onClick ? 0 : undefined}
+			{...rest}
+		>
+			{leading != null ? <span className="flex items-center text-base-content/70">{leading}</span> : null}
+			{/* The primary + sub wrapper carries `list-col-grow` so it consumes
 				    the remaining horizontal space regardless of which other slots
 				    are rendered. Without that, daisy's `list-row` defaults to the
 				    second positional child growing, which breaks when `leading`
 				    is omitted (primary would then be 1st child and not grow). */}
-				<div className="flex min-w-0 list-col-grow flex-col leading-tight">
-					<div className="truncate text-base-content/90">{primary}</div>
-					{sub ? (
-						<div className="truncate text-[11px] text-base-content/55">
-							{sub}
-						</div>
-					) : null}
-				</div>
-				{status ? <span className="flex items-center">{status}</span> : null}
-				{meta ? (
-					<span className="flex items-center text-[11px] text-base-content/55">
-						{meta}
-					</span>
-				) : null}
-				{actions ? (
-					// Stop propagation so action buttons don't also fire the row's
-					// onClick / keyboard handlers when the row is interactive.
-					// biome-ignore lint/a11y/noStaticElementInteractions: transparent event-boundary, not a control of its own — `actions` is an opaque ReactNode of real, already-focusable buttons; this span only stops their clicks/keydowns from bubbling into the row, so it must not claim an interactive role.
-					<span
-						className="flex items-center"
-						onClick={(event) => event.stopPropagation()}
-						onKeyDown={(event) => event.stopPropagation()}
-					>
-						{actions}
-					</span>
-				) : null}
-			</li>
-		);
-	},
-);
+			<div className="flex min-w-0 list-col-grow flex-col leading-tight">
+				<div className="truncate text-base-content/90">{primary}</div>
+				{sub ? <div className="truncate text-[11px] text-base-content/55">{sub}</div> : null}
+			</div>
+			{status ? <span className="flex items-center">{status}</span> : null}
+			{meta ? <span className="flex items-center text-[11px] text-base-content/55">{meta}</span> : null}
+			{actions ? (
+				// Stop propagation so action buttons don't also fire the row's
+				// onClick / keyboard handlers when the row is interactive.
+				// biome-ignore lint/a11y/noStaticElementInteractions: transparent event-boundary, not a control of its own — `actions` is an opaque ReactNode of real, already-focusable buttons; this span only stops their clicks/keydowns from bubbling into the row, so it must not claim an interactive role.
+				<span
+					className="flex items-center"
+					onClick={(event) => event.stopPropagation()}
+					onKeyDown={(event) => event.stopPropagation()}
+				>
+					{actions}
+				</span>
+			) : null}
+		</li>
+	);
+});

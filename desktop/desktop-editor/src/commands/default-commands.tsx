@@ -5,10 +5,7 @@ import type { EditorCommand } from "../extensions/commander";
 // in the same footprint so the row aligns with the others.
 function OrderedListIcon() {
 	return (
-		<span
-			aria-hidden
-			className="inline-flex size-3.5 items-center justify-center font-mono text-xs"
-		>
+		<span aria-hidden className="inline-flex size-3.5 items-center justify-center font-mono text-xs">
 			1.
 		</span>
 	);

@@ -22,6 +22,7 @@ use join_decision_apply::JoinDecisionApplyHandler;
 use logging::LoggingHandler;
 use mailbox_outbox::MailboxOutboxHandler;
 use metrics::MetricsHandler;
+use soma_replication::DocumentSyncHandler;
 
 /// Build the list of peer event handlers that botd uses.
 pub fn build_handlers() -> Vec<Arc<dyn PeerEventHandler<BotState>>> {
@@ -41,5 +42,11 @@ pub fn build_handlers() -> Vec<Arc<dyn PeerEventHandler<BotState>>> {
         Arc::new(IssuerInboundHandler),
         Arc::new(MailboxOutboxHandler),
         Arc::new(BlobAnnounceFetchHandler),
+        // Triggers document/roster sync on connect, on join, and on
+        // learning new roster members — the same logic `soma-daemon`
+        // uses, shared via `soma-replication` rather than duplicated.
+        // This is what makes the bot mirror a space's documents at all,
+        // rather than only ever relaying join decisions.
+        Arc::new(DocumentSyncHandler::<BotState>::new()),
     ]
 }

@@ -38,19 +38,12 @@ import type { ShellTier } from "./use-shell-tier";
  * Callers that pass no key keep the old transition heuristic, which is
  * still correct for a single-panel column.
  */
-export function useNarrowOverlayVisibility(
-	tier: ShellTier,
-	hasContent: boolean,
-	summonKey?: string | number,
-): boolean {
+export function useNarrowOverlayVisibility(tier: ShellTier, hasContent: boolean, summonKey?: string | number): boolean {
 	const [summoned, setSummoned] = useState(false);
 	const prevHasContent = useRef(hasContent);
 	const prevSummonKey = useRef(summonKey);
 
-	const askedForIt =
-		summonKey === undefined
-			? !prevHasContent.current
-			: summonKey !== prevSummonKey.current;
+	const askedForIt = summonKey === undefined ? !prevHasContent.current : summonKey !== prevSummonKey.current;
 
 	// Conditional set-state-during-render: React's sanctioned way to
 	// derive state from a prop transition. Guarded by `!summoned` so it

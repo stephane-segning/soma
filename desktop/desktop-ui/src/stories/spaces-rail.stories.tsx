@@ -22,12 +22,7 @@ function Demo() {
 	const [activeId, setActiveId] = useState("team");
 	return (
 		<div className="flex h-screen bg-base-200">
-			<SpacesRail
-				activeId={activeId}
-				items={ITEMS}
-				onCreate={() => undefined}
-				onSelect={setActiveId}
-			/>
+			<SpacesRail activeId={activeId} items={ITEMS} onCreate={() => undefined} onSelect={setActiveId} />
 			<div className="flex-1 p-6 text-base-content/70 text-sm">
 				Active space: <code className="font-mono">{activeId}</code>
 			</div>
@@ -42,14 +37,8 @@ export const Default: Story = {
 export const NoActiveSpace: Story = {
 	render: () => (
 		<div className="flex h-screen bg-base-200">
-			<SpacesRail
-				items={ITEMS}
-				onCreate={() => undefined}
-				onSelect={() => undefined}
-			/>
-			<div className="flex-1 p-6 text-base-content/70 text-sm">
-				Initial state — no space active yet.
-			</div>
+			<SpacesRail items={ITEMS} onCreate={() => undefined} onSelect={() => undefined} />
+			<div className="flex-1 p-6 text-base-content/70 text-sm">Initial state — no space active yet.</div>
 		</div>
 	),
 };
@@ -57,14 +46,9 @@ export const NoActiveSpace: Story = {
 export const NoCreateButton: Story = {
 	render: () => (
 		<div className="flex h-screen bg-base-200">
-			<SpacesRail
-				activeId="personal"
-				items={ITEMS.slice(0, 2)}
-				onSelect={() => undefined}
-			/>
+			<SpacesRail activeId="personal" items={ITEMS.slice(0, 2)} onSelect={() => undefined} />
 			<div className="flex-1 p-6 text-base-content/70 text-sm">
-				The `+` button is optional; omit `onCreate` to hide it (e.g. for users
-				without permission to create spaces).
+				The `+` button is optional; omit `onCreate` to hide it (e.g. for users without permission to create spaces).
 			</div>
 		</div>
 	),

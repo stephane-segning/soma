@@ -1,11 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 
-import {
-	CapabilityForm,
-	type CapabilityFormValue,
-	type ScopeGroup,
-} from "../components/forms/capability-form";
+import { CapabilityForm, type CapabilityFormValue, type ScopeGroup } from "../components/forms/capability-form";
 
 const meta = {
 	title: "Forms/CapabilityForm",
@@ -60,13 +56,7 @@ const SCOPE_GROUPS: ScopeGroup[] = [
 
 const SAMPLE_PEER_ID = "12D3KooWAbCd1234efGhIjKlMnOpQrStUvWx";
 
-function Demo({
-	initialValue,
-	initialError,
-}: {
-	initialValue?: Partial<CapabilityFormValue>;
-	initialError?: string;
-}) {
+function Demo({ initialValue, initialError }: { initialValue?: Partial<CapabilityFormValue>; initialError?: string }) {
 	const [value, setValue] = useState<CapabilityFormValue>({
 		alias: "fetcher",
 		grantedScopeIds: ["doc:read", "msg:read"],
@@ -74,9 +64,7 @@ function Demo({
 		...initialValue,
 	});
 	const [issuing, setIssuing] = useState(false);
-	const [issueError, setIssueError] = useState<string | undefined>(
-		initialError,
-	);
+	const [issueError, setIssueError] = useState<string | undefined>(initialError);
 
 	return (
 		<div className="max-w-2xl">
@@ -91,9 +79,7 @@ function Demo({
 					setTimeout(() => {
 						setIssuing(false);
 						setIssueError(undefined);
-						alert(
-							`Would issue capability for ${value.alias} with ${value.grantedScopeIds.length} scope(s).`,
-						);
+						alert(`Would issue capability for ${value.alias} with ${value.grantedScopeIds.length} scope(s).`);
 					}, 600);
 				}}
 				peerId={SAMPLE_PEER_ID}
@@ -115,13 +101,7 @@ export const WithExpiry: Story = {
 		return (
 			<Demo
 				initialValue={{
-					grantedScopeIds: [
-						"doc:read",
-						"doc:write",
-						"msg:read",
-						"msg:post",
-						"blob:read",
-					],
+					grantedScopeIds: ["doc:read", "doc:write", "msg:read", "msg:post", "blob:read"],
 					expiryDate: future.toISOString().slice(0, 10),
 				}}
 			/>

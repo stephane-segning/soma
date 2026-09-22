@@ -94,9 +94,7 @@ function Demo() {
 					<span className="text-base-content/60">Surface:</span>
 					<select
 						className="rounded-md border border-base-300 bg-base-100 px-2 py-1"
-						onChange={(event) =>
-							setSurface(event.target.value as NodeAIActionSurface)
-						}
+						onChange={(event) => setSurface(event.target.value as NodeAIActionSurface)}
 						value={surface}
 					>
 						{SURFACES.map((s) => (
@@ -109,9 +107,7 @@ function Demo() {
 			</div>
 
 			<div className="rounded-md border border-base-300 p-3">
-				<div className="mb-2 text-base-content/60 text-xs uppercase">
-					Resolved actions
-				</div>
+				<div className="mb-2 text-base-content/60 text-xs uppercase">Resolved actions</div>
 				{actions.length === 0 ? (
 					<div className="text-base-content/60">No actions for this combo.</div>
 				) : (
@@ -119,9 +115,7 @@ function Demo() {
 						{actions.map((action) => (
 							<li className="flex items-center justify-between" key={action.id}>
 								<span>
-									<span className="font-mono text-base-content/60 text-xs">
-										{action.category}
-									</span>
+									<span className="font-mono text-base-content/60 text-xs">{action.category}</span>
 									{" · "}
 									{action.label}
 								</span>
@@ -145,9 +139,7 @@ function Demo() {
 			</div>
 
 			<div className="rounded-md border border-base-300 p-3">
-				<div className="mb-2 text-base-content/60 text-xs uppercase">
-					Invocation log
-				</div>
+				<div className="mb-2 text-base-content/60 text-xs uppercase">Invocation log</div>
 				{log.length === 0 ? (
 					<div className="text-base-content/60">No actions invoked yet.</div>
 				) : (

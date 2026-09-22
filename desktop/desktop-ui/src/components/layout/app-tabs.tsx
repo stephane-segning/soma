@@ -123,23 +123,13 @@ export function AppTabs({
 	return (
 		<div
 			aria-label={ariaLabel}
-			className={cn(
-				"flex items-center gap-1 border-base-300 border-b bg-base-100 px-2 pt-1",
-				className,
-			)}
+			className={cn("flex items-center gap-1 border-base-300 border-b bg-base-100 px-2 pt-1", className)}
 			role="tablist"
 		>
 			<div className="scrollbar-none flex flex-1 items-center gap-0.5 overflow-x-auto">
 				{dndEnabled ? (
-					<DndContext
-						collisionDetection={closestCenter}
-						onDragEnd={handleDragEnd}
-						sensors={sensors}
-					>
-						<SortableContext
-							items={tabs.map((t) => t.id)}
-							strategy={horizontalListSortingStrategy}
-						>
+					<DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd} sensors={sensors}>
+						<SortableContext items={tabs.map((t) => t.id)} strategy={horizontalListSortingStrategy}>
 							{tabNodes}
 						</SortableContext>
 					</DndContext>
@@ -175,13 +165,7 @@ type TabItemProps = {
  * style; motion only touches `opacity` (dragged tabs dim to 0.5) so
  * the two libraries never write to the same CSS property.
  */
-function TabItem({
-	tab,
-	activeId,
-	dndEnabled,
-	onSelect,
-	onClose,
-}: TabItemProps) {
+function TabItem({ tab, activeId, dndEnabled, onSelect, onClose }: TabItemProps) {
 	const sortable = useSortable({ id: tab.id, disabled: !dndEnabled });
 	const active = tab.id === activeId;
 
@@ -198,9 +182,7 @@ function TabItem({
 			className={cn(
 				"group/tab relative flex h-8 shrink-0 items-center rounded-t-md",
 				// No `transition-colors` — snap the active highlight.
-				active
-					? "bg-base-100 text-base-content"
-					: "text-base-content/60 hover:bg-base-200/60 hover:text-base-content",
+				active ? "bg-base-100 text-base-content" : "text-base-content/60 hover:bg-base-200/60 hover:text-base-content",
 			)}
 			exit={{ opacity: 0 }}
 			initial={{ opacity: 0 }}
@@ -235,11 +217,7 @@ function TabItem({
 				) : null}
 				<span className="min-w-0 truncate">{tab.title}</span>
 				{tab.dirty ? (
-					<span
-						aria-label="Unsaved changes"
-						className="size-1.5 shrink-0 rounded-full bg-primary"
-						role="img"
-					/>
+					<span aria-label="Unsaved changes" className="size-1.5 shrink-0 rounded-full bg-primary" role="img" />
 				) : null}
 			</button>
 			{onClose ? (

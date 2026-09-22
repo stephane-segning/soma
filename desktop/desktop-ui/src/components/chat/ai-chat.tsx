@@ -8,17 +8,10 @@ export type AiChatProps = {
 	contentClassName?: string;
 };
 
-export function AiChat({
-	children,
-	maxHeight = "70vh",
-	className,
-	contentClassName,
-}: AiChatProps) {
+export function AiChat({ children, maxHeight = "70vh", className, contentClassName }: AiChatProps) {
 	return (
 		<div className={cn("flex flex-col", className)} style={{ maxHeight }}>
-			<div className={cn("flex-1 overflow-auto p-2", contentClassName)}>
-				{children}
-			</div>
+			<div className={cn("flex-1 overflow-auto p-2", contentClassName)}>{children}</div>
 		</div>
 	);
 }

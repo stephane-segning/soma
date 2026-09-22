@@ -14,24 +14,8 @@
  * Positioning is the caller's job — the editor extension wraps this
  * in its own floating surface anchored above the selection.
  */
-import {
-	type FormEvent,
-	type ReactNode,
-	useEffect,
-	useRef,
-	useState,
-} from "react";
-import {
-	Bold,
-	Code,
-	Italic,
-	Link2,
-	MessageSquare,
-	MoreHorizontal,
-	Star,
-	Underline,
-	X,
-} from "react-feather";
+import { type FormEvent, type ReactNode, useEffect, useRef, useState } from "react";
+import { Bold, Code, Italic, Link2, MessageSquare, MoreHorizontal, Star, Underline, X } from "react-feather";
 import { useT } from "../../i18n/use-t";
 import { cn } from "../../utils/cn";
 
@@ -101,12 +85,8 @@ export function SelectionBubble(props: SelectionBubbleProps) {
 	// When the controlled props are provided, mode tracks them; otherwise
 	// it tracks internal state. This keeps existing callers (which don't
 	// pass the controlled pair) on the old uncontrolled behaviour.
-	const controlled =
-		props.linkInputOpen !== undefined &&
-		props.onLinkInputOpenChange !== undefined;
-	const linkOpen = controlled
-		? props.linkInputOpen === true
-		: internalMode === "link";
+	const controlled = props.linkInputOpen !== undefined && props.onLinkInputOpenChange !== undefined;
+	const linkOpen = controlled ? props.linkInputOpen === true : internalMode === "link";
 	const setLinkOpen = (open: boolean) => {
 		if (controlled) {
 			props.onLinkInputOpenChange?.(open);
@@ -131,10 +111,7 @@ export function SelectionBubble(props: SelectionBubbleProps) {
 
 	return (
 		<div
-			className={cn(
-				"glass-panel inline-flex items-center gap-0.5 p-1 shadow-elevated",
-				props.className,
-			)}
+			className={cn("glass-panel inline-flex items-center gap-0.5 p-1 shadow-elevated", props.className)}
 			role="toolbar"
 		>
 			{props.blockStyleOptions && props.blockStyleOptions.length > 0 ? (
@@ -180,10 +157,7 @@ export function SelectionBubble(props: SelectionBubbleProps) {
 				})}
 				onClick={props.onToggleStrike}
 			>
-				<span
-					aria-hidden
-					className="inline-block font-semibold text-xs line-through"
-				>
+				<span aria-hidden className="inline-block font-semibold text-xs line-through">
 					S
 				</span>
 			</ToolButton>
@@ -216,10 +190,7 @@ export function SelectionBubble(props: SelectionBubbleProps) {
 					})}
 					onClick={props.onToggleHighlight}
 				>
-					<span
-						aria-hidden
-						className="inline-block size-3 rounded-sm bg-warning/60"
-					/>
+					<span aria-hidden className="inline-block size-3 rounded-sm bg-warning/60" />
 				</ToolButton>
 			) : null}
 
@@ -300,9 +271,7 @@ function ToolButton({
 			aria-pressed={active}
 			className={cn(
 				"inline-flex size-7 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-				active
-					? "bg-primary/15 text-primary"
-					: "text-base-content/80 hover:bg-base-200 hover:text-base-content",
+				active ? "bg-primary/15 text-primary" : "text-base-content/80 hover:bg-base-200 hover:text-base-content",
 			)}
 			onClick={onClick}
 			title={label}
@@ -374,17 +343,13 @@ function LinkInputMode({
 		// domain (no scheme, no leading slash for in-app links).
 		const hasScheme = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(trimmed);
 		const looksLikeRelativePath = trimmed.startsWith("/");
-		const normalized =
-			hasScheme || looksLikeRelativePath ? trimmed : `https://${trimmed}`;
+		const normalized = hasScheme || looksLikeRelativePath ? trimmed : `https://${trimmed}`;
 		onSubmit(normalized);
 	}
 
 	return (
 		<form
-			className={cn(
-				"glass-panel inline-flex items-center gap-1 p-1 shadow-elevated",
-				className,
-			)}
+			className={cn("glass-panel inline-flex items-center gap-1 p-1 shadow-elevated", className)}
 			onSubmit={handleSubmit}
 		>
 			<Link2 aria-hidden className="ml-1 size-3.5 text-base-content/60" />

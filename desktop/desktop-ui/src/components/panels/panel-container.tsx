@@ -73,30 +73,14 @@ export type PanelContainerProps = {
 	className?: string;
 };
 
-export function PanelContainer({
-	panels,
-	expandedIds,
-	onCollapse,
-	onClose,
-	className,
-}: PanelContainerProps) {
+export function PanelContainer({ panels, expandedIds, onCollapse, onClose, className }: PanelContainerProps) {
 	const expandedSet = useMemo(
-		() =>
-			expandedIds instanceof Set
-				? expandedIds
-				: new Set<string>(expandedIds ?? []),
+		() => (expandedIds instanceof Set ? expandedIds : new Set<string>(expandedIds ?? [])),
 		[expandedIds],
 	);
 
 	const visible = panels.filter((panel) => expandedSet.has(panel.id));
 	if (visible.length === 0) return null;
 
-	return (
-		<PanelStack
-			className={cn("w-full", className)}
-			onClose={onClose}
-			onCollapse={onCollapse}
-			panels={visible}
-		/>
-	);
+	return <PanelStack className={cn("w-full", className)} onClose={onClose} onCollapse={onCollapse} panels={visible} />;
 }

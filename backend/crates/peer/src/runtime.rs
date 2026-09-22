@@ -1,13 +1,15 @@
 mod blob;
 mod blob_announce;
 mod command;
+mod doc_sync;
+mod roster;
 mod issuer;
 mod join;
 mod swarm;
 
 use crate::behaviour::AppBehaviour;
 use crate::join::JoinDecider;
-use crate::{PeerCommand, PeerEvent, SpaceAuthorizer};
+use crate::{DocumentSyncProvider, PeerCommand, PeerEvent, RosterProvider, SpaceAuthorizer};
 use futures::StreamExt;
 use libp2p::{Multiaddr, PeerId, multiaddr::Protocol, request_response as reqres};
 use soma_core::SomaResult;
@@ -43,6 +45,18 @@ pub(crate) struct RuntimeState {
     pub(crate) event_tx: mpsc::Sender<PeerEvent>,
     pub(crate) blob_provider: Option<Arc<dyn BlobProvider>>,
     pub(crate) space_authorizer: Option<Arc<dyn SpaceAuthorizer>>,
+    pub(crate) document_sync: Option<Arc<dyn DocumentSyncProvider>>,
+    /// Space id per in-flight doc-sync request, so the response handler
+    /// knows which space it belongs to — the response itself does not
+    /// repeat it, and trusting a peer-supplied space id on the way back
+    /// in would let a responder redirect our writes into another space.
+    pub(crate) outbound_doc_syncs: HashMap<reqres::OutboundRequestId, String>,
+    pub(crate) roster: Option<Arc<dyn RosterProvider>>,
+    /// Space id per in-flight roster request. As with doc-sync, the
+    /// space comes from what we recorded when asking, never from the
+    /// response — otherwise a responder could redirect rows into a
+    /// space it is not a member of.
+    pub(crate) outbound_rosters: HashMap<reqres::OutboundRequestId, String>,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -58,6 +72,8 @@ pub(crate) async fn run_swarm(
     event_tx: mpsc::Sender<PeerEvent>,
     blob_provider: Option<Arc<dyn BlobProvider>>,
     space_authorizer: Option<Arc<dyn SpaceAuthorizer>>,
+    document_sync: Option<Arc<dyn DocumentSyncProvider>>,
+    roster: Option<Arc<dyn RosterProvider>>,
 ) -> SomaResult<()> {
     for addr in relay_addrs {
         if let Some(peer_id) = extract_peer_id(&addr) {
@@ -81,6 +97,10 @@ pub(crate) async fn run_swarm(
         event_tx,
         blob_provider,
         space_authorizer,
+        document_sync,
+        outbound_doc_syncs: HashMap::new(),
+        roster,
+        outbound_rosters: HashMap::new(),
     };
 
     loop {

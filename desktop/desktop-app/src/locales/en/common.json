@@ -48,6 +48,9 @@
 			"no_space_subtext": "Authorized bots for the active space will appear here.",
 			"loading": "Loading bots…",
 			"error": "Failed to load bots: {{message}}"
+		},
+		"more": {
+			"title": "More"
 		}
 	},
 	"palette": {
@@ -68,7 +71,7 @@
 		"untitled": "Untitled",
 		"spaces_index": {
 			"headline": "No space selected",
-			"empty": "Pick a space from the rail, or create one to get started.",
+			"empty": "Choose a space to get started, or create a new one.",
 			"join_cta": "Join a space",
 			"need_space_for_page": "Pick or create a space before adding a page.",
 			"create_error": "Couldn't create a space: {{message}}"

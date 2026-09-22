@@ -22,19 +22,10 @@ export function AiThinking({
 	const [open, setOpen] = useState(defaultOpen);
 	const showContent = Boolean(content) && open;
 	const label =
-		status === "thinking"
-			? "Thinking..."
-			: durationLabel
-				? `Thought for ${durationLabel}`
-				: "Thought complete";
+		status === "thinking" ? "Thinking..." : durationLabel ? `Thought for ${durationLabel}` : "Thought complete";
 
 	return (
-		<div
-			className={cn(
-				"rounded-xl bg-base-200/60 px-2 py-1 text-base-content/80 text-sm",
-				className,
-			)}
-		>
+		<div className={cn("rounded-xl bg-base-200/60 px-2 py-1 text-base-content/80 text-sm", className)}>
 			<button
 				className="flex w-full cursor-pointer items-center gap-2 text-left"
 				onClick={() => setOpen((state) => !state)}
@@ -64,10 +55,7 @@ export function AiThinking({
 						initial={{ opacity: 0, height: 0 }}
 						transition={{ duration: 0.15 }}
 					>
-						<AiMarkdown
-							className="prose prose-sm prose-invert max-w-none"
-							content={content ?? ""}
-						/>
+						<AiMarkdown className="prose prose-sm prose-invert max-w-none" content={content ?? ""} />
 					</motion.div>
 				) : null}
 			</AnimatePresence>

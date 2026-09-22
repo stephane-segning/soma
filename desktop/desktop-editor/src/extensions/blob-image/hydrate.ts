@@ -34,7 +34,12 @@ export async function uploadAndHydrate(input: {
 	}
 }
 
-function updateUploadingNode(editor: Editor, nodeTypeName: string, uploadId: string, attrsForNode: (node: { attrs: Record<string, unknown> }) => Record<string, unknown>) {
+function updateUploadingNode(
+	editor: Editor,
+	nodeTypeName: string,
+	uploadId: string,
+	attrsForNode: (node: { attrs: Record<string, unknown> }) => Record<string, unknown>,
+) {
 	let found = false;
 	const tr = editor.state.tr;
 	editor.state.doc.descendants((node, pos) => {

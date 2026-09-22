@@ -51,19 +51,10 @@ export type PanelChipBarProps = {
 	className?: string;
 };
 
-export function PanelChipBar({
-	panels,
-	expandedIds,
-	onToggle,
-	placement = "top-right",
-	className,
-}: PanelChipBarProps) {
+export function PanelChipBar({ panels, expandedIds, onToggle, placement = "top-right", className }: PanelChipBarProps) {
 	const t = useT();
 	const expandedSet = useMemo(
-		() =>
-			expandedIds instanceof Set
-				? expandedIds
-				: new Set<string>(expandedIds ?? []),
+		() => (expandedIds instanceof Set ? expandedIds : new Set<string>(expandedIds ?? [])),
 		[expandedIds],
 	);
 
@@ -73,10 +64,7 @@ export function PanelChipBar({
 		<div
 			aria-label={t({
 				id: "panel-chip-bar.aria-label",
-				defaultMessage:
-					placement === "top-left"
-						? "Left panel switcher"
-						: "Right panel switcher",
+				defaultMessage: placement === "top-left" ? "Left panel switcher" : "Right panel switcher",
 				values: { placement },
 			})}
 			className={cn(

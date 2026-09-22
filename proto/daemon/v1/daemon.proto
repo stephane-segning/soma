@@ -202,6 +202,17 @@ message BotStatusChangedEvent {
   string status = 3;
 }
 
+// A document arrived from a peer over `/soma/doc-sync/1` and won
+// last-writer-wins, so local storage changed. Emitted only for versions
+// actually written: one that lost changes nothing, and telling the
+// renderer otherwise would make it refetch for no reason.
+message DocumentReplicatedEvent {
+  string space_id = 1;
+  string document_id = 2;
+  // Peer the version came from, for provenance in logs and the UI.
+  string from_peer_id = 3;
+}
+
 message UploadBlobRequest {
   string space_id = 1;
   bytes data = 2;
@@ -344,6 +355,8 @@ message DaemonEvent {
     DocumentBlobAddedEvent document_blob_added = 5;
     // Bot state machine transitioned (issued / handshake / expired).
     BotStatusChangedEvent bot_status_changed = 6;
+    // A peer's version of a document was accepted into local storage.
+    DocumentReplicatedEvent document_replicated = 7;
   }
 }
 

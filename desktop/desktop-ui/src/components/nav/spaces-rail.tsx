@@ -48,14 +48,7 @@ export type SpacesRailProps = {
 	className?: string;
 };
 
-export function SpacesRail({
-	items,
-	activeId,
-	onSelect,
-	onContextItem,
-	onCreate,
-	className,
-}: SpacesRailProps) {
+export function SpacesRail({ items, activeId, onSelect, onContextItem, onCreate, className }: SpacesRailProps) {
 	const t = useT();
 	return (
 		<nav
@@ -125,9 +118,7 @@ function RailIcon({
 			// unchanged, only the invisible tappable area grows.
 			className={cn(
 				"shell-tap-target relative inline-flex size-9 items-center justify-center rounded-md text-sm transition-colors",
-				active
-					? "bg-primary/15 text-primary"
-					: "text-base-content/80 hover:bg-base-200 hover:text-base-content",
+				active ? "bg-primary/15 text-primary" : "text-base-content/80 hover:bg-base-200 hover:text-base-content",
 				"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
 			)}
 			onClick={onSelect}
@@ -135,19 +126,11 @@ function RailIcon({
 			title={item.name}
 			type="button"
 		>
-			{active ? (
-				<span
-					aria-hidden
-					className="absolute inset-y-1.5 left-[-9px] w-0.5 rounded-r-sm bg-primary"
-				/>
-			) : null}
+			{active ? <span aria-hidden className="absolute inset-y-1.5 left-[-9px] w-0.5 rounded-r-sm bg-primary" /> : null}
 			{item.statusTone ? (
 				<span
 					aria-hidden
-					className={cn(
-						"absolute top-0.5 right-0.5 size-1.5 rounded-full",
-						statusToneClass[item.statusTone],
-					)}
+					className={cn("absolute top-0.5 right-0.5 size-1.5 rounded-full", statusToneClass[item.statusTone])}
 				/>
 			) : null}
 			{item.icon}
@@ -155,10 +138,7 @@ function RailIcon({
 	);
 }
 
-const statusToneClass: Record<
-	NonNullable<SpaceRailItem["statusTone"]>,
-	string
-> = {
+const statusToneClass: Record<NonNullable<SpaceRailItem["statusTone"]>, string> = {
 	info: "bg-info",
 	success: "bg-success",
 	warning: "bg-warning",

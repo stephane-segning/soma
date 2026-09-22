@@ -1,12 +1,6 @@
 import { type Editor, useEditorState } from "@tiptap/react";
 
-export function LimitPercentage({
-	editor,
-	limit,
-}: {
-	editor: Editor;
-	limit: number;
-}) {
+export function LimitPercentage({ editor, limit }: { editor: Editor; limit: number }) {
 	const { characterCount } = useEditorState({
 		editor,
 		selector: (ctx) => {
@@ -21,15 +15,15 @@ export function LimitPercentage({
 	return (
 		<div className="flex items-center gap-4 pt-24">
 			<div
+				aria-valuenow={percentage}
 				className="radial-progress text-primary"
+				role="progressbar"
 				style={{
 					// @ts-expect-error
 					"--value": percentage,
 					"--size": "24px",
 					"--thickness": "4px",
 				}}
-				aria-valuenow={percentage}
-				role="progressbar"
 			/>
 			{editor.storage.characterCount.characters()} / {limit} characters
 		</div>

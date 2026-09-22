@@ -62,12 +62,7 @@ export type MentionPickerProps = {
 	className?: string;
 };
 
-const SECTION_ORDER: MentionSectionKind[] = [
-	"bots",
-	"documents",
-	"members",
-	"spaces",
-];
+const SECTION_ORDER: MentionSectionKind[] = ["bots", "documents", "members", "spaces"];
 
 export function MentionPicker({
 	sections,
@@ -86,19 +81,14 @@ export function MentionPicker({
 		for (const kind of SECTION_ORDER) {
 			const section = sections.find((s) => s.kind === kind);
 			if (!section) continue;
-			const items = section.items.filter((item) =>
-				item.label.toLowerCase().includes(lower),
-			);
+			const items = section.items.filter((item) => item.label.toLowerCase().includes(lower));
 			if (items.length > 0) ordered.push({ section, items });
 		}
 		return ordered;
 	}, [sections, query]);
 
 	const flat = useMemo(
-		() =>
-			filtered.flatMap((f) =>
-				f.items.map((i) => ({ section: f.section.kind, item: i })),
-			),
+		() => filtered.flatMap((f) => f.items.map((i) => ({ section: f.section.kind, item: i }))),
 		[filtered],
 	);
 
@@ -136,14 +126,10 @@ export function MentionPicker({
 			}
 			if (event.key === "ArrowDown") {
 				event.preventDefault();
-				setActiveIndex((idx) =>
-					flat.length === 0 ? 0 : (idx + 1) % flat.length,
-				);
+				setActiveIndex((idx) => (flat.length === 0 ? 0 : (idx + 1) % flat.length));
 			} else if (event.key === "ArrowUp") {
 				event.preventDefault();
-				setActiveIndex((idx) =>
-					flat.length === 0 ? 0 : (idx - 1 + flat.length) % flat.length,
-				);
+				setActiveIndex((idx) => (flat.length === 0 ? 0 : (idx - 1 + flat.length) % flat.length));
 			} else if (event.key === "Enter") {
 				event.preventDefault();
 				const current = flat[activeIndex];
@@ -179,10 +165,7 @@ export function MentionPicker({
 	if (filtered.length === 0) {
 		return (
 			<div
-				className={cn(
-					"glass-panel w-72 p-2 text-base-content/60 text-sm shadow-elevated",
-					className,
-				)}
+				className={cn("glass-panel w-72 p-2 text-base-content/60 text-sm shadow-elevated", className)}
 				ref={containerRef}
 			>
 				{t({
@@ -196,10 +179,7 @@ export function MentionPicker({
 	let runningIndex = 0;
 	return (
 		<div
-			className={cn(
-				"glass-panel flex w-72 flex-col gap-1 p-1 shadow-elevated",
-				className,
-			)}
+			className={cn("glass-panel flex w-72 flex-col gap-1 p-1 shadow-elevated", className)}
 			ref={containerRef}
 			role="listbox"
 		>
@@ -230,22 +210,11 @@ export function MentionPicker({
 								role="option"
 								type="button"
 							>
-								<span
-									aria-hidden
-									className={cn(
-										"shrink-0",
-										item.isBot ? "text-info" : "text-base-content/60",
-									)}
-								>
-									{item.icon ??
-										(item.isBot ? <Cpu className="size-4" /> : null)}
+								<span aria-hidden className={cn("shrink-0", item.isBot ? "text-info" : "text-base-content/60")}>
+									{item.icon ?? (item.isBot ? <Cpu className="size-4" /> : null)}
 								</span>
 								<span className="min-w-0 flex-1 truncate">{item.label}</span>
-								{item.meta ? (
-									<span className="shrink-0 text-base-content/50 text-xs">
-										{item.meta}
-									</span>
-								) : null}
+								{item.meta ? <span className="shrink-0 text-base-content/50 text-xs">{item.meta}</span> : null}
 							</button>
 						);
 					})}

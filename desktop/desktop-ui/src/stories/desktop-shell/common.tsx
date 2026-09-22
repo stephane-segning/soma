@@ -28,12 +28,7 @@ export function ShellHeader({
 				</button>
 				<h1 className="font-semibold text-sm">{title}</h1>
 			</div>
-			<button
-				aria-label="Toggle info"
-				className="btn btn-ghost btn-square btn-xs"
-				onClick={toggleRight}
-				type="button"
-			>
+			<button aria-label="Toggle info" className="btn btn-ghost btn-square btn-xs" onClick={toggleRight} type="button">
 				<Info size={14} />
 			</button>
 		</div>
@@ -44,9 +39,7 @@ export function NavigationPanel({ count = 3 }: { count?: number }) {
 	return (
 		<div className="flex h-full flex-col">
 			<div className="flex h-7 items-center border-base-300 border-b px-2">
-				<p className="font-medium text-[11px] text-base-content/70 uppercase tracking-wide">
-					Navigation
-				</p>
+				<p className="font-medium text-[11px] text-base-content/70 uppercase tracking-wide">Navigation</p>
 			</div>
 			<ul className="list flex-1 list-dense bg-base-100">
 				{Array.from({ length: count }, (_, idx) => (
@@ -67,9 +60,7 @@ export function InfoPanel({ count = 1 }: { count?: number }) {
 	return (
 		<div className="flex h-full flex-col">
 			<div className="flex h-7 items-center border-base-300 border-b px-2">
-				<p className="font-medium text-[11px] text-base-content/70 uppercase tracking-wide">
-					Info
-				</p>
+				<p className="font-medium text-[11px] text-base-content/70 uppercase tracking-wide">Info</p>
 			</div>
 			<div className="space-y-2 p-2 text-sm">
 				<div className="rounded bg-base-200 p-2 text-[12px] text-base-content/70">
