@@ -1,5 +1,4 @@
 use super::framing::{read_message_with_limit, write_message};
-use async_trait::async_trait;
 use futures::prelude::*;
 use libp2p::request_response as reqres;
 use soma_vdfs::{BlobRequest, BlobResponse, MAX_BLOB_MESSAGE_BYTES};
@@ -8,7 +7,6 @@ use std::io;
 #[derive(Clone, Default)]
 pub(crate) struct BlobCodec;
 
-#[async_trait]
 impl reqres::Codec for BlobCodec {
     type Protocol = String;
     type Request = BlobRequest;

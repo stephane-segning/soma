@@ -24,7 +24,6 @@
 
 use super::framing::{read_message_with_limit, write_message};
 use crate::protocol::MAX_DOC_SYNC_MESSAGE_BYTES;
-use async_trait::async_trait;
 use futures::prelude::*;
 use libp2p::request_response as reqres;
 use prost::Message;
@@ -114,7 +113,6 @@ pub(crate) struct DocSyncResponse {
 #[derive(Clone, Default)]
 pub(crate) struct DocSyncCodec;
 
-#[async_trait]
 impl reqres::Codec for DocSyncCodec {
     type Protocol = String;
     type Request = DocSyncRequest;
