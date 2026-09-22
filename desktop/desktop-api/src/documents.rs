@@ -128,32 +128,20 @@ pub struct UpsertDraftArgs {
     pub updated_at_ms: Option<i64>,
 }
 
+/// Args for [`publish`]. There used to be two near-identical commands
+/// here (`queue_daemon_sync` and `sync_published`) that both just
+/// upserted the document and emitted a renderer event under a
+/// different name — see `publish`'s doc comment for why they were
+/// collapsed into this one.
 #[derive(Debug, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
-pub struct QueueDaemonSyncArgs {
+pub struct PublishDocumentArgs {
     pub space_id: String,
     pub document_id: String,
     pub content_json: String,
-    #[specta(type = i32)]
-    pub updated_at_ms: i64,
     #[serde(default)]
-    pub published: Option<bool>,
-}
-
-#[derive(Debug, Deserialize, Type)]
-#[serde(rename_all = "camelCase")]
-pub struct SyncPublishedDocumentArgs {
-    pub space_id: String,
-    pub document_id: String,
-    pub content_json: String,
-    #[specta(type = i32)]
-    pub updated_at_ms: i64,
-}
-
-#[derive(Debug, Serialize, Type)]
-#[serde(rename_all = "camelCase")]
-pub struct SyncPublishedDocumentResult {
-    pub uploaded: i32,
+    #[specta(type = Option<i32>)]
+    pub updated_at_ms: Option<i64>,
 }
 
 #[derive(Debug, Deserialize, Type)]
@@ -306,33 +294,21 @@ pub async fn upsert_draft(state: &AppState, args: UpsertDraftArgs) -> DesktopRes
     Ok(())
 }
 
-pub async fn queue_daemon_sync(state: &AppState, args: QueueDaemonSyncArgs) -> DesktopResult<()> {
-    let handle = state.daemon.handle().await?;
-    handle
-        .upsert_document(dt::UpsertDocumentInput {
-            space_id: args.space_id.clone(),
-            document_id: args.document_id.clone(),
-            content_json: args.content_json,
-            published: args.published.unwrap_or(true),
-            updated_at_ms: args.updated_at_ms,
-        })
-        .await
-        .map_err(err)?;
-    crate::events::publish(
-        state,
-        crate::events::document_changed(
-            args.space_id,
-            args.document_id,
-            "documents_queue_daemon_sync",
-        ),
-    );
-    Ok(())
-}
-
-pub async fn sync_published(
-    state: &AppState,
-    args: SyncPublishedDocumentArgs,
-) -> DesktopResult<SyncPublishedDocumentResult> {
+/// Upsert a document with `published: true` and notify the renderer.
+///
+/// This used to be two commands, `queue_daemon_sync` and
+/// `sync_published`, that were byte-for-byte the same local
+/// `upsert_document` call and differed only in the `reason` string on
+/// the event they emitted. Neither one ever touched the network —
+/// `SyncPublishedDocumentResult.uploaded` was a hard-coded `1` that
+/// existed only so a long-dead Electron stub's "uploaded" counter in
+/// the renderer stayed unchanged. Real p2p replication
+/// (`/soma/doc-sync/1`) now exists and is automatic: it fires on
+/// write, on connect, on join, and on learning new members. This
+/// command is just the local write + local UI event, same as
+/// [`upsert_draft`] with `published` pinned to `true` — it is not,
+/// and was never, how replication happens.
+pub async fn publish(state: &AppState, args: PublishDocumentArgs) -> DesktopResult<()> {
     let handle = state.daemon.handle().await?;
     handle
         .upsert_document(dt::UpsertDocumentInput {
@@ -340,22 +316,15 @@ pub async fn sync_published(
             document_id: args.document_id.clone(),
             content_json: args.content_json,
             published: true,
-            updated_at_ms: args.updated_at_ms,
+            updated_at_ms: args.updated_at_ms.unwrap_or_else(now_ms),
         })
         .await
         .map_err(err)?;
     crate::events::publish(
         state,
-        crate::events::document_changed(
-            args.space_id,
-            args.document_id,
-            "documents_sync_published",
-        ),
+        crate::events::document_changed(args.space_id, args.document_id, "documents_publish"),
     );
-    // Mirror the Electron stub: the daemon's `upsertDocument` doesn't
-    // return a count, so we hard-code `1` so the renderer's "uploaded"
-    // accounting stays unchanged across transports.
-    Ok(SyncPublishedDocumentResult { uploaded: 1 })
+    Ok(())
 }
 
 pub async fn get_draft(state: &AppState, args: GetDraftArgs) -> DesktopResult<Option<DraftRecord>> {

@@ -8,9 +8,9 @@
 use desktop_api::{
     AppState,
     documents::{
-        self as api, DraftRecord, EnsurePageArgs, GetDraftArgs, QueueDaemonSyncArgs,
-        SetPageParentsArgs, StoredDocument, StoredPage, SyncPublishedDocumentArgs,
-        SyncPublishedDocumentResult, UpdatePageTitleArgs, UpsertDocumentArgs, UpsertDraftArgs,
+        self as api, DraftRecord, EnsurePageArgs, GetDraftArgs, PublishDocumentArgs,
+        SetPageParentsArgs, StoredDocument, StoredPage, UpdatePageTitleArgs, UpsertDocumentArgs,
+        UpsertDraftArgs,
     },
 };
 use desktop_core::error::DesktopResult;
@@ -96,18 +96,9 @@ pub async fn documents_upsert_draft(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn documents_queue_daemon_sync(
+pub async fn documents_publish(
     state: State<'_, AppState>,
-    args: QueueDaemonSyncArgs,
+    args: PublishDocumentArgs,
 ) -> DesktopResult<()> {
-    api::queue_daemon_sync(state.inner(), args).await
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn documents_sync_published(
-    state: State<'_, AppState>,
-    args: SyncPublishedDocumentArgs,
-) -> DesktopResult<SyncPublishedDocumentResult> {
-    api::sync_published(state.inner(), args).await
+    api::publish(state.inner(), args).await
 }

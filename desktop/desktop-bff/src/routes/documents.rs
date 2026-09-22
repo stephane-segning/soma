@@ -32,14 +32,7 @@ pub(super) fn router() -> Router<Arc<AppState>> {
             "/api/v1/documents_upsert_draft",
             post(documents_upsert_draft),
         )
-        .route(
-            "/api/v1/documents_queue_daemon_sync",
-            post(documents_queue_daemon_sync),
-        )
-        .route(
-            "/api/v1/documents_sync_published",
-            post(documents_sync_published),
-        )
+        .route("/api/v1/documents_publish", post(documents_publish))
 }
 
 // --- Positional-arg request bodies ------------------------------------------
@@ -139,21 +132,11 @@ async fn documents_upsert_draft(
         .map_err(ApiError::from)
 }
 
-async fn documents_queue_daemon_sync(
+async fn documents_publish(
     State(app): State<Arc<AppState>>,
-    Json(args): Json<documents::QueueDaemonSyncArgs>,
+    Json(args): Json<documents::PublishDocumentArgs>,
 ) -> Result<Json<()>, ApiError> {
-    documents::queue_daemon_sync(&app, args)
-        .await
-        .map(Json)
-        .map_err(ApiError::from)
-}
-
-async fn documents_sync_published(
-    State(app): State<Arc<AppState>>,
-    Json(args): Json<documents::SyncPublishedDocumentArgs>,
-) -> Result<Json<documents::SyncPublishedDocumentResult>, ApiError> {
-    documents::sync_published(&app, args)
+    documents::publish(&app, args)
         .await
         .map(Json)
         .map_err(ApiError::from)

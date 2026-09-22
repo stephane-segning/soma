@@ -84,8 +84,7 @@ export const commands = {
 	updatedAtMs: number,
 } | null, DesktopError>(__TAURI_INVOKE("documents_get_draft", { args })),
 	documentsUpsertDraft: (args: UpsertDraftArgs) => typedError<null, DesktopError>(__TAURI_INVOKE("documents_upsert_draft", { args })),
-	documentsQueueDaemonSync: (args: QueueDaemonSyncArgs) => typedError<null, DesktopError>(__TAURI_INVOKE("documents_queue_daemon_sync", { args })),
-	documentsSyncPublished: (args: SyncPublishedDocumentArgs) => typedError<SyncPublishedDocumentResult, DesktopError>(__TAURI_INVOKE("documents_sync_published", { args })),
+	documentsPublish: (args: PublishDocumentArgs) => typedError<null, DesktopError>(__TAURI_INVOKE("documents_publish", { args })),
 	blobsUpload: (args: UploadBlobArgs) => typedError<UploadBlobResult, DesktopError>(__TAURI_INVOKE("blobs_upload", { args })),
 	blobsRead: (spaceId: string, cid: string) => typedError<number[] | null, DesktopError>(__TAURI_INVOKE("blobs_read", { spaceId, cid })),
 	blobsStageUpload: (args: StageUploadArgs) => typedError<StagedUpload, DesktopError>(__TAURI_INVOKE("blobs_stage_upload", { args })),
@@ -605,12 +604,18 @@ export type ListSpacesResult = {
 
 export type ModelKind = "chat" | "embed" | "unknown";
 
-export type QueueDaemonSyncArgs = {
+/**
+ *  Args for [`publish`]. There used to be two near-identical commands
+ *  here (`queue_daemon_sync` and `sync_published`) that both just
+ *  upserted the document and emitted a renderer event under a
+ *  different name — see `publish`'s doc comment for why they were
+ *  collapsed into this one.
+ */
+export type PublishDocumentArgs = {
 	spaceId: string,
 	documentId: string,
 	contentJson: string,
-	updatedAtMs: number,
-	published?: boolean | null,
+	updatedAtMs?: number | null,
 };
 
 export type RecordSessionResponse = {
@@ -902,17 +907,6 @@ export type StoredSpaceMember = {
 	peerId: string,
 	role: string,
 	expiresAt: number,
-};
-
-export type SyncPublishedDocumentArgs = {
-	spaceId: string,
-	documentId: string,
-	contentJson: string,
-	updatedAtMs: number,
-};
-
-export type SyncPublishedDocumentResult = {
-	uploaded: number,
 };
 
 export type UpdatePageTitleArgs = {
