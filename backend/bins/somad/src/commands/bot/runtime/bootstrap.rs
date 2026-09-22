@@ -6,7 +6,10 @@ use std::{
 use async_trait::async_trait;
 use soma_membership::{JoinPolicy, build_join_decider};
 use soma_net::NetIdentity;
-use soma_peer::{PeerConfig, SpaceAuthorizer, bootstrap::PeerBootstrapper};
+use soma_peer::{
+    DocumentSyncProvider, PeerConfig, RosterProvider, SpaceAuthorizer, bootstrap::PeerBootstrapper,
+};
+use soma_replication::{StorageDocumentSync, StorageRosterSync};
 use soma_storage::RepositoryProvider;
 use soma_vdfs::BlobProvider;
 
@@ -61,6 +64,21 @@ impl PeerBootstrapper for BotPeerBootstrap {
             .space_authorizer(Arc::new(StorageSpaceAuthorizer {
                 repos: self.repos.clone(),
             }) as Arc<dyn SpaceAuthorizer>)
+            // A bot is the always-on availability story for a space: it
+            // must mirror documents and rosters like any other member,
+            // not just relay join decisions. `None` here (vs. the
+            // daemon's `Some(events)`) is intentional — a bot has no
+            // renderer to notify of a replicated document; see
+            // `StorageDocumentSync`'s doc comment.
+            .document_sync(Arc::new(StorageDocumentSync::new(
+                Arc::new(self.repos.clone()) as Arc<dyn RepositoryProvider>,
+                None,
+            )) as Arc<dyn DocumentSyncProvider>)
+            .roster(Arc::new(StorageRosterSync::new(
+                Arc::new(self.repos.clone()) as Arc<dyn RepositoryProvider>,
+                identity.peer_id(),
+                identity.keypair().public(),
+            )) as Arc<dyn RosterProvider>)
             .build()
             .expect("peer config")
     }

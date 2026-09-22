@@ -98,7 +98,7 @@ impl RosterProvider for StorageRosterSync {
     async fn roster_for(&self, from: &PeerId, space_id: &str) -> Option<Vec<Vec<u8>>> {
         // Same gate as document sync, and for the same reason: the
         // roster of a space says who is in it, which is not public.
-        if !crate::sync::space_peers(self.repos(), space_id, &self.local_peer_id)
+        if !crate::space_peers(self.repos(), space_id, &self.local_peer_id)
             .await
             .contains(from)
         {
@@ -106,7 +106,12 @@ impl RosterProvider for StorageRosterSync {
             return None;
         }
 
-        let rows = match self.repos().membership_repo().list_memberships(space_id).await {
+        let rows = match self
+            .repos()
+            .membership_repo()
+            .list_memberships(space_id)
+            .await
+        {
             Ok(rows) => rows,
             Err(err) => {
                 warn!(%space_id, %err, "roster: failed to list memberships");

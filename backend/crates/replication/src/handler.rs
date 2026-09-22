@@ -1,6 +1,12 @@
 //! Starts a `/soma/doc-sync/1` exchange when there is a reason to, and
 //! asks for the space roster at the same moments.
 //!
+//! Generic over [`SyncContext`] so both `soma-daemon` (`DaemonState`)
+//! and `somad bot` (`BotState`) drive the exact same trigger logic
+//! instead of maintaining two copies that quietly drift apart — this
+//! handler used to live only in `soma-daemon`, typed directly to
+//! `DaemonState`.
+//!
 //! Three triggers, and all three are needed:
 //!
 //! - **A peer connected.** Announcing on write alone only reaches peers
@@ -26,18 +32,35 @@
 //! re-deriving what is missing on reconnect is both cheaper and more
 //! robust than queueing every intermediate version.
 
+use std::marker::PhantomData;
+
 use async_trait::async_trait;
 use libp2p::PeerId;
 use soma_peer::events::{PeerEventHandler, PeerEventKind};
 use soma_peer::{DocumentSyncRequest, PeerCommand, PeerEvent};
 use tracing::{debug, warn};
 
-use crate::state::DaemonState;
+use crate::SyncContext;
 
-pub struct DocumentSyncHandler;
+/// `PhantomData<fn() -> Ctx>` rather than `PhantomData<Ctx>` so this
+/// stays `Send + Sync` regardless of `Ctx`'s own variance — it never
+/// actually stores a `Ctx`.
+pub struct DocumentSyncHandler<Ctx>(PhantomData<fn() -> Ctx>);
+
+impl<Ctx> Default for DocumentSyncHandler<Ctx> {
+    fn default() -> Self {
+        Self(PhantomData)
+    }
+}
+
+impl<Ctx> DocumentSyncHandler<Ctx> {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
 
 #[async_trait]
-impl PeerEventHandler<DaemonState> for DocumentSyncHandler {
+impl<Ctx: SyncContext + 'static> PeerEventHandler<Ctx> for DocumentSyncHandler<Ctx> {
     fn interests(&self) -> &'static [PeerEventKind] {
         &[
             PeerEventKind::ConnectionEstablished,
@@ -46,7 +69,7 @@ impl PeerEventHandler<DaemonState> for DocumentSyncHandler {
         ]
     }
 
-    async fn handle(&self, ctx: &DaemonState, event: &PeerEvent) {
+    async fn handle(&self, ctx: &Ctx, event: &PeerEvent) {
         match event {
             PeerEvent::ConnectionEstablished { peer } => {
                 for space_id in spaces_shared_with(ctx, peer).await {
@@ -68,7 +91,7 @@ impl PeerEventHandler<DaemonState> for DocumentSyncHandler {
             // already in; `spaces_shared_with` re-reads storage, so a
             // decision that changed nothing simply yields nothing.
             PeerEvent::JoinDecision { from, decision } => {
-                if *from == ctx.peer_id {
+                if *from == ctx.local_peer_id() {
                     return;
                 }
                 let Some(space_id) = decision.space_id.as_ref().map(|s| s.value.clone()) else {
@@ -97,9 +120,9 @@ impl PeerEventHandler<DaemonState> for DocumentSyncHandler {
 /// Fire-and-forget. A refusal (the peer does not know us yet) is
 /// normal on a first encounter and resolves once that peer learns the
 /// roster from someone who does.
-async fn request_roster(ctx: &DaemonState, peer: &PeerId, space_id: &str) {
+async fn request_roster<Ctx: SyncContext>(ctx: &Ctx, peer: &PeerId, space_id: &str) {
     let _ = ctx
-        .peer_commands
+        .peer_commands()
         .send(PeerCommand::RequestRoster {
             target: *peer,
             space_id: space_id.to_string(),
@@ -111,9 +134,9 @@ async fn request_roster(ctx: &DaemonState, peer: &PeerId, space_id: &str) {
 ///
 /// An empty digest list is still worth sending: it is how a peer that
 /// holds nothing asks for everything.
-async fn offer(ctx: &DaemonState, peer: &PeerId, space_id: &str) {
+async fn offer<Ctx: SyncContext>(ctx: &Ctx, peer: &PeerId, space_id: &str) {
     let have = match ctx
-        .repos
+        .repos()
         .document_repo()
         .list_document_digests(space_id)
         .await
@@ -135,7 +158,7 @@ async fn offer(ctx: &DaemonState, peer: &PeerId, space_id: &str) {
 
     debug!(%peer, %space_id, "doc-sync: offering");
     let _ = ctx
-        .peer_commands
+        .peer_commands()
         .send(PeerCommand::SyncDocuments {
             target: *peer,
             request: DocumentSyncRequest {
@@ -153,11 +176,12 @@ async fn offer(ctx: &DaemonState, peer: &PeerId, space_id: &str) {
 /// Offering a space the peer is not in would tell it that space exists
 /// and what is in it — the responder would refuse, but the digests
 /// would already have left this process.
-async fn spaces_shared_with(ctx: &DaemonState, peer: &PeerId) -> Vec<String> {
-    let mine = match ctx
-        .repos
+async fn spaces_shared_with<Ctx: SyncContext>(ctx: &Ctx, peer: &PeerId) -> Vec<String> {
+    let local_peer_id = ctx.local_peer_id();
+    let repos = ctx.repos();
+    let mine = match repos
         .membership_repo()
-        .list_memberships_by_subject(&ctx.peer_id.to_string())
+        .list_memberships_by_subject(&local_peer_id.to_string())
         .await
     {
         Ok(mine) => mine,
@@ -169,7 +193,7 @@ async fn spaces_shared_with(ctx: &DaemonState, peer: &PeerId) -> Vec<String> {
 
     let mut shared = Vec::new();
     for m in mine {
-        if crate::sync::space_peers(ctx.repos.as_ref(), &m.space_id, &ctx.peer_id)
+        if crate::space_peers(repos.as_ref(), &m.space_id, &local_peer_id)
             .await
             .contains(peer)
         {

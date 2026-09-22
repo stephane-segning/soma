@@ -40,7 +40,10 @@ struct Node {
 
 async fn node(name: &str) -> Node {
     let dir = tempfile::tempdir().expect("tempdir");
-    let url = format!("sqlite://{}", dir.path().join(format!("{name}.db")).display());
+    let url = format!(
+        "sqlite://{}",
+        dir.path().join(format!("{name}.db")).display()
+    );
     let factory = soma_storage::bootstrap::connect_any(&url, &MIGRATOR)
         .await
         .expect("connect test db");
@@ -48,7 +51,7 @@ async fn node(name: &str) -> Node {
     let (events, _rx) = broadcast::channel(16);
     Node {
         _dir: dir,
-        provider: StorageDocumentSync::new(repos.clone(), events),
+        provider: StorageDocumentSync::new(repos.clone(), Some(events)),
         repos,
         peer_id: PeerId::random(),
     }
@@ -190,7 +193,9 @@ async fn replicates_a_document_and_its_page_to_a_member() {
     assert_eq!(content_of(&b).await, None, "b should start empty");
     run_exchange(&a, &b).await;
 
-    let got = content_of(&b).await.expect("b did not receive the document");
+    let got = content_of(&b)
+        .await
+        .expect("b did not receive the document");
     assert!(got.contains("hello"), "unexpected content: {got}");
 
     // The page must travel too, or the document is unreachable in the UI.
@@ -308,7 +313,9 @@ async fn the_owner_is_authorized_even_without_a_local_membership_row() {
     run_exchange(&owner, &joiner).await;
 
     assert!(
-        content_of(&joiner).await.is_some_and(|c| c.contains("hello")),
+        content_of(&joiner)
+            .await
+            .is_some_and(|c| c.contains("hello")),
         "the owner was refused by a peer that had just joined its space"
     );
 }
@@ -393,7 +400,10 @@ async fn an_older_version_loses_and_leaves_the_page_alone() {
     run_exchange(&a, &b).await;
 
     let kept = content_of(&b).await.expect("b lost its document");
-    assert!(kept.contains("new"), "older version overwrote newer: {kept}");
+    assert!(
+        kept.contains("new"),
+        "older version overwrote newer: {kept}"
+    );
     let page = b
         .repos
         .page_repo()
@@ -401,10 +411,7 @@ async fn an_older_version_loses_and_leaves_the_page_alone() {
         .await
         .expect("read page")
         .expect("page vanished");
-    assert_eq!(
-        page.title, "Title new",
-        "a losing version renamed the page"
-    );
+    assert_eq!(page.title, "Title new", "a losing version renamed the page");
 
     // ...and the exchange should have carried a's copy the other way,
     // because a *is* behind.

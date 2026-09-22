@@ -32,7 +32,10 @@ use libp2p::PeerId;
 
 async fn node(name: &str, keypair: &Keypair) -> Node {
     let dir = tempfile::tempdir().expect("tempdir");
-    let url = format!("sqlite://{}", dir.path().join(format!("{name}.db")).display());
+    let url = format!(
+        "sqlite://{}",
+        dir.path().join(format!("{name}.db")).display()
+    );
     let factory = soma_storage::bootstrap::connect_any(&url, &MIGRATOR)
         .await
         .expect("connect test db");
@@ -154,7 +157,7 @@ async fn a_member_learns_the_rest_of_the_roster_and_can_then_authorize_them() {
         .expect("store owner key");
 
     assert_eq!(
-        crate::sync::space_peers(m1.repos.as_ref(), SPACE, &m1.peer_id).await,
+        crate::space_peers(m1.repos.as_ref(), SPACE, &m1.peer_id).await,
         vec![owner.peer_id],
         "before ingest a joiner knows only the owner"
     );
@@ -170,7 +173,7 @@ async fn a_member_learns_the_rest_of_the_roster_and_can_then_authorize_them() {
         learned.contains(&m2),
         "m1 should have learned about m2, learned={learned:?}"
     );
-    let peers = crate::sync::space_peers(m1.repos.as_ref(), SPACE, &m1.peer_id).await;
+    let peers = crate::space_peers(m1.repos.as_ref(), SPACE, &m1.peer_id).await;
     assert!(
         peers.contains(&m2),
         "m1 must now be able to authorize m2, peers={peers:?}"
@@ -201,10 +204,13 @@ async fn rejects_rows_forged_by_the_relaying_peer() {
     }
 
     let forged = signed_capability(&victim, &attacker_kp).encode_to_vec();
-    let learned = m1.provider.ingest_roster(&attacker, SPACE, vec![forged]).await;
+    let learned = m1
+        .provider
+        .ingest_roster(&attacker, SPACE, vec![forged])
+        .await;
 
     assert!(learned.is_empty(), "a self-signed row must not be learned");
-    let peers = crate::sync::space_peers(m1.repos.as_ref(), SPACE, &m1.peer_id).await;
+    let peers = crate::space_peers(m1.repos.as_ref(), SPACE, &m1.peer_id).await;
     assert!(
         !peers.contains(&victim),
         "a forged row must not make a peer authorizable"

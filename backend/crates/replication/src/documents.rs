@@ -64,14 +64,18 @@ type OutstandingWants = Mutex<HashMap<(PeerId, String), HashSet<String>>>;
 
 pub struct StorageDocumentSync {
     repos: Arc<dyn RepositoryProvider>,
-    events: broadcast::Sender<daemon::DaemonEvent>,
+    /// `None` for a headless host with no renderer to notify — `somad
+    /// bot` has no UI event stream, and manufacturing a throwaway
+    /// channel just to hand it a sender nobody drains would be
+    /// dishonest about that. `soma-daemon` always passes `Some`.
+    events: Option<broadcast::Sender<daemon::DaemonEvent>>,
     outstanding: OutstandingWants,
 }
 
 impl StorageDocumentSync {
     pub fn new(
         repos: Arc<dyn RepositoryProvider>,
-        events: broadcast::Sender<daemon::DaemonEvent>,
+        events: Option<broadcast::Sender<daemon::DaemonEvent>>,
     ) -> Self {
         Self {
             repos,
@@ -300,16 +304,19 @@ impl StorageDocumentSync {
 
             // Fire per document: the renderer keys its cache by document
             // id, and one aggregate event would make it refetch a space
-            // it may not even have open.
-            let _ = self.events.send(daemon::DaemonEvent {
-                event: Some(daemon::daemon_event::Event::DocumentReplicated(
-                    daemon::DocumentReplicatedEvent {
-                        space_id: space_id.to_string(),
-                        document_id: payload.document_id.clone(),
-                        from_peer_id: from.to_string(),
-                    },
-                )),
-            });
+            // it may not even have open. No-op when there is no
+            // renderer to notify in the first place (`somad bot`).
+            if let Some(events) = &self.events {
+                let _ = events.send(daemon::DaemonEvent {
+                    event: Some(daemon::daemon_event::Event::DocumentReplicated(
+                        daemon::DocumentReplicatedEvent {
+                            space_id: space_id.to_string(),
+                            document_id: payload.document_id.clone(),
+                            from_peer_id: from.to_string(),
+                        },
+                    )),
+                });
+            }
             applied.push(payload.document_id);
         }
         applied

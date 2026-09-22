@@ -72,7 +72,7 @@ impl PeerBootstrapper for DaemonPeerBootstrap {
             }) as Arc<dyn SpaceAuthorizer>)
             .document_sync(Arc::new(StorageDocumentSync::new(
                 self.repos.clone(),
-                self.events.clone(),
+                Some(self.events.clone()),
             )) as Arc<dyn DocumentSyncProvider>)
             .roster(Arc::new(StorageRosterSync::new(
                 self.repos.clone(),

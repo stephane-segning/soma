@@ -17,6 +17,7 @@ members = [
     "backend/crates/vdfs",
     "backend/crates/daemon",
     "backend/crates/agentd",
+    "backend/crates/replication",
     "backend/bins/somad",
     "desktop/desktop-icons",
     "desktop/desktop-core",
@@ -50,6 +51,7 @@ soma-metrics = { path = "backend/crates/metrics" }
 soma-proto-build = { path = "backend/crates/proto-build" }
 soma-daemon = { path = "backend/crates/daemon" }
 soma-agentd = { path = "backend/crates/agentd" }
+soma-replication = { path = "backend/crates/replication" }
 
 # Desktop Rust crates that compose into the Tauri shell.
 desktop-core = { path = "desktop/desktop-core" }
