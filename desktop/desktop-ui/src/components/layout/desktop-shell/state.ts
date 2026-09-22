@@ -17,13 +17,8 @@ export function useDesktopShellState({
 	initialRightWidth = 260,
 	storageKey,
 }: DesktopShellStateInput) {
-	const initialPersistedState = useMemo(
-		() => readPersistedState(storageKey),
-		[storageKey],
-	);
-	const [leftOpen, setLeftOpen] = useState(() =>
-		normalizePanelOpen(initialPersistedState?.leftOpen, defaultLeftOpen),
-	);
+	const initialPersistedState = useMemo(() => readPersistedState(storageKey), [storageKey]);
+	const [leftOpen, setLeftOpen] = useState(() => normalizePanelOpen(initialPersistedState?.leftOpen, defaultLeftOpen));
 	const [rightOpen, setRightOpen] = useState(() =>
 		normalizePanelOpen(initialPersistedState?.rightOpen, defaultRightOpen),
 	);
@@ -39,16 +34,8 @@ export function useDesktopShellState({
 		setLeftOpen(normalizePanelOpen(persisted?.leftOpen, defaultLeftOpen));
 		setRightOpen(normalizePanelOpen(persisted?.rightOpen, defaultRightOpen));
 		setLeftWidth(normalizePanelWidth(persisted?.leftWidth, initialLeftWidth));
-		setRightWidth(
-			normalizePanelWidth(persisted?.rightWidth, initialRightWidth),
-		);
-	}, [
-		defaultLeftOpen,
-		defaultRightOpen,
-		initialLeftWidth,
-		initialRightWidth,
-		storageKey,
-	]);
+		setRightWidth(normalizePanelWidth(persisted?.rightWidth, initialRightWidth));
+	}, [defaultLeftOpen, defaultRightOpen, initialLeftWidth, initialRightWidth, storageKey]);
 
 	useEffect(() => {
 		writePersistedState(storageKey, {

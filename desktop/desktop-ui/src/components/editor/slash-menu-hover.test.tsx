@@ -30,18 +30,11 @@ function makeItems(count: number): SlashMenuItem[] {
 function setup(items = makeItems(10)) {
 	// biome-ignore lint/suspicious/noExplicitAny: jsdom prototype hole
 	(Element.prototype as any).scrollIntoView ??= () => {};
-	const scrollSpy = vi
-		.spyOn(Element.prototype, "scrollIntoView")
-		.mockImplementation(() => {});
+	const scrollSpy = vi.spyOn(Element.prototype, "scrollIntoView").mockImplementation(() => {});
 	const onClose = vi.fn();
 	const utils = render(
 		<SomaIntlProvider>
-			<SlashMenu
-				captureScope="window"
-				items={items}
-				onClose={onClose}
-				query=""
-			/>
+			<SlashMenu captureScope="window" items={items} onClose={onClose} query="" />
 		</SomaIntlProvider>,
 	);
 	return { ...utils, scrollSpy };

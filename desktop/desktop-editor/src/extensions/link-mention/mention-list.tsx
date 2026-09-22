@@ -1,5 +1,9 @@
 import { autoUpdate, FloatingPortal, flip, offset, shift, useFloating, type VirtualElement } from "@floating-ui/react";
-import { MentionPicker, type MentionItem as PickerItem, type MentionSectionKind } from "@soma/ui/components/editor/mention-picker";
+import {
+	MentionPicker,
+	type MentionSectionKind,
+	type MentionItem as PickerItem,
+} from "@soma/ui/components/editor/mention-picker";
 import type { Range } from "@tiptap/core";
 import type { SuggestionProps } from "@tiptap/suggestion";
 import { useLayoutEffect, useMemo } from "react";
@@ -43,12 +47,9 @@ export function MentionList({ items, command, range, props, section, onDismiss }
 		const virtualEl: VirtualElement = { getBoundingClientRect: () => rect, contextElement };
 		refs.setPositionReference(virtualEl);
 		update();
-	}, [props.clientRect, props.editor, refs, update]);
+	}, [props, refs, update]);
 
-	const itemsById = useMemo(
-		() => new Map(items.map((item) => [item.id, item])),
-		[items],
-	);
+	const itemsById = useMemo(() => new Map(items.map((item) => [item.id, item])), [items]);
 
 	const pickerItems = useMemo<PickerItem[]>(
 		() =>
@@ -61,14 +62,11 @@ export function MentionList({ items, command, range, props, section, onDismiss }
 		[items, section],
 	);
 
-	const sections = useMemo(
-		() => [{ kind: section, items: pickerItems }],
-		[section, pickerItems],
-	);
+	const sections = useMemo(() => [{ kind: section, items: pickerItems }], [section, pickerItems]);
 
 	return (
 		<FloatingPortal>
-			<div ref={refs.setFloating} style={floatingStyles} className="z-50">
+			<div className="z-50" ref={refs.setFloating} style={floatingStyles}>
 				<MentionPicker
 					captureScope="window"
 					onClose={onDismiss}

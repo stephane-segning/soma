@@ -34,13 +34,7 @@ export type PanelChipProps = {
 	className?: string;
 };
 
-export function PanelChip({
-	icon,
-	label,
-	expanded,
-	onClick,
-	className,
-}: PanelChipProps) {
+export function PanelChip({ icon, label, expanded, onClick, className }: PanelChipProps) {
 	return (
 		<button
 			aria-label={label}

@@ -20,12 +20,7 @@ export type BubbleToolbarProps = {
 	className?: string;
 };
 
-export function BubbleToolbar({
-	open,
-	anchor,
-	actions,
-	className,
-}: BubbleToolbarProps) {
+export function BubbleToolbar({ open, anchor, actions, className }: BubbleToolbarProps) {
 	const { refs, floatingStyles } = useFloating({
 		placement: "top",
 		strategy: "fixed",
@@ -66,12 +61,7 @@ export function BubbleToolbar({
 						style={floatingStyles}
 						transition={{ duration: 0.12, ease: "easeOut" }}
 					>
-						<div
-							className={cn(
-								"glass-panel flex items-center gap-1 p-1 shadow-elevated",
-								className,
-							)}
-						>
+						<div className={cn("glass-panel flex items-center gap-1 p-1 shadow-elevated", className)}>
 							{actions.map((action) => (
 								<button
 									aria-label={action.label}

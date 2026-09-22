@@ -48,15 +48,7 @@ const SLIDE_FROM: Record<"left" | "right", string> = {
 	right: "100%",
 };
 
-export function ShellOverlayPanel({
-	content,
-	open,
-	side,
-	variant,
-	width,
-	onDismiss,
-	title,
-}: ShellOverlayPanelProps) {
+export function ShellOverlayPanel({ content, open, side, variant, width, onDismiss, title }: ShellOverlayPanelProps) {
 	const t = useT();
 	const shouldShow = open && Boolean(content);
 	const BackIcon = side === "left" ? ChevronLeft : ChevronRight;
@@ -89,11 +81,7 @@ export function ShellOverlayPanel({
 						)}
 						exit={{ x: SLIDE_FROM[side] }}
 						initial={{ x: SLIDE_FROM[side] }}
-						style={
-							variant === "drawer"
-								? { width: `min(${width}px, 88vw)` }
-								: undefined
-						}
+						style={variant === "drawer" ? { width: `min(${width}px, 88vw)` } : undefined}
 						transition={{ duration: 0.2, ease: "easeOut" }}
 					>
 						{variant === "fullscreen" && (onDismiss || title) ? (
@@ -115,15 +103,11 @@ export function ShellOverlayPanel({
 									</button>
 								) : null}
 								{title ? (
-									<h2 className="min-w-0 flex-1 truncate px-1 font-medium text-base-content/90 text-sm">
-										{title}
-									</h2>
+									<h2 className="min-w-0 flex-1 truncate px-1 font-medium text-base-content/90 text-sm">{title}</h2>
 								) : null}
 							</div>
 						) : null}
-						<div className="scrollbar-none min-h-0 flex-1 overflow-auto">
-							{content}
-						</div>
+						<div className="scrollbar-none min-h-0 flex-1 overflow-auto">{content}</div>
 					</motion.div>
 				</div>
 			) : null}

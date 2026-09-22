@@ -11,10 +11,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { Calendar, Clock, Cpu, Hash, List, MessageSquare } from "react-feather";
 
-import {
-	PanelChipBar,
-	type PanelChipDescriptor,
-} from "../components/panels/panel-chip-bar";
+import { PanelChipBar, type PanelChipDescriptor } from "../components/panels/panel-chip-bar";
 
 const meta = {
 	title: "Panels/PanelChipBar",
@@ -45,9 +42,7 @@ function MockEditor({ children }: { children: React.ReactNode }) {
 		<div className="relative h-screen w-full bg-base-100">
 			<div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-base-content/40">
 				<span className="text-sm">Mock editor canvas</span>
-				<span className="text-xs">
-					Click a chip to toggle the panel — expanded chips tint primary.
-				</span>
+				<span className="text-xs">Click a chip to toggle the panel — expanded chips tint primary.</span>
 			</div>
 			{children}
 		</div>
@@ -72,12 +67,7 @@ export const TopRight: Story = {
 		return (
 			<MockEditor>
 				<div className="absolute top-2 right-2">
-					<PanelChipBar
-						expandedIds={expanded}
-						onToggle={toggle}
-						panels={RIGHT_CHIPS}
-						placement="top-right"
-					/>
+					<PanelChipBar expandedIds={expanded} onToggle={toggle} panels={RIGHT_CHIPS} placement="top-right" />
 				</div>
 			</MockEditor>
 		);
@@ -90,12 +80,7 @@ export const TopLeft: Story = {
 		return (
 			<MockEditor>
 				<div className="absolute top-2 left-2">
-					<PanelChipBar
-						expandedIds={expanded}
-						onToggle={toggle}
-						panels={LEFT_CHIPS}
-						placement="top-left"
-					/>
+					<PanelChipBar expandedIds={expanded} onToggle={toggle} panels={LEFT_CHIPS} placement="top-left" />
 				</div>
 			</MockEditor>
 		);
@@ -108,12 +93,7 @@ export const SomeExpanded: Story = {
 		return (
 			<MockEditor>
 				<div className="absolute top-2 right-2">
-					<PanelChipBar
-						expandedIds={expanded}
-						onToggle={toggle}
-						panels={RIGHT_CHIPS}
-						placement="top-right"
-					/>
+					<PanelChipBar expandedIds={expanded} onToggle={toggle} panels={RIGHT_CHIPS} placement="top-right" />
 				</div>
 			</MockEditor>
 		);
@@ -126,12 +106,7 @@ export const AllExpanded: Story = {
 		return (
 			<MockEditor>
 				<div className="absolute top-2 right-2">
-					<PanelChipBar
-						expandedIds={expanded}
-						onToggle={toggle}
-						panels={RIGHT_CHIPS}
-						placement="top-right"
-					/>
+					<PanelChipBar expandedIds={expanded} onToggle={toggle} panels={RIGHT_CHIPS} placement="top-right" />
 				</div>
 			</MockEditor>
 		);
@@ -145,12 +120,7 @@ export const DarkTheme: Story = {
 		return (
 			<MockEditor>
 				<div className="absolute top-2 right-2">
-					<PanelChipBar
-						expandedIds={expanded}
-						onToggle={toggle}
-						panels={RIGHT_CHIPS}
-						placement="top-right"
-					/>
+					<PanelChipBar expandedIds={expanded} onToggle={toggle} panels={RIGHT_CHIPS} placement="top-right" />
 				</div>
 			</MockEditor>
 		);

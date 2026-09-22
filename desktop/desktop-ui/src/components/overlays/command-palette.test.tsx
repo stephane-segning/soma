@@ -33,18 +33,10 @@ const localCommand: CommandPaletteItem = {
 	onSelect: () => {},
 };
 
-function setup(
-	items: CommandPaletteItem[],
-	onQueryChange?: (q: string) => void,
-) {
+function setup(items: CommandPaletteItem[], onQueryChange?: (q: string) => void) {
 	return render(
 		<SomaIntlProvider>
-			<CommandPalette
-				items={items}
-				onClose={() => {}}
-				onQueryChange={onQueryChange}
-				open
-			/>
+			<CommandPalette items={items} onClose={() => {}} onQueryChange={onQueryChange} open />
 		</SomaIntlProvider>,
 	);
 }
@@ -85,11 +77,6 @@ describe("CommandPalette external results", () => {
 		// The leading "" is the open-time reset, and it is load-bearing:
 		// it tells the caller to drop results from the previous open
 		// before any new keystroke arrives.
-		expect(onQueryChange.mock.calls.map(([q]) => q)).toEqual([
-			"",
-			"a",
-			"ab",
-			"abc",
-		]);
+		expect(onQueryChange.mock.calls.map(([q]) => q)).toEqual(["", "a", "ab", "abc"]);
 	});
 });

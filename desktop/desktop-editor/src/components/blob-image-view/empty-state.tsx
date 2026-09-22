@@ -19,7 +19,7 @@ export function EmptyImageState({ error, onDelete }: EmptyImageStateProps) {
 	}
 
 	return (
-		<div className="rounded-lg border border-base-300 bg-base-200 px-3 py-2 text-sm text-base-content/60">
+		<div className="rounded-lg border border-base-300 bg-base-200 px-3 py-2 text-base-content/60 text-sm">
 			Saving image to this device...
 		</div>
 	);

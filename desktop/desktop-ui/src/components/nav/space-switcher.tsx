@@ -38,14 +38,7 @@ export type SpaceSwitcherProps = {
 	className?: string;
 };
 
-export function SpaceSwitcher({
-	items,
-	activeId,
-	onSelect,
-	onCreate,
-	onJoin,
-	className,
-}: SpaceSwitcherProps) {
+export function SpaceSwitcher({ items, activeId, onSelect, onCreate, onJoin, className }: SpaceSwitcherProps) {
 	const t = useT();
 	const [open, setOpen] = useState(false);
 	const active = items.find((item) => item.id === activeId);
@@ -73,10 +66,7 @@ export function SpaceSwitcher({
 				type="button"
 			>
 				<span className="min-w-0 truncate">{label}</span>
-				<ChevronDown
-					aria-hidden
-					className="size-3.5 shrink-0 text-base-content/50"
-				/>
+				<ChevronDown aria-hidden className="size-3.5 shrink-0 text-base-content/50" />
 			</button>
 			<Modal
 				onClose={() => setOpen(false)}
@@ -104,18 +94,12 @@ export function SpaceSwitcher({
 								onSelect(item.id);
 							}}
 							primary={item.name}
-							status={
-								item.id === activeId ? (
-									<Check aria-hidden className="size-3.5 text-primary" />
-								) : null
-							}
+							status={item.id === activeId ? <Check aria-hidden className="size-3.5 text-primary" /> : null}
 						/>
 					))}
 					{onCreate ? (
 						<DenseRow
-							leading={
-								<Plus aria-hidden className="size-3.5 text-base-content/60" />
-							}
+							leading={<Plus aria-hidden className="size-3.5 text-base-content/60" />}
 							onClick={() => {
 								setOpen(false);
 								onCreate();
@@ -128,9 +112,7 @@ export function SpaceSwitcher({
 					) : null}
 					{onJoin ? (
 						<DenseRow
-							leading={
-								<LogIn aria-hidden className="size-3.5 text-base-content/60" />
-							}
+							leading={<LogIn aria-hidden className="size-3.5 text-base-content/60" />}
 							onClick={() => {
 								setOpen(false);
 								onJoin();

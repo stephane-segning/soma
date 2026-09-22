@@ -24,9 +24,7 @@ export const WithContent: Story = {
 			<AuroraWallpaper />
 			<div className="relative z-10 flex h-full flex-col items-center justify-center gap-4 text-center">
 				<h1 className="font-bold text-3xl">Desktop</h1>
-				<p className="text-base-content/70 text-sm">
-					The wallpaper renders behind all desktop content.
-				</p>
+				<p className="text-base-content/70 text-sm">The wallpaper renders behind all desktop content.</p>
 			</div>
 		</div>
 	),

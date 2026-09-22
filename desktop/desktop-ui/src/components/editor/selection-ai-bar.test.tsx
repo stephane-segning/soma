@@ -27,12 +27,7 @@ function makeRegistry(actions: NodeAIAction[] = []): NodeAIRegistry {
 function renderBar(onClose = vi.fn()) {
 	const utils = render(
 		<SomaIntlProvider>
-			<SelectionAIBar
-				nodeType="paragraph"
-				onClose={onClose}
-				registry={makeRegistry()}
-				selectedText="hello world"
-			/>
+			<SelectionAIBar nodeType="paragraph" onClose={onClose} registry={makeRegistry()} selectedText="hello world" />
 		</SomaIntlProvider>,
 	);
 	return { ...utils, onClose };

@@ -9,11 +9,7 @@ import { createImageMenuItems } from "./blob-image-view/menu";
 import { useImageResize } from "./blob-image-view/resize";
 import { resolveImageLayout, resolveImageSources } from "./blob-image-view/state";
 
-export function BlobImageView({
-	node,
-	deleteNode,
-	updateAttributes,
-}: NodeViewProps): React.JSX.Element {
+export function BlobImageView({ node, deleteNode, updateAttributes }: NodeViewProps): React.JSX.Element {
 	const src = node.attrs.src as string | undefined;
 	const name = node.attrs.name as string | undefined;
 	const error = node.attrs.error as string | undefined;
@@ -49,10 +45,10 @@ export function BlobImageView({
 	return (
 		<NodeViewWrapper as="figure" className="my-3" contentEditable={false}>
 			{sources.length > 0 ? (
-				<div ref={containerRef} className={`relative ${layout.containerClassName}`} style={layout.containerStyle}>
+				<div className={`relative ${layout.containerClassName}`} ref={containerRef} style={layout.containerStyle}>
 					<ImageGrid effectiveLayout={layout.effectiveLayout} name={name} sources={sources} />
 					<button
-						className="btn btn-circle btn-xs absolute right-2 top-2 border border-base-300 bg-base-100/85"
+						className="btn btn-circle btn-xs absolute top-2 right-2 border border-base-300 bg-base-100/85"
 						onClick={(event) => {
 							event.preventDefault();
 							setMenuPosition({ x: event.clientX, y: event.clientY });
@@ -64,12 +60,12 @@ export function BlobImageView({
 					</button>
 					{layout.effectiveLayout !== "full" ? (
 						<button
-							type="button"
-							className="absolute bottom-2 right-2 h-4 w-4 cursor-se-resize rounded-sm border border-base-300 bg-base-100/80"
+							className="absolute right-2 bottom-2 h-4 w-4 cursor-se-resize rounded-sm border border-base-300 bg-base-100/80"
 							onPointerDown={startResize}
+							type="button"
 						/>
 					) : null}
-					<ContextMenu open={menuOpen} position={menuPosition} items={menuItems} onClose={() => setMenuOpen(false)} />
+					<ContextMenu items={menuItems} onClose={() => setMenuOpen(false)} open={menuOpen} position={menuPosition} />
 				</div>
 			) : (
 				<EmptyImageState error={error} onDelete={deleteNode} />

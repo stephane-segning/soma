@@ -37,7 +37,7 @@ export function CodeBlockView({ node, updateAttributes }: NodeViewProps) {
 		>
 			<select
 				aria-label="Code language"
-				className="select select-ghost select-xs absolute right-2 top-1 z-10 text-neutral-content/60"
+				className="select select-ghost select-xs absolute top-1 right-2 z-10 text-neutral-content/60"
 				contentEditable={false}
 				onChange={(event) => updateAttributes({ language: event.target.value })}
 				onMouseDown={(event) => event.stopPropagation()}

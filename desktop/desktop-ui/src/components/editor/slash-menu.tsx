@@ -22,12 +22,7 @@ import { useT } from "../../i18n/use-t";
 import { cn } from "../../utils/cn";
 import { MenuItem, MenuSectionLabel, MenuShell } from "../overlays/menu-shell";
 
-export type SlashMenuSection =
-	| "text"
-	| "list"
-	| "embed"
-	| "action"
-	| "advanced";
+export type SlashMenuSection = "text" | "list" | "embed" | "action" | "advanced";
 
 export type SlashMenuItem = {
 	id: string;
@@ -64,13 +59,7 @@ export type SlashMenuProps = {
 	className?: string;
 };
 
-const SECTION_ORDER: SlashMenuSection[] = [
-	"text",
-	"list",
-	"embed",
-	"action",
-	"advanced",
-];
+const SECTION_ORDER: SlashMenuSection[] = ["text", "list", "embed", "action", "advanced"];
 
 export function SlashMenu({
 	items,
@@ -136,9 +125,7 @@ export function SlashMenu({
 		keyboardNavRef.current = false;
 		const container = containerRef.current;
 		if (!container) return;
-		const active = container.querySelector<HTMLElement>(
-			'[role="option"][aria-selected="true"]',
-		);
+		const active = container.querySelector<HTMLElement>('[role="option"][aria-selected="true"]');
 		active?.scrollIntoView({ block: "nearest" });
 	}, [activeIndex]);
 
@@ -154,15 +141,11 @@ export function SlashMenu({
 			if (event.key === "ArrowDown") {
 				event.preventDefault();
 				keyboardNavRef.current = true;
-				setActiveIndex((idx) =>
-					flat.length === 0 ? 0 : (idx + 1) % flat.length,
-				);
+				setActiveIndex((idx) => (flat.length === 0 ? 0 : (idx + 1) % flat.length));
 			} else if (event.key === "ArrowUp") {
 				event.preventDefault();
 				keyboardNavRef.current = true;
-				setActiveIndex((idx) =>
-					flat.length === 0 ? 0 : (idx - 1 + flat.length) % flat.length,
-				);
+				setActiveIndex((idx) => (flat.length === 0 ? 0 : (idx - 1 + flat.length) % flat.length));
 			} else if (event.key === "Enter") {
 				event.preventDefault();
 				if (flat.length > 0) {
@@ -182,12 +165,7 @@ export function SlashMenu({
 	// Empty + onAIPrompt available → AI fallback row instead of a plain empty state.
 	if (flat.length === 0 && onAIPrompt && query.trim().length > 0) {
 		return (
-			<MenuShell
-				className={className}
-				ref={containerRef}
-				role="listbox"
-				width="w-80"
-			>
+			<MenuShell className={className} ref={containerRef} role="listbox" width="w-80">
 				<button
 					aria-selected="true"
 					className="flex items-center gap-2 rounded-md bg-info/10 px-2 py-1.5 text-left text-info text-sm"
@@ -211,26 +189,15 @@ export function SlashMenu({
 
 	if (flat.length === 0) {
 		return (
-			<MenuShell
-				className={cn("text-base-content/60 text-sm", className)}
-				ref={containerRef}
-				width="w-80"
-			>
-				<div className="px-2 py-1.5">
-					{t({ id: "slash-menu.empty", defaultMessage: "No matches" })}
-				</div>
+			<MenuShell className={cn("text-base-content/60 text-sm", className)} ref={containerRef} width="w-80">
+				<div className="px-2 py-1.5">{t({ id: "slash-menu.empty", defaultMessage: "No matches" })}</div>
 			</MenuShell>
 		);
 	}
 
 	let runningIndex = 0;
 	return (
-		<MenuShell
-			className={cn("max-h-80 overflow-y-auto", className)}
-			ref={containerRef}
-			role="listbox"
-			width="w-80"
-		>
+		<MenuShell className={cn("max-h-80 overflow-y-auto", className)} ref={containerRef} role="listbox" width="w-80">
 			{grouped.map((group) => (
 				<div className="flex flex-col gap-0.5" key={group.section}>
 					<MenuSectionLabel>{sectionLabel[group.section]}</MenuSectionLabel>

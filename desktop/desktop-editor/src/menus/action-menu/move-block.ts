@@ -36,11 +36,7 @@
 import { Fragment, type Node as PMNode } from "@tiptap/pm/model";
 import type { Editor } from "@tiptap/react";
 
-export function moveBlock(
-	editor: Editor,
-	pos: number,
-	direction: "up" | "down",
-): boolean {
+export function moveBlock(editor: Editor, pos: number, direction: "up" | "down"): boolean {
 	const { state } = editor;
 	const docSize = state.doc.content.size;
 	if (pos < 0 || pos >= docSize) return false;
@@ -118,13 +114,7 @@ export function deleteBlock(editor: Editor, pos: number): boolean {
  * swap is legal under the schema. `a` and `b` are 0-based child indices and
  * must satisfy `a < b`.
  */
-function canSwap(
-	parent: PMNode,
-	a: number,
-	b: number,
-	nodeA: PMNode,
-	nodeB: PMNode,
-): boolean {
+function canSwap(parent: PMNode, a: number, b: number, nodeA: PMNode, nodeB: PMNode): boolean {
 	const swapped: PMNode[] = [];
 	parent.content.forEach((child, _offset, i) => {
 		if (i === a) swapped.push(nodeB);

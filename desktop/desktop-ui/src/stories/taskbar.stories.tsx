@@ -40,11 +40,7 @@ export const Default: Story = {
 		const [activeApp, setActiveApp] = useState("soma");
 		return (
 			<div className="h-screen bg-base-200 p-4">
-				<Taskbar
-					activeAppId={activeApp}
-					apps={APPS}
-					onSelectApp={setActiveApp}
-				/>
+				<Taskbar activeAppId={activeApp} apps={APPS} onSelectApp={setActiveApp} />
 			</div>
 		);
 	},
@@ -99,14 +95,8 @@ export const WithClosableApps: Story = {
 		const [activeApp, setActiveApp] = useState("soma");
 		return (
 			<div className="h-screen bg-base-200 p-4">
-				<p className="mb-4 text-base-content/60 text-sm">
-					Each app has a close button.
-				</p>
-				<Taskbar
-					activeAppId={activeApp}
-					apps={apps}
-					onSelectApp={setActiveApp}
-				/>
+				<p className="mb-4 text-base-content/60 text-sm">Each app has a close button.</p>
+				<Taskbar activeAppId={activeApp} apps={apps} onSelectApp={setActiveApp} />
 			</div>
 		);
 	},
@@ -126,11 +116,7 @@ export const DarkTheme: Story = {
 		const [activeApp, setActiveApp] = useState("chat");
 		return (
 			<div className="h-screen bg-base-200 p-4">
-				<Taskbar
-					activeAppId={activeApp}
-					apps={APPS}
-					onSelectApp={setActiveApp}
-				/>
+				<Taskbar activeAppId={activeApp} apps={APPS} onSelectApp={setActiveApp} />
 			</div>
 		);
 	},

@@ -1,10 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 
-import {
-	PeerAddressInput,
-	type PeerAddressValidation,
-} from "../components/forms/peer-address-input";
+import { PeerAddressInput, type PeerAddressValidation } from "../components/forms/peer-address-input";
 
 const meta = {
 	title: "Forms/PeerAddressInput",
@@ -34,9 +31,7 @@ function mockValidate(address: string): PeerAddressValidation | null {
 
 function Demo({ initial = "" }: { initial?: string }) {
 	const [value, setValue] = useState(initial);
-	const [preview, setPreview] = useState<PeerAddressValidation | null>(() =>
-		mockValidate(initial),
-	);
+	const [preview, setPreview] = useState<PeerAddressValidation | null>(() => mockValidate(initial));
 	return (
 		<div className="max-w-xl">
 			<PeerAddressInput
@@ -69,12 +64,7 @@ export const InvalidPreview: Story = {
 export const Disabled: Story = {
 	render: () => (
 		<div className="max-w-xl">
-			<PeerAddressInput
-				disabled
-				label="Bot peer address"
-				onChange={() => undefined}
-				value={SAMPLE_VALID}
-			/>
+			<PeerAddressInput disabled label="Bot peer address" onChange={() => undefined} value={SAMPLE_VALID} />
 		</div>
 	),
 };

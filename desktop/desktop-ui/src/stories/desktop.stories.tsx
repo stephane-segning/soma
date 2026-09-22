@@ -2,12 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { DesktopShell } from "../components/layout/desktop-shell";
 import { BasicRender } from "./desktop-shell/basic";
 import { SomaAppRender } from "./desktop-shell/soma-app";
-import {
-	HeaderFooterRender,
-	PersistentWidthsRender,
-	ScrollableRender,
-	SidebarRender,
-} from "./desktop-shell/variants";
+import { HeaderFooterRender, PersistentWidthsRender, ScrollableRender, SidebarRender } from "./desktop-shell/variants";
 
 const meta: Meta<typeof DesktopShell> = {
 	title: "Desktop/Shell",

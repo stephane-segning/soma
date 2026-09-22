@@ -19,12 +19,7 @@ export type NotificationDrawerProps = {
 	title?: string;
 };
 
-export function NotificationDrawer({
-	open,
-	items,
-	onClose,
-	title = "Notifications",
-}: NotificationDrawerProps) {
+export function NotificationDrawer({ open, items, onClose, title = "Notifications" }: NotificationDrawerProps) {
 	return (
 		<OverlayPortal>
 			<AnimatePresence>
@@ -56,9 +51,7 @@ export function NotificationDrawer({
 							</div>
 							<div className="flex h-full flex-col gap-2 overflow-auto px-3 py-3">
 								{items.length === 0 ? (
-									<div className="mt-6 text-center text-base-content/60 text-sm">
-										No notifications
-									</div>
+									<div className="mt-6 text-center text-base-content/60 text-sm">No notifications</div>
 								) : (
 									items.map((item) => (
 										<div
@@ -70,21 +63,13 @@ export function NotificationDrawer({
 													{item.icon ?? <Bell size={14} />}
 												</div>
 												<div className="flex-1">
-													<div className="font-semibold text-sm">
-														{item.title}
-													</div>
+													<div className="font-semibold text-sm">{item.title}</div>
 													{item.time ? (
-														<div className="text-[11px] text-base-content/50 uppercase">
-															{item.time}
-														</div>
+														<div className="text-[11px] text-base-content/50 uppercase">{item.time}</div>
 													) : null}
 												</div>
 											</div>
-											{item.body ? (
-												<p className="text-base-content/70 text-xs">
-													{item.body}
-												</p>
-											) : null}
+											{item.body ? <p className="text-base-content/70 text-xs">{item.body}</p> : null}
 										</div>
 									))
 								)}

@@ -181,11 +181,7 @@ export function DesktopShell(props: DesktopShellProps) {
 	// Only meaningful (and only evaluated as such) once `tier` isn't
 	// "comfortable" — see the hook's own docs for why this can't just be
 	// `state.leftOpen/rightOpen`.
-	const leftOverlayVisible = useNarrowOverlayVisibility(
-		tier,
-		hasLeftContent && state.leftOpen,
-		props.leftSummonKey,
-	);
+	const leftOverlayVisible = useNarrowOverlayVisibility(tier, hasLeftContent && state.leftOpen, props.leftSummonKey);
 	const rightOverlayVisible = useNarrowOverlayVisibility(
 		tier,
 		hasRightContent && state.rightOpen,
@@ -236,10 +232,7 @@ export function DesktopShell(props: DesktopShellProps) {
 
 	return (
 		<div
-			className={cn(
-				"overflow-hidden bg-base-100 text-base-content",
-				props.className,
-			)}
+			className={cn("overflow-hidden bg-base-100 text-base-content", props.className)}
 			ref={shellRef}
 			style={{
 				// `position: fixed` + a `visualViewport`-tracked rect, not
@@ -262,33 +255,14 @@ export function DesktopShell(props: DesktopShellProps) {
 				paddingRight: "env(safe-area-inset-right, 0px)",
 			}}
 		>
-			{props.overlays ? (
-				<div className="pointer-events-none absolute inset-0 z-20">
-					{props.overlays}
-				</div>
-			) : null}
-			<div
-				className={cn(
-					"relative z-10 flex h-full w-full flex-col",
-					props.bodyClassName,
-				)}
-			>
+			{props.overlays ? <div className="pointer-events-none absolute inset-0 z-20">{props.overlays}</div> : null}
+			<div className={cn("relative z-10 flex h-full w-full flex-col", props.bodyClassName)}>
 				{headerNode ? (
-					<div
-						className={cn(
-							"flex flex-col border-base-300 border-b bg-base-100",
-							props.headerClassName,
-						)}
-					>
+					<div className={cn("flex flex-col border-base-300 border-b bg-base-100", props.headerClassName)}>
 						{headerNode}
 					</div>
 				) : null}
-				<div
-					className={cn(
-						"relative flex min-h-0 flex-1 items-start overflow-hidden",
-						props.contentClassName,
-					)}
-				>
+				<div className={cn("relative flex min-h-0 flex-1 items-start overflow-hidden", props.contentClassName)}>
 					{props.leftGutter && tier !== "verySmall" ? (
 						// Always-on icon rail, docked at "comfortable"/"tight".
 						// `shrink-0` + intrinsic width so it never collapses with
@@ -354,9 +328,7 @@ export function DesktopShell(props: DesktopShellProps) {
 						    collapses to content height and strands the shell's
 						    `bg-base-200` under the page. Costs nothing for
 						    content-sized children, which stack the same way. */}
-						<div className="flex min-h-0 w-full flex-1 flex-col overflow-auto">
-							{props.children}
-						</div>
+						<div className="flex min-h-0 w-full flex-1 flex-col overflow-auto">{props.children}</div>
 						{chipsFloatInCorner && props.mainTopLeft ? (
 							<div
 								className="pointer-events-none absolute z-10"

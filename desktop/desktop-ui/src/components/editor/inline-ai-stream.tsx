@@ -40,13 +40,7 @@ export type InlineAIStreamProps = {
 	className?: string;
 };
 
-export function InlineAIStream({
-	text,
-	pending,
-	streaming,
-	onStop,
-	className,
-}: InlineAIStreamProps) {
+export function InlineAIStream({ text, pending, streaming, onStop, className }: InlineAIStreamProps) {
 	const t = useT();
 
 	// Hold the Thinking pill until the first NON-whitespace token arrives.
@@ -63,9 +57,7 @@ export function InlineAIStream({
 				)}
 			>
 				<Star aria-hidden className="size-3 animate-pulse" />
-				<span>
-					{t({ id: "inline-ai-stream.thinking", defaultMessage: "Thinking…" })}
-				</span>
+				<span>{t({ id: "inline-ai-stream.thinking", defaultMessage: "Thinking…" })}</span>
 			</span>
 		);
 	}
@@ -82,8 +74,7 @@ export function InlineAIStream({
 			aria-live="polite"
 			className={cn(
 				"transition-colors duration-200",
-				streaming &&
-					"text-info underline decoration-info decoration-dashed underline-offset-4",
+				streaming && "text-info underline decoration-info decoration-dashed underline-offset-4",
 				className,
 			)}
 		>
@@ -104,10 +95,7 @@ export function InlineAIStream({
 						})}
 						type="button"
 					>
-						<Square
-							aria-hidden
-							className="size-2.5 fill-current text-info-content"
-						/>
+						<Square aria-hidden className="size-2.5 fill-current text-info-content" />
 					</button>
 				</>
 			) : null}

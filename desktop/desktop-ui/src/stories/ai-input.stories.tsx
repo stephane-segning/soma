@@ -51,8 +51,7 @@ export const Default: Story = {
 					value={text}
 				/>
 				<div className="text-base-content/60 text-sm">
-					Hint: this is a reusable AI input bar with attachments, mic, model
-					selector, and send CTA.
+					Hint: this is a reusable AI input bar with attachments, mic, model selector, and send CTA.
 				</div>
 			</div>
 		);

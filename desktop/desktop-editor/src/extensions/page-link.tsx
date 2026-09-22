@@ -5,11 +5,7 @@ import { PageLinkView } from "../components/page-link-view";
 
 type PageLinkOptions = {
 	onOpen?: (pageId: string, title?: string, href?: string) => void;
-	onRename?: (
-		pageId: string,
-		nextTitle: string,
-		currentTitle?: string,
-	) => string | null | Promise<string | null>;
+	onRename?: (pageId: string, nextTitle: string, currentTitle?: string) => string | null | Promise<string | null>;
 };
 
 export const PageLinkNode = Node.create<PageLinkOptions>({
@@ -29,10 +25,7 @@ export const PageLinkNode = Node.create<PageLinkOptions>({
 		onOpen: undefined,
 		onRename: undefined,
 	}),
-	renderHTML: ({ HTMLAttributes }) => [
-		"page-link",
-		mergeAttributes(HTMLAttributes),
-	],
+	renderHTML: ({ HTMLAttributes }) => ["page-link", mergeAttributes(HTMLAttributes)],
 	parseHTML: () => [
 		{
 			tag: "page-link",

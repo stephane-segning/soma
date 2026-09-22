@@ -72,20 +72,12 @@ export function PopupShell({
 }: PopupShellProps) {
 	const t = useT();
 	return (
-		<div
-			className={cn(
-				"flex h-full min-h-0 w-full flex-col overflow-hidden bg-base-100",
-				className,
-			)}
-		>
+		<div className={cn("flex h-full min-h-0 w-full flex-col overflow-hidden bg-base-100", className)}>
 			<header
 				className="flex h-7 shrink-0 items-center justify-between gap-2 border-base-300 border-b bg-base-100 px-2"
 				data-drag-region
 			>
-				<div
-					className="min-w-0 flex-1 truncate text-base-content/80 text-xs"
-					title={title}
-				>
+				<div className="min-w-0 flex-1 truncate text-base-content/80 text-xs" title={title}>
 					{title}
 				</div>
 				<div className="flex shrink-0 items-center gap-0.5" data-no-drag>
@@ -130,11 +122,7 @@ export function PopupShell({
 							<CornerUpLeft aria-hidden className="size-3.5" />
 						</GlyphButton>
 					) : null}
-					<GlyphButton
-						label={t({ id: "popup-shell.close", defaultMessage: "Close" })}
-						onClick={onClose}
-						tone="danger"
-					>
+					<GlyphButton label={t({ id: "popup-shell.close", defaultMessage: "Close" })} onClick={onClose} tone="danger">
 						<X aria-hidden className="size-3.5" />
 					</GlyphButton>
 				</div>
@@ -213,23 +201,13 @@ function GlyphButton({
  *
  * When `pinned`, the pin tilts to indicate the active state.
  */
-function PinIcon({
-	className,
-	pinned,
-}: {
-	className?: string;
-	pinned?: boolean;
-}) {
+function PinIcon({ className, pinned }: { className?: string; pinned?: boolean }) {
 	return (
 		<svg
 			aria-hidden
 			// `transition-transform` applies unconditionally so the rotate
 			// animates in BOTH directions (snap-back on unpin was the bug).
-			className={cn(
-				className,
-				"transition-transform duration-150",
-				pinned && "-rotate-12",
-			)}
+			className={cn(className, "transition-transform duration-150", pinned && "-rotate-12")}
 			fill="none"
 			stroke="currentColor"
 			strokeLinecap="round"

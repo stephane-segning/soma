@@ -11,10 +11,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { Calendar, Clock, FileText, List, MessageSquare } from "react-feather";
 import { PanelChipBar } from "../components/panels/panel-chip-bar";
-import {
-	PanelContainer,
-	type PanelDescriptor,
-} from "../components/panels/panel-container";
+import { PanelContainer, type PanelDescriptor } from "../components/panels/panel-container";
 
 const meta = {
 	title: "Panels/PanelContainer",
@@ -33,15 +30,12 @@ const PANELS: PanelDescriptor[] = [
 			<div className="flex flex-col gap-2 px-3 py-2 text-sm">
 				<div>
 					<span className="font-medium">You · 2m ago</span>
-					<p className="text-base-content/80">
-						Summarize the latest space activity.
-					</p>
+					<p className="text-base-content/80">Summarize the latest space activity.</p>
 				</div>
 				<div>
 					<span className="font-medium text-primary">Assistant</span>
 					<p className="text-base-content/80">
-						You merged PR #66 (Wave 3A) 5 minutes ago, addressing 7 review
-						comments. Wave 3B is in progress.
+						You merged PR #66 (Wave 3A) 5 minutes ago, addressing 7 review comments. Wave 3B is in progress.
 					</p>
 				</div>
 			</div>
@@ -105,15 +99,11 @@ const PANELS: PanelDescriptor[] = [
 ];
 
 function Demo({ initialExpanded = ["chat"] }: { initialExpanded?: string[] }) {
-	const [expanded, setExpanded] = useState<Set<string>>(
-		() => new Set(initialExpanded),
-	);
+	const [expanded, setExpanded] = useState<Set<string>>(() => new Set(initialExpanded));
 	return (
 		<div className="relative flex h-screen bg-base-200">
 			<div className="relative flex-1">
-				<div className="flex h-full items-center justify-center text-base-content/40 text-sm">
-					Mock editor column
-				</div>
+				<div className="flex h-full items-center justify-center text-base-content/40 text-sm">Mock editor column</div>
 				<div className="absolute top-2 right-2">
 					<PanelChipBar
 						expandedIds={expanded}

@@ -12,7 +12,11 @@ export const initialContent: JSONContent = {
 			type: "paragraph",
 			content: [
 				{ type: "text", text: "Links are rendered with typography styling, e.g. " },
-				{ type: "text", text: "daisyui.com", marks: [{ type: "link", attrs: { href: "https://daisyui.com", target: "_blank" } }] },
+				{
+					type: "text",
+					text: "daisyui.com",
+					marks: [{ type: "link", attrs: { href: "https://daisyui.com", target: "_blank" } }],
+				},
 				{ type: "text", text: "." },
 			],
 		},
@@ -23,7 +27,10 @@ export const initialContent: JSONContent = {
 				{ type: "textRotate", attrs: { items: ["Design", "Build", "Ship"] } },
 			],
 		},
-		{ type: "pageLink", attrs: { pageId: "page_demo_123", title: "Project Brief", href: "/spaces/demo/pages/page_demo_123" } },
+		{
+			type: "pageLink",
+			attrs: { pageId: "page_demo_123", title: "Project Brief", href: "/spaces/demo/pages/page_demo_123" },
+		},
 		{ type: "pageLink", attrs: { title: "DaisyUI components", href: "https://daisyui.com/components/" } },
 		{
 			type: "carousel",
@@ -64,14 +71,27 @@ export const initialContent: JSONContent = {
 		{
 			type: "codeBlock",
 			attrs: { language: "typescript" },
-			content: [{ type: "text", text: "type Space = { id: string; name: string };\n\nconst byId = (space: Space) => space.id;\n" }],
+			content: [
+				{
+					type: "text",
+					text: "type Space = { id: string; name: string };\n\nconst byId = (space: Space) => space.id;\n",
+				},
+			],
 		},
 		{ type: "paragraph", content: [{ type: "text", text: "Task list example:" }] },
 		{
 			type: "taskList",
 			content: [
-				{ type: "taskItem", attrs: { checked: true }, content: [{ type: "paragraph", content: [{ type: "text", text: "Ships with default commands" }] }] },
-				{ type: "taskItem", attrs: { checked: false }, content: [{ type: "paragraph", content: [{ type: "text", text: "Add more custom blocks" }] }] },
+				{
+					type: "taskItem",
+					attrs: { checked: true },
+					content: [{ type: "paragraph", content: [{ type: "text", text: "Ships with default commands" }] }],
+				},
+				{
+					type: "taskItem",
+					attrs: { checked: false },
+					content: [{ type: "paragraph", content: [{ type: "text", text: "Add more custom blocks" }] }],
+				},
 			],
 		},
 	],

@@ -8,11 +8,7 @@ export type StreakMeterProps = {
 	label?: string;
 };
 
-export function StreakMeter({
-	value,
-	max = 7,
-	label = "Streak",
-}: StreakMeterProps) {
+export function StreakMeter({ value, max = 7, label = "Streak" }: StreakMeterProps) {
 	const clamped = Math.min(max, Math.max(0, value));
 	const pct = Math.round((clamped / max) * 100);
 	return (
@@ -81,12 +77,7 @@ const timerAccent = {
 	danger: "text-error bg-error/15 border-error/30",
 };
 
-export function TimerPill({
-	label = "Timer",
-	timecode,
-	accent = "primary",
-	className,
-}: TimerPillProps) {
+export function TimerPill({ label = "Timer", timecode, accent = "primary", className }: TimerPillProps) {
 	return (
 		<div
 			className={cn(
@@ -96,9 +87,7 @@ export function TimerPill({
 			)}
 		>
 			<span>{label}</span>
-			<span className="rounded bg-base-100/60 px-2 py-0.5 text-xs">
-				{timecode}
-			</span>
+			<span className="rounded bg-base-100/60 px-2 py-0.5 text-xs">{timecode}</span>
 		</div>
 	);
 }

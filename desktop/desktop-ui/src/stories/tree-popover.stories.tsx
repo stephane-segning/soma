@@ -42,12 +42,7 @@ export const Default: Story = {
 export const NoRecents: Story = {
 	render: () => (
 		<div className="flex justify-center">
-			<TreePopover
-				currentId="root-1"
-				documents={DOCS}
-				onClose={() => undefined}
-				onSelect={() => undefined}
-			/>
+			<TreePopover currentId="root-1" documents={DOCS} onClose={() => undefined} onSelect={() => undefined} />
 		</div>
 	),
 };

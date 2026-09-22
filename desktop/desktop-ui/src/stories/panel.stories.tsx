@@ -35,22 +35,14 @@ export const WithCollapseAndClose: Story = {
 		const [visible, setVisible] = useState(true);
 		if (!visible) {
 			return (
-				<button
-					className="btn btn-sm"
-					onClick={() => setVisible(true)}
-					type="button"
-				>
+				<button className="btn btn-sm" onClick={() => setVisible(true)} type="button">
 					Restore panel
 				</button>
 			);
 		}
 		return (
 			<div className="w-72">
-				<Panel
-					onClose={() => setVisible(false)}
-					onCollapse={() => setVisible(false)}
-					title="History"
-				>
+				<Panel onClose={() => setVisible(false)} onCollapse={() => setVisible(false)} title="History">
 					<SampleContent />
 				</Panel>
 			</div>

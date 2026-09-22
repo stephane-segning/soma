@@ -34,18 +34,9 @@ type ShellPanelProps = {
  * `onResize` callback frame-perfect; once the user releases, the next
  * external width change re-animates.
  */
-export function ShellPanel({
-	content,
-	open,
-	side,
-	width,
-	minWidth,
-	maxWidth,
-	onResizeStop,
-}: ShellPanelProps) {
+export function ShellPanel({ content, open, side, width, minWidth, maxWidth, onResizeStop }: ShellPanelProps) {
 	const enable = side === "left" ? { right: true } : { left: true };
-	const handleComponent =
-		side === "left" ? { right: <ResizeHandle /> } : { left: <ResizeHandle /> };
+	const handleComponent = side === "left" ? { right: <ResizeHandle /> } : { left: <ResizeHandle /> };
 
 	const [liveWidth, setLiveWidth] = useState(width);
 	const [dragging, setDragging] = useState(false);
@@ -81,21 +72,14 @@ export function ShellPanel({
 						onResize={(_, __, ref) => setLiveWidth(ref.offsetWidth)}
 						onResizeStart={() => setDragging(true)}
 						onResizeStop={(_, __, ref) => {
-							const next = normalizePanelWidth(
-								ref.offsetWidth,
-								width,
-								minWidth,
-								maxWidth,
-							);
+							const next = normalizePanelWidth(ref.offsetWidth, width, minWidth, maxWidth);
 							setLiveWidth(next);
 							setDragging(false);
 							onResizeStop(next);
 						}}
 						size={{ width: liveWidth, height: "100%" }}
 					>
-						<aside className="scrollbar-none relative h-full overflow-auto">
-							{content}
-						</aside>
+						<aside className="scrollbar-none relative h-full overflow-auto">{content}</aside>
 					</Resizable>
 				</motion.div>
 			) : null}

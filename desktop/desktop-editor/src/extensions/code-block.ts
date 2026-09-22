@@ -3,9 +3,7 @@ import { ReactNodeViewRenderer } from "@tiptap/react";
 import type { createLowlight } from "lowlight";
 import { CodeBlockView } from "../components/code-block-view";
 
-export const CodeBlockExtensionFn = (
-	lowlight: ReturnType<typeof createLowlight>,
-) =>
+export const CodeBlockExtensionFn = (lowlight: ReturnType<typeof createLowlight>) =>
 	CodeBlockLowlight.extend({
 		// React NodeView lets us render a small language picker at the
 		// top-right of every code block. `updateAttributes` from the

@@ -35,18 +35,13 @@ const headingFirstSchema = new Schema({
 
 type EditorHandle = { editor: Editor; getDoc: () => string[] };
 
-function makeEditor(
-	schema: Schema,
-	blocks: Array<{ type: "paragraph" | "heading"; text: string }>,
-): EditorHandle {
+function makeEditor(schema: Schema, blocks: Array<{ type: "paragraph" | "heading"; text: string }>): EditorHandle {
 	const state = EditorState.create({
 		schema,
 		doc: schema.node(
 			"doc",
 			null,
-			blocks.map((b) =>
-				schema.node(b.type, null, b.text.length > 0 ? [schema.text(b.text)] : []),
-			),
+			blocks.map((b) => schema.node(b.type, null, b.text.length > 0 ? [schema.text(b.text)] : [])),
 		),
 	});
 	let current = state;
@@ -62,8 +57,7 @@ function makeEditor(
 	} as unknown as Editor;
 	return {
 		editor,
-		getDoc: () =>
-			current.doc.content.content.map((node) => node.textContent),
+		getDoc: () => current.doc.content.content.map((node) => node.textContent),
 	};
 }
 

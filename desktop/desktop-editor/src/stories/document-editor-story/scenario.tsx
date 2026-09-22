@@ -1,10 +1,5 @@
 import { createId } from "@paralleldrive/cuid2";
-import {
-	type BlobFileUploadResult,
-	type BlobImageUploadResult,
-	DocumentEditor,
-	type JSONContent,
-} from "@soma/editor";
+import { type BlobFileUploadResult, type BlobImageUploadResult, DocumentEditor, type JSONContent } from "@soma/editor";
 import { useCallback, useMemo } from "react";
 import { createStoryCommands } from "./commands";
 import { loadImageDimensions } from "./file-utils";
@@ -35,17 +30,14 @@ export function ScenarioRender({ content }: { content: JSONContent }) {
 		[],
 	);
 
-	const commands = useMemo(
-		() => createStoryCommands({ uploadFile, uploadImage }),
-		[uploadFile, uploadImage],
-	);
+	const commands = useMemo(() => createStoryCommands({ uploadFile, uploadImage }), [uploadFile, uploadImage]);
 
 	return (
-		<div className="min-h-screen bg-base-100 px-4 md:px-16 lg:px-32 py-12">
+		<div className="min-h-screen bg-base-100 px-4 py-12 md:px-16 lg:px-32">
 			<DocumentEditor
-				limit={20_000}
 				commands={commands}
 				initialContent={content}
+				limit={20_000}
 				onChange={() => {}}
 				onOpenPageLink={(pageId) => {
 					// eslint-disable-next-line no-alert

@@ -9,8 +9,9 @@
  * We test this by extracting the callbacks the same way the component constructs
  * them — no DOM render required.  The pattern mirrors ai-registry.test.ts.
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
+
 import type { Editor } from "@tiptap/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // --- Chain stub ---------------------------------------------------------
 
@@ -37,7 +38,7 @@ function makeEditor(highlightActive = false): { editor: Editor; stub: ChainStub 
 	stub.toggleBold.mockReturnValue(stub);
 	stub.run.mockReturnValue(true);
 
-	const isActiveMock = vi.fn((mark: string) => mark === "highlight" ? highlightActive : false);
+	const isActiveMock = vi.fn((mark: string) => (mark === "highlight" ? highlightActive : false));
 
 	const editor = {
 		chain: stub.chain,

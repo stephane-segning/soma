@@ -18,16 +18,10 @@ function SingleChar({ char, className }: SingleCharProps) {
 	if (char === " ") {
 		return <span className={cn(className, "inline-block h-14 w-8")} />;
 	}
-	return (
-		<span className={cn(className, "inline-block align-baseline")}>{char}</span>
-	);
+	return <span className={cn(className, "inline-block align-baseline")}>{char}</span>;
 }
 
-export const CharDisplay = memo(function CharDisplay({
-	shouldGraphemes,
-	isGraphemes,
-	className,
-}: CharDisplayProps) {
+export const CharDisplay = memo(function CharDisplay({ shouldGraphemes, isGraphemes, className }: CharDisplayProps) {
 	const expected = shouldGraphemes;
 	const actual = isGraphemes;
 
@@ -48,10 +42,7 @@ export const CharDisplay = memo(function CharDisplay({
 
 			if (!hasUserChar) {
 				return (
-					<span
-						className="relative align-baseline text-base-content/80 leading-none"
-						key={index}
-					>
+					<span className="relative align-baseline text-base-content/80 leading-none" key={index}>
 						<SingleChar char={char} />
 					</span>
 				);
@@ -60,10 +51,7 @@ export const CharDisplay = memo(function CharDisplay({
 			if (userChar === char) {
 				return (
 					<span
-						className={cn(
-							typerClass,
-							"relative align-baseline text-success leading-none",
-						)}
+						className={cn(typerClass, "relative align-baseline text-success leading-none")}
 						key={index}
 						ref={ref as React.RefObject<HTMLSpanElement>}
 					>
@@ -74,10 +62,7 @@ export const CharDisplay = memo(function CharDisplay({
 
 			return (
 				<span
-					className={cn(
-						typerClass,
-						"relative inline-flex items-end justify-center align-baseline",
-					)}
+					className={cn(typerClass, "relative inline-flex items-end justify-center align-baseline")}
 					key={index}
 					ref={ref as React.RefObject<HTMLSpanElement>}
 				>
@@ -89,10 +74,7 @@ export const CharDisplay = memo(function CharDisplay({
 					>
 						<SingleChar char={char} />
 					</motion.span>
-					<SingleChar
-						char={userChar}
-						className="text-error leading-none line-through"
-					/>
+					<SingleChar char={userChar} className="text-error leading-none line-through" />
 				</span>
 			);
 		});
@@ -104,8 +86,7 @@ export const CharDisplay = memo(function CharDisplay({
 		const inner = innerRef.current;
 		const cursor = cursorRef.current;
 		if (container && cursor && inner) {
-			const target =
-				cursor.offsetLeft + cursor.clientWidth / 2 - container.clientWidth / 2;
+			const target = cursor.offsetLeft + cursor.clientWidth / 2 - container.clientWidth / 2;
 			const maxScroll = Math.max(0, inner.scrollWidth - container.clientWidth);
 			const nextScrollLeft = Math.max(0, Math.min(target, maxScroll));
 			container.scrollTo({ left: nextScrollLeft, behavior: "smooth" });
@@ -113,10 +94,7 @@ export const CharDisplay = memo(function CharDisplay({
 	}, [actual.length, cells]);
 
 	return (
-		<div
-			className={cn("scrollbar-none h-30 w-full overflow-x-auto", className)}
-			ref={containerRef}
-		>
+		<div className={cn("scrollbar-none h-30 w-full overflow-x-auto", className)} ref={containerRef}>
 			<div
 				className="inline-flex min-h-full flex-nowrap items-end gap-1 py-1 font-bold font-mono text-6xl"
 				ref={innerRef}

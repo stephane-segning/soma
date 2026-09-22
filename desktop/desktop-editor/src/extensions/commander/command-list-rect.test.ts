@@ -30,9 +30,7 @@ describe("CommandList floating-ui virtual element", () => {
 		// what makes the menu follow the trigger character through page
 		// scroll. The fresh call appears inside the `getBoundingClientRect`
 		// function body.
-		const getterBody = src.match(
-			/getBoundingClientRect:\s*\(\)\s*=>\s*[{(][\s\S]*?(?:\}\s*,|\),)/,
-		);
+		const getterBody = src.match(/getBoundingClientRect:\s*\(\)\s*=>\s*[{(][\s\S]*?(?:\}\s*,|\),)/);
 		expect(getterBody, "could not locate getBoundingClientRect getter").not.toBeNull();
 		expect(getterBody?.[0]).toMatch(/clientRect\(\)/);
 	});

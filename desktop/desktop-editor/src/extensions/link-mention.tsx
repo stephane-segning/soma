@@ -33,6 +33,17 @@ function insertMentionLink(editor: Editor, range: Range, mentionChar: string, it
 	const start = range.from;
 	const end = start + displayText.length;
 
-	editor.chain().focus().insertContentAt(range, displayText).setTextSelection({ from: start, to: end }).setLink({ href: item.href }).run();
-	editor.chain().focus().insertContentAt(end, " ").setTextSelection(end + 1).run();
+	editor
+		.chain()
+		.focus()
+		.insertContentAt(range, displayText)
+		.setTextSelection({ from: start, to: end })
+		.setLink({ href: item.href })
+		.run();
+	editor
+		.chain()
+		.focus()
+		.insertContentAt(end, " ")
+		.setTextSelection(end + 1)
+		.run();
 }

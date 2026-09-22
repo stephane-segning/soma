@@ -37,7 +37,11 @@ type CreateDocumentExtensionsInput = {
 	lowlight: ReturnType<typeof createLowlight>;
 	mentionProviders?: MentionProvider[];
 	onOpenPageLink?: (pageId: string, title?: string, href?: string) => void;
-	onRenamePageLink?: (pageId: string, nextTitle: string, currentTitle?: string) => string | null | Promise<string | null>;
+	onRenamePageLink?: (
+		pageId: string,
+		nextTitle: string,
+		currentTitle?: string,
+	) => string | null | Promise<string | null>;
 	placeholder: string;
 	uploadFile?: (file: File) => Promise<BlobFileUploadResult>;
 	uploadImage?: (file: File) => Promise<BlobImageUploadResult>;
@@ -102,9 +106,7 @@ export function createDocumentExtensions(input: CreateDocumentExtensionsInput) {
 					"Mod-k": () => {
 						const { empty } = this.editor.state.selection;
 						if (empty) return true;
-						this.editor.view.dom.dispatchEvent(
-							new CustomEvent("soma:request-link-input", { bubbles: true }),
-						);
+						this.editor.view.dom.dispatchEvent(new CustomEvent("soma:request-link-input", { bubbles: true }));
 						return true;
 					},
 				};

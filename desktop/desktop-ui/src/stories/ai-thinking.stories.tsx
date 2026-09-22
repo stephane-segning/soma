@@ -30,12 +30,7 @@ export const Thinking: Story = {
 export const Complete: Story = {
 	render: () => (
 		<div className="max-w-lg">
-			<AiThinking
-				content={THINKING_CONTENT}
-				defaultOpen
-				durationLabel="3 seconds"
-				status="complete"
-			/>
+			<AiThinking content={THINKING_CONTENT} defaultOpen durationLabel="3 seconds" status="complete" />
 		</div>
 	),
 };
@@ -43,12 +38,7 @@ export const Complete: Story = {
 export const CollapsedByDefault: Story = {
 	render: () => (
 		<div className="max-w-lg">
-			<AiThinking
-				content={THINKING_CONTENT}
-				defaultOpen={false}
-				durationLabel="2 seconds"
-				status="complete"
-			/>
+			<AiThinking content={THINKING_CONTENT} defaultOpen={false} durationLabel="2 seconds" status="complete" />
 		</div>
 	),
 };
@@ -85,12 +75,7 @@ export const LiveTransition: Story = {
 						Mark complete
 					</button>
 				</div>
-				<AiThinking
-					content={THINKING_CONTENT}
-					defaultOpen
-					durationLabel="4 seconds"
-					status={status}
-				/>
+				<AiThinking content={THINKING_CONTENT} defaultOpen durationLabel="4 seconds" status={status} />
 			</div>
 		);
 	},

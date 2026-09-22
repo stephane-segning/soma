@@ -37,9 +37,7 @@ function tierForWidth(width: number): ShellTier {
  */
 export function useShellTier(ref: RefObject<HTMLElement | null>): ShellTier {
 	const [tier, setTier] = useState<ShellTier>(() =>
-		typeof window === "undefined"
-			? "comfortable"
-			: tierForWidth(window.innerWidth),
+		typeof window === "undefined" ? "comfortable" : tierForWidth(window.innerWidth),
 	);
 	const frame = useRef<number | null>(null);
 
@@ -50,8 +48,7 @@ export function useShellTier(ref: RefObject<HTMLElement | null>): ShellTier {
 		const observer = new ResizeObserver((entries) => {
 			const entry = entries[0];
 			if (!entry) return;
-			const width =
-				entry.contentBoxSize?.[0]?.inlineSize ?? entry.contentRect.width;
+			const width = entry.contentBoxSize?.[0]?.inlineSize ?? entry.contentRect.width;
 			// ResizeObserver can fire several times inside one frame during a
 			// live window drag; rAF-batch so we only ever commit once per
 			// frame instead of thrashing React state mid-drag.

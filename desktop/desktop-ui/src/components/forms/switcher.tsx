@@ -112,9 +112,7 @@ export function Switcher({
 		onNavigate: setActiveIndex,
 		loop: true,
 	});
-	const { getReferenceProps, getFloatingProps, getItemProps } = useInteractions(
-		[click, dismiss, role, listNav],
-	);
+	const { getReferenceProps, getFloatingProps, getItemProps } = useInteractions([click, dismiss, role, listNav]);
 
 	const active = items.find((item) => item.id === activeId) ?? null;
 	const footerIndex = items.length;
@@ -138,15 +136,10 @@ export function Switcher({
 						{active.mark}
 					</span>
 				) : null}
-				<span className="text-base-content/90">
-					{active?.label ?? emptyLabel}
-				</span>
+				<span className="text-base-content/90">{active?.label ?? emptyLabel}</span>
 				<ChevronDown
 					aria-hidden
-					className={cn(
-						"size-3 text-base-content/60 transition-transform",
-						open && "rotate-180",
-					)}
+					className={cn("size-3 text-base-content/60 transition-transform", open && "rotate-180")}
 				/>
 			</button>
 			{open ? (
@@ -188,24 +181,17 @@ export function Switcher({
 										})}
 									>
 										{item.mark ? (
-											<span
-												aria-hidden
-												className="mt-0.5 shrink-0 text-base-content/70"
-											>
+											<span aria-hidden className="mt-0.5 shrink-0 text-base-content/70">
 												{item.mark}
 											</span>
 										) : null}
 										<span className="flex min-w-0 flex-1 flex-col">
 											<span className="flex items-center gap-1.5">
-												<span className="truncate text-base-content/90">
-													{item.label}
-												</span>
+												<span className="truncate text-base-content/90">{item.label}</span>
 												{item.trailing}
 											</span>
 											{item.subtitle ? (
-												<span className="truncate text-base-content/60 text-xs">
-													{item.subtitle}
-												</span>
+												<span className="truncate text-base-content/60 text-xs">{item.subtitle}</span>
 											) : null}
 										</span>
 									</button>
@@ -221,9 +207,7 @@ export function Switcher({
 									// Same "no transition-colors" rule — the footer action is
 									// part of the same keyboard-navigable list.
 									"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-base-200 hover:text-base-content",
-									activeIndex === footerIndex
-										? "bg-base-200 text-base-content"
-										: "text-base-content/80",
+									activeIndex === footerIndex ? "bg-base-200 text-base-content" : "text-base-content/80",
 								)}
 								ref={(node) => {
 									listRef.current[footerIndex] = node;

@@ -24,13 +24,7 @@ export type ContextMenuProps = {
 	className?: string;
 };
 
-export function ContextMenu({
-	open,
-	position,
-	items,
-	onClose,
-	className,
-}: ContextMenuProps) {
+export function ContextMenu({ open, position, items, onClose, className }: ContextMenuProps) {
 	const { refs, floatingStyles } = useFloating({
 		placement: "bottom-start",
 		strategy: "fixed",
@@ -59,10 +53,7 @@ export function ContextMenu({
 				{open ? (
 					<>
 						{/* biome-ignore lint/a11y/noStaticElementInteractions: full-screen backdrop is inherently mouse-only dismiss chrome, not a focusable control — same rationale as app-layout.tsx's window drag region. */}
-						<div
-							className="pointer-events-auto fixed inset-0 z-40"
-							onMouseDown={onClose}
-						/>
+						<div className="pointer-events-auto fixed inset-0 z-40" onMouseDown={onClose} />
 						{/*
 						 * Animate ONLY opacity on this node.
 						 *

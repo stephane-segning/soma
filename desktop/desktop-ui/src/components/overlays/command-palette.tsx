@@ -31,11 +31,7 @@ import { cn } from "../../utils/cn";
 import { Kbd } from "../primitives/kbd";
 import { OverlayPortal } from "./overlay-portal";
 
-export type CommandPaletteSectionKind =
-	| "recent-docs"
-	| "spaces"
-	| "documents"
-	| "commands";
+export type CommandPaletteSectionKind = "recent-docs" | "spaces" | "documents" | "commands";
 
 export type CommandPaletteItem = {
 	id: string;
@@ -76,20 +72,9 @@ export type CommandPaletteProps = {
 	onQueryChange?: (query: string) => void;
 };
 
-const SECTION_ORDER: CommandPaletteSectionKind[] = [
-	"recent-docs",
-	"spaces",
-	"documents",
-	"commands",
-];
+const SECTION_ORDER: CommandPaletteSectionKind[] = ["recent-docs", "spaces", "documents", "commands"];
 
-export function CommandPalette({
-	open,
-	items,
-	onClose,
-	placeholder,
-	onQueryChange,
-}: CommandPaletteProps) {
+export function CommandPalette({ open, items, onClose, placeholder, onQueryChange }: CommandPaletteProps) {
 	const t = useT();
 	const [query, setQuery] = useState("");
 	const containerRef = useRef<HTMLDivElement | null>(null);
@@ -204,16 +189,10 @@ export function CommandPalette({
 			const currentFlat = flatRef.current;
 			if (event.key === "ArrowDown") {
 				event.preventDefault();
-				setActiveIndex((idx) =>
-					currentFlat.length === 0 ? 0 : (idx + 1) % currentFlat.length,
-				);
+				setActiveIndex((idx) => (currentFlat.length === 0 ? 0 : (idx + 1) % currentFlat.length));
 			} else if (event.key === "ArrowUp") {
 				event.preventDefault();
-				setActiveIndex((idx) =>
-					currentFlat.length === 0
-						? 0
-						: (idx - 1 + currentFlat.length) % currentFlat.length,
-				);
+				setActiveIndex((idx) => (currentFlat.length === 0 ? 0 : (idx - 1 + currentFlat.length) % currentFlat.length));
 			} else if (event.key === "Enter") {
 				event.preventDefault();
 				if (currentFlat.length > 0) {
@@ -254,10 +233,7 @@ export function CommandPalette({
 							transition={{ duration: 0.15, ease: "easeOut" }}
 						>
 							<div className="flex items-center gap-2 rounded-md bg-base-200 px-2 py-1.5">
-								<Search
-									aria-hidden
-									className="size-4 shrink-0 text-base-content/60"
-								/>
+								<Search aria-hidden className="size-4 shrink-0 text-base-content/60" />
 								<input
 									// biome-ignore lint/a11y/noAutofocus: the palette only exists once summoned via ⌘K — the entire interaction is "open, then type" (ADR-0005 §12), so focus must land in the search field the instant it mounts or the shortcut that opened it is pointless.
 									autoFocus
@@ -294,9 +270,7 @@ export function CommandPalette({
 													className={cn(
 														// No `transition-colors` — snap the highlight; matches MenuShell/BackendSwitcher.
 														"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm",
-														isActive
-															? "bg-base-200 text-base-content"
-															: "hover:bg-base-200",
+														isActive ? "bg-base-200 text-base-content" : "hover:bg-base-200",
 													)}
 													key={item.id}
 													onClick={() => {
@@ -307,18 +281,13 @@ export function CommandPalette({
 													role="option"
 													type="button"
 												>
-													<span
-														aria-hidden
-														className="shrink-0 text-base-content/60"
-													>
+													<span aria-hidden className="shrink-0 text-base-content/60">
 														{item.icon ?? <Search className="size-3.5" />}
 													</span>
 													<span className="flex min-w-0 flex-1 flex-col">
 														<span className="truncate">{item.title}</span>
 														{item.subtitle ? (
-															<span className="truncate text-base-content/60 text-xs">
-																{item.subtitle}
-															</span>
+															<span className="truncate text-base-content/60 text-xs">{item.subtitle}</span>
 														) : null}
 													</span>
 													{item.shortcut ? (

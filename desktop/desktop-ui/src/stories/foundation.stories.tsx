@@ -1,9 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import {
-	DensityProvider,
-	type Density as DensityTier,
-	useDensity,
-} from "../components/primitives/density-provider";
+import { DensityProvider, type Density as DensityTier, useDensity } from "../components/primitives/density-provider";
 import { useT } from "../i18n/use-t";
 
 const meta = {
@@ -67,9 +63,7 @@ export const RowTiers: Story = {
 				<span aria-hidden className="size-8 rounded-md bg-secondary/30" />
 				<div className="flex flex-col">
 					<code>row-card</code>
-					<span className="text-base-content/60">
-						3.25rem / 52px — two-line content
-					</span>
+					<span className="text-base-content/60">3.25rem / 52px — two-line content</span>
 				</div>
 			</div>
 		</div>
@@ -85,36 +79,25 @@ export const Surfaces: Story = {
 		<div className="grid grid-cols-2 gap-4">
 			<div className="surface-card p-4">
 				<div className="font-semibold text-sm">surface-card</div>
-				<p className="text-base-content/70 text-sm">
-					Border-only resting surface. No shadow.
-				</p>
+				<p className="text-base-content/70 text-sm">Border-only resting surface. No shadow.</p>
 			</div>
 			<div className="glass-panel p-4">
 				<div className="font-semibold text-sm">glass-panel</div>
-				<p className="text-base-content/70 text-sm">
-					Translucent + blur. No shadow by default.
-				</p>
+				<p className="text-base-content/70 text-sm">Translucent + blur. No shadow by default.</p>
 			</div>
 			<div className="glass-panel p-4 shadow-elevated">
-				<div className="font-semibold text-sm">
-					glass-panel + shadow-elevated
-				</div>
+				<div className="font-semibold text-sm">glass-panel + shadow-elevated</div>
 				<p className="text-base-content/70 text-sm">
-					Floating-overlay opt-in. Use only on modal / popover / context-menu /
-					toast.
+					Floating-overlay opt-in. Use only on modal / popover / context-menu / toast.
 				</p>
 			</div>
 			<div className="surface-card-legacy p-4">
 				<div className="font-semibold text-sm">surface-card-legacy</div>
-				<p className="text-base-content/70 text-sm">
-					Pre-revamp depth. Reachable during cutover; deleted after.
-				</p>
+				<p className="text-base-content/70 text-sm">Pre-revamp depth. Reachable during cutover; deleted after.</p>
 			</div>
 			<div className="glass-panel-legacy rounded-2xl p-4">
 				<div className="font-semibold text-sm">glass-panel-legacy</div>
-				<p className="text-base-content/70 text-sm">
-					Pre-revamp heavy shadow + radius. Same fate.
-				</p>
+				<p className="text-base-content/70 text-sm">Pre-revamp heavy shadow + radius. Same fate.</p>
 			</div>
 		</div>
 	),
@@ -130,8 +113,7 @@ function I18nDemo() {
 		<p className="text-sm">
 			{t({
 				id: "foundation.demo.greeting",
-				defaultMessage:
-					"Hello, {name}! You have {count, plural, one {# new bot} other {# new bots}}.",
+				defaultMessage: "Hello, {name}! You have {count, plural, one {# new bot} other {# new bots}}.",
 				values: { name: "Stéphane", count: 3 },
 			})}
 		</p>

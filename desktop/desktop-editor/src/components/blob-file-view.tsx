@@ -21,7 +21,8 @@ function formatBytes(bytes: number | undefined): string {
 
 export function BlobFileView({ node, deleteNode }: NodeViewProps): React.JSX.Element {
 	const href = node.attrs.href as string | undefined;
-	const name = (node.attrs.originalName as string | undefined) ?? (node.attrs.name as string | undefined) ?? "Untitled file";
+	const name =
+		(node.attrs.originalName as string | undefined) ?? (node.attrs.name as string | undefined) ?? "Untitled file";
 	const storedName = node.attrs.name as string | undefined;
 	const mime = (node.attrs.originalMime as string | undefined) ?? (node.attrs.mime as string | undefined);
 	const size = (node.attrs.originalSize as number | undefined) ?? (node.attrs.size as number | undefined);
@@ -40,12 +41,16 @@ export function BlobFileView({ node, deleteNode }: NodeViewProps): React.JSX.Ele
 							{size ? <span>{formatBytes(size)}</span> : null}
 							{isArchived && storedName ? <span>Stored as {storedName}</span> : null}
 						</div>
-						{error ? <div className="text-error text-xs">Couldn't save this attachment on this device: {error}</div> : null}
-						{isUploading ? <div className="text-base-content/60 text-xs">Saving attachment to this device...</div> : null}
+						{error ? (
+							<div className="text-error text-xs">Couldn't save this attachment on this device: {error}</div>
+						) : null}
+						{isUploading ? (
+							<div className="text-base-content/60 text-xs">Saving attachment to this device...</div>
+						) : null}
 						{href ? (
 							<div className="text-base-content/60 text-xs">
-								Opens immediately if this device already has a local copy. Otherwise Soma may need a reachable
-								member device or cache-serving bot for the first download.
+								Opens immediately if this device already has a local copy. Otherwise Soma may need a reachable member
+								device or cache-serving bot for the first download.
 							</div>
 						) : null}
 					</div>

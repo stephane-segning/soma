@@ -16,11 +16,7 @@ export const Full: Story = {
 		<div className="max-w-xl">
 			<Empty
 				cta={
-					<button
-						className="btn btn-primary btn-sm"
-						onClick={() => undefined}
-						type="button"
-					>
+					<button className="btn btn-primary btn-sm" onClick={() => undefined} type="button">
 						Add bot
 					</button>
 				}
@@ -55,19 +51,11 @@ export const Compact: Story = {
 function FilterDemo() {
 	const [cleared, setCleared] = useState(false);
 	if (cleared) {
-		return (
-			<div className="max-w-sm text-base-content/60 text-sm">
-				Filter cleared
-			</div>
-		);
+		return <div className="max-w-sm text-base-content/60 text-sm">Filter cleared</div>;
 	}
 	return (
 		<div className="max-w-sm">
-			<Empty
-				headline="No matches for 'foo'"
-				onClear={() => setCleared(true)}
-				variant="filter"
-			/>
+			<Empty headline="No matches for 'foo'" onClear={() => setCleared(true)} variant="filter" />
 		</div>
 	);
 }
@@ -86,11 +74,7 @@ export const DarkTheme: Story = {
 				subtext="Paste a bot's peer address from settings to authorize it."
 			/>
 			<Empty headline="No attachments" variant="compact" />
-			<Empty
-				headline="No matches for 'foo'"
-				onClear={() => undefined}
-				variant="filter"
-			/>
+			<Empty headline="No matches for 'foo'" onClear={() => undefined} variant="filter" />
 		</div>
 	),
 };

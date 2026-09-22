@@ -56,13 +56,7 @@ const toneDot: Record<PillTone, string> = {
 	error: "bg-error-content",
 };
 
-export function Pill({
-	tone = "neutral",
-	dot = false,
-	children,
-	className,
-	...rest
-}: PillProps) {
+export function Pill({ tone = "neutral", dot = false, children, className, ...rest }: PillProps) {
 	return (
 		<span
 			className={cn(
@@ -80,11 +74,7 @@ export function Pill({
 			{dot ? (
 				<span
 					aria-hidden
-					className={cn(
-						"inline-block size-1.5 rounded-full",
-						toneDot[tone],
-						dot === "pulse" && "animate-pulse",
-					)}
+					className={cn("inline-block size-1.5 rounded-full", toneDot[tone], dot === "pulse" && "animate-pulse")}
 				/>
 			) : null}
 			{children}

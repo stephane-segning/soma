@@ -1,13 +1,13 @@
-import { SelectionAIBar } from "@soma/ui/components/editor/selection-ai-bar";
-import { SelectionBubble, type BlockStyleOption } from "@soma/ui/components/editor/selection-bubble";
-import { useT } from "@soma/ui/i18n";
 import type { NodeAIRegistry } from "@soma/ui/components/editor/node-ai-registry.types";
+import { SelectionAIBar } from "@soma/ui/components/editor/selection-ai-bar";
+import { type BlockStyleOption, SelectionBubble } from "@soma/ui/components/editor/selection-bubble";
+import { useT } from "@soma/ui/i18n";
 import type { Editor } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import { AnimatePresence } from "motion/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { applyBlockKind, BLOCK_KIND_ORDER, readCurrentBlockKind, type BlockKind } from "./block-rotation";
 import { normalizeNodeName } from "../extensions/node-ai-registry";
+import { applyBlockKind, BLOCK_KIND_ORDER, type BlockKind, readCurrentBlockKind } from "./block-rotation";
 import { readSelection, type SelectionSnapshot } from "./contextual-menu/selection";
 import type { QuickActionRequest, QuickActionResponse, QuickActionType } from "./contextual-menu/types";
 
@@ -146,6 +146,7 @@ export function ContextualMenu({
 					blockStyleOptions={blockStyleOptions}
 					bold={editor.isActive("bold")}
 					code={editor.isActive("code")}
+					highlight={editor.isActive("highlight")}
 					italic={editor.isActive("italic")}
 					linkInputOpen={linkInputOpen}
 					linkUrl={linkUrl}
@@ -160,7 +161,6 @@ export function ContextualMenu({
 							chain.setLink({ href: url }).run();
 						}
 					}}
-					highlight={editor.isActive("highlight")}
 					onToggleBold={() => editor.chain().focus().toggleBold().run()}
 					onToggleCode={() => editor.chain().focus().toggleCode().run()}
 					onToggleHighlight={() => editor.chain().focus().toggleHighlight().run()}

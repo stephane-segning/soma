@@ -12,15 +12,7 @@ export type LauncherCardProps = {
 	className?: string;
 };
 
-export function LauncherCard({
-	title,
-	description,
-	icon,
-	badge,
-	actions,
-	onClick,
-	className,
-}: LauncherCardProps) {
+export function LauncherCard({ title, description, icon, badge, actions, onClick, className }: LauncherCardProps) {
 	return (
 		<button
 			className={cn(
@@ -38,18 +30,10 @@ export function LauncherCard({
 				<div className="space-y-1">
 					<div className="flex items-center gap-2">
 						<div className="font-semibold text-base">{title}</div>
-						{badge ? (
-							<span className="badge badge-sm badge-primary border-none">
-								{badge}
-							</span>
-						) : null}
+						{badge ? <span className="badge badge-sm badge-primary border-none">{badge}</span> : null}
 					</div>
-					{description ? (
-						<p className="text-base-content/70 text-sm">{description}</p>
-					) : null}
-					{actions ? (
-						<div className="mt-2 flex flex-wrap gap-2">{actions}</div>
-					) : null}
+					{description ? <p className="text-base-content/70 text-sm">{description}</p> : null}
+					{actions ? <div className="mt-2 flex flex-wrap gap-2">{actions}</div> : null}
 				</div>
 			</div>
 			<ArrowRight className="text-base-content/50" size={16} />

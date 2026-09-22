@@ -38,15 +38,11 @@ export const Chords: Story = {
 			</div>
 			<div className="flex items-center gap-2">
 				<Kbd>Ctrl+Shift+Del</Kbd>
-				<span className="text-base-content/60 text-sm">
-					Hard delete (named keys)
-				</span>
+				<span className="text-base-content/60 text-sm">Hard delete (named keys)</span>
 			</div>
 			<div className="flex items-center gap-2">
 				<Kbd>{["⌘", "K"]}</Kbd>
-				<span className="text-base-content/60 text-sm">
-					Explicit array form
-				</span>
+				<span className="text-base-content/60 text-sm">Explicit array form</span>
 			</div>
 		</div>
 	),
@@ -83,12 +79,10 @@ export const InlineUsage: Story = {
 	render: () => (
 		<div className="space-y-3 text-sm">
 			<p>
-				Press <Kbd>⌘</Kbd> <Kbd>K</Kbd> to open the command palette, or use{" "}
-				<Kbd size="xs">⌘⇧P</Kbd> for settings.
+				Press <Kbd>⌘</Kbd> <Kbd>K</Kbd> to open the command palette, or use <Kbd size="xs">⌘⇧P</Kbd> for settings.
 			</p>
 			<p>
-				Hold <Kbd>⌥</Kbd> and click to select a word; press{" "}
-				<Kbd size="xs">Esc</Kbd> to cancel.
+				Hold <Kbd>⌥</Kbd> and click to select a word; press <Kbd size="xs">Esc</Kbd> to cancel.
 			</p>
 		</div>
 	),
@@ -98,20 +92,7 @@ export const NamedKeys: Story = {
 	render: () => (
 		<div className="flex flex-wrap items-center gap-3">
 			{(
-				[
-					"Esc",
-					"Enter",
-					"Tab",
-					"Backspace",
-					"Delete",
-					"Home",
-					"End",
-					"PageUp",
-					"PageDown",
-					"F1",
-					"F5",
-					"F12",
-				] as const
+				["Esc", "Enter", "Tab", "Backspace", "Delete", "Home", "End", "PageUp", "PageDown", "F1", "F5", "F12"] as const
 			).map((key) => (
 				<Kbd key={key}>{key}</Kbd>
 			))}

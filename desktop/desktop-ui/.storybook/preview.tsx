@@ -8,8 +8,7 @@ import { SomaIntlProvider } from "../src/i18n/intl-provider";
 import "../src/styles.css";
 
 const withMemoryRouter: Decorator = (Story, context) => {
-	const initialEntries = context.parameters?.router?.initialEntries ??
-		context.parameters?.router?.path ?? ["/"];
+	const initialEntries = context.parameters?.router?.initialEntries ?? context.parameters?.router?.path ?? ["/"];
 
 	const router = createMemoryRouter(
 		[
@@ -19,9 +18,7 @@ const withMemoryRouter: Decorator = (Story, context) => {
 			},
 		],
 		{
-			initialEntries: Array.isArray(initialEntries)
-				? initialEntries
-				: [initialEntries],
+			initialEntries: Array.isArray(initialEntries) ? initialEntries : [initialEntries],
 		},
 	);
 
@@ -64,13 +61,7 @@ const preview: Preview = {
 		(Story, context) => (
 			<SomaIntlProvider>
 				<DensityProvider
-					density={
-						(context.parameters?.density as
-							| "dense"
-							| "cozy"
-							| "oversized"
-							| undefined) ?? "dense"
-					}
+					density={(context.parameters?.density as "dense" | "cozy" | "oversized" | undefined) ?? "dense"}
 				>
 					<Story />
 				</DensityProvider>

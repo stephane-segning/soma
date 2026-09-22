@@ -42,16 +42,7 @@ export type PanelProps = {
 	className?: string;
 };
 
-export function Panel({
-	title,
-	children,
-	footer,
-	icon,
-	actions,
-	onCollapse,
-	onClose,
-	className,
-}: PanelProps) {
+export function Panel({ title, children, footer, icon, actions, onCollapse, onClose, className }: PanelProps) {
 	const t = useT();
 	return (
 		<section
@@ -63,15 +54,11 @@ export function Panel({
 			)}
 		>
 			<header className="flex h-8 items-center gap-1.5 border-base-300 border-b px-2">
-				{icon ? (
-					<span className="shrink-0 text-base-content/50">{icon}</span>
-				) : null}
+				{icon ? <span className="shrink-0 text-base-content/50">{icon}</span> : null}
 				<h2 className="min-w-0 flex-1 truncate font-medium text-[11px] text-base-content/70 uppercase tracking-wide">
 					{title}
 				</h2>
-				{actions ? (
-					<div className="flex shrink-0 items-center gap-0.5">{actions}</div>
-				) : null}
+				{actions ? <div className="flex shrink-0 items-center gap-0.5">{actions}</div> : null}
 				{onCollapse ? (
 					<HeaderIconButton
 						aria-label={t({

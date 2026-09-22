@@ -23,9 +23,7 @@ describe("MenuItem row transitions", () => {
 	it("snaps to active state with no transition", () => {
 		const { getByRole } = render(<MenuItem active label="Active item" />);
 		const button = getByRole("button");
-		expect(button.className).not.toMatch(
-			/\btransition(-colors|-all|-transform)?\b/,
-		);
+		expect(button.className).not.toMatch(/\btransition(-colors|-all|-transform)?\b/);
 		expect(button.className).toContain("bg-base-200");
 	});
 });

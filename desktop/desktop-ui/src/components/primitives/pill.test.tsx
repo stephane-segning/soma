@@ -33,10 +33,7 @@ describe("Pill primitives", () => {
 		for (const { tone, expected } of cases) {
 			const { container } = render(<Pill tone={tone}>x</Pill>);
 			const span = container.firstChild as HTMLElement;
-			expect(
-				span.className,
-				`tone=${tone} should include ${expected}`,
-			).toContain(expected);
+			expect(span.className, `tone=${tone} should include ${expected}`).toContain(expected);
 		}
 	});
 

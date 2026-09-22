@@ -1,9 +1,7 @@
 import type { ReactNode } from "react";
 import { useMemo } from "react";
 import { ChevronDown, Mic, Paperclip, Send } from "react-feather";
-import TextareaAutosize, {
-	type TextareaAutosizeProps,
-} from "react-textarea-autosize";
+import TextareaAutosize, { type TextareaAutosizeProps } from "react-textarea-autosize";
 import { cn } from "../../utils/cn";
 import { PolymorphButton } from "../actions/polymorph-button";
 

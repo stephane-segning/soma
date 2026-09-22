@@ -17,20 +17,13 @@ export function CarouselView({ node }: NodeViewProps): React.JSX.Element {
 			<div className={cn("carousel w-full rounded-box", className)}>
 				{items.length > 0 ? (
 					items.map((item, index) => (
-						<div
-							className={cn("carousel-item w-full", itemClassName)}
-							key={`${item.src}-${index}`}
-						>
-							<img
-								src={item.src}
-								alt={item.alt ?? `Slide ${index + 1}`}
-								className="w-full object-cover"
-							/>
+						<div className={cn("carousel-item w-full", itemClassName)} key={`${item.src}-${index}`}>
+							<img alt={item.alt ?? `Slide ${index + 1}`} className="w-full object-cover" src={item.src} />
 						</div>
 					))
 				) : (
 					<div className="carousel-item w-full">
-						<div className="flex h-40 w-full items-center justify-center rounded-box border border-base-300 bg-base-200 text-sm text-base-content/60">
+						<div className="flex h-40 w-full items-center justify-center rounded-box border border-base-300 bg-base-200 text-base-content/60 text-sm">
 							Add carousel slides
 						</div>
 					</div>

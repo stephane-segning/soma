@@ -9,12 +9,7 @@
  * by the locked category sequence — Rewrite → Modify → Tone →
  * Transform → Translate → Node → Custom.
  */
-import type {
-	NodeAIAction,
-	NodeAIActionCategory,
-	NodeAIActionSurface,
-	NodeAIRegistry,
-} from "./node-ai-registry.types";
+import type { NodeAIAction, NodeAIActionCategory, NodeAIActionSurface, NodeAIRegistry } from "./node-ai-registry.types";
 
 const CATEGORY_ORDER: NodeAIActionCategory[] = [
 	"rewrite",

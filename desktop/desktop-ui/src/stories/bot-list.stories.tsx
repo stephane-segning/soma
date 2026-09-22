@@ -30,8 +30,7 @@ const BOTS: Bot[] = [
 		alias: "keeper",
 		peerId: "12D3KooWX55XzZzZ9999PpQrStUvWxYzAbCd",
 		status: "failed",
-		errorReason:
-			"Signature rejected: issuer capability expired (2026-04-12). Re-issue from the owner peer to retry.",
+		errorReason: "Signature rejected: issuer capability expired (2026-04-12). Re-issue from the owner peer to retry.",
 		lastAcked: "5m ago",
 	},
 	{
@@ -76,10 +75,7 @@ export const EmptyNoCta: Story = {
 export const AllActive: Story = {
 	render: () => (
 		<div className="max-w-2xl">
-			<BotList
-				bots={BOTS.filter((b) => b.status === "active")}
-				onOverflow={() => undefined}
-			/>
+			<BotList bots={BOTS.filter((b) => b.status === "active")} onOverflow={() => undefined} />
 		</div>
 	),
 };

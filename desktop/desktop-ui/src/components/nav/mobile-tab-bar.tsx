@@ -46,12 +46,7 @@ export type MobileTabBarProps = {
 	className?: string;
 };
 
-export function MobileTabBar({
-	items,
-	activeId,
-	onSelect,
-	className,
-}: MobileTabBarProps) {
+export function MobileTabBar({ items, activeId, onSelect, className }: MobileTabBarProps) {
 	const t = useT();
 	if (items.length === 0) return null;
 
@@ -61,10 +56,7 @@ export function MobileTabBar({
 				id: "mobile-tab-bar.aria-label",
 				defaultMessage: "Primary navigation",
 			})}
-			className={cn(
-				"flex w-full border-base-300 border-t bg-base-100",
-				className,
-			)}
+			className={cn("flex w-full border-base-300 border-t bg-base-100", className)}
 		>
 			{items.map((item) => {
 				const active = item.id === activeId;
@@ -74,9 +66,7 @@ export function MobileTabBar({
 						className={cn(
 							"flex min-h-[52px] flex-1 flex-col items-center justify-center gap-0.5 py-1.5",
 							"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-inset",
-							active
-								? "text-primary"
-								: "text-base-content/60 hover:text-base-content",
+							active ? "text-primary" : "text-base-content/60 hover:text-base-content",
 						)}
 						key={item.id}
 						onClick={() => onSelect(item.id)}
@@ -85,9 +75,7 @@ export function MobileTabBar({
 						<span aria-hidden className="flex items-center justify-center">
 							{item.icon}
 						</span>
-						<span className="font-medium text-[10px] leading-none">
-							{item.label}
-						</span>
+						<span className="font-medium text-[10px] leading-none">{item.label}</span>
 					</button>
 				);
 			})}

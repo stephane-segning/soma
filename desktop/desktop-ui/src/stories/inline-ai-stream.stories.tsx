@@ -54,12 +54,7 @@ function StreamDemo() {
 			<div className="rounded-md border border-base-300 bg-base-100 p-3 text-sm">
 				<p className="text-base-content/90">
 					Paragraph before the AI region.{" "}
-					<InlineAIStream
-						onStop={() => setStreaming(false)}
-						pending={pending}
-						streaming={streaming}
-						text={text}
-					/>{" "}
+					<InlineAIStream onStop={() => setStreaming(false)} pending={pending} streaming={streaming} text={text} />{" "}
 					Paragraph after.
 				</p>
 			</div>
@@ -72,8 +67,7 @@ function StreamDemo() {
 					Restart
 				</button>
 				<span>
-					pending: <code>{String(pending)}</code> · streaming:{" "}
-					<code>{String(streaming)}</code>
+					pending: <code>{String(pending)}</code> · streaming: <code>{String(streaming)}</code>
 				</span>
 			</div>
 		</div>
@@ -98,8 +92,7 @@ export const Complete: Story = {
 	render: () => (
 		<div className="max-w-2xl text-base-content/90 text-sm">
 			<p>
-				Paragraph before. <InlineAIStream streaming={false} text={FULL_TEXT} />{" "}
-				Paragraph after.
+				Paragraph before. <InlineAIStream streaming={false} text={FULL_TEXT} /> Paragraph after.
 			</p>
 		</div>
 	),

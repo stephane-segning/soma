@@ -32,13 +32,7 @@ describe("SpaceSwitcher", () => {
 	it("opens a sheet listing every space plus Create/Join on trigger tap", () => {
 		render(
 			<SomaIntlProvider>
-				<SpaceSwitcher
-					activeId="s1"
-					items={ITEMS}
-					onCreate={() => {}}
-					onJoin={() => {}}
-					onSelect={() => {}}
-				/>
+				<SpaceSwitcher activeId="s1" items={ITEMS} onCreate={() => {}} onJoin={() => {}} onSelect={() => {}} />
 			</SomaIntlProvider>,
 		);
 		expect(screen.queryByText("Create space")).toBeNull();
@@ -79,12 +73,7 @@ describe("SpaceSwitcher", () => {
 		const onCreate = vi.fn();
 		render(
 			<SomaIntlProvider>
-				<SpaceSwitcher
-					activeId="s1"
-					items={ITEMS}
-					onCreate={onCreate}
-					onSelect={() => {}}
-				/>
+				<SpaceSwitcher activeId="s1" items={ITEMS} onCreate={onCreate} onSelect={() => {}} />
 			</SomaIntlProvider>,
 		);
 		fireEvent.click(screen.getByText("Personal"));
@@ -96,12 +85,7 @@ describe("SpaceSwitcher", () => {
 		const onJoin = vi.fn();
 		render(
 			<SomaIntlProvider>
-				<SpaceSwitcher
-					activeId="s1"
-					items={ITEMS}
-					onJoin={onJoin}
-					onSelect={() => {}}
-				/>
+				<SpaceSwitcher activeId="s1" items={ITEMS} onJoin={onJoin} onSelect={() => {}} />
 			</SomaIntlProvider>,
 		);
 		fireEvent.click(screen.getByText("Personal"));

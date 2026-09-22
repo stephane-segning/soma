@@ -8,13 +8,7 @@ type GuardProps = {
 	children: ReactNode;
 };
 
-export function DesktopGuardRail({
-	isLoading,
-	loadingContent,
-	isBlocked,
-	blockedContent,
-	children,
-}: GuardProps) {
+export function DesktopGuardRail({ isLoading, loadingContent, isBlocked, blockedContent, children }: GuardProps) {
 	if (isLoading) {
 		return (
 			<div className="flex h-full w-full items-center justify-center text-base-content/60 text-sm">

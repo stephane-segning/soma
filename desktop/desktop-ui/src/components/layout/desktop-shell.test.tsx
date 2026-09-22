@@ -26,10 +26,7 @@ function setViewportWidth(width: number) {
 	});
 }
 
-function renderShell(
-	width: number,
-	extraProps: Partial<ComponentProps<typeof DesktopShell>> = {},
-) {
+function renderShell(width: number, extraProps: Partial<ComponentProps<typeof DesktopShell>> = {}) {
 	setViewportWidth(width);
 	return render(
 		<SomaIntlProvider>

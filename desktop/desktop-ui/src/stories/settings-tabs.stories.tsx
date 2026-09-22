@@ -35,15 +35,8 @@ function Demo({ initial = "general" }: { initial?: string }) {
 	return (
 		<div className="flex flex-col gap-4">
 			<div className="flex flex-col gap-1">
-				<h1 className="font-medium text-base-content text-lg">
-					Space settings
-				</h1>
-				<SettingsTabs
-					activeId={active}
-					aria-label="Space settings"
-					onChange={setActive}
-					tabs={TABS}
-				/>
+				<h1 className="font-medium text-base-content text-lg">Space settings</h1>
+				<SettingsTabs activeId={active} aria-label="Space settings" onChange={setActive} tabs={TABS} />
 			</div>
 			<section className="rounded-md border border-base-300 bg-base-100 p-4 text-base-content/70 text-sm">
 				<span className="text-base-content">{active}</span>

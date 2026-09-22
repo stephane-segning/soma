@@ -1,9 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import {
-	DensityProvider,
-	useDensity,
-	useDensityValue,
-} from "../components/primitives/density-provider";
+import { DensityProvider, useDensity, useDensityValue } from "../components/primitives/density-provider";
 
 const meta = {
 	title: "Primitives/DensityProvider",
@@ -26,9 +22,7 @@ function DensityAwareRow({ label }: { label: string }) {
 		oversized: "text-base",
 	});
 	return (
-		<div
-			className={`flex items-center justify-between rounded border border-base-300 bg-base-100 ${padding}`}
-		>
+		<div className={`flex items-center justify-between rounded border border-base-300 bg-base-100 ${padding}`}>
 			<span className={textSize}>{label}</span>
 			<span className="badge badge-sm badge-outline">{density}</span>
 		</div>
@@ -77,9 +71,7 @@ export const Comparison: Story = {
 			{(["dense", "cozy", "oversized"] as const).map((density) => (
 				<DensityProvider density={density} key={density}>
 					<div className="min-w-40 space-y-1">
-						<p className="mb-2 font-semibold text-base-content/50 text-xs uppercase">
-							{density}
-						</p>
+						<p className="mb-2 font-semibold text-base-content/50 text-xs uppercase">{density}</p>
 						<DensityAwareRow label="Row A" />
 						<DensityAwareRow label="Row B" />
 						<DensityAwareRow label="Row C" />

@@ -53,10 +53,7 @@ const MINIMAL_CONTENT = `Just a plain sentence with no markdown.`;
 export const Prose: Story = {
 	render: () => (
 		<div className="max-w-prose">
-			<AiMarkdown
-				className="prose prose-sm max-w-none"
-				content={PROSE_CONTENT}
-			/>
+			<AiMarkdown className="prose prose-sm max-w-none" content={PROSE_CONTENT} />
 		</div>
 	),
 };
@@ -64,10 +61,7 @@ export const Prose: Story = {
 export const WithCodeBlock: Story = {
 	render: () => (
 		<div className="max-w-prose">
-			<AiMarkdown
-				className="prose prose-sm max-w-none"
-				content={CODE_CONTENT}
-			/>
+			<AiMarkdown className="prose prose-sm max-w-none" content={CODE_CONTENT} />
 		</div>
 	),
 };
@@ -75,10 +69,7 @@ export const WithCodeBlock: Story = {
 export const WithTable: Story = {
 	render: () => (
 		<div className="max-w-prose">
-			<AiMarkdown
-				className="prose prose-sm max-w-none"
-				content={TABLE_CONTENT}
-			/>
+			<AiMarkdown className="prose prose-sm max-w-none" content={TABLE_CONTENT} />
 		</div>
 	),
 };
@@ -86,10 +77,7 @@ export const WithTable: Story = {
 export const Plain: Story = {
 	render: () => (
 		<div className="max-w-prose">
-			<AiMarkdown
-				className="prose prose-sm max-w-none"
-				content={MINIMAL_CONTENT}
-			/>
+			<AiMarkdown className="prose prose-sm max-w-none" content={MINIMAL_CONTENT} />
 		</div>
 	),
 };
@@ -106,10 +94,7 @@ export const DarkTheme: Story = {
 	parameters: { theme: "luxury" },
 	render: () => (
 		<div className="max-w-prose">
-			<AiMarkdown
-				className="prose prose-sm prose-invert max-w-none"
-				content={PROSE_CONTENT}
-			/>
+			<AiMarkdown className="prose prose-sm prose-invert max-w-none" content={PROSE_CONTENT} />
 		</div>
 	),
 };

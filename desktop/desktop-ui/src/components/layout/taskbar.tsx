@@ -27,17 +27,9 @@ export function Taskbar({
 	className,
 }: TaskbarProps) {
 	return (
-		<div
-			className={cn(
-				"glass-panel mx-auto mt-2 mb-4 flex w-full max-w-6xl items-center gap-2 px-3 py-2",
-				className,
-			)}
-		>
+		<div className={cn("glass-panel mx-auto mt-2 mb-4 flex w-full max-w-6xl items-center gap-2 px-3 py-2", className)}>
 			<PolymorphButton
-				className={cn(
-					startOpen &&
-						"ring-2 ring-primary/50 ring-offset-2 ring-offset-base-200",
-				)}
+				className={cn(startOpen && "ring-2 ring-primary/50 ring-offset-2 ring-offset-base-200")}
 				leadingIcon={<Grid size={14} />}
 				onClick={onStart}
 				size="sm"
@@ -67,28 +59,15 @@ export function Taskbar({
 								{app.icon ?? <Square size={14} />}
 							</span>
 							<div className="min-w-[120px] text-left">
-								<div className="line-clamp-1 font-medium text-sm">
-									{app.title}
-								</div>
+								<div className="line-clamp-1 font-medium text-sm">{app.title}</div>
 								<div className="text-base-content/60 text-xs">
-									{app.status === "sleeping"
-										? "Sleeping"
-										: app.status === "attention"
-											? "Attention"
-											: "Running"}
+									{app.status === "sleeping" ? "Sleeping" : app.status === "attention" ? "Attention" : "Running"}
 								</div>
 							</div>
-							{app.badge ? (
-								<span className="badge badge-sm badge-primary border-none">
-									{app.badge}
-								</span>
-							) : null}
+							{app.badge ? <span className="badge badge-sm badge-primary border-none">{app.badge}</span> : null}
 							<div className="absolute inset-x-2 -bottom-1">
 								<motion.div
-									className={cn(
-										"h-0.5 rounded-full",
-										isActive ? "bg-primary" : "bg-base-content/30",
-									)}
+									className={cn("h-0.5 rounded-full", isActive ? "bg-primary" : "bg-base-content/30")}
 									layoutId="taskbar-indicator"
 								/>
 							</div>
@@ -114,11 +93,7 @@ export function Taskbar({
 
 			<div className="flex items-center gap-3">
 				{tray}
-				<PolymorphButton
-					leadingIcon={<Maximize2 size={14} />}
-					size="sm"
-					variant="ghost"
-				>
+				<PolymorphButton leadingIcon={<Maximize2 size={14} />} size="sm" variant="ghost">
 					Show desktop
 				</PolymorphButton>
 			</div>

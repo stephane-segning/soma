@@ -35,14 +35,7 @@ export type NodeAIActionSurface = "selection" | "caret" | "node";
  * mode. Match the locked order from refs editor-ai §1 ("Synthesis:
  * SelectionAIBar component").
  */
-export type NodeAIActionCategory =
-	| "rewrite"
-	| "modify"
-	| "tone"
-	| "transform"
-	| "translate"
-	| "node"
-	| "custom";
+export type NodeAIActionCategory = "rewrite" | "modify" | "tone" | "transform" | "translate" | "node" | "custom";
 
 /**
  * The execution context handed to {@link NodeAIAction.run} when the

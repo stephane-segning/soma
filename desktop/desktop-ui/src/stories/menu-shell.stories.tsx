@@ -1,10 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { Copy, Edit, FileText, Folder, Star, Trash2 } from "react-feather";
-import {
-	MenuItem,
-	MenuSectionLabel,
-	MenuShell,
-} from "../components/overlays/menu-shell";
+import { MenuItem, MenuSectionLabel, MenuShell } from "../components/overlays/menu-shell";
 
 const meta = {
 	title: "Overlays/MenuShell",
@@ -90,20 +86,9 @@ export const WideShell: Story = {
 	render: () => (
 		<MenuShell width="w-80">
 			<MenuSectionLabel>Recent pages</MenuSectionLabel>
-			<MenuItem
-				icon={<FileText size={14} />}
-				label="Architecture overview"
-				shortcut="↩"
-			/>
-			<MenuItem
-				icon={<FileText size={14} />}
-				label="Runbooks — incident response"
-			/>
-			<MenuItem
-				disabled
-				icon={<FileText size={14} />}
-				label="Wave 3 / PR review notes"
-			/>
+			<MenuItem icon={<FileText size={14} />} label="Architecture overview" shortcut="↩" />
+			<MenuItem icon={<FileText size={14} />} label="Runbooks — incident response" />
+			<MenuItem disabled icon={<FileText size={14} />} label="Wave 3 / PR review notes" />
 		</MenuShell>
 	),
 };

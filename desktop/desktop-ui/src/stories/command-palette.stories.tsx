@@ -2,10 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { Clock, FileText, Hash, Layers, Search, Settings } from "react-feather";
 
-import {
-	CommandPalette,
-	type CommandPaletteItem,
-} from "../components/overlays/command-palette";
+import { CommandPalette, type CommandPaletteItem } from "../components/overlays/command-palette";
 
 const meta = {
 	title: "Overlays/CommandPalette",
@@ -112,11 +109,7 @@ function Demo() {
 			<div className="text-base-content/60 text-xs">
 				Last picked: <code className="font-mono">{picked ?? "—"}</code>
 			</div>
-			<CommandPalette
-				items={items}
-				onClose={() => setOpen(false)}
-				open={open}
-			/>
+			<CommandPalette items={items} onClose={() => setOpen(false)} open={open} />
 		</div>
 	);
 }

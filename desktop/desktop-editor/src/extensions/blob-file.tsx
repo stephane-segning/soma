@@ -1,7 +1,7 @@
 import { createId } from "@paralleldrive/cuid2";
-import { mergeAttributes, Node, type Editor } from "@tiptap/core";
-import { ReactNodeViewRenderer } from "@tiptap/react";
+import { type Editor, mergeAttributes, Node } from "@tiptap/core";
 import { Plugin, PluginKey, type Transaction } from "@tiptap/pm/state";
+import { ReactNodeViewRenderer } from "@tiptap/react";
 
 import { BlobFileView } from "../components/blob-file-view";
 

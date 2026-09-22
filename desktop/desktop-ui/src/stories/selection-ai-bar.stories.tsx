@@ -12,8 +12,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-const SAMPLE_TEXT =
-	"Our space sync model leans on libp2p for peer discovery and CIDs for blob content addressing.";
+const SAMPLE_TEXT = "Our space sync model leans on libp2p for peer discovery and CIDs for blob content addressing.";
 
 function Demo({ nodeType = "paragraph" }: { nodeType?: string }) {
 	const [log, setLog] = useState<string[]>([]);
@@ -103,9 +102,7 @@ function Demo({ nodeType = "paragraph" }: { nodeType?: string }) {
 				selectedText={SAMPLE_TEXT}
 			/>
 			<div className="rounded-md border border-base-300 bg-base-100 p-3">
-				<div className="mb-1 text-base-content/60 text-xs uppercase">
-					Invocation log
-				</div>
+				<div className="mb-1 text-base-content/60 text-xs uppercase">Invocation log</div>
 				{log.length === 0 ? (
 					<div className="text-base-content/60">No actions invoked yet.</div>
 				) : (

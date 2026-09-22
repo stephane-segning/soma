@@ -1,8 +1,4 @@
-import type {
-	DefaultToastOptions,
-	ToastOptions,
-	ToastPosition,
-} from "react-hot-toast";
+import type { DefaultToastOptions, ToastOptions, ToastPosition } from "react-hot-toast";
 import { Toaster, toast } from "react-hot-toast";
 
 const baseToastOptions: DefaultToastOptions = {
@@ -18,19 +14,12 @@ const inlineToastOptions: ToastOptions = {
 };
 
 export function DesktopToaster({ position }: { position?: ToastPosition }) {
-	return (
-		<Toaster
-			position={position ?? "bottom-right"}
-			toastOptions={baseToastOptions}
-		/>
-	);
+	return <Toaster position={position ?? "bottom-right"} toastOptions={baseToastOptions} />;
 }
 
 export const notify = {
-	success: (message: string, options?: ToastOptions) =>
-		toast.success(message, { ...inlineToastOptions, ...options }),
-	error: (message: string, options?: ToastOptions) =>
-		toast.error(message, { ...inlineToastOptions, ...options }),
+	success: (message: string, options?: ToastOptions) => toast.success(message, { ...inlineToastOptions, ...options }),
+	error: (message: string, options?: ToastOptions) => toast.error(message, { ...inlineToastOptions, ...options }),
 	info: (message: string, options?: ToastOptions) =>
 		touchToast(message, { icon: "💡", ...inlineToastOptions, ...options }),
 };

@@ -17,13 +17,9 @@ import type { ShellTier } from "./use-shell-tier";
 type Args = { tier: ShellTier; hasContent: boolean; summonKey?: string };
 
 const run = (initial: Args) =>
-	renderHook(
-		({ tier, hasContent, summonKey }: Args) =>
-			useNarrowOverlayVisibility(tier, hasContent, summonKey),
-		{
-			initialProps: initial,
-		},
-	);
+	renderHook(({ tier, hasContent, summonKey }: Args) => useNarrowOverlayVisibility(tier, hasContent, summonKey), {
+		initialProps: initial,
+	});
 
 describe("useNarrowOverlayVisibility", () => {
 	it("mirrors content at the comfortable tier", () => {
