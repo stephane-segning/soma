@@ -97,6 +97,38 @@ pub trait DocumentSyncProvider: Send + Sync {
     ) -> Option<DocumentSyncRequest>;
 }
 
+/// Supplies and ingests space rosters for `/soma/roster/1`.
+///
+/// Split out from document sync because the two answer different
+/// questions and fail differently: a roster row is a signed claim about
+/// a third party that the receiver must verify against a pinned trust
+/// anchor, while a document is content whose authority is already
+/// settled by the time it is offered. Keeping them apart means the
+/// verification rule lives in exactly one place.
+#[async_trait]
+pub trait RosterProvider: Send + Sync {
+    /// Encoded `MembershipCapability` rows for `space_id`, or `None`
+    /// if `from` may not read that space. `None` and an empty roster
+    /// are different answers and must stay so — the first is a refusal.
+    async fn roster_for(&self, from: &PeerId, space_id: &str) -> Option<Vec<Vec<u8>>>;
+
+    /// Verify and persist rows learned from `from`, returning the
+    /// peers newly learned about.
+    ///
+    /// The return value is what makes convergence prompt rather than
+    /// eventual. Learning the roster is precisely what *enables*
+    /// authorizing those peers, so a sync attempted before it would
+    /// have been refused; reporting the new peers lets the daemon
+    /// immediately retry with them instead of waiting for the next
+    /// reconnect. Rows that fail verification are not reported.
+    async fn ingest_roster(
+        &self,
+        from: &PeerId,
+        space_id: &str,
+        members: Vec<Vec<u8>>,
+    ) -> Vec<PeerId>;
+}
+
 /// Commands sent to the peer runtime.
 #[derive(Debug)]
 pub enum PeerCommand {
@@ -153,6 +185,14 @@ pub enum PeerCommand {
     SyncDocuments {
         target: PeerId,
         request: DocumentSyncRequest,
+    },
+    /// Ask `target` who else is in `space_id`.
+    ///
+    /// Fire-and-forget: a refusal or a failure simply means the roster
+    /// is not learned this time, and the next connection retries.
+    RequestRoster {
+        target: PeerId,
+        space_id: String,
     },
     Shutdown,
 }
@@ -300,6 +340,13 @@ pub enum PeerEvent {
         size: u64,
         found: bool,
         stored: bool,
+    },
+    /// Verified roster rows were persisted, teaching us about peers we
+    /// could not previously authorize. Carries only newly-learned
+    /// peers — a roster that told us nothing new emits nothing.
+    RosterLearned {
+        space_id: String,
+        peers: Vec<PeerId>,
     },
 }
 

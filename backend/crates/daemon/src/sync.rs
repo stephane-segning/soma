@@ -7,8 +7,10 @@
 //! `JoinDecider` already are.
 
 pub mod documents;
+pub mod roster;
 
 pub use documents::StorageDocumentSync;
+pub use roster::StorageRosterSync;
 
 use libp2p::PeerId;
 use soma_storage::RepositoryProvider;

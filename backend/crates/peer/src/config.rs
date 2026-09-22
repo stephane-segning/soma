@@ -3,7 +3,7 @@ use libp2p::Multiaddr;
 use std::{path::PathBuf, sync::Arc};
 
 use crate::{
-    BlobProvider, DocumentSyncProvider, SpaceAuthorizer,
+    BlobProvider, DocumentSyncProvider, RosterProvider, SpaceAuthorizer,
     join::{JoinDecider, default_join_decider},
 };
 use soma_net::IdentityManager;
@@ -48,6 +48,11 @@ pub struct PeerConfig {
     /// relay or rendezvous node) wants.
     #[builder(default)]
     pub document_sync: Option<Arc<dyn DocumentSyncProvider>>,
+
+    /// Roster replication. `None` disables `/soma/roster/1`:
+    /// inbound requests are refused and no roster is ever requested.
+    #[builder(default)]
+    pub roster: Option<Arc<dyn RosterProvider>>,
 }
 
 impl PeerConfig {

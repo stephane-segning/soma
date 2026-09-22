@@ -152,6 +152,13 @@ pub(super) async fn handle_command(state: &mut RuntimeState, cmd: PeerCommand) -
                 .send_request(&target, wire);
             state.outbound_doc_syncs.insert(req_id, space_id);
         }
+        PeerCommand::RequestRoster { target, space_id } => {
+            let req = crate::codec::RosterRequest {
+                space_id: space_id.clone(),
+            };
+            let req_id = state.swarm.behaviour_mut().roster.send_request(&target, req);
+            state.outbound_rosters.insert(req_id, space_id);
+        }
         PeerCommand::Shutdown => {
             info!("peer shutdown requested");
             return true;

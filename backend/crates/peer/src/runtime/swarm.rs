@@ -93,6 +93,9 @@ pub(super) async fn handle_swarm_event(state: &mut RuntimeState, event: SwarmEve
         SwarmEvent::Behaviour(AppEvent::DocSync(event)) => {
             crate::runtime::doc_sync::handle_doc_sync_event(state, event).await;
         }
+        SwarmEvent::Behaviour(AppEvent::Roster(event)) => {
+            crate::runtime::roster::handle_roster_event(state, event).await;
+        }
         _ => {}
     }
 }

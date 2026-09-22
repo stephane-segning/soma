@@ -7,15 +7,15 @@ use async_trait::async_trait;
 use soma_membership::{JoinPolicy, build_join_decider};
 use soma_net::NetIdentity;
 use soma_peer::{
-    DocumentSyncProvider, PeerConfig, SpaceAuthorizer, bootstrap::PeerBootstrapper,
-    join::JoinDecider,
+    DocumentSyncProvider, PeerConfig, RosterProvider, SpaceAuthorizer,
+    bootstrap::PeerBootstrapper, join::JoinDecider,
 };
 use soma_storage::RepositoryProvider;
 use soma_proto_build::daemon;
 use soma_vdfs::BlobProvider;
 use tokio::sync::broadcast;
 
-use crate::sync::StorageDocumentSync;
+use crate::sync::{StorageDocumentSync, StorageRosterSync};
 
 pub(crate) struct DaemonPeerBootstrap {
     pub(crate) identity_path: PathBuf,
@@ -74,6 +74,11 @@ impl PeerBootstrapper for DaemonPeerBootstrap {
                 self.repos.clone(),
                 self.events.clone(),
             )) as Arc<dyn DocumentSyncProvider>)
+            .roster(Arc::new(StorageRosterSync::new(
+                self.repos.clone(),
+                identity.peer_id(),
+                identity.keypair().public(),
+            )) as Arc<dyn RosterProvider>)
             .build()
             .expect("peer config")
     }

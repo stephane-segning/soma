@@ -1,6 +1,7 @@
-//! Starts a `/soma/doc-sync/1` exchange when there is a reason to.
+//! Starts a `/soma/doc-sync/1` exchange when there is a reason to, and
+//! asks for the space roster at the same moments.
 //!
-//! Two triggers, and both are needed:
+//! Three triggers, and all three are needed:
 //!
 //! - **A peer connected.** Announcing on write alone only reaches peers
 //!   that happen to be online at that moment, so anything written while
@@ -11,6 +12,12 @@
 //!   that joins an existing space receives everything written from then
 //!   on and nothing written before — which is exactly what a two-daemon
 //!   run showed.
+//!
+//! - **We learned new members.** Roster replication is what makes a
+//!   peer authorizable in the first place, so a sync attempted before
+//!   it would have been refused. Reacting to `RosterLearned` retries
+//!   immediately instead of waiting for the next reconnect — without
+//!   it two members converge only when mDNS happens to re-dial them.
 //!
 //! Re-offering is cheap: the digest comparison makes a redundant
 //! exchange cost one round trip and no writes. That is also why
@@ -32,14 +39,29 @@ pub struct DocumentSyncHandler;
 #[async_trait]
 impl PeerEventHandler<DaemonState> for DocumentSyncHandler {
     fn interests(&self) -> &'static [PeerEventKind] {
-        &[PeerEventKind::ConnectionEstablished, PeerEventKind::JoinDecision]
+        &[
+            PeerEventKind::ConnectionEstablished,
+            PeerEventKind::JoinDecision,
+            PeerEventKind::RosterLearned,
+        ]
     }
 
     async fn handle(&self, ctx: &DaemonState, event: &PeerEvent) {
         match event {
             PeerEvent::ConnectionEstablished { peer } => {
                 for space_id in spaces_shared_with(ctx, peer).await {
+                    // Roster first: it is what lets us authorize the
+                    // other members, and it is cheap when unchanged.
+                    request_roster(ctx, peer, &space_id).await;
                     offer(ctx, peer, &space_id).await;
+                }
+            }
+            // Newly authorizable peers — sync with them now rather than
+            // waiting for mDNS to re-dial.
+            PeerEvent::RosterLearned { space_id, peers } => {
+                for peer in peers {
+                    debug!(%peer, %space_id, "doc-sync: syncing a newly-learned member");
+                    offer(ctx, peer, space_id).await;
                 }
             }
             // The decision may be a rejection, or for a space we are
@@ -52,14 +74,37 @@ impl PeerEventHandler<DaemonState> for DocumentSyncHandler {
                 let Some(space_id) = decision.space_id.as_ref().map(|s| s.value.clone()) else {
                     return;
                 };
-                if spaces_shared_with(ctx, from).await.contains(&space_id) {
-                    debug!(peer = %from, %space_id, "doc-sync: syncing after join");
-                    offer(ctx, from, &space_id).await;
-                }
+                // Deliberately NOT gated on `spaces_shared_with`. This
+                // handler and `JoinDecisionPersistenceHandler` both react
+                // to `JoinDecision` from independent queues, so the
+                // membership row may not be written yet — gating on it
+                // made the post-join sync a coin flip, and a lost toss
+                // meant waiting for the next mDNS re-dial. Asking the
+                // peer that just approved us needs no local state: it
+                // authorizes the request itself, and refuses if we are
+                // wrong.
+                debug!(peer = %from, %space_id, "doc-sync: syncing after join");
+                request_roster(ctx, from, &space_id).await;
+                offer(ctx, from, &space_id).await;
             }
             _ => {}
         }
     }
+}
+
+/// Ask `peer` who else is in `space_id`.
+///
+/// Fire-and-forget. A refusal (the peer does not know us yet) is
+/// normal on a first encounter and resolves once that peer learns the
+/// roster from someone who does.
+async fn request_roster(ctx: &DaemonState, peer: &PeerId, space_id: &str) {
+    let _ = ctx
+        .peer_commands
+        .send(PeerCommand::RequestRoster {
+            target: *peer,
+            space_id: space_id.to_string(),
+        })
+        .await;
 }
 
 /// Send `peer` our digests for `space_id`.

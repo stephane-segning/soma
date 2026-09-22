@@ -16,5 +16,5 @@ pub use soma_vdfs::BlobProvider;
 pub use spawn::{spawn_peer, spawn_ping_peer};
 pub use types::{
     DocumentDigest, DocumentPayload, DocumentSyncProvider, DocumentSyncRequest,
-    DocumentSyncResponse, PeerCommand, PeerEvent, PeerHandle, SpaceAuthorizer,
+    DocumentSyncResponse, PeerCommand, PeerEvent, PeerHandle, RosterProvider, SpaceAuthorizer,
 };

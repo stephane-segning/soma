@@ -29,6 +29,7 @@ pub enum PeerEventKind {
     IssuerOfferReceived,
     BlobAnnounceReceived,
     BlobResponseReceived,
+    RosterLearned,
 }
 
 impl PeerEventKind {
@@ -59,6 +60,7 @@ impl PeerEventKind {
         PeerEventKind::IssuerOfferReceived,
         PeerEventKind::BlobAnnounceReceived,
         PeerEventKind::BlobResponseReceived,
+        PeerEventKind::RosterLearned,
     ];
 
     /// Map a runtime event to its kind for routing.
@@ -97,6 +99,7 @@ impl PeerEventKind {
             PeerEvent::IssuerOfferReceived { .. } => PeerEventKind::IssuerOfferReceived,
             PeerEvent::BlobAnnounceReceived { .. } => PeerEventKind::BlobAnnounceReceived,
             PeerEvent::BlobResponseReceived { .. } => PeerEventKind::BlobResponseReceived,
+            PeerEvent::RosterLearned { .. } => PeerEventKind::RosterLearned,
         }
     }
 
@@ -128,6 +131,7 @@ impl PeerEventKind {
             PeerEventKind::IssuerOfferReceived => 22,
             PeerEventKind::BlobAnnounceReceived => 23,
             PeerEventKind::BlobResponseReceived => 24,
+            PeerEventKind::RosterLearned => 25,
         }
     }
 }

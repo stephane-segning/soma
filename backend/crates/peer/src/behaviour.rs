@@ -1,12 +1,12 @@
 use crate::codec::{
     BlobAnnounce, BlobAnnounceAck, BlobAnnounceCodec, BlobCodec, DocSyncCodec, DocSyncRequest,
     DocSyncResponse, IssuerCapabilityAck, IssuerOfferCodec, JoinCodec, JoinDecisionAck,
-    JoinDecisionCodec,
+    JoinDecisionCodec, RosterCodec, RosterRequest, RosterResponse,
 };
 use crate::protocol::{
     AGENT_PROTOCOL, build_blob_announce_behaviour, build_blob_behaviour,
     build_doc_sync_behaviour, build_issuer_offer_behaviour, build_join_behaviour,
-    build_join_decision_behaviour,
+    build_join_decision_behaviour, build_roster_behaviour,
 };
 use libp2p::{
     identify, identity, mdns, ping, relay, rendezvous, request_response as reqres,
@@ -59,6 +59,7 @@ pub(crate) fn build_app_behaviour(
         blob: build_blob_behaviour(),
         blob_announce: build_blob_announce_behaviour(),
         doc_sync: build_doc_sync_behaviour(),
+        roster: build_roster_behaviour(),
     }
 }
 
@@ -76,6 +77,7 @@ pub(crate) struct AppBehaviour {
     pub(crate) blob: reqres::Behaviour<BlobCodec>,
     pub(crate) blob_announce: reqres::Behaviour<BlobAnnounceCodec>,
     pub(crate) doc_sync: reqres::Behaviour<DocSyncCodec>,
+    pub(crate) roster: reqres::Behaviour<RosterCodec>,
 }
 
 #[derive(Debug)]
@@ -91,6 +93,7 @@ pub(crate) enum AppEvent {
     Blob(reqres::Event<BlobRequest, BlobResponse>),
     BlobAnnounce(reqres::Event<BlobAnnounce, BlobAnnounceAck>),
     DocSync(reqres::Event<DocSyncRequest, DocSyncResponse>),
+    Roster(reqres::Event<RosterRequest, RosterResponse>),
 }
 
 impl From<ping::Event> for AppEvent {
@@ -156,5 +159,11 @@ impl From<reqres::Event<BlobAnnounce, BlobAnnounceAck>> for AppEvent {
 impl From<reqres::Event<DocSyncRequest, DocSyncResponse>> for AppEvent {
     fn from(event: reqres::Event<DocSyncRequest, DocSyncResponse>) -> Self {
         AppEvent::DocSync(event)
+    }
+}
+
+impl From<reqres::Event<RosterRequest, RosterResponse>> for AppEvent {
+    fn from(event: reqres::Event<RosterRequest, RosterResponse>) -> Self {
+        AppEvent::Roster(event)
     }
 }
